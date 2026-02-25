@@ -5,29 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.vaadin</groupId>
-        <artifactId>vaadin-testbench-parent</artifactId>
-        <version>10.1-SNAPSHOT</version>
+        <artifactId>browserless-test</artifactId>
+        <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>vaadin-testbench-unit-quarkus</artifactId>
+    <artifactId>browserless-test-quarkus</artifactId>
     <packaging>jar</packaging>
-    <name>Vaadin Testbench UI Unit Test for Quarkus</name>
-    <description>Vaadin Testbench UI Unit Tests for Quarkus</description>
-    <url>http://vaadin.com</url>
-    <inceptionYear>2024</inceptionYear>
-
-    <repositories>
-        <repository>
-            <id>vaadin-prereleases</id>
-            <url>https://maven.vaadin.com/vaadin-prereleases/</url>
-        </repository>
-    </repositories>
-
-    <licenses>
-        <license>
-            <name>Vaadin Commercial License and Service Terms</name>
-            <url>https://vaadin.com/commercial-license-and-service-terms</url>
-        </license>
-    </licenses>
+    <name>Vaadin Browserless Test for Quarkus</name>
+    <description>Vaadin Browserless UI Test - Quarkus</description>
 
     <properties>
         <!-- Using the same version as in vaadin-quarkus extension -->
@@ -42,7 +26,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.11.2</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -55,7 +38,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jar-plugin</artifactId>
-                        <version>3.4.2</version>
                         <configuration>
                             <archive>
                                 <index>true</index>
@@ -83,12 +65,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -101,7 +81,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${surefire.version}</version>
                 <configuration>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -139,7 +118,7 @@
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <artifactId>vaadin-testbench-unit-junit5</artifactId>
+            <artifactId>browserless-test-junit6</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -160,22 +139,6 @@
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-engine</artifactId>
         </dependency>
-
-        <!-- Uncomment to pin JNA version to prevent clashes between Vaadin License Checker and Quarkus BOM -->
-        <!--
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>5.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna-platform</artifactId>
-            <version>5.14.0</version>
-            <scope>test</scope>
-        </dependency>
-        -->
 
     </dependencies>
 

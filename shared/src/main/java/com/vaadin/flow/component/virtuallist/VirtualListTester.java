@@ -1,10 +1,17 @@
 /**
  * Copyright (C) 2000-2026 Vaadin Ltd
  *
- * This program is available under Vaadin Commercial License and Service Terms.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * See <https://vaadin.com/commercial-license-and-service-terms> for the full
- * license.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.vaadin.flow.component.virtuallist;
 
@@ -12,15 +19,15 @@ import java.util.Collections;
 
 import tools.jackson.databind.node.ArrayNode;
 
+import com.vaadin.browserless.ComponentTester;
+import com.vaadin.browserless.LitRendererTestUtil;
+import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.internal.JacksonUtils;
-import com.vaadin.testbench.unit.ComponentTester;
-import com.vaadin.testbench.unit.LitRendererTestUtil;
-import com.vaadin.testbench.unit.Tests;
 
 /**
  * Tester for VirtualList components.
