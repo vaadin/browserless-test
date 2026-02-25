@@ -1,0 +1,17 @@
+AZ3VGEPs8eqbQGxo5z3MWJLXFg7htv4leEOh7FXxySY=
+src/main/java/com/vaadin/browserless/quarkus/QuarkusBrowserlessTest.java 2026-02-25T09:50:16.180304802Z
+src/main/java/com/vaadin/browserless/quarkus/QuarkusSecurityCustomizer.java 2026-02-25T09:50:16.180304802Z
+src/main/java/com/vaadin/browserless/quarkus/QuarkusTestLookupInitializer.java 2026-02-25T09:50:16.180304802Z
+src/main/java/com/vaadin/browserless/quarkus/mocks/MockQuarkusServlet.java 2026-02-25T09:50:16.180304802Z
+src/main/java/com/vaadin/browserless/quarkus/mocks/MockQuarkusServletService.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/example/base/DummyService.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/example/base/HelloWorldView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/example/base/WelcomeView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/testapp/security/AnyRoleView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/testapp/security/LoginView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/testapp/security/ProtectedView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/testapp/security/RoleRestrictedView.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/vaadin/browserless/quarkus/QuarkusBrowserlessBaseClassTest.java 2026-02-25T09:50:16.180304802Z
+src/test/java/com/vaadin/browserless/quarkus/QuarkusSecurityCustomizerTest.java 2026-02-25T09:50:16.181304802Z
+src/test/java/com/vaadin/browserless/quarkus/QuarkusUnitSecurityTest.java 2026-02-25T09:50:16.181304802Z
+src/test/java/com/vaadin/browserless/quarkus/SecurityTestConfig.java 2026-02-25T09:50:16.181304802Z
