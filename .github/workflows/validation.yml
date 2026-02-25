@@ -1,0 +1,165 @@
+name: Browserless Test Validation
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  HEAD_REF: ${{ github.head_ref }}
+  REF_NAME: ${{ github.ref_name }}
+  BASE_REF: ${{ github.event.pull_request.base.ref }}
+  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  PR_NUMBER: ${{ github.event.number }}
+  JAVA_VERSION: 21
+
+jobs:
+  check-permissions:
+    uses: ./.github/workflows/check-permissions.yml
+
+  format-check:
+    name: Format Check
+    needs: check-permissions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_SHA }}
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Run spotless validation
+        run: mvn spotless:check --batch-mode --no-transfer-progress
+
+  build:
+    name: Build Project
+    needs: format-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_SHA }}
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Clean Maven cache (if needed)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "---> Clean maven cache"
+          rm -rf ~/.m2/repository
+
+      - name: Build with Maven and Generate Javadoc
+        run: mvn clean install -DskipTests -Djavadocs -B
+
+  unit-tests:
+    name: Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_SHA }}
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
+
+      - name: Run unit tests
+        run: mvn test -B
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            **/target/surefire-reports/TEST-*.xml
+          retention-days: 7
+
+  validation-status:
+    name: Validation Status
+    permissions:
+      actions: write
+      issues: read
+      checks: write
+      pull-requests: write
+    if: always()
+    needs: [format-check, build, unit-tests]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/TEST-*.xml'
+          check_name: Test Results
+          comment_mode: failures
+
+      - name: Check all jobs status
+        run: |
+          echo "format-check: ${{ needs.format-check.result }}"
+          echo "build: ${{ needs.build.result }}"
+          echo "unit-tests: ${{ needs.unit-tests.result }}"
+
+          if [ "${{ needs.format-check.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "One or more validation jobs failed"
+            exit 1
+          fi
+          echo "All validation jobs completed successfully"
