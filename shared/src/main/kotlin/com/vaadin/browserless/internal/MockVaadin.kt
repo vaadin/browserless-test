@@ -31,6 +31,7 @@ import com.vaadin.flow.server.SessionInitListener
 import com.vaadin.flow.server.VaadinRequest
 import com.vaadin.flow.server.VaadinResponse
 import com.vaadin.flow.server.VaadinService
+import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.VaadinServlet
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
@@ -114,7 +115,9 @@ object MockVaadin {
     ) {
         if (!servlet.isInitialized) {
             val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
-            servlet.init(MockServletConfig(ctx))
+            val config = MockServletConfig(ctx)
+            config.servletInitParams[InitParameters.BROWSERLESS] = "true"
+            servlet.init(config)
         }
         val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }

@@ -51,7 +51,6 @@ import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.server.InitParameters;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
@@ -80,7 +79,6 @@ public abstract class BaseBrowserlessTest {
     private TestSignalEnvironment signalsTestEnvironment;
 
     static {
-        System.setProperty("vaadin." + InitParameters.BROWSERLESS, "true");
         testers.putAll(scanForTesters("com.vaadin.flow.component"));
     }
 
