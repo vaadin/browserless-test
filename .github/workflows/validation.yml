@@ -139,6 +139,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Post format hint comment
+        if: always() && needs.format-check.result == 'failure' && github.event_name == 'pull_request_target'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- format-check-comment -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            if (comments.some(c => c.body.includes(marker))) {
+              console.log('Format hint comment already exists, skipping.');
+              return;
+            }
+            const body = `${marker}\n:warning: **Formatting check failed.**\n\nReply with \`/format\` to automatically apply formatting fixes to this PR.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
