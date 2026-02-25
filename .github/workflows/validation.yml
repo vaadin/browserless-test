@@ -21,6 +21,7 @@ env:
   HEAD_SHA: ${{ github.event.pull_request.head.sha }}
   PR_NUMBER: ${{ github.event.number }}
   JAVA_VERSION: 21
+  VAADIN_PRO_KEY: ${{ secrets.VAADIN_PRO_KEY }}
 
 jobs:
   check-permissions:
