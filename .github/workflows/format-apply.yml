@@ -5,7 +5,6 @@ on:
     types: [created]
 
 permissions:
-  contents: write
   pull-requests: write
 
 jobs:
@@ -19,7 +18,6 @@ jobs:
 
     env:
       JAVA_VERSION: 21
-      VAADIN_PRO_KEY: ${{ secrets.VAADIN_PRO_KEY }}
 
     steps:
       - name: Check user permission
@@ -59,7 +57,7 @@ jobs:
             const headRepo = pr.data.head.repo.full_name;
             const baseRepo = pr.data.base.repo.full_name;
             if (headRepo !== baseRepo) {
-              core.setFailed(`Cannot format fork PRs (head: ${headRepo}, base: ${baseRepo}). The GITHUB_TOKEN cannot push to forks.`);
+              core.setFailed(`Cannot format fork PRs (head: ${headRepo}, base: ${baseRepo}). Cannot push to external forks.`);
               return;
             }
             core.setOutput('head-ref', pr.data.head.ref);
@@ -99,8 +97,8 @@ jobs:
       - name: Commit and push
         if: steps.diff.outputs.has-changes == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "vaadin-bot"
+          git config user.email "20280877+vaadin-bot@users.noreply.github.com"
           git add -A
           git commit -m "chore: apply spotless formatting"
           git push
