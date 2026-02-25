@@ -160,7 +160,7 @@
                         </importOrder>
                         <forbidWildcardImports/>
                         <licenseHeader>
-                            <file>${maven.multiModuleProjectDirectory}/src/license/apache2/header.txt</file>
+                            <file>${maven.multiModuleProjectDirectory}/eclipse/apache2-license-header.txt</file>
                         </licenseHeader>
                     </java>
                 </configuration>
