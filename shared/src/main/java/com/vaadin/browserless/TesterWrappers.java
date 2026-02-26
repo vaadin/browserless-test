@@ -103,6 +103,8 @@ import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListTester;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationTester;
+import com.vaadin.flow.component.popover.Popover;
+import com.vaadin.flow.component.popover.PopoverTester;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroupTester;
 import com.vaadin.flow.component.routerlink.RouterLinkTester;
@@ -252,6 +254,10 @@ public interface TesterWrappers {
     default MessageListTester<MessageList> test(MessageList messageList) {
         return BaseBrowserlessTest.internalWrap(MessageListTester.class,
                 messageList);
+    }
+
+    default PopoverTester test(Popover popover) {
+        return BaseBrowserlessTest.internalWrap(PopoverTester.class, popover);
     }
 
     default NotificationTester<Notification> test(Notification notification) {
