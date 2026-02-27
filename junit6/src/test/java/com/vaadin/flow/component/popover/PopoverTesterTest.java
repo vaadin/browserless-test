@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.popover;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,9 +24,11 @@ import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.html.NativeButton;
+import com.vaadin.flow.component.popover.Popover.OpenedChangeEvent;
 import com.vaadin.flow.router.RouteConfiguration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -176,5 +180,37 @@ class PopoverTesterTest extends BrowserlessTest {
     void clickOutside_throwsWhenNotOpen() {
         assertThrows(IllegalStateException.class,
                 () -> popover_.clickOutside());
+    }
+
+    @Test
+    void open_firesOpenedChangeListenerWithFromClientTrue() {
+        AtomicReference<OpenedChangeEvent> captured = new AtomicReference<>();
+        view.popover.addOpenedChangeListener(captured::set);
+
+        popover_.open();
+
+        assertNotNull(captured.get(),
+                "OpenedChangeEvent should have been fired");
+        assertTrue(captured.get().isFromClient(),
+                "OpenedChangeEvent should be from client");
+        assertTrue(captured.get().isOpened(),
+                "OpenedChangeEvent should report opened=true");
+    }
+
+    @Test
+    void close_firesOpenedChangeListenerWithFromClientTrue() {
+        popover_.open();
+
+        AtomicReference<OpenedChangeEvent> captured = new AtomicReference<>();
+        view.popover.addOpenedChangeListener(captured::set);
+
+        popover_.close();
+
+        assertNotNull(captured.get(),
+                "OpenedChangeEvent should have been fired");
+        assertTrue(captured.get().isFromClient(),
+                "OpenedChangeEvent should be from client");
+        assertFalse(captured.get().isOpened(),
+                "OpenedChangeEvent should report opened=false");
     }
 }

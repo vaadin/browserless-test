@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.ComponentUtil;
 
 /**
  * Tester for Popover components.
@@ -44,6 +45,7 @@ public class PopoverTester extends ComponentTester<Popover> {
             setModal(true);
         }
         roundTrip();
+        fireOpenedChangeEvent();
     }
 
     /**
@@ -54,6 +56,8 @@ public class PopoverTester extends ComponentTester<Popover> {
             setModal(false);
         }
         getComponent().close();
+        roundTrip();
+        fireOpenedChangeEvent();
     }
 
     /**
@@ -150,6 +154,11 @@ public class PopoverTester extends ComponentTester<Popover> {
         Popover component = getComponent();
         return component.isVisible() && component.isAttached()
                 && component.isOpened() && component.getElement().isEnabled();
+    }
+
+    private void fireOpenedChangeEvent() {
+        ComponentUtil.fireEvent(getComponent(),
+                new Popover.OpenedChangeEvent(getComponent(), true));
     }
 
     private void ensureTargetSet() {
