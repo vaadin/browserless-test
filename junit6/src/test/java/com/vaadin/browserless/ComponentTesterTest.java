@@ -17,17 +17,30 @@ package com.vaadin.browserless;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.base.WelcomeView;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.ClickNotifier;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.internal.JacksonUtils;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ViewPackages(packages = "com.example")
 public class ComponentTesterTest extends BrowserlessTest {
@@ -42,8 +55,7 @@ public class ComponentTesterTest extends BrowserlessTest {
     @Test
     public void canGetWrapperForView_viewIsUsable() {
         final ComponentTester<WelcomeView> home_ = test(home);
-        Assertions.assertTrue(home_.isUsable(),
-                "Home should be visible and interactable");
+        assertTrue(home_.isUsable(), "Home should be visible and interactable");
     }
 
     @Test
@@ -51,7 +63,7 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.getElement().setEnabled(false);
 
         final ComponentTester<WelcomeView> home_ = test(home);
-        Assertions.assertFalse(home_.isUsable(),
+        assertFalse(home_.isUsable(),
                 "Home should be visible but not interactable");
     }
 
@@ -60,7 +72,7 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.setVisible(false);
 
         final ComponentTester<WelcomeView> home_ = test(home);
-        Assertions.assertFalse(home_.isUsable(),
+        assertFalse(home_.isUsable(),
                 "Home should not be interactable when component is not visible");
     }
 
@@ -72,19 +84,18 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.add(span);
         final ComponentTester<Span> span_ = test(span);
 
-        Assertions.assertTrue(span_.isUsable(),
-                "Span should be attached to the ui");
+        assertTrue(span_.isUsable(), "Span should be attached to the ui");
 
         span_.setModal(true);
 
-        Assertions.assertTrue(span_.isUsable(),
+        assertTrue(span_.isUsable(),
                 "Span should interactable when it is modal");
-        Assertions.assertFalse(home_.isUsable(),
+        assertFalse(home_.isUsable(),
                 "Home should not be interactable when Span is modal");
 
         span_.setModal(false);
 
-        Assertions.assertTrue(home_.isUsable(),
+        assertTrue(home_.isUsable(),
                 "Home should be interactable when Span is not modal");
     }
 
@@ -96,19 +107,18 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.add(span);
         final ComponentTester<Span> span_ = test(span);
 
-        Assertions.assertTrue(span_.isUsable(),
-                "Span should be attached to the ui");
+        assertTrue(span_.isUsable(), "Span should be attached to the ui");
 
         span_.setModal(true);
 
-        Assertions.assertTrue(span_.isUsable(),
+        assertTrue(span_.isUsable(),
                 "Span should be interactable when it is modal");
-        Assertions.assertFalse(home_.isUsable(),
+        assertFalse(home_.isUsable(),
                 "Home should not be interactable when Span is modal");
 
         home.remove(span);
 
-        Assertions.assertTrue(home_.isUsable(),
+        assertTrue(home_.isUsable(),
                 "Home should be interactable when Span is removed");
     }
 
@@ -118,12 +128,11 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.add(span);
         final ComponentTester<Span> span_ = test(span);
 
-        Assertions.assertTrue(span_.isUsable(),
-                "Span should be attached to the ui");
+        assertTrue(span_.isUsable(), "Span should be attached to the ui");
 
         home.setVisible(false);
 
-        Assertions.assertFalse(span_.isUsable(),
+        assertFalse(span_.isUsable(),
                 "Span should not be interactable when parent is hidden");
     }
 
@@ -133,7 +142,7 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         ComponentTester<Span> span_ = test(span);
 
-        Assertions.assertFalse(span_.isUsable(),
+        assertFalse(span_.isUsable(),
                 "Span is not attached so it is not usable.");
     }
 
@@ -147,13 +156,13 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         Optional<Span> result = wrapper_.findByQuery(Span.class,
                 query -> query.withText("One"));
-        Assertions.assertTrue(result.isPresent());
-        Assertions.assertSame(one, result.get());
+        assertTrue(result.isPresent());
+        assertSame(one, result.get());
 
         result = wrapper_.findByQuery(Span.class,
                 query -> query.withText("Two"));
-        Assertions.assertTrue(result.isPresent());
-        Assertions.assertSame(two, result.get());
+        assertTrue(result.isPresent());
+        assertSame(two, result.get());
     }
 
     @Test
@@ -166,7 +175,7 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         Optional<Span> result = wrapper_.findByQuery(Span.class,
                 query -> query.withText("Three"));
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -177,7 +186,7 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         ComponentTester<Div> wrapper_ = test(container);
 
-        Assertions.assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> wrapper_.findByQuery(Span.class,
                         query -> query.withTextContaining("Span")));
     }
@@ -194,15 +203,15 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         List<Span> result = wrapper_.findAllByQuery(Span.class,
                 query -> query.withTextContaining("One"));
-        Assertions.assertIterableEquals(List.of(one), result);
+        assertIterableEquals(List.of(one), result);
 
         result = wrapper_.findAllByQuery(Span.class,
                 query -> query.withTextContaining("Two"));
-        Assertions.assertIterableEquals(List.of(two, three), result);
+        assertIterableEquals(List.of(two, three), result);
 
         result = wrapper_.findAllByQuery(Span.class,
                 query -> query.withTextContaining("Span"));
-        Assertions.assertIterableEquals(List.of(one, two, three), result);
+        assertIterableEquals(List.of(one, two, three), result);
     }
 
     @Test
@@ -217,12 +226,12 @@ public class ComponentTesterTest extends BrowserlessTest {
 
         List<Span> result = wrapper_.findAllByQuery(Span.class,
                 query -> query.withTextContaining("Three"));
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     private WelcomeView getHome() {
         final HasElement view = getCurrentView();
-        Assertions.assertTrue(view instanceof WelcomeView,
+        assertTrue(view instanceof WelcomeView,
                 "Home should be navigated to by default");
         return (WelcomeView) view;
     }
@@ -242,6 +251,78 @@ public class ComponentTesterTest extends BrowserlessTest {
         public Div(Component... components) {
             add(components);
         }
+    }
+
+    @Tag("div")
+    public static class ClickableDiv extends Component
+            implements HasComponents, ClickNotifier<ClickableDiv> {
+    }
+
+    static class ExposedTester<T extends Component> extends ComponentTester<T> {
+        public ExposedTester(T component) {
+            super(component);
+        }
+
+        @Override
+        public void fireDomEvent(String eventType) {
+            super.fireDomEvent(eventType);
+        }
+
+        @Override
+        public void fireDomEvent(String eventType, ObjectNode eventData) {
+            super.fireDomEvent(eventType, eventData);
+        }
+    }
+
+    @Test
+    void fireDomEvent_clickEvent_isFromClientTrue() {
+        ClickableDiv div = new ClickableDiv();
+        home.add(div);
+
+        AtomicReference<ClickEvent<ClickableDiv>> captured = new AtomicReference<>();
+        div.addClickListener(captured::set);
+
+        new ExposedTester<>(div).fireDomEvent("click");
+
+        assertNotNull(captured.get(),
+                "ClickEvent listener should have been called");
+        assertTrue(captured.get().isFromClient(),
+                "ClickEvent should be from client");
+    }
+
+    @Test
+    void fireDomEvent_withEventData_isFromClientTrue() {
+        ClickableDiv div = new ClickableDiv();
+        home.add(div);
+
+        AtomicReference<ClickEvent<ClickableDiv>> captured = new AtomicReference<>();
+        div.addClickListener(captured::set);
+
+        ObjectNode eventData = JacksonUtils.createObjectNode();
+        eventData.put("event.screenX", 42.0);
+
+        new ExposedTester<>(div).fireDomEvent("click", eventData);
+
+        assertNotNull(captured.get(),
+                "ClickEvent listener should have been called");
+        assertTrue(captured.get().isFromClient(),
+                "ClickEvent should be from client");
+        assertEquals(42, captured.get().getScreenX(),
+                "screenX should match event data");
+    }
+
+    @Test
+    void fireDomEvent_domListener_isCalled() {
+        ClickableDiv div = new ClickableDiv();
+        home.add(div);
+
+        AtomicBoolean called = new AtomicBoolean(false);
+        div.getElement().addEventListener("custom-event",
+                e -> called.set(true));
+
+        new ExposedTester<>(div).fireDomEvent("custom-event");
+
+        assertTrue(called.get(), "DOM event listener should have been called");
     }
 
 }
