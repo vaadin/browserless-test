@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.math.BigDecimal;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
 import com.vaadin.flow.component.button.Button;
@@ -258,6 +259,15 @@ public interface TesterWrappers {
 
     default PopoverTester test(Popover popover) {
         return BaseBrowserlessTest.internalWrap(PopoverTester.class, popover);
+    }
+
+    default PopoverTester popoverFor(Component target) {
+        return PopoverTester.forTarget(target);
+    }
+
+    default PopoverTester popoverFor(
+            ComponentQuery<? extends Component> query) {
+        return PopoverTester.forTarget(query);
     }
 
     default NotificationTester<Notification> test(Notification notification) {

@@ -17,8 +17,10 @@ package com.vaadin.flow.component.popover;
 
 import java.util.function.Consumer;
 
+import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 
 /**
@@ -34,6 +36,37 @@ public class PopoverTester extends ComponentTester<Popover> {
      */
     public PopoverTester(Popover component) {
         super(component);
+    }
+
+    /**
+     * Creates a {@link PopoverTester} for the popover that targets the
+     * component matching the given query.
+     *
+     * @param query
+     *            a query that resolves to the target component
+     * @return a tester for the popover targeting the matched component
+     * @throws java.util.NoSuchElementException
+     *             if no popover targets the matched component
+     */
+    public static PopoverTester forTarget(
+            ComponentQuery<? extends Component> query) {
+        return forTarget(query.single());
+    }
+
+    /**
+     * Creates a {@link PopoverTester} for the popover that targets the given
+     * component.
+     *
+     * @param target
+     *            the target component of the popover
+     * @return a tester for the popover targeting the given component
+     * @throws java.util.NoSuchElementException
+     *             if no popover targets the given component
+     */
+    public static PopoverTester forTarget(Component target) {
+        Popover popover = new ComponentQuery<>(Popover.class)
+                .withCondition(p -> p.getTarget() == target).single();
+        return new PopoverTester(popover);
     }
 
     /**

@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.popover;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -195,6 +196,52 @@ class PopoverTesterTest extends BrowserlessTest {
                 "OpenedChangeEvent should be from client");
         assertTrue(captured.get().isOpened(),
                 "OpenedChangeEvent should report opened=true");
+    }
+
+    @Test
+    void forTarget_findsPopoverByTarget() {
+        PopoverTester tester = PopoverTester.forTarget(view.target);
+        tester.clickTarget();
+        assertTrue(tester.isOpen(),
+                "Popover found by target should open on clickTarget()");
+    }
+
+    @Test
+    void forTarget_throwsWhenNoPopoverForTarget() {
+        assertThrows(NoSuchElementException.class,
+                () -> PopoverTester.forTarget(view.button));
+    }
+
+    @Test
+    void forTarget_withComponentQuery_findsPopoverByTarget() {
+        PopoverTester tester = PopoverTester
+                .forTarget($(NativeButton.class).withId("target-id"));
+        tester.clickTarget();
+        assertTrue(tester.isOpen(),
+                "Popover found by query should open on clickTarget()");
+    }
+
+    @Test
+    void forTarget_withComponentQuery_throwsWhenNoPopoverForTarget() {
+        assertThrows(NoSuchElementException.class, () -> PopoverTester
+                .forTarget($(NativeButton.class).withId("other-id")));
+    }
+
+    @Test
+    void popoverFor_findsPopoverByTarget() {
+        PopoverTester tester = popoverFor(view.target);
+        tester.clickTarget();
+        assertTrue(tester.isOpen(),
+                "Popover found by popoverFor() should open on clickTarget()");
+    }
+
+    @Test
+    void popoverFor_withComponentQuery_findsPopoverByTarget() {
+        PopoverTester tester = popoverFor(
+                $(NativeButton.class).withId("target-id"));
+        tester.clickTarget();
+        assertTrue(tester.isOpen(),
+                "Popover found by popoverFor(query) should open");
     }
 
     @Test

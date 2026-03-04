@@ -32,7 +32,9 @@ public class PopoverView extends Component implements HasComponents {
     public PopoverView() {
         popover = new Popover();
         target = new NativeButton("Target");
+        target.setId("target-id");
         button = new NativeButton("Other");
+        button.setId("other-id");
         popover.setTarget(target);
         add(target, button);
     }
