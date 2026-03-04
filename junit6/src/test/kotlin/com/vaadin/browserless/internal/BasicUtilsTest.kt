@@ -96,6 +96,7 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
             div.addClickListener { e -> event = e }
             div._fireDomEvent("click", JacksonUtils.createObjectNode().apply { put("event.screenX", 20.0) })
             expect(20) { event.screenX }
+            expect(true) { event.isFromClient }
         }
     }
 
