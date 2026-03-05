@@ -92,6 +92,7 @@ class PopoverTesterTest extends BrowserlessTest {
 
     @Test
     void clickTarget_opensPopover() {
+        assertFalse(popover_.isOpen(), "Popover should be closed initially");
         popover_.clickTarget();
         assertTrue(popover_.isOpen(),
                 "Popover should be open after clickTarget()");
@@ -216,6 +217,7 @@ class PopoverTesterTest extends BrowserlessTest {
     void forTarget_withComponentQuery_findsPopoverByTarget() {
         PopoverTester tester = PopoverTester
                 .forTarget($(NativeButton.class).withId("target-id"));
+        assertFalse(tester.isOpen(), "Popover should be closed initially");
         tester.clickTarget();
         assertTrue(tester.isOpen(),
                 "Popover found by query should open on clickTarget()");
@@ -230,6 +232,7 @@ class PopoverTesterTest extends BrowserlessTest {
     @Test
     void popoverFor_findsPopoverByTarget() {
         PopoverTester tester = popoverFor(view.target);
+        assertFalse(tester.isOpen(), "Popover should be closed initially");
         tester.clickTarget();
         assertTrue(tester.isOpen(),
                 "Popover found by popoverFor() should open on clickTarget()");
@@ -239,6 +242,7 @@ class PopoverTesterTest extends BrowserlessTest {
     void popoverFor_withComponentQuery_findsPopoverByTarget() {
         PopoverTester tester = popoverFor(
                 $(NativeButton.class).withId("target-id"));
+        assertFalse(popover_.isOpen(), "Popover should be closed initially");
         tester.clickTarget();
         assertTrue(tester.isOpen(),
                 "Popover found by popoverFor(query) should open");
