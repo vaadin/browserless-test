@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import com.example.base.WelcomeView;
 import org.junit.jupiter.api.BeforeEach;
@@ -271,6 +272,46 @@ public class ComponentTesterTest extends BrowserlessTest {
         @Override
         public void fireDomEvent(String eventType, ObjectNode eventData) {
             super.fireDomEvent(eventType, eventData);
+        }
+    }
+
+    @Test
+    void ensureComponentIsUsable_subclassOverride_includesCustomReason() {
+        Span span = new Span();
+        home.add(span);
+
+        CustomTester<Span> tester = new CustomTester<>(span);
+        tester.markNotUsable();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                tester::ensureComponentIsUsable);
+        assertTrue(ex.getMessage().contains("custom reason"),
+                "Error message should contain subclass reason: "
+                        + ex.getMessage());
+    }
+
+    static class CustomTester<T extends Component> extends ComponentTester<T> {
+        private boolean usable = true;
+
+        public CustomTester(T component) {
+            super(component);
+        }
+
+        void markNotUsable() {
+            usable = false;
+        }
+
+        @Override
+        public boolean isUsable() {
+            return usable && super.isUsable();
+        }
+
+        @Override
+        protected void notUsableReasons(Consumer<String> collector) {
+            super.notUsableReasons(collector);
+            if (!usable) {
+                collector.accept("custom reason");
+            }
         }
     }
 
