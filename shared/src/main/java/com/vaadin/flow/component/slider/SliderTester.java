@@ -60,6 +60,13 @@ public class SliderTester<T extends Slider> extends ComponentTester<T> {
                 throw new IllegalArgumentException("Value " + value
                         + " is above maximum " + getComponent().getMax());
             }
+            if (!getComponent().isValueAlignedWithStep(value)) {
+                throw new IllegalArgumentException(
+                        "Value " + value + " is not aligned with step "
+                                + getComponent().getStep() + " (min: "
+                                + getComponent().getMin() + ", max: "
+                                + getComponent().getMax() + ")");
+            }
         }
         setValueAsUser(value);
     }
