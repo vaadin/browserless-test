@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.math.BigDecimal;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
 import com.vaadin.flow.component.button.Button;
@@ -103,6 +104,8 @@ import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.messages.MessageListTester;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationTester;
+import com.vaadin.flow.component.popover.Popover;
+import com.vaadin.flow.component.popover.PopoverTester;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroupTester;
 import com.vaadin.flow.component.routerlink.RouterLinkTester;
@@ -252,6 +255,19 @@ public interface TesterWrappers {
     default MessageListTester<MessageList> test(MessageList messageList) {
         return BaseBrowserlessTest.internalWrap(MessageListTester.class,
                 messageList);
+    }
+
+    default PopoverTester test(Popover popover) {
+        return BaseBrowserlessTest.internalWrap(PopoverTester.class, popover);
+    }
+
+    default PopoverTester popoverFor(Component target) {
+        return PopoverTester.forTarget(target);
+    }
+
+    default PopoverTester popoverFor(
+            ComponentQuery<? extends Component> query) {
+        return PopoverTester.forTarget(query);
     }
 
     default NotificationTester<Notification> test(Notification notification) {
