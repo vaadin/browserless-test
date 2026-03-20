@@ -47,6 +47,7 @@ import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -359,6 +360,28 @@ public abstract class BaseBrowserlessTest {
     public HasElement getCurrentView() {
         return verifyAndGetUI().getInternals().getActiveRouterTargetsChain()
                 .get(0);
+    }
+
+    /**
+     * Gets the current router layout instance of the given type.
+     *
+     * @param <T>
+     *            layout type
+     * @param layoutType
+     *            the expected layout class
+     * @return the layout instance
+     * @throws IllegalStateException
+     *             if no layout of the given type is found
+     */
+    public <T extends RouterLayout> T getRouterLayout(Class<T> layoutType) {
+        List<HasElement> chain = verifyAndGetUI().getInternals()
+                .getActiveRouterTargetsChain();
+        return chain.stream().filter(layoutType::isInstance)
+                .map(layoutType::cast).findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No router layout of type " + layoutType.getName()
+                                + " found in the active router targets chain: "
+                                + chain));
     }
 
     // Protected for access by adapter subclass in legacy module
