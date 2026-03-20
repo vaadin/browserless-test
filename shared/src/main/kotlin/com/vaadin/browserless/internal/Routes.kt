@@ -19,9 +19,11 @@ import com.vaadin.flow.router.ErrorParameter
 import com.vaadin.flow.router.HasErrorParameter
 import com.vaadin.flow.router.InternalServerError
 import com.vaadin.flow.router.NotFoundException
+import com.vaadin.flow.router.Layout
 import com.vaadin.flow.router.Route
 import com.vaadin.flow.router.RouteData
 import com.vaadin.flow.router.RouteNotFoundError
+import com.vaadin.flow.router.RouterLayout
 import com.vaadin.flow.router.internal.DefaultErrorHandler
 import com.vaadin.flow.server.HttpStatusCode
 import com.vaadin.flow.server.VaadinContext
@@ -38,12 +40,15 @@ import io.github.classgraph.ScanResult
  * call to [MockVaadin.setup].
  * @property routes a list of all route views in your application. Vaadin will ignore any routes not present here.
  * @property errorRoutes a list of all route views in your application. Vaadin will ignore any routes not present here.
+ * @property layouts a list of all [Layout]-annotated [RouterLayout] classes. These are automatically applied to routes
+ * that do not explicitly specify a layout in their [Route] annotation.
  * @property skipPwaInit if true, the PWA initialization code is skipped in Vaadin, which dramatically speeds up
  * the [MockVaadin.setup] from 2 seconds to 50ms. Since that's usually what you want to do, this defaults to true.
  */
 data class Routes(
         val routes: MutableSet<Class<out Component>> = mutableSetOf(),
         val errorRoutes: MutableSet<Class<out HasErrorParameter<*>>> = mutableSetOf(MockRouteNotFoundError::class.java),
+        val layouts: MutableSet<Class<out RouterLayout>> = mutableSetOf(),
         var skipPwaInit: Boolean = true
 ) : Serializable {
 
@@ -52,7 +57,8 @@ data class Routes(
      */
     @Suppress("UNCHECKED_CAST")
     fun register(sc: VaadinContext) {
-        RouteRegistryInitializer().onStartup(routes.toSet(), sc.context)
+        val classSet: Set<Class<*>> = routes.toSet<Class<*>>() + layouts
+        RouteRegistryInitializer().onStartup(classSet, sc.context)
         checkNotNull(sc.context.getAttribute("com.vaadin.flow.server.startup.ApplicationRouteRegistry${'$'}ApplicationRouteRegistryWrapper")) {
             "RouteRegistryInitializer did not register the ApplicationRouteRegistry!"
         }
@@ -85,6 +91,11 @@ data class Routes(
             scanResult.getClassesImplementing(HasErrorParameter::class.java.name).mapTo(errorRoutes) { info: ClassInfo ->
                 findClassOrThrow(info.name).asSubclass(HasErrorParameter::class.java)
             }
+            scanResult.getClassesWithAnnotation(Layout::class.java.name)
+                    .filter { it.implementsInterface(RouterLayout::class.java.name) }
+                    .mapTo(layouts) { info: ClassInfo ->
+                        findClassOrThrow(info.name).asSubclass(RouterLayout::class.java)
+                    }
         }
 
         cleanupErrorRoutes()
@@ -93,15 +104,16 @@ data class Routes(
     }
 
     fun merge(other: Routes): Routes {
-        return Routes(LinkedHashSet(this.routes), LinkedHashSet(this.errorRoutes), this.skipPwaInit).apply {
+        return Routes(LinkedHashSet(this.routes), LinkedHashSet(this.errorRoutes), LinkedHashSet(this.layouts), this.skipPwaInit).apply {
             routes.addAll(other.routes)
             errorRoutes.addAll(other.errorRoutes)
+            layouts.addAll(other.layouts)
             cleanupErrorRoutes()
         }
     }
 
     override fun toString(): String =
-            "Routes(routes=${routes.joinToString { it.simpleName }}, errorRoutes=${errorRoutes.joinToString { it.simpleName }})"
+            "Routes(routes=${routes.joinToString { it.simpleName }}, errorRoutes=${errorRoutes.joinToString { it.simpleName }}, layouts=${layouts.joinToString { it.simpleName }})"
 
 
     private fun cleanupErrorRoutes() {

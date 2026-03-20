@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import com.example.SingleParam;
 import com.example.TemplatedParam;
+import com.example.autolayout.AutoLayoutView;
 import com.example.base.WelcomeView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -76,6 +77,7 @@ class BrowserlessBaseClassTest {
                     TestRoutes.INSTANCE.getViews());
             allViews.add(SingleParam.class);
             allViews.add(TemplatedParam.class);
+            allViews.add(AutoLayoutView.class);
             Assertions.assertEquals(allViews.size(), routes.size());
             Assertions.assertTrue(routes.containsAll(allViews));
         }
