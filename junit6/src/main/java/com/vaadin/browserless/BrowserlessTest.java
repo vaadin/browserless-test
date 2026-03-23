@@ -15,16 +15,15 @@
  */
 package com.vaadin.browserless;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Base JUnit 6 class for browserless tests.
  *
- * The class automatically scans classpath for routes and error views.
- * Subclasses should typically restrict classpath scanning to a specific
- * packages for faster bootstrap, by using {@link ViewPackages} annotation. If
- * the annotation is not present a full classpath scan is performed
+ * The class automatically scans the classpath for routes and error views.
+ * Subclasses should typically restrict classpath scanning to specific packages
+ * for faster bootstrap by using the {@link ViewPackages} annotation. If the
+ * annotation is not present, a full classpath scan is performed.
  *
  * <pre>
  * {@code
@@ -44,52 +43,43 @@ import org.junit.jupiter.api.BeforeEach;
  * }
  * </pre>
  *
- * Set up of Vaadin environment is performed before each test by {@link
- * #initVaadinEnvironment()} method, and will be executed before
- * {@code @BeforeEach} methods defined in subclasses. At the same way, cleanup
- * tasks operated by {@link #cleanVaadinEnvironment()} are executed after each
- * test, and after all {@code @AfterEach} annotated methods in subclasses.
+ * The Vaadin environment lifecycle is managed by {@link
+ * BrowserlessTestExtension}, which calls {@link #initVaadinEnvironment()}
+ * before each test and {@link #cleanVaadinEnvironment()} after each test via
+ * virtual dispatch. When the test class is annotated with
+ * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}, the environment is
+ * shared across all tests in the class (initialized once in {@code @BeforeAll},
+ * torn down in {@code @AfterAll}).
  *
- * Usually, it is not necessary to override {@link #initVaadinEnvironment()} or
- * {@link #cleanVaadinEnvironment()} methods, but if this is done it is
- * mandatory to add the {@code @BeforeEach} and {@code @AfterEach} annotations
- * in the subclass, in order to have hooks handled by testing framework.
- *
- * A use case for overriding {@link #initVaadinEnvironment()} is to provide
- * custom Flow service implementations supported by {@link
- * com.vaadin.flow.di.Lookup} SPI. Implementations can be provided overriding
- * {@link #initVaadinEnvironment()} and passing to super implementation the
- * service classes that should be initialized during setup.
+ * <p>
+ * To provide custom Flow service implementations via the {@link
+ * com.vaadin.flow.di.Lookup} SPI, override {@link #lookupServices()}:
  *
  * <pre>
  * {@code
- * &#64;BeforeEach
  * &#64;Override
- * void initVaadinEnvironment() {
- *     super.initVaadinEnvironment(CustomInstantiatorFactory.class);
+ * protected Set<Class<?>> lookupServices() {
+ *     return Set.of(CustomInstantiatorFactory.class);
  * }
  * }
  * </pre>
- * <p/>
- * To get a graphical ascii representation of the UI tree on failure add the
- * annotation {@code @ExtendWith(TreeOnFailureExtension.class)} to the test
- * class.
+ *
+ * <p>
+ * <strong>Note:</strong> Subclasses that override {@code initVaadinEnvironment}
+ * must NOT add {@code @BeforeEach} — the extension handles invocation via
+ * virtual dispatch.
+ *
+ * <p>
+ * To get a graphical ASCII representation of the UI tree on failure, add
+ * {@code @ExtendWith(TreeOnFailureExtension.class)} to the test class.
  *
  * @see ViewPackages
+ * 
+ * @see BrowserlessExtension
  */
+@ExtendWith(BrowserlessTestExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
-
-    @BeforeEach
-    protected void initVaadinEnvironment() {
-        super.initVaadinEnvironment();
-    }
-
-    @AfterEach
-    @Override
-    protected void cleanVaadinEnvironment() {
-        super.cleanVaadinEnvironment();
-    }
 
     @Override
     protected final String testingEngine() {

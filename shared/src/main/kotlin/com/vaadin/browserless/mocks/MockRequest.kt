@@ -217,9 +217,17 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
     var userPrincipalInt: Principal? = null
 
     /**
-     * Set via [userPrincipalInt].
+     * Optional provider for [getUserPrincipal]. When set, takes precedence over
+     * [userPrincipalInt], allowing the principal to be resolved lazily at
+     * call time (e.g. from a security context that is populated after setup).
      */
-    override fun getUserPrincipal(): Principal? = userPrincipalInt
+    var userPrincipalProvider: (() -> Principal?)? = null
+
+    /**
+     * Returns the principal from [userPrincipalProvider] if set, otherwise
+     * falls back to [userPrincipalInt].
+     */
+    override fun getUserPrincipal(): Principal? = userPrincipalProvider?.invoke() ?: userPrincipalInt
 
     override fun getReader(): BufferedReader {
         throw UnsupportedOperationException("not implemented")
