@@ -81,7 +81,8 @@ public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
     @BeforeEach
-    protected void initVaadinEnvironment() {
+    protected void 
+        initVaadinEnvironment() {
         super.initVaadinEnvironment();
     }
 
