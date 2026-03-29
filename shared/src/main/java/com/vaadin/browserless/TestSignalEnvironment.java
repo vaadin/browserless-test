@@ -19,6 +19,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+
 import org.slf4j.LoggerFactory;
 
 import com.vaadin.flow.server.VaadinSession;
@@ -33,8 +34,8 @@ import com.vaadin.flow.signals.SignalEnvironment;
  * How it works:
  * <ul>
  * <li>{@link #getEffectDispatcher()} returns an executor that enqueues tasks
- * into an internal queue. {@link #getResultNotifier()} returns {@code null} so
- * that result notifications fall through to the next environment or run
+ * into an internal queue. {@link #getResultNotifier()} returns {@code null}
+ * so that result notifications fall through to the next environment or run
  * immediately.</li>
  * <li>Tests call {@link #runPendingTasks(long, TimeUnit)} to dequeue and run
  * all pending tasks on the calling thread.</li>
@@ -147,7 +148,8 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * @return {@code true} if any pending Signals tasks were processed.
      */
     public boolean runPendingTasks(long maxWaitTime, TimeUnit unit) {
-        long deadlineNanos = System.nanoTime() + unit.toNanos(maxWaitTime);
+        long deadlineMillis = System.currentTimeMillis()
+                + unit.toMillis(maxWaitTime);
         VaadinSession session = VaadinSession.getCurrent();
         boolean hadLock = false;
         if (session != null && session.hasLock()) {
@@ -157,11 +159,13 @@ public class TestSignalEnvironment extends SignalEnvironment {
         try {
             boolean processedAny = false;
             while (true) {
-                long remainingNanos = deadlineNanos - System.nanoTime();
+                long remainingMillis = deadlineMillis
+                        - System.currentTimeMillis();
                 Runnable task;
                 try {
-                    task = remainingNanos > 0
-                            ? tasks.poll(remainingNanos, TimeUnit.NANOSECONDS)
+                    task = remainingMillis > 0
+                            ? tasks.poll(remainingMillis,
+                                    TimeUnit.MILLISECONDS)
                             : tasks.poll();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
