@@ -18,13 +18,13 @@ package com.vaadin.browserless;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.example.base.signals.SignalsView;
-import com.vaadin.flow.signals.SignalEnvironment;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import com.vaadin.flow.signals.SignalEnvironment;
 
 @ViewPackages(packages = "com.example.base.signals")
 @Timeout(10)
