@@ -47,6 +47,26 @@ public class BrowserlessTestSpringLookupInitializer
 
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
+    /**
+     * Sets the Spring ApplicationContext for the current thread so that the
+     * lookup initializer can adapt it during Vaadin environment setup. This is
+     * intended for use by extensions that integrate with Spring without
+     * extending {@link SpringBrowserlessTest}.
+     *
+     * @param ctx
+     *            the application context to use
+     */
+    public static void setCurrentApplicationContext(ApplicationContext ctx) {
+        applicationContext.set(ctx);
+    }
+
+    /**
+     * Clears the Spring ApplicationContext for the current thread.
+     */
+    public static void clearCurrentApplicationContext() {
+        applicationContext.remove();
+    }
+
     @Override
     public void prepareTestInstance(TestContext testContext) throws Exception {
         // SpringLookup requires a WebApplicationContext. Store current test

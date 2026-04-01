@@ -24,12 +24,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.ShortcutsKt;
+import com.vaadin.browserless.mocks.MockSpringServlet;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -52,6 +56,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
     // Runtime state
     private TestSignalEnvironment signalsTestEnvironment;
     private Runnable cleanupAction;
+    private boolean springContextSet;
 
     // --- Protected builder helpers ---
 
@@ -79,7 +84,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
             base.initVaadinEnvironment();
             cleanupAction = base::cleanVaadinEnvironment;
         } else {
-            standaloneInit(ctx.getRequiredTestClass());
+            standaloneInit(ctx);
             cleanupAction = this::standaloneCleanup;
         }
     }
@@ -97,9 +102,16 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
             signalsTestEnvironment = null;
         }
         MockVaadin.tearDown();
+        if (springContextSet) {
+            BrowserlessTestSpringLookupInitializer
+                    .clearCurrentApplicationContext();
+            springContextSet = false;
+        }
     }
 
-    private void standaloneInit(Class<?> testClass) {
+    private void standaloneInit(ExtensionContext ctx) {
+        Class<?> testClass = ctx.getRequiredTestClass();
+
         // Scan for additional component testers
         Set<String> testerPkgs = new HashSet<>(componentTesterPackages);
         ComponentTesterPackages testerAnnotation = testClass
@@ -129,8 +141,31 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
         packages.removeIf(Objects::isNull);
 
         Routes routes = BaseBrowserlessTest.discoverRoutes(packages);
-        MockVaadin.setup(routes, MockedUI::new, services);
+
+        ApplicationContext appCtx = getSpringApplicationContext(ctx);
+        if (appCtx != null) {
+            BrowserlessTestSpringLookupInitializer
+                    .setCurrentApplicationContext(appCtx);
+            springContextSet = true;
+            MockSpringServlet servlet = new MockSpringServlet(routes, appCtx,
+                    MockedUI::new);
+            Set<Class<?>> springServices = new HashSet<>(services);
+            springServices.add(BrowserlessTestSpringLookupInitializer.class);
+            springServices.add(SpringSecurityRequestCustomizer.class);
+            MockVaadin.setup(MockedUI::new, servlet, springServices);
+        } else {
+            MockVaadin.setup(routes, MockedUI::new, services);
+        }
         signalsTestEnvironment = TestSignalEnvironment.register();
+    }
+
+    private static ApplicationContext getSpringApplicationContext(
+            ExtensionContext ctx) {
+        try {
+            return SpringExtension.getApplicationContext(ctx);
+        } catch (Exception | NoClassDefFoundError e) {
+            return null;
+        }
     }
 
     // --- Testing DSL ---
