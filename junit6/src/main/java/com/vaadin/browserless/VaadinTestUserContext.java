@@ -18,6 +18,9 @@ package com.vaadin.browserless;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.CurrentInstance;
@@ -49,6 +52,7 @@ public class VaadinTestUserContext implements AutoCloseable {
     private final VaadinRequest request;
     private final VaadinResponse response;
     private final List<VaadinTestUiContext> windows = new ArrayList<>();
+    private SecurityContext securityContext;
 
     VaadinTestUserContext(VaadinTestApplicationContext app) {
         this.app = app;
@@ -111,6 +115,35 @@ public class VaadinTestUserContext implements AutoCloseable {
             window.close();
         }
         windows.clear();
+    }
+
+    /**
+     * Saves the current Spring Security context for this user so it can be
+     * restored on the next {@code activate()} call. Called automatically
+     * when switching away from this user's window.
+     */
+    void saveSecurityContext() {
+        try {
+            securityContext = SecurityContextHolder.getContext();
+        } catch (NoClassDefFoundError e) {
+            // Spring Security not on classpath
+        }
+    }
+
+    /**
+     * Restores this user's Spring Security context. Called automatically
+     * by {@code VaadinTestUiContext.activate()}.
+     */
+    void restoreSecurityContext() {
+        try {
+            if (securityContext != null) {
+                SecurityContextHolder.setContext(securityContext);
+            } else {
+                SecurityContextHolder.clearContext();
+            }
+        } catch (NoClassDefFoundError e) {
+            // Spring Security not on classpath
+        }
     }
 
     VaadinTestApplicationContext getApp() {

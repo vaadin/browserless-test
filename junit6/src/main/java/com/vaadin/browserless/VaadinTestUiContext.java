@@ -48,6 +48,8 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
 
+    private static final ThreadLocal<VaadinTestUiContext> activeContext = new ThreadLocal<>();
+
     private final VaadinTestUserContext user;
     private UI ui;
 
@@ -62,15 +64,24 @@ public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
 
     /**
      * Activates this UI context, setting the appropriate VaadinService,
-     * VaadinSession, UI, request, and response as current on the calling
-     * thread.
+     * VaadinSession, UI, request, response, and Spring Security context
+     * as current on the calling thread. Automatically saves the previous
+     * user's security context before switching.
      */
     public void activate() {
+        // Save the outgoing user's security context before switching
+        VaadinTestUiContext previous = activeContext.get();
+        if (previous != null && previous != this) {
+            previous.user.saveSecurityContext();
+        }
+        activeContext.set(this);
+
         VaadinService.setCurrent(user.getApp().getService());
         VaadinSession.setCurrent(user.getSession());
         UI.setCurrent(ui);
         CurrentInstance.set(VaadinRequest.class, user.getRequest());
         CurrentInstance.set(VaadinResponse.class, user.getResponse());
+        user.restoreSecurityContext();
     }
 
     /**
