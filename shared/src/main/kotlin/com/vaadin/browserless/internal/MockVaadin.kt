@@ -124,7 +124,62 @@ object MockVaadin {
         VaadinService.setCurrent(service)
 
         // init Vaadin Session
-        createSession(servlet.servletContext, uiFactory)
+        createSessionInternal(servlet.servletContext, uiFactory)
+    }
+
+    /**
+     * Initializes only the servlet and VaadinService, without creating a
+     * session or UI. Use this when you need to manage sessions and UIs
+     * manually (e.g. for multi-user testing).
+     *
+     * @param servlet the servlet to initialize
+     * @param lookupServices service classes to be provided to the lookup initializer
+     * @return the initialized VaadinServletService
+     */
+    @JvmStatic
+    fun setupService(servlet: VaadinServlet,
+                     lookupServices: Set<Class<*>> = emptySet()): VaadinServletService {
+        if (!servlet.isInitialized) {
+            val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
+            val config = MockServletConfig(ctx)
+            config.servletInitParams[InitParameters.BROWSERLESS] = "true"
+            servlet.init(config)
+        }
+        val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
+        check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
+        VaadinService.setCurrent(service)
+        return service
+    }
+
+    /**
+     * Creates a new VaadinSession with its own HTTP session, request, and response.
+     * Sets the created objects as current on the calling thread.
+     *
+     * @param servletContext the servlet context
+     * @param uiFactory factory for creating UIs
+     */
+    @JvmStatic
+    fun createSession(servletContext: ServletContext, uiFactory: UIFactory) {
+        createSessionInternal(servletContext, uiFactory)
+    }
+
+    /**
+     * Clears the current UI from thread-local state without tearing down the
+     * session or service. Useful when switching between UI contexts.
+     */
+    @JvmStatic
+    fun clearCurrentUI() {
+        closeCurrentUI(false)
+    }
+
+    /**
+     * Clears current session, UI, request, and response from thread-local
+     * state without destroying the service. Useful when switching between
+     * user contexts.
+     */
+    @JvmStatic
+    fun clearCurrentContext() {
+        clearVaadinInstances(false)
     }
 
     /**
@@ -202,7 +257,7 @@ object MockVaadin {
      */
     var mockRequestFactory: (MockHttpSession) -> MockRequest = { MockRequest(it) }
 
-    private fun createSession(ctx: ServletContext, uiFactory: UIFactory) {
+    private fun createSessionInternal(ctx: ServletContext, uiFactory: UIFactory) {
         val service: VaadinServletService = checkNotNull(VaadinService.getCurrent()) as VaadinServletService
         val httpSession: MockHttpSession = MockHttpSession.create(ctx)
 
@@ -245,7 +300,8 @@ object MockVaadin {
         createUI(uiFactory, session)
     }
 
-    internal fun createUI(uiFactory: UIFactory, session: VaadinSession) {
+    @JvmStatic
+    fun createUI(uiFactory: UIFactory, session: VaadinSession) {
         val request: VaadinRequest = checkNotNull(VaadinRequest.getCurrent())
         val ui: UI = uiFactory()
         require(ui.session == null) {
@@ -400,7 +456,7 @@ object MockVaadin {
             val mockSession: MockHttpSession = session.mock
             clearVaadinInstances(true)
             mockSession.destroy()
-            createSession(mockSession.servletContext, uiFactory)
+            createSessionInternal(mockSession.servletContext, uiFactory)
         }
     }
 }

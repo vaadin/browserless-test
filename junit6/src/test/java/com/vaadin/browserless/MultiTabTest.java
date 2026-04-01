@@ -17,36 +17,47 @@ package com.vaadin.browserless;
 
 import com.example.TestApplication;
 import com.example.base.SimpleViewWithSharedState;
-import com.example.base.WelcomeView;
-import com.vaadin.flow.component.UI;
-import org.junit.jupiter.api.AfterAll;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.boot.SpringApplication;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- */
 @SpringBootTest
-@ContextConfiguration(classes = {TestApplication.class})
-@ViewPackages(classes = SimpleViewWithSharedState.class)
+@ContextConfiguration(classes = {TestApplication.class, BrowserlessTestConfiguration.class})
 class MultiTabTest {
 
-    @RegisterExtension
-    BrowserlessExtension ext = new BrowserlessExtension();
+    @Autowired
+    VaadinTestApplicationContext app;
 
     @Test
-    void firstTest_recordsUI() {
-        UI ui = UI.getCurrent();
-        Assertions.assertNotNull(ui, "Expecting current UI to be available");
-        ext.navigate(SimpleViewWithSharedState.class);
-        Assertions.assertInstanceOf(SimpleViewWithSharedState.class, ext.getCurrentView());
-    }
+    void user1SetsState_user2SeesChangedState() {
+        VaadinTestUiContext ui1 = app.newUser().newWindow();
+        VaadinTestUiContext ui2 = app.newUser().newWindow();
 
+        // Both users navigate to the view
+        var view1 = ui1
+                .navigate(SimpleViewWithSharedState.class);
+        var view2 = ui2
+                .navigate(SimpleViewWithSharedState.class);
+        Assertions.assertNotSame(view1, view2);
+
+        // User 2 clicks "Check" - state should be initial
+        ui2.test(ui2.$(Button.class).withText("Check").single()).click();
+        Assertions.assertEquals("State:initial",
+                ui2.$(Paragraph.class).last().getText());
+
+        // User 1 clicks "Set" to change the shared state
+        ui1.test(ui1.$(Button.class).withText("Set").single()).click();
+
+        // User 2 clicks "Check" again - state should be updated
+        ui2.test(ui2.$(Button.class).withText("Check").single()).click();
+
+        Paragraph stateParagraph = ui2.$(Paragraph.class).last();
+        String text = stateParagraph.getText();
+        Assertions.assertTrue(text.startsWith("State:New state at"),
+                "Expected state to be changed by user 1, but got: " + text);
+    }
 }

@@ -48,7 +48,7 @@ private val _VaadinServlet_getService: Method =
 /**
  * Workaround for https://github.com/mvysny/karibu-testing/issues/66
  */
-internal val VaadinServlet.serviceSafe: VaadinServletService? get() {
+val VaadinServlet.serviceSafe: VaadinServletService? get() {
     // we need to use the reflection. The problem is that the signature
     // of the method differs between Vaadin versions:
     //
@@ -62,7 +62,7 @@ internal val VaadinServlet.serviceSafe: VaadinServletService? get() {
 /**
  * Workaround for https://github.com/mvysny/karibu-testing/issues/66
  */
-internal fun createVaadinServletRequest(request: HttpServletRequest, service: VaadinService): VaadinServletRequest {
+fun createVaadinServletRequest(request: HttpServletRequest, service: VaadinService): VaadinServletRequest {
     // we need to use the reflection. The problem is that the signature
     // of the constructor differs between Vaadin versions:
     //
@@ -81,7 +81,7 @@ private val _VaadinServletResponse_constructor: Constructor<*> =
 /**
  * Workaround for https://github.com/mvysny/karibu-testing/issues/66
  */
-internal fun createVaadinServletResponse(response: HttpServletResponse, service: VaadinService): VaadinServletResponse {
+fun createVaadinServletResponse(response: HttpServletResponse, service: VaadinService): VaadinServletResponse {
     // we need to use the reflection. The problem is that the signature
     // of the constructor differs between Vaadin versions:
     //
@@ -97,7 +97,7 @@ private val _WebBrowser_constructor: Constructor<WebBrowser> =
         isAccessible = true
     }
 
-internal fun WebBrowser(request: VaadinRequest): WebBrowser =
+fun WebBrowser(request: VaadinRequest): WebBrowser =
     _WebBrowser_constructor.newInstance(request)
 
 private val _VaadinService_createVaadinSession: Method =
@@ -105,6 +105,6 @@ private val _VaadinService_createVaadinSession: Method =
         isAccessible = true
     }
 
-internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
+fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
     return _VaadinService_createVaadinSession.invoke(this, request) as VaadinSession
 }
