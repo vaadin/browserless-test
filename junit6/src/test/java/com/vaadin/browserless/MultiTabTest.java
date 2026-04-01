@@ -45,17 +45,17 @@ class MultiTabTest {
         Assertions.assertNotSame(view1, view2);
 
         // User 2 clicks "Check" - state should be initial
-        ui2.test(ui2.$(Button.class).withText("Check").single()).click();
+        ui2.test(ui2.get(Button.class).withText("Check").single()).click();
         Assertions.assertEquals("State:initial",
-                ui2.$(Paragraph.class).last().getText());
+                ui2.get(Paragraph.class).last().getText());
 
         // User 1 clicks "Set" to change the shared state
-        ui1.test(ui1.$(Button.class).withText("Set").single()).click();
+        ui1.test(ui1.get(Button.class).withText("Set").single()).click();
 
         // User 2 clicks "Check" again - state should be updated
-        ui2.test(ui2.$(Button.class).withText("Check").single()).click();
+        ui2.test(ui2.get(Button.class).withText("Check").single()).click();
 
-        Paragraph stateParagraph = ui2.$(Paragraph.class).last();
+        Paragraph stateParagraph = ui2.get(Paragraph.class).last();
         String text = stateParagraph.getText();
         Assertions.assertTrue(text.startsWith("State:New state at"),
                 "Expected state to be changed by user 1, but got: " + text);

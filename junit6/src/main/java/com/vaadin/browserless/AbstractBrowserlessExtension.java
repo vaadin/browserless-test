@@ -252,6 +252,19 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
     }
 
     /**
+     * Gets a query object for finding components of the given type in the UI.
+     *
+     * @param type
+     *            component type to search for
+     * @param <T>
+     *            component type
+     * @return a component query
+     */
+    public <T extends Component> ComponentQuery<T> get(Class<T> type) {
+        return $(type);
+    }
+
+    /**
      * Gets a query object for finding components nested inside a given
      * component.
      *
@@ -267,6 +280,23 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
             Component fromThis) {
         getUI();
         return new ComponentQuery<>(type).from(fromThis);
+    }
+
+    /**
+     * Gets a query object for finding components nested inside a given
+     * component.
+     *
+     * @param type
+     *            component type to search for
+     * @param fromThis
+     *            starting component for search
+     * @param <T>
+     *            component type
+     * @return a component query scoped to the given component
+     */
+    public <T extends Component> ComponentQuery<T> get(Class<T> type,
+            Component fromThis) {
+        return $(type, fromThis);
     }
 
     /**
