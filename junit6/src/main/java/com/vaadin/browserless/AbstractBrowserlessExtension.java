@@ -316,6 +316,19 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
     }
 
     /**
+     * Gets a query object for finding components inside the current view.
+     *
+     * @param type
+     *            component type to search for
+     * @param <T>
+     *            component type
+     * @return a component query scoped to the current view
+     */
+    public <T extends Component> ComponentQuery<T> getView(Class<T> type) {
+        return $view(type);
+    }
+
+    /**
      * Gets the current view instance shown in the UI.
      *
      * @return the current view

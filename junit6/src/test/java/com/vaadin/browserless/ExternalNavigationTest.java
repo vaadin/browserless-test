@@ -52,6 +52,8 @@ class ExternalNavigationTest {
         // No external navigation yet
         Assertions.assertNull(ui.getExternalNavigationURL());
 
+        ui.$view(ExternalNavigationView.class);
+
         // Click "Go to Vaadin" which calls Page.setLocation()
         ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
 

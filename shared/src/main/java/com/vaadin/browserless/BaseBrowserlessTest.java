@@ -507,6 +507,20 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
+     * Gets a query object for finding a component inside the current view
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     */
+    public <T extends Component> ComponentQuery<T> getView(
+            Class<T> componentType) {
+        return $view(componentType);
+    }
+
+    /**
      * Private initializer for tester classes.
      *
      * @param clazz
