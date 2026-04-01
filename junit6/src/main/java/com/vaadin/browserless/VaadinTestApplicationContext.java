@@ -95,6 +95,15 @@ public class VaadinTestApplicationContext implements AutoCloseable {
             ApplicationContext springCtx) {
         BrowserlessTestSpringLookupInitializer
                 .setCurrentApplicationContext(springCtx);
+        // Register SpringSecurityRequestCustomizer as a Spring bean so the
+        // Spring-based Lookup can find it as a MockRequestCustomizer
+        if (springCtx instanceof org.springframework.context.ConfigurableApplicationContext cac
+                && !springCtx.containsBean(
+                        SpringSecurityRequestCustomizer.class.getName())) {
+            cac.getBeanFactory().registerSingleton(
+                    SpringSecurityRequestCustomizer.class.getName(),
+                    new SpringSecurityRequestCustomizer());
+        }
         Set<Class<?>> services = new HashSet<>();
         services.add(BrowserlessTestSpringLookupInitializer.class);
         services.add(SpringSecurityRequestCustomizer.class);

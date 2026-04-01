@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.Set;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,50 +32,43 @@ import com.vaadin.browserless.internal.Routes;
  * {@link VaadinTestApplicationContext} bean for multi-user browserless testing.
  *
  * <p>
- * Usage:
- *
- * <pre>
- * {@code
- * @SpringBootTest
- * @Import(BrowserlessTestConfiguration.class)
- * @TestExecutionListeners(listeners = BrowserlessTestConfiguration.class,
- *         mergeMode = MERGE_WITH_DEFAULTS)
- * class MyTest {
- *     @Autowired
- *     VaadinTestApplicationContext app;
- *
- *     @Test
- *     void test() {
- *         VaadinTestUiContext ui = app.newUser().newWindow();
- *         ui.navigate(MyView.class);
- *     }
- * }
- * }
- * </pre>
+ * The bean respects {@link ViewPackages} on the test class to limit route
+ * scanning. Without it, routes are auto-discovered from the full classpath.
  */
 @Configuration
 public class BrowserlessTestConfiguration implements TestExecutionListener {
+
+    private static final ThreadLocal<Class<?>> currentTestClass = new ThreadLocal<>();
 
     @Bean
     @Lazy
     VaadinTestApplicationContext vaadinTestApplicationContext(
             ApplicationContext springCtx) {
-        Routes routes = VaadinTestApplicationContext.discoverRoutes(
-                Set.of());
+        Class<?> testClass = currentTestClass.get();
+        Routes routes;
+        if (testClass != null) {
+            routes = VaadinTestApplicationContext.discoverRoutes(testClass,
+                    Set.of());
+        } else {
+            routes = VaadinTestApplicationContext.discoverRoutes(Set.of());
+        }
         return VaadinTestApplicationContext.forSpring(routes, springCtx);
     }
 
     @Override
-    public void beforeTestMethod(TestContext testContext) {
-        // Re-discover routes from @ViewPackages if present on the test class
-        // This is handled lazily by the bean factory
+    public void prepareTestInstance(TestContext testContext) {
+        currentTestClass.set(testContext.getTestClass());
     }
 
     @Override
     public void afterTestClass(TestContext testContext) {
+        currentTestClass.remove();
         ApplicationContext ctx = testContext.getApplicationContext();
-        if (ctx.containsBean("vaadinTestApplicationContext")) {
-            ctx.getBean(VaadinTestApplicationContext.class).close();
+        ObjectProvider<VaadinTestApplicationContext> provider = ctx
+                .getBeanProvider(VaadinTestApplicationContext.class);
+        VaadinTestApplicationContext appCtx = provider.getIfAvailable();
+        if (appCtx != null) {
+            appCtx.close();
         }
     }
 }

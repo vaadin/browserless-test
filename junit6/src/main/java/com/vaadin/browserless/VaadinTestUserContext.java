@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -62,12 +63,20 @@ public class VaadinTestUserContext implements AutoCloseable {
         UI prevUI = UI.getCurrent();
         VaadinRequest prevRequest = VaadinRequest.getCurrent();
         VaadinResponse prevResponse = VaadinResponse.getCurrent();
+        SecurityContext prevSecurityContext = null;
+        try {
+            prevSecurityContext = SecurityContextHolder.getContext();
+        } catch (NoClassDefFoundError ignored) {
+        }
 
         try {
             // Use MockVaadin to create a full session + UI, which sets
             // everything as current. We capture the state and then close
             // the auto-created UI (windows are created explicitly via newWindow()).
             VaadinService.setCurrent(app.getService());
+            // Restore this user's security context if already set (e.g.
+            // via setAuthentication before opening windows)
+            restoreSecurityContext();
             MockVaadin.createSession(app.getServletContext(),
                     app.getUiFactory());
 
@@ -83,6 +92,12 @@ public class VaadinTestUserContext implements AutoCloseable {
             UI.setCurrent(prevUI);
             CurrentInstance.set(VaadinRequest.class, prevRequest);
             CurrentInstance.set(VaadinResponse.class, prevResponse);
+            try {
+                if (prevSecurityContext != null) {
+                    SecurityContextHolder.setContext(prevSecurityContext);
+                }
+            } catch (NoClassDefFoundError ignored) {
+            }
         }
     }
 
@@ -95,6 +110,28 @@ public class VaadinTestUserContext implements AutoCloseable {
         VaadinTestUiContext window = new VaadinTestUiContext(this);
         windows.add(window);
         return window;
+    }
+
+    /**
+     * Sets the Spring Security authentication for this user. Call this before
+     * creating windows to ensure the security context is in place when the
+     * UI initializes and route access control is evaluated.
+     *
+     * @param authentication
+     *            the authentication token
+     */
+    public void setAuthentication(Authentication authentication) {
+        try {
+            if (securityContext == null) {
+                securityContext = SecurityContextHolder
+                        .createEmptyContext();
+            }
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+        } catch (NoClassDefFoundError e) {
+            throw new IllegalStateException(
+                    "Spring Security is not on the classpath", e);
+        }
     }
 
     /**

@@ -69,9 +69,10 @@ public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
      * user's security context before switching.
      */
     public void activate() {
-        // Save the outgoing user's security context before switching
         VaadinTestUiContext previous = activeContext.get();
-        if (previous != null && previous != this) {
+        boolean switchingUser = previous != null && previous != this
+                && previous.user != this.user;
+        if (switchingUser) {
             previous.user.saveSecurityContext();
         }
         activeContext.set(this);
@@ -81,7 +82,12 @@ public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
         UI.setCurrent(ui);
         CurrentInstance.set(VaadinRequest.class, user.getRequest());
         CurrentInstance.set(VaadinResponse.class, user.getResponse());
-        user.restoreSecurityContext();
+        // Only restore SecurityContext when switching to a different user;
+        // re-activating the same user must not overwrite changes made since
+        // the last save (e.g. a login click that set authentication).
+        if (switchingUser || previous == null) {
+            user.restoreSecurityContext();
+        }
     }
 
     /**
