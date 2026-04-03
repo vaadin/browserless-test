@@ -76,7 +76,7 @@ object MockVaadin {
      * Please do that by extending [MockVaadinServlet] and overriding [MockVaadinServlet.createServletService]
      * `createServletService(DeploymentConfiguration)`.
      * Please consult [MockService] on what methods you must override in your custom service.
-     * Alternatively, see `MockSpringServlet` on how to extend your custom servlet and
+     * Alternatively, see `MockSpringServlet` (in the `browserless-test-spring` module) on how to extend your custom servlet and
      * provide all necessary mocking code.
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
      * @param uiFactory produces [UI] instances and sets them as current, by default simply instantiates [MockedUI] class.

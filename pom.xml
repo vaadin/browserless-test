@@ -26,6 +26,7 @@
     <modules>
         <module>shared</module>
         <module>junit6</module>
+        <module>spring</module>
         <module>quarkus</module>
         <module>bom</module>
     </modules>
@@ -89,6 +90,18 @@
             </snapshots>
         </pluginRepository>
     </pluginRepositories>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <pluginManagement>
