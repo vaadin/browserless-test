@@ -23,16 +23,15 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
 /**
- * A view with a shared static counter, used for testing multi-user
- * scenarios where application-level state is shared across sessions.
+ * A view with a shared static counter, used for testing multi-user scenarios
+ * where application-level state is shared across sessions.
  */
 @Route("shared-counter")
 public class SharedCounterView extends VerticalLayout {
 
     public static final AtomicInteger counter = new AtomicInteger(0);
 
-    private final Paragraph display = new Paragraph(
-            "Count: " + counter.get());
+    private final Paragraph display = new Paragraph("Count: " + counter.get());
 
     public SharedCounterView() {
         Button increment = new Button("Increment", e -> {

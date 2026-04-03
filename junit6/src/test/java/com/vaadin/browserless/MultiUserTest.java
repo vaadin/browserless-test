@@ -26,8 +26,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 
 /**
- * Tests multi-user scenarios: two independent users sharing
- * application-level state via a static counter.
+ * Tests multi-user scenarios: two independent users sharing application-level
+ * state via a static counter.
  */
 class MultiUserTest {
 
@@ -36,8 +36,8 @@ class MultiUserTest {
     @BeforeEach
     void setUp() {
         SharedCounterView.counter.set(0);
-        Routes routes = new Routes().autoDiscoverViews(
-                SharedCounterView.class.getPackageName());
+        Routes routes = new Routes()
+                .autoDiscoverViews(SharedCounterView.class.getPackageName());
         app = BrowserlessApplicationContext.create(routes);
     }
 

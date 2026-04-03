@@ -35,12 +35,11 @@ import com.vaadin.flow.server.VaadinSession;
 /**
  * UI-level context for multi-user browserless testing.
  * <p>
- * Represents a single browser window/tab (one {@link UI} instance).
- * All DSL methods ({@link #navigate}, {@link #find(Class)},
- * {@link #findView(Class)}, {@link #test}) automatically call
- * {@link #activate()} before executing,
- * which transparently switches the thread-local Vaadin state and security
- * context to this window's user.
+ * Represents a single browser window/tab (one {@link UI} instance). All DSL
+ * methods ({@link #navigate}, {@link #find(Class)}, {@link #findView(Class)},
+ * {@link #test}) automatically call {@link #activate()} before executing, which
+ * transparently switches the thread-local Vaadin state and security context to
+ * this window's user.
  * <p>
  * This means you can freely interleave calls on different windows without
  * explicit context switching:
@@ -83,9 +82,9 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * context belonged to a different user, the outgoing user's security
      * context is automatically saved and this user's context is restored.
      * <p>
-     * This method is called automatically by all DSL methods. You only
-     * need to call it explicitly if you are accessing Vaadin APIs directly
-     * (e.g. {@code UI.getCurrent()}).
+     * This method is called automatically by all DSL methods. You only need to
+     * call it explicitly if you are accessing Vaadin APIs directly (e.g.
+     * {@code UI.getCurrent()}).
      */
     public void activate() {
         if (closed) {
@@ -119,8 +118,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     /**
      * Navigates this window to the given view class.
      *
-     * @param navigationTarget the view class to navigate to
-     * @param <T>              the view type
+     * @param navigationTarget
+     *            the view class to navigate to
+     * @param <T>
+     *            the view type
      * @return the instantiated view
      */
     public <T extends Component> T navigate(Class<T> navigationTarget) {
@@ -131,10 +132,14 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     /**
      * Navigates this window to the given view class with a URL parameter.
      *
-     * @param navigationTarget the view class to navigate to
-     * @param parameter        the URL parameter
-     * @param <T>              the view type
-     * @param <C>              the parameter type
+     * @param navigationTarget
+     *            the view class to navigate to
+     * @param parameter
+     *            the URL parameter
+     * @param <T>
+     *            the view type
+     * @param <C>
+     *            the parameter type
      * @return the instantiated view
      */
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
@@ -146,9 +151,12 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     /**
      * Navigates this window to the given view class with route parameters.
      *
-     * @param navigationTarget the view class to navigate to
-     * @param parameters       the route parameters
-     * @param <T>              the view type
+     * @param navigationTarget
+     *            the view class to navigate to
+     * @param parameters
+     *            the route parameters
+     * @param <T>
+     *            the view type
      * @return the instantiated view
      */
     public <T extends Component> T navigate(Class<T> navigationTarget,
@@ -158,12 +166,15 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Navigates this window to the given location and validates the
-     * resulting view.
+     * Navigates this window to the given location and validates the resulting
+     * view.
      *
-     * @param location       the navigation location string
-     * @param expectedTarget the expected view class
-     * @param <T>            the view type
+     * @param location
+     *            the navigation location string
+     * @param expectedTarget
+     *            the expected view class
+     * @param <T>
+     *            the view type
      * @return the instantiated view
      */
     public <T extends Component> T navigate(String location,
@@ -173,11 +184,13 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Gets a query object for finding components of the given type in
-     * this window's UI.
+     * Gets a query object for finding components of the given type in this
+     * window's UI.
      *
-     * @param componentType the type of component to search for
-     * @param <T>           the component type
+     * @param componentType
+     *            the type of component to search for
+     * @param <T>
+     *            the component type
      * @return a query object
      */
     public <T extends Component> ComponentQuery<T> find(
@@ -187,26 +200,31 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Gets a query object for finding components of the given type
-     * nested inside the specified component.
+     * Gets a query object for finding components of the given type nested
+     * inside the specified component.
      *
-     * @param componentType the type of component to search for
-     * @param fromThis      the component to search within
-     * @param <T>           the component type
+     * @param componentType
+     *            the type of component to search for
+     * @param fromThis
+     *            the component to search within
+     * @param <T>
+     *            the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> find(
-            Class<T> componentType, Component fromThis) {
+    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
+            Component fromThis) {
         activate();
         return BrowserlessDSL.find(ui, componentType, fromThis);
     }
 
     /**
-     * Gets a query object for finding components of the given type
-     * inside the current view.
+     * Gets a query object for finding components of the given type inside the
+     * current view.
      *
-     * @param componentType the type of component to search for
-     * @param <T>           the component type
+     * @param componentType
+     *            the type of component to search for
+     * @param <T>
+     *            the component type
      * @return a query object
      */
     public <T extends Component> ComponentQuery<T> findView(
@@ -216,14 +234,16 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Wraps a component with the best matching
-     * {@link ComponentTester}. This generic fallback is used for
-     * component types not covered by the specific {@link TesterWrappers}
-     * defaults.
+     * Wraps a component with the best matching {@link ComponentTester}. This
+     * generic fallback is used for component types not covered by the specific
+     * {@link TesterWrappers} defaults.
      *
-     * @param component the component to wrap
-     * @param <T>       the tester type
-     * @param <Y>       the component type
+     * @param component
+     *            the component to wrap
+     * @param <T>
+     *            the tester type
+     * @param <Y>
+     *            the component type
      * @return the component wrapped in a tester
      */
     public <T extends ComponentTester<Y>, Y extends Component> T test(
@@ -253,9 +273,11 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     /**
      * Simulates a keyboard shortcut performed on the browser.
      *
-     * @param key       primary key of the shortcut. This must not be a
-     *                  {@link KeyModifier}.
-     * @param modifiers key modifiers. Can be empty.
+     * @param key
+     *            primary key of the shortcut. This must not be a
+     *            {@link KeyModifier}.
+     * @param modifiers
+     *            key modifiers. Can be empty.
      */
     public void fireShortcut(Key key, KeyModifier... modifiers) {
         activate();
@@ -267,9 +289,9 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * {@link com.vaadin.flow.component.page.Page#setLocation(String)} or
      * {@link com.vaadin.flow.component.page.Page#open(String)}.
      * <p>
-     * This captures URLs where the window name is {@code _self}, {@code _parent},
-     * {@code _top}, empty, or {@code null} (all of which navigate the current
-     * window). To query URLs opened in other windows, use
+     * This captures URLs where the window name is {@code _self},
+     * {@code _parent}, {@code _top}, empty, or {@code null} (all of which
+     * navigate the current window). To query URLs opened in other windows, use
      * {@link #getExternalNavigationURL(String)} or {@link #getOpenedWindows()}.
      *
      * @return the external navigation URL, or {@code null} if no external
@@ -286,10 +308,11 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     /**
      * Returns the last URL opened with the given window name.
      * <p>
-     * For {@code _blank}, returns the URL from the most recent call.
-     * For named windows, returns the last URL that targeted that name.
+     * For {@code _blank}, returns the URL from the most recent call. For named
+     * windows, returns the last URL that targeted that name.
      *
-     * @param windowName the window name to look up
+     * @param windowName
+     *            the window name to look up
      * @return the last URL for the given window name, or {@code null} if none
      */
     public String getExternalNavigationURL(String windowName) {
@@ -307,10 +330,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * excluding navigations that target the current window ({@code _self},
      * {@code _parent}, {@code _top}, empty, or {@code null}).
      * <p>
-     * The map keys are window names, and values are lists of URLs opened
-     * under that name. For {@code _blank}, the list contains all URLs
-     * (each call opens a new window). For named windows, the list
-     * typically contains a single entry (the last URL).
+     * The map keys are window names, and values are lists of URLs opened under
+     * that name. For {@code _blank}, the list contains all URLs (each call
+     * opens a new window). For named windows, the list typically contains a
+     * single entry (the last URL).
      *
      * @return an unmodifiable map of window names to URL lists
      */
@@ -363,8 +386,8 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Returns the currently active UI context for the calling thread,
-     * or {@code null} if none is active.
+     * Returns the currently active UI context for the calling thread, or
+     * {@code null} if none is active.
      *
      * @return the active context, or {@code null}
      */

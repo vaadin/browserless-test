@@ -34,14 +34,14 @@ import com.vaadin.flow.server.VaadinServletService;
 /**
  * Application-level context for multi-user browserless testing.
  * <p>
- * Manages a shared {@link VaadinServletService} and servlet that are
- * shared across all users and their windows. This models the application
- * level of the Vaadin hierarchy: one application contains multiple user
- * sessions, each with multiple UI instances (browser tabs).
+ * Manages a shared {@link VaadinServletService} and servlet that are shared
+ * across all users and their windows. This models the application level of the
+ * Vaadin hierarchy: one application contains multiple user sessions, each with
+ * multiple UI instances (browser tabs).
  * <p>
  * Create instances via {@link #create(Routes)} for plain Java or use the
- * {@link #builder(Routes)} for full customization. Framework-specific
- * modules (Spring, Quarkus) provide their own convenience factory methods.
+ * {@link #builder(Routes)} for full customization. Framework-specific modules
+ * (Spring, Quarkus) provide their own convenience factory methods.
  *
  * <pre>
  * var app = BrowserlessApplicationContext.create(routes);
@@ -76,18 +76,21 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     /**
      * Creates a plain Java application context with default settings.
      *
-     * @param routes the discovered routes
+     * @param routes
+     *            the discovered routes
      * @return a new application context
      */
     public static BrowserlessApplicationContext<Void> create(Routes routes) {
-        return BrowserlessApplicationContext.<Void>builder(routes).build();
+        return BrowserlessApplicationContext.<Void> builder(routes).build();
     }
 
     /**
      * Creates a builder for customizing the application context.
      *
-     * @param <C>    the credentials type for the security context handler
-     * @param routes the discovered routes
+     * @param <C>
+     *            the credentials type for the security context handler
+     * @param routes
+     *            the discovered routes
      * @return a new builder
      */
     public static <C> Builder<C> builder(Routes routes) {
@@ -97,10 +100,10 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     /**
      * Creates a new user context representing an independent user session.
      * <p>
-     * The returned context has its own {@link com.vaadin.flow.server.VaadinSession},
-     * HTTP request, and response. If credentials are provided and a
-     * {@link SecurityContextHandler} is configured, authentication is set up
-     * automatically.
+     * The returned context has its own
+     * {@link com.vaadin.flow.server.VaadinSession}, HTTP request, and response.
+     * If credentials are provided and a {@link SecurityContextHandler} is
+     * configured, authentication is set up automatically.
      *
      * @return the new user context
      */
@@ -113,12 +116,13 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
      * <p>
      * The credentials are passed to
      * {@link SecurityContextHandler#setupAuthentication(Object)
-     * SecurityContextHandler.setupAuthentication()} if a
-     * handler is configured. The security context is then automatically
-     * captured as the user's initial snapshot.
+     * SecurityContextHandler.setupAuthentication()} if a handler is configured.
+     * The security context is then automatically captured as the user's initial
+     * snapshot.
      *
-     * @param credentials framework-specific credentials, or {@code null}
-     *                    for an anonymous user
+     * @param credentials
+     *            framework-specific credentials, or {@code null} for an
+     *            anonymous user
      * @return the new user context
      */
     public BrowserlessUserContext newUser(C credentials) {
@@ -188,8 +192,8 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         /**
          * Sets the security context handler for multi-user auth isolation.
          *
-         * @param handler the handler, or {@code null} for no security
-         *                management
+         * @param handler
+         *            the handler, or {@code null} for no security management
          * @return this builder
          */
         public Builder<C> withSecurityContextHandler(
@@ -199,10 +203,11 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         }
 
         /**
-         * Sets a custom servlet factory. The factory receives the routes
-         * and must return a fully configured {@link VaadinServlet}.
+         * Sets a custom servlet factory. The factory receives the routes and
+         * must return a fully configured {@link VaadinServlet}.
          *
-         * @param factory the servlet factory
+         * @param factory
+         *            the servlet factory
          * @return this builder
          */
         public Builder<C> withServletFactory(
@@ -214,7 +219,8 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         /**
          * Sets the UI factory for creating new UI instances.
          *
-         * @param uiFactory the UI factory
+         * @param uiFactory
+         *            the UI factory
          * @return this builder
          */
         public Builder<C> withUIFactory(UIFactory uiFactory) {
@@ -225,7 +231,8 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         /**
          * Sets the Vaadin Lookup service classes.
          *
-         * @param services the service implementation classes
+         * @param services
+         *            the service implementation classes
          * @return this builder
          */
         public Builder<C> withLookupServices(Set<Class<?>> services) {

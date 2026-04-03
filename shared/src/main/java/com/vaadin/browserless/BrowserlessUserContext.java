@@ -29,14 +29,14 @@ import com.vaadin.flow.server.VaadinSession;
 /**
  * User-level context for multi-user browserless testing.
  * <p>
- * Represents a single logical user with their own
- * {@link VaadinSession}, HTTP request, and response. Each user context
- * can have multiple windows (UI instances) via {@link #newWindow()}.
+ * Represents a single logical user with their own {@link VaadinSession}, HTTP
+ * request, and response. Each user context can have multiple windows (UI
+ * instances) via {@link #newWindow()}.
  * <p>
- * Security context (if a {@link SecurityContextHandler} is configured on
- * the parent {@link BrowserlessApplicationContext}) is automatically
- * captured when this context is created and saved/restored when switching
- * between users' windows.
+ * Security context (if a {@link SecurityContextHandler} is configured on the
+ * parent {@link BrowserlessApplicationContext}) is automatically captured when
+ * this context is created and saved/restored when switching between users'
+ * windows.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
@@ -61,9 +61,11 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinSession previousSession = VaadinSession.getCurrent();
         VaadinRequest previousRequest = VaadinRequest.getCurrent();
         VaadinResponse previousResponse = VaadinResponse.getCurrent();
-        SecurityContextHandler handler = (SecurityContextHandler) app.getSecurityContextHandler();
+        SecurityContextHandler handler = (SecurityContextHandler) app
+                .getSecurityContextHandler();
         Object previousSecuritySnapshot = handler != null
-                ? handler.saveContext() : null;
+                ? handler.saveContext()
+                : null;
 
         try {
             // Set service as current (needed for session creation)
@@ -114,9 +116,9 @@ public class BrowserlessUserContext implements AutoCloseable {
     /**
      * Creates a new window (UI instance) for this user.
      * <p>
-     * The window is automatically activated (thread-locals set) and a new
-     * UI is created. If a route target for {@code ""} is registered, the UI
-     * will navigate to it.
+     * The window is automatically activated (thread-locals set) and a new UI is
+     * created. If a route target for {@code ""} is registered, the UI will
+     * navigate to it.
      *
      * @return the new UI context
      */
@@ -173,9 +175,9 @@ public class BrowserlessUserContext implements AutoCloseable {
     }
 
     /**
-     * Saves the current thread's security context into this user's
-     * snapshot. Called automatically by {@link BrowserlessUIContext#activate()}
-     * when switching away from this user.
+     * Saves the current thread's security context into this user's snapshot.
+     * Called automatically by {@link BrowserlessUIContext#activate()} when
+     * switching away from this user.
      */
     void saveSecurityContext() {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();
@@ -185,9 +187,9 @@ public class BrowserlessUserContext implements AutoCloseable {
     }
 
     /**
-     * Restores this user's security context onto the current thread.
-     * Called automatically by {@link BrowserlessUIContext#activate()}
-     * when switching to this user.
+     * Restores this user's security context onto the current thread. Called
+     * automatically by {@link BrowserlessUIContext#activate()} when switching
+     * to this user.
      */
     void restoreSecurityContext() {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();

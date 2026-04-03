@@ -422,8 +422,8 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> find(
-            Class<T> componentType, Component fromThis) {
+    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
+            Component fromThis) {
         return BrowserlessDSL.find(verifyAndGetUI(), componentType, fromThis);
     }
 
