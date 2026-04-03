@@ -15,16 +15,17 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Set;
+
 import com.example.base.ExternalNavigationView;
-import com.vaadin.browserless.internal.Routes;
-import com.vaadin.flow.component.button.Button;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import java.util.Set;
+import com.vaadin.browserless.internal.Routes;
+import com.vaadin.flow.component.button.Button;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ViewPackages(classes = ExternalNavigationView.class)
@@ -34,8 +35,8 @@ class ExternalNavigationTest {
 
     @BeforeAll
     void setup() {
-        Routes routes = VaadinTestApplicationContext.discoverRoutes(
-                getClass(), Set.of());
+        Routes routes = VaadinTestApplicationContext.discoverRoutes(getClass(),
+                Set.of());
         app = VaadinTestApplicationContext.create(routes);
     }
 
@@ -69,8 +70,7 @@ class ExternalNavigationTest {
         // Click "Pay" which calls Page.open() (new tab)
         ui.test(ui.$(Button.class).withText("Pay").single()).click();
 
-        Assertions.assertEquals(
-                "https://payment.example.com/checkout?id=123",
+        Assertions.assertEquals("https://payment.example.com/checkout?id=123",
                 ui.getExternalNavigationURL());
     }
 }

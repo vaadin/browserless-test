@@ -31,8 +31,7 @@ public class SharedCounterView extends VerticalLayout {
      */
     public static final AtomicInteger counter = new AtomicInteger(0);
 
-    private final Paragraph display = new Paragraph(
-            "Count:" + counter.get());
+    private final Paragraph display = new Paragraph("Count:" + counter.get());
 
     public SharedCounterView() {
         add(new Button("Increment", e -> {

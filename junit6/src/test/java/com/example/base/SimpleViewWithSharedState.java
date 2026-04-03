@@ -15,13 +15,14 @@
  */
 package com.example.base;
 
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Route
 public class SimpleViewWithSharedState extends VerticalLayout {
@@ -38,12 +39,14 @@ public class SimpleViewWithSharedState extends VerticalLayout {
             this.state = state;
         }
     }
+
     public SimpleViewWithSharedState(MyService myService) {
         add(new Button("Check", e -> {
             add(new Paragraph("State:" + myService.getState()));
         }));
         add(new Button("Set", e -> {
-            myService.setState("New state at " + LocalDateTime.now().toString());
+            myService
+                    .setState("New state at " + LocalDateTime.now().toString());
         }));
     }
 }

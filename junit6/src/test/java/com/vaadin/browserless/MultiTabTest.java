@@ -17,16 +17,18 @@ package com.vaadin.browserless;
 
 import com.example.TestApplication;
 import com.example.base.SimpleViewWithSharedState;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Paragraph;
+
 @SpringBootTest
-@ContextConfiguration(classes = {TestApplication.class, BrowserlessTestConfiguration.class})
+@ContextConfiguration(classes = { TestApplication.class,
+        BrowserlessTestConfiguration.class })
 class MultiTabTest {
 
     @Autowired
@@ -38,10 +40,8 @@ class MultiTabTest {
         VaadinTestUiContext ui2 = app.newUser().newWindow();
 
         // Both users navigate to the view
-        var view1 = ui1
-                .navigate(SimpleViewWithSharedState.class);
-        var view2 = ui2
-                .navigate(SimpleViewWithSharedState.class);
+        var view1 = ui1.navigate(SimpleViewWithSharedState.class);
+        var view2 = ui2.navigate(SimpleViewWithSharedState.class);
         Assertions.assertNotSame(view1, view2);
 
         // User 2 clicks "Check" - state should be initial

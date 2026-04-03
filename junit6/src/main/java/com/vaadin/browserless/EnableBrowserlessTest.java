@@ -30,19 +30,20 @@ import org.springframework.test.context.TestExecutionListeners;
  * {@code @Autowired}.
  *
  * <pre>
- * {@code
- * @SpringBootTest
- * @EnableBrowserlessTest
- * class MyTest {
- *     @Autowired
- *     VaadinTestApplicationContext app;
+ * {
+ *     &#64;code
+ *     &#64;SpringBootTest
+ *     &#64;EnableBrowserlessTest
+ *     class MyTest {
+ *         &#64;Autowired
+ *         VaadinTestApplicationContext app;
  *
- *     @Test
- *     void test() {
- *         VaadinTestUiContext ui = app.newUser().newWindow();
- *         ui.navigate(MyView.class);
+ *         @Test
+ *         void test() {
+ *             VaadinTestUiContext ui = app.newUser().newWindow();
+ *             ui.navigate(MyView.class);
+ *         }
  *     }
- * }
  * }
  * </pre>
  */
@@ -50,7 +51,6 @@ import org.springframework.test.context.TestExecutionListeners;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Import(BrowserlessTestConfiguration.class)
-@TestExecutionListeners(listeners = BrowserlessTestConfiguration.class,
-        mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
+@TestExecutionListeners(listeners = BrowserlessTestConfiguration.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
 public @interface EnableBrowserlessTest {
 }

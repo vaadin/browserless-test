@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import jakarta.servlet.ServletContext;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,8 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
-
-import jakarta.servlet.ServletContext;
 
 import org.springframework.context.ApplicationContext;
 
@@ -48,7 +48,8 @@ import com.vaadin.flow.server.VaadinServletService;
  *
  * <pre>
  * {@code
- * VaadinTestApplicationContext app = VaadinTestApplicationContext.forSpring(routes, springCtx);
+ * VaadinTestApplicationContext app = VaadinTestApplicationContext
+ *         .forSpring(routes, springCtx);
  * VaadinTestUserContext user1 = app.newUser();
  * VaadinTestUserContext user2 = app.newUser();
  * }
@@ -163,8 +164,7 @@ public class VaadinTestApplicationContext implements AutoCloseable {
     static Routes discoverRoutes(Class<?> testClass,
             Set<String> extraPackages) {
         Set<String> packages = new HashSet<>(extraPackages);
-        ViewPackages vpAnnotation = testClass
-                .getAnnotation(ViewPackages.class);
+        ViewPackages vpAnnotation = testClass.getAnnotation(ViewPackages.class);
         if (vpAnnotation != null) {
             Stream.of(vpAnnotation.classes()).map(Class::getPackageName)
                     .forEach(packages::add);

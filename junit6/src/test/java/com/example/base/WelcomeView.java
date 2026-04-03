@@ -19,12 +19,11 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
-import com.vaadin.flow.server.PWA;
 
 @Route("welcome")
 @RouteAlias("")
 // TODO This don't work here for many releases now???
-//@PWA(name = "My Foo PWA", shortName = "Foo PWA")
+// @PWA(name = "My Foo PWA", shortName = "Foo PWA")
 public class WelcomeView extends VerticalLayout {
     public WelcomeView() {
         setWidth(null);

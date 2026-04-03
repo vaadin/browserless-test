@@ -15,10 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Set;
+
 import com.example.base.SharedCounterView;
-import com.vaadin.browserless.internal.Routes;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,7 +25,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import java.util.Set;
+import com.vaadin.browserless.internal.Routes;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Paragraph;
 
 /**
  * Multi-user test without Spring. Uses
@@ -40,8 +41,8 @@ class MultiUserTest {
 
     @BeforeAll
     void setup() {
-        Routes routes = VaadinTestApplicationContext.discoverRoutes(
-                getClass(), Set.of());
+        Routes routes = VaadinTestApplicationContext.discoverRoutes(getClass(),
+                Set.of());
         app = VaadinTestApplicationContext.create(routes);
     }
 
@@ -101,8 +102,7 @@ class MultiUserTest {
         window2.navigate(SharedCounterView.class);
 
         // Increment in window 1
-        window1.test(
-                window1.$(Button.class).withText("Increment").single())
+        window1.test(window1.$(Button.class).withText("Increment").single())
                 .click();
 
         // Window 1 sees the change, window 2 does not (separate UI instances)
@@ -112,8 +112,7 @@ class MultiUserTest {
                 window2.$(Paragraph.class).first().getText());
 
         // Refresh window 2
-        window2.test(
-                window2.$(Button.class).withText("Refresh").single())
+        window2.test(window2.$(Button.class).withText("Refresh").single())
                 .click();
         Assertions.assertEquals("Count:1",
                 window2.$(Paragraph.class).first().getText());

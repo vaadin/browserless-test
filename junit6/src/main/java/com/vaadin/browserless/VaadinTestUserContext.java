@@ -31,12 +31,12 @@ import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
- * Represents a single user's session in the browserless test environment.
- * Holds a VaadinSession and its associated HTTP session.
+ * Represents a single user's session in the browserless test environment. Holds
+ * a VaadinSession and its associated HTTP session.
  *
  * <p>
- * Create UI contexts (browser windows) via {@link #newWindow()} to simulate multiple
- * windows for this user.
+ * Create UI contexts (browser windows) via {@link #newWindow()} to simulate
+ * multiple windows for this user.
  *
  * <pre>
  * {@code
@@ -72,7 +72,8 @@ public class VaadinTestUserContext implements AutoCloseable {
         try {
             // Use MockVaadin to create a full session + UI, which sets
             // everything as current. We capture the state and then close
-            // the auto-created UI (windows are created explicitly via newWindow()).
+            // the auto-created UI (windows are created explicitly via
+            // newWindow()).
             VaadinService.setCurrent(app.getService());
             // Restore this user's security context if already set (e.g.
             // via setAuthentication before opening windows)
@@ -114,8 +115,8 @@ public class VaadinTestUserContext implements AutoCloseable {
 
     /**
      * Sets the Spring Security authentication for this user. Call this before
-     * creating windows to ensure the security context is in place when the
-     * UI initializes and route access control is evaluated.
+     * creating windows to ensure the security context is in place when the UI
+     * initializes and route access control is evaluated.
      *
      * @param authentication
      *            the authentication token
@@ -123,8 +124,7 @@ public class VaadinTestUserContext implements AutoCloseable {
     public void setAuthentication(Authentication authentication) {
         try {
             if (securityContext == null) {
-                securityContext = SecurityContextHolder
-                        .createEmptyContext();
+                securityContext = SecurityContextHolder.createEmptyContext();
             }
             securityContext.setAuthentication(authentication);
             SecurityContextHolder.setContext(securityContext);
@@ -156,8 +156,8 @@ public class VaadinTestUserContext implements AutoCloseable {
 
     /**
      * Saves the current Spring Security context for this user so it can be
-     * restored on the next {@code activate()} call. Called automatically
-     * when switching away from this user's window.
+     * restored on the next {@code activate()} call. Called automatically when
+     * switching away from this user's window.
      */
     void saveSecurityContext() {
         try {
@@ -168,8 +168,8 @@ public class VaadinTestUserContext implements AutoCloseable {
     }
 
     /**
-     * Restores this user's Spring Security context. Called automatically
-     * by {@code VaadinTestUiContext.activate()}.
+     * Restores this user's Spring Security context. Called automatically by
+     * {@code VaadinTestUiContext.activate()}.
      */
     void restoreSecurityContext() {
         try {

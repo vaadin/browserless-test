@@ -449,8 +449,7 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> get(
-            Class<T> componentType) {
+    public <T extends Component> ComponentQuery<T> get(Class<T> componentType) {
         return $(componentType);
     }
 
@@ -484,8 +483,8 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> get(
-            Class<T> componentType, Component fromThis) {
+    public <T extends Component> ComponentQuery<T> get(Class<T> componentType,
+            Component fromThis) {
         return $(componentType, fromThis);
     }
 

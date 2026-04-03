@@ -57,16 +57,15 @@ public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
         this.user = user;
         // Activate this context and create the UI
         activate();
-        MockVaadin.createUI(user.getApp().getUiFactory(),
-                user.getSession());
+        MockVaadin.createUI(user.getApp().getUiFactory(), user.getSession());
         this.ui = UI.getCurrent();
     }
 
     /**
      * Activates this UI context, setting the appropriate VaadinService,
-     * VaadinSession, UI, request, response, and Spring Security context
-     * as current on the calling thread. Automatically saves the previous
-     * user's security context before switching.
+     * VaadinSession, UI, request, response, and Spring Security context as
+     * current on the calling thread. Automatically saves the previous user's
+     * security context before switching.
      */
     public void activate() {
         VaadinTestUiContext previous = activeContext.get();
@@ -281,26 +280,24 @@ public class VaadinTestUiContext implements AutoCloseable, TesterWrappers {
 
     /**
      * Returns the URL of the last external navigation triggered by
-     * {@code Page.setLocation()} or {@code Page.open()}, or {@code null}
-     * if no external navigation has been triggered.
+     * {@code Page.setLocation()} or {@code Page.open()}, or {@code null} if no
+     * external navigation has been triggered.
      *
      * <p>
-     * This is useful for testing flows where the application redirects
-     * to an external service (e.g. login, payment).
+     * This is useful for testing flows where the application redirects to an
+     * external service (e.g. login, payment).
      *
      * @return the external navigation URL, or {@code null}
      */
     public String getExternalNavigationURL() {
         activate();
         String lastUrl = null;
-        var invocations = ui.getInternals()
-                .dumpPendingJavaScriptInvocations();
+        var invocations = ui.getInternals().dumpPendingJavaScriptInvocations();
         for (var invocation : invocations) {
             String expr = invocation.getInvocation().getExpression();
             if (expr.contains("window.open(")) {
                 var params = invocation.getInvocation().getParameters();
-                if (!params.isEmpty()
-                        && params.get(0) instanceof String url) {
+                if (!params.isEmpty() && params.get(0) instanceof String url) {
                     lastUrl = url;
                 }
             }
