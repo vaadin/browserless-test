@@ -15,19 +15,18 @@
  */
 package com.vaadin.browserless;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
-import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.router.HasUrlParameter;
-import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
@@ -37,8 +36,9 @@ import com.vaadin.flow.server.VaadinSession;
  * UI-level context for multi-user browserless testing.
  * <p>
  * Represents a single browser window/tab (one {@link UI} instance).
- * All DSL methods ({@link #navigate}, {@link #$}, {@link #$view},
- * {@link #test}) automatically call {@link #activate()} before executing,
+ * All DSL methods ({@link #navigate}, {@link #find(Class)},
+ * {@link #findView(Class)}, {@link #test}) automatically call
+ * {@link #activate()} before executing,
  * which transparently switches the thread-local Vaadin state and security
  * context to this window's user.
  * <p>
@@ -48,7 +48,7 @@ import com.vaadin.flow.server.VaadinSession;
  * <pre>
  * window1.navigate(ViewA.class);
  * window2.navigate(ViewB.class); // auto-switches to window2's user
- * window1.$(Button.class).first(); // auto-switches back to window1's user
+ * window1.find(Button.class).first(); // auto-switches back to window1's user
  * </pre>
  *
  * @see BrowserlessUserContext#newWindow()
@@ -125,8 +125,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public <T extends Component> T navigate(Class<T> navigationTarget) {
         activate();
-        ui.navigate(navigationTarget);
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget);
     }
 
     /**
@@ -141,8 +140,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
             Class<T> navigationTarget, C parameter) {
         activate();
-        ui.navigate(navigationTarget, parameter);
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget, parameter);
     }
 
     /**
@@ -156,8 +154,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> T navigate(Class<T> navigationTarget,
             Map<String, String> parameters) {
         activate();
-        ui.navigate(navigationTarget, new RouteParameters(parameters));
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget, parameters);
     }
 
     /**
@@ -172,8 +169,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> T navigate(String location,
             Class<T> expectedTarget) {
         activate();
-        ui.navigate(location);
-        return validateNavigationTarget(expectedTarget);
+        return BrowserlessDSL.navigate(ui, location, expectedTarget);
     }
 
     /**
@@ -184,10 +180,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * @param <T>           the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $(
+    public <T extends Component> ComponentQuery<T> find(
             Class<T> componentType) {
         activate();
-        return new ComponentQuery<>(componentType);
+        return BrowserlessDSL.find(ui, componentType);
     }
 
     /**
@@ -199,10 +195,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * @param <T>           the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $(
+    public <T extends Component> ComponentQuery<T> find(
             Class<T> componentType, Component fromThis) {
         activate();
-        return new ComponentQuery<>(componentType).from(fromThis);
+        return BrowserlessDSL.find(ui, componentType, fromThis);
     }
 
     /**
@@ -213,37 +209,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * @param <T>           the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $view(
+    public <T extends Component> ComponentQuery<T> findView(
             Class<T> componentType) {
         activate();
-        Component viewComponent = getCurrentView().getElement().getComponent()
-                .orElseThrow(() -> new AssertionError(
-                        "Cannot get Component instance for current view"));
-        return new ComponentQuery<>(componentType).from(viewComponent);
-    }
-
-    /**
-     * Alias for {@link #$(Class)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> get(
-            Class<T> componentType) {
-        return $(componentType);
-    }
-
-    /**
-     * Alias for {@link #$(Class, Component)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> get(
-            Class<T> componentType, Component fromThis) {
-        return $(componentType, fromThis);
-    }
-
-    /**
-     * Alias for {@link #$view(Class)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> getView(
-            Class<T> componentType) {
-        return $view(componentType);
+        return BrowserlessDSL.findView(ui, componentType);
     }
 
     /**
@@ -270,7 +239,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public HasElement getCurrentView() {
         activate();
-        return ui.getInternals().getActiveRouterTargetsChain().get(0);
+        return BrowserlessDSL.getCurrentView(ui);
     }
 
     /**
@@ -278,7 +247,19 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public void roundTrip() {
         activate();
-        BaseBrowserlessTest.roundTrip();
+        BrowserlessDSL.roundTrip(ui);
+    }
+
+    /**
+     * Simulates a keyboard shortcut performed on the browser.
+     *
+     * @param key       primary key of the shortcut. This must not be a
+     *                  {@link KeyModifier}.
+     * @param modifiers key modifiers. Can be empty.
+     */
+    public void fireShortcut(Key key, KeyModifier... modifiers) {
+        activate();
+        BrowserlessDSL.fireShortcut(ui, key, modifiers);
     }
 
     /**
@@ -379,22 +360,6 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             MockVaadin.closeCurrentUI(true);
             ui = null;
         }
-    }
-
-    private <T extends Component> T validateNavigationTarget(
-            Class<T> navigationTarget) {
-        HasElement currentView = getCurrentView();
-        if (!navigationTarget.isAssignableFrom(currentView.getClass())) {
-            if (currentView instanceof MockInternalSeverError) {
-                System.err.println(
-                        currentView.getElement().getProperty("stackTrace"));
-            }
-            throw new IllegalArgumentException(
-                    "Navigation resulted in unexpected class "
-                            + currentView.getClass().getName()
-                            + " instead of " + navigationTarget.getName());
-        }
-        return navigationTarget.cast(currentView);
     }
 
     /**

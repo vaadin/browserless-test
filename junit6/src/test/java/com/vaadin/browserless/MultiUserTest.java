@@ -57,18 +57,18 @@ class MultiUserTest {
         w2.navigate(SharedCounterView.class);
 
         // User1 increments counter
-        w1.test(w1.$(Button.class).withText("Increment").single()).click();
+        w1.test(w1.find(Button.class).withText("Increment").single()).click();
         Assertions.assertEquals("Count: 1",
-                w1.$(Paragraph.class).single().getText());
+                w1.find(Paragraph.class).single().getText());
 
         // User2 doesn't see the change yet (own UI state)
         Assertions.assertEquals("Count: 0",
-                w2.$(Paragraph.class).single().getText());
+                w2.find(Paragraph.class).single().getText());
 
         // User2 refreshes to see updated shared state
-        w2.test(w2.$(Button.class).withText("Refresh").single()).click();
+        w2.test(w2.find(Button.class).withText("Refresh").single()).click();
         Assertions.assertEquals("Count: 1",
-                w2.$(Paragraph.class).single().getText());
+                w2.find(Paragraph.class).single().getText());
     }
 
     @Test

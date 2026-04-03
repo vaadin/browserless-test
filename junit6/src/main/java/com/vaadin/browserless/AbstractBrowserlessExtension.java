@@ -25,10 +25,8 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -36,7 +34,6 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
-import com.vaadin.flow.router.RouteParameters;
 
 /**
  * Abstract base for browserless JUnit 5 extensions. Holds all shared state and
@@ -145,8 +142,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      * @return the instantiated view
      */
     public <T extends Component> T navigate(Class<T> target) {
-        getUI().navigate(target);
-        return validateNavigationTarget(target);
+        return BrowserlessDSL.navigate(getUI(), target);
     }
 
     /**
@@ -164,8 +160,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      */
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
             Class<T> target, C parameter) {
-        getUI().navigate(target, parameter);
-        return validateNavigationTarget(target);
+        return BrowserlessDSL.navigate(getUI(), target, parameter);
     }
 
     /**
@@ -181,8 +176,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      */
     public <T extends Component> T navigate(Class<T> target,
             Map<String, String> parameters) {
-        getUI().navigate(target, new RouteParameters(parameters));
-        return validateNavigationTarget(target);
+        return BrowserlessDSL.navigate(getUI(), target, parameters);
     }
 
     /**
@@ -198,8 +192,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      */
     public <T extends Component> T navigate(String location,
             Class<T> expectedTarget) {
-        getUI().navigate(location);
-        return validateNavigationTarget(expectedTarget);
+        return BrowserlessDSL.navigate(getUI(), location, expectedTarget);
     }
 
     /**
@@ -211,9 +204,8 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> type) {
-        getUI();
-        return BaseBrowserlessTest.internalQuery(type);
+    public <T extends Component> ComponentQuery<T> find(Class<T> type) {
+        return BrowserlessDSL.find(getUI(), type);
     }
 
     /**
@@ -228,10 +220,9 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query scoped to the given component
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> type,
+    public <T extends Component> ComponentQuery<T> find(Class<T> type,
             Component fromThis) {
-        getUI();
-        return new ComponentQuery<>(type).from(fromThis);
+        return BrowserlessDSL.find(getUI(), type, fromThis);
     }
 
     /**
@@ -243,11 +234,8 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query scoped to the current view
      */
-    public <T extends Component> ComponentQuery<T> $view(Class<T> type) {
-        Component viewComponent = getCurrentView().getElement().getComponent()
-                .orElseThrow(() -> new AssertionError(
-                        "Cannot get Component instance for current view"));
-        return new ComponentQuery<>(type).from(viewComponent);
+    public <T extends Component> ComponentQuery<T> findView(Class<T> type) {
+        return BrowserlessDSL.findView(getUI(), type);
     }
 
     /**
@@ -256,14 +244,14 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      * @return the current view
      */
     public HasElement getCurrentView() {
-        return getUI().getInternals().getActiveRouterTargetsChain().get(0);
+        return BrowserlessDSL.getCurrentView(getUI());
     }
 
     /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     public void roundTrip() {
-        BaseBrowserlessTest.roundTrip();
+        BrowserlessDSL.roundTrip(getUI());
     }
 
     /**
@@ -273,7 +261,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      * @return {@code true} if any pending Signals tasks were processed
      */
     public boolean runPendingSignalsTasks() {
-        return runPendingSignalsTasks(100, TimeUnit.MILLISECONDS);
+        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment);
     }
 
     /**
@@ -287,10 +275,8 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      * @return {@code true} if any pending Signals tasks were processed
      */
     public boolean runPendingSignalsTasks(long maxWaitTime, TimeUnit unit) {
-        if (signalsTestEnvironment != null) {
-            return signalsTestEnvironment.runPendingTasks(maxWaitTime, unit);
-        }
-        return false;
+        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment,
+                maxWaitTime, unit);
     }
 
     /**
@@ -302,14 +288,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            key modifiers
      */
     public void fireShortcut(Key key, KeyModifier... modifiers) {
-        UI ui = getUI();
-        if (ui.hasModalComponent()) {
-            ShortcutsKt._fireShortcut(
-                    ui.getInternals().getActiveModalComponent(), key,
-                    modifiers);
-        } else {
-            ShortcutsKt.fireShortcut(key, modifiers);
-        }
+        BrowserlessDSL.fireShortcut(getUI(), key, modifiers);
     }
 
     private UI getUI() {
@@ -321,20 +300,5 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
                             + "before calling test DSL methods.");
         }
         return ui;
-    }
-
-    private <T extends Component> T validateNavigationTarget(Class<T> target) {
-        HasElement currentView = getCurrentView();
-        if (!target.isAssignableFrom(currentView.getClass())) {
-            if (currentView instanceof MockInternalSeverError) {
-                System.err.println(
-                        currentView.getElement().getProperty("stackTrace"));
-            }
-            throw new IllegalArgumentException(
-                    "Navigation resulted in unexpected class "
-                            + currentView.getClass().getName() + " instead of "
-                            + target.getName());
-        }
-        return target.cast(currentView);
     }
 }

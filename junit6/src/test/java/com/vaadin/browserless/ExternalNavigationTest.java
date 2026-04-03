@@ -56,7 +56,7 @@ class ExternalNavigationTest {
         Assertions.assertNull(ui.getExternalNavigationURL());
 
         // Click Page.setLocation button
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single())
+        ui.test(ui.find(Button.class).withText("Go to Vaadin").single())
                 .click();
 
         Assertions.assertEquals("https://vaadin.com/",
@@ -70,7 +70,7 @@ class ExternalNavigationTest {
 
         // Page.open() uses _blank, so getExternalNavigationURL() (which
         // returns _self navigations) should remain null
-        ui.test(ui.$(Button.class).withText("Pay").single()).click();
+        ui.test(ui.find(Button.class).withText("Pay").single()).click();
 
         Assertions.assertNull(ui.getExternalNavigationURL());
         Assertions.assertEquals(
@@ -83,7 +83,7 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Open Help").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Help").single()).click();
 
         Assertions.assertEquals("https://help.example.com/",
                 ui.getExternalNavigationURL("helpWindow"));
@@ -96,7 +96,7 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Open Parent").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Parent").single()).click();
 
         Assertions.assertEquals("https://parent.example.com/",
                 ui.getExternalNavigationURL());
@@ -107,7 +107,7 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Open Top").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Top").single()).click();
 
         Assertions.assertEquals("https://top.example.com/",
                 ui.getExternalNavigationURL());
@@ -118,8 +118,8 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Parent").single()).click();
+        ui.test(ui.find(Button.class).withText("Go to Vaadin").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Parent").single()).click();
 
         // _parent is normalized to _self, so it overwrites the setLocation
         Assertions.assertEquals("https://parent.example.com/",
@@ -131,7 +131,7 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
+        ui.test(ui.find(Button.class).withText("Go to Vaadin").single()).click();
 
         // Calling multiple times returns the same value
         Assertions.assertEquals("https://vaadin.com/",
@@ -145,8 +145,8 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Open Tab 1").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Tab 2").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Tab 1").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Tab 2").single()).click();
 
         Map<String, List<String>> opened = ui.getOpenedWindows();
         Assertions.assertEquals(
@@ -160,9 +160,9 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Parent").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Top").single()).click();
+        ui.test(ui.find(Button.class).withText("Go to Vaadin").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Parent").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Top").single()).click();
 
         // All three are _self navigations, so openedWindows should be empty
         Assertions.assertTrue(ui.getOpenedWindows().isEmpty());
@@ -174,7 +174,7 @@ class ExternalNavigationTest {
         ui.navigate(ExternalNavigationView.class);
 
         // Open two different URLs in the same named window
-        ui.test(ui.$(Button.class).withText("Open Help").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Help").single()).click();
         // Navigate the same named window to a different URL via setLocation
         ui.getUI().getPage().open("https://help.example.com/updated",
                 "helpWindow");
@@ -190,10 +190,10 @@ class ExternalNavigationTest {
         var ui = app.newUser().newWindow();
         ui.navigate(ExternalNavigationView.class);
 
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Help").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Tab 1").single()).click();
-        ui.test(ui.$(Button.class).withText("Open Tab 2").single()).click();
+        ui.test(ui.find(Button.class).withText("Go to Vaadin").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Help").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Tab 1").single()).click();
+        ui.test(ui.find(Button.class).withText("Open Tab 2").single()).click();
 
         // _self navigation captured separately
         Assertions.assertEquals("https://vaadin.com/",

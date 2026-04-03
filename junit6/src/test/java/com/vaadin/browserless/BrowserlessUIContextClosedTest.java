@@ -70,8 +70,8 @@ class BrowserlessUIContextClosedTest {
         window.close();
 
         Assertions.assertThrows(IllegalStateException.class,
-                () -> window.$(Div.class),
-                "$() on a closed context should throw");
+                () -> window.find(Div.class),
+                "find() on a closed context should throw");
     }
 
     @Test
