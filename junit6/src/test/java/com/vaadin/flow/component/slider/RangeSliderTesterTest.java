@@ -129,14 +129,14 @@ class RangeSliderTesterTest extends BrowserlessTest {
     void setStart_exceedsEnd_throws() {
         test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 50.0));
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.rangeSlider).setStart(60));
+                () -> test(view.rangeSlider).setStart(60.0));
     }
 
     @Test
     void setEnd_belowStart_throws() {
         test(view.rangeSlider).setValue(new RangeSliderValue(50.0, 80.0));
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.rangeSlider).setEnd(40));
+                () -> test(view.rangeSlider).setEnd(40.0));
     }
 
     @Test
