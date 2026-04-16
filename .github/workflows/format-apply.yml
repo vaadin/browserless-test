@@ -123,14 +123,15 @@ jobs:
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const hasChanges = '${{ steps.diff.outputs.has-changes }}';
             const jobStatus = '${{ job.status }}';
+            const marker = '<!-- format-apply-comment -->';
 
             let body;
             if (jobStatus === 'success' && hasChanges === 'true') {
-              body = `Formatting applied and pushed. :white_check_mark:\n\n[Workflow run](${runUrl})`;
+              body = `${marker}\nFormatting applied and pushed. :white_check_mark:\n\n[Workflow run](${runUrl})`;
             } else if (jobStatus === 'success' && hasChanges === 'false') {
-              body = `Code is already formatted correctly. :white_check_mark:\n\n[Workflow run](${runUrl})`;
+              body = `${marker}\nCode is already formatted correctly. :white_check_mark:\n\n[Workflow run](${runUrl})`;
             } else {
-              body = `Formatting failed. :x:\n\n[Workflow run](${runUrl})`;
+              body = `${marker}\nFormatting failed. :x:\n\n[Workflow run](${runUrl})`;
             }
 
             await github.rest.issues.createComment({
