@@ -62,7 +62,10 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  */
 @ExtendWith({ SpringExtension.class })
 @TestExecutionListeners(listeners = BrowserlessTestSpringLookupInitializer.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
-public abstract class SpringBrowserlessTest extends BrowserlessTest {
+public abstract class SpringBrowserlessTest 
+
+
+    extends BrowserlessTest {
 
     @Autowired
     private ApplicationContext applicationContext;
