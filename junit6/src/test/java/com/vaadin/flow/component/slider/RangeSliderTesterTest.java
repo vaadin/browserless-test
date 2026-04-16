@@ -112,7 +112,7 @@ class RangeSliderTesterTest extends BrowserlessTest {
     @Test
     void setStart_usable_updatesStart() {
         test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
-        test(view.rangeSlider).setStart(40);
+        test(view.rangeSlider).setStart(40.0);
         Assertions.assertEquals(new RangeSliderValue(40.0, 80.0),
                 view.rangeSlider.getValue(), "Start should be updated");
     }
@@ -120,7 +120,7 @@ class RangeSliderTesterTest extends BrowserlessTest {
     @Test
     void setEnd_usable_updatesEnd() {
         test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
-        test(view.rangeSlider).setEnd(60);
+        test(view.rangeSlider).setEnd(60.0);
         Assertions.assertEquals(new RangeSliderValue(20.0, 60.0),
                 view.rangeSlider.getValue(), "End should be updated");
     }
