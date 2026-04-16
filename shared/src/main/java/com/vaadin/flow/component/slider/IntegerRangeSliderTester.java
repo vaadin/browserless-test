@@ -18,31 +18,31 @@ package com.vaadin.flow.component.slider;
 import com.vaadin.browserless.Tests;
 
 /**
- * Tester for RangeSlider components.
+ * Tester for IntegerRangeSlider components.
  *
  * @param <T>
  *            component type
  */
-@Tests(RangeSlider.class)
-public class RangeSliderTester<T extends RangeSlider>
-        extends NumberRangeSliderTester<T, RangeSliderValue, Double> {
+@Tests(IntegerRangeSlider.class)
+public class IntegerRangeSliderTester<T extends IntegerRangeSlider>
+        extends NumberRangeSliderTester<T, IntegerRangeSliderValue, Integer> {
     /**
      * Wrap given component for testing.
      *
      * @param component
      *            target component
      */
-    public RangeSliderTester(T component) {
+    public IntegerRangeSliderTester(T component) {
         super(component);
     }
 
     @Override
-    protected Double toNumber(double value) {
-        return value;
+    protected Integer toNumber(double value) {
+        return (int) value;
     }
 
     @Override
-    protected RangeSliderValue createValue(Double start, Double end) {
-        return new RangeSliderValue(start, end);
+    protected IntegerRangeSliderValue createValue(Integer start, Integer end) {
+        return new IntegerRangeSliderValue(start, end);
     }
 }

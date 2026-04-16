@@ -56,8 +56,7 @@ class IntegerSliderTesterTest extends BrowserlessTest {
     @Test
     void setValue_usable_valueChanges() {
         test(view.slider).setValue(50);
-        assertEquals(50, view.slider.getValue(),
-                "Slider value should be 50");
+        assertEquals(50, view.slider.getValue(), "Slider value should be 50");
     }
 
     @Test
@@ -145,8 +144,7 @@ class IntegerSliderTesterTest extends BrowserlessTest {
     void increment_atMax_staysAtMax() {
         test(view.slider).setValue(100);
         test(view.slider).increment();
-        assertEquals(100, view.slider.getValue(),
-                "Value should stay at max");
+        assertEquals(100, view.slider.getValue(), "Value should stay at max");
     }
 
     @Test
