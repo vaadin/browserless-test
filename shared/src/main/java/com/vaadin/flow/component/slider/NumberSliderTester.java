@@ -24,10 +24,10 @@ import com.vaadin.browserless.ComponentTester;
  *
  * @param <T>
  *            component type
- * @param <V>
+ * @param <TValue>
  *            value type
  */
-abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number & Comparable<V>>
+abstract class NumberSliderTester<T extends NumberSlider<?, TValue>, TValue extends Number>
         extends ComponentTester<T> {
     /**
      * Wrap given component for testing.
@@ -50,7 +50,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number
      * @throws IllegalArgumentException
      *             if the value is outside the min/max range
      */
-    public void setValue(V value) {
+    public void setValue(TValue value) {
         ensureComponentIsUsable();
         if (value != null) {
             if (value.doubleValue() < getComponent().getMin().doubleValue()) {
@@ -127,7 +127,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number
      *            the double value to convert
      * @return the converted value
      */
-    protected abstract V fromDouble(double value);
+    protected abstract TValue fromDouble(double value);
 
     @Override
     public boolean isUsable() {

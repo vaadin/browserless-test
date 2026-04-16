@@ -29,7 +29,7 @@ import com.vaadin.browserless.ComponentTester;
  * @param <TNumber>
  *            numeric type for start, end, min, max, step
  */
-abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TNumber>, TValue extends Range<TNumber>, TNumber extends Number & Comparable<TNumber>>
+abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TNumber>, TValue extends Range<TNumber>, TNumber extends Number>
         extends ComponentTester<T> {
     /**
      * Wrap given component for testing.
