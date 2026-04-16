@@ -37,7 +37,7 @@ public class IntegerSliderTester<T extends IntegerSlider>
     }
 
     @Override
-    protected Integer toValue(double value) {
+    protected Integer fromDouble(double value) {
         return (int) value;
     }
 }

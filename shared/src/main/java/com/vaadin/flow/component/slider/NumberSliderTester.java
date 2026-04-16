@@ -101,7 +101,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number
                 getComponent().getValue().doubleValue()
                         + steps * getComponent().getStep().doubleValue(),
                 getComponent().getMax().doubleValue());
-        setValueAsUser(toValue(newValue));
+        setValueAsUser(fromDouble(newValue));
     }
 
     /**
@@ -117,7 +117,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number
                 getComponent().getValue().doubleValue()
                         - steps * getComponent().getStep().doubleValue(),
                 getComponent().getMin().doubleValue());
-        setValueAsUser(toValue(newValue));
+        setValueAsUser(fromDouble(newValue));
     }
 
     /**
@@ -127,7 +127,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, V>, V extends Number
      *            the double value to convert
      * @return the converted value
      */
-    protected abstract V toValue(double value);
+    protected abstract V fromDouble(double value);
 
     @Override
     public boolean isUsable() {

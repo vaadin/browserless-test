@@ -37,12 +37,12 @@ public class RangeSliderTester<T extends RangeSlider>
     }
 
     @Override
-    protected Double toNumber(double value) {
+    protected Double fromDouble(double value) {
         return value;
     }
 
     @Override
-    protected RangeSliderValue createValue(Double start, Double end) {
+    protected RangeSliderValue createRange(Double start, Double end) {
         return new RangeSliderValue(start, end);
     }
 }

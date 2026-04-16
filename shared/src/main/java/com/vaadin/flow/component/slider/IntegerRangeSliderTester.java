@@ -37,12 +37,12 @@ public class IntegerRangeSliderTester<T extends IntegerRangeSlider>
     }
 
     @Override
-    protected Integer toNumber(double value) {
+    protected Integer fromDouble(double value) {
         return (int) value;
     }
 
     @Override
-    protected IntegerRangeSliderValue createValue(Integer start, Integer end) {
+    protected IntegerRangeSliderValue createRange(Integer start, Integer end) {
         return new IntegerRangeSliderValue(start, end);
     }
 }

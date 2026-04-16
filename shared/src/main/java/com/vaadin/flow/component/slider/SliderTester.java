@@ -37,7 +37,7 @@ public class SliderTester<T extends Slider>
     }
 
     @Override
-    protected Double toValue(double value) {
+    protected Double fromDouble(double value) {
         return value;
     }
 }

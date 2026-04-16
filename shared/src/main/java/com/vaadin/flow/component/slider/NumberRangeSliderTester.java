@@ -72,7 +72,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
         ensureComponentIsUsable();
         TNumber end = getComponent().getValue().end();
         validateRange(start, end);
-        setValueAsUser(createValue(start, end));
+        setValueAsUser(createRange(start, end));
     }
 
     /**
@@ -87,7 +87,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
         ensureComponentIsUsable();
         TNumber start = getComponent().getValue().start();
         validateRange(start, end);
-        setValueAsUser(createValue(start, end));
+        setValueAsUser(createRange(start, end));
     }
 
     /**
@@ -120,7 +120,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
                 current.start().doubleValue()
                         + steps * getComponent().getStep().doubleValue(),
                 current.end().doubleValue());
-        setValueAsUser(createValue(toNumber(newStart), current.end()));
+        setValueAsUser(createRange(fromDouble(newStart), current.end()));
     }
 
     /**
@@ -137,7 +137,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
                 current.start().doubleValue()
                         - steps * getComponent().getStep().doubleValue(),
                 getComponent().getMin().doubleValue());
-        setValueAsUser(createValue(toNumber(newStart), current.end()));
+        setValueAsUser(createRange(fromDouble(newStart), current.end()));
     }
 
     /**
@@ -170,7 +170,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
                 current.end().doubleValue()
                         + steps * getComponent().getStep().doubleValue(),
                 getComponent().getMax().doubleValue());
-        setValueAsUser(createValue(current.start(), toNumber(newEnd)));
+        setValueAsUser(createRange(current.start(), fromDouble(newEnd)));
     }
 
     /**
@@ -187,7 +187,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
                 current.end().doubleValue()
                         - steps * getComponent().getStep().doubleValue(),
                 current.start().doubleValue());
-        setValueAsUser(createValue(current.start(), toNumber(newEnd)));
+        setValueAsUser(createRange(current.start(), fromDouble(newEnd)));
     }
 
     /**
@@ -197,7 +197,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
      *            the double value to convert
      * @return the converted value
      */
-    protected abstract TNumber toNumber(double value);
+    protected abstract TNumber fromDouble(double value);
 
     /**
      * Creates a range value from start and end values.
@@ -208,7 +208,7 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
      *            the end value
      * @return the range value
      */
-    protected abstract TValue createValue(TNumber start, TNumber end);
+    protected abstract TValue createRange(TNumber start, TNumber end);
 
     @Override
     public boolean isUsable() {
