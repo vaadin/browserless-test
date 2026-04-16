@@ -28,7 +28,7 @@ public class SliderView extends Component implements HasComponents {
 
     public SliderView() {
         slider = new Slider(0, 100);
-        slider.setStep(10);
+        slider.setStep(10.0);
         add(slider);
     }
 }

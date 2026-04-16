@@ -28,7 +28,7 @@ public class RangeSliderView extends Component implements HasComponents {
 
     public RangeSliderView() {
         rangeSlider = new RangeSlider(0, 100);
-        rangeSlider.setStep(10);
+        rangeSlider.setStep(10.0);
         add(rangeSlider);
     }
 }
