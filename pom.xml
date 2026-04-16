@@ -11,7 +11,7 @@
     </parent>
     <artifactId>browserless-test</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <name>Vaadin Browserless Test</name>
     <url>http://vaadin.com</url>
     <inceptionYear>2022</inceptionYear>
@@ -33,8 +33,8 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <spring.boot.version>4.0.4</spring.boot.version>
-        <vaadin.version>25.1-SNAPSHOT</vaadin.version>
-        <flow.version>25.1-SNAPSHOT</flow.version>
+        <vaadin.version>25.2-SNAPSHOT</vaadin.version>
+        <flow.version>25.2-SNAPSHOT</flow.version>
         <slf4j.version>2.0.17</slf4j.version>
         <failsafe.version>3.5.5</failsafe.version>
         <surefire.version>3.5.5</surefire.version>
