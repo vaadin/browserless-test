@@ -129,24 +129,21 @@ public class MockSpringServlet extends SpringServlet {
             HttpServletRequest wrappedRequest = SpringSecuritySupport.springSecurityRequestWrapper
                     .apply(request);
             if (wrappedRequest instanceof MockRequest) {
-                // Spring Security Web not on classpath
-                applySimplifiedSpringSecurity(request);
+                // Spring Security Web not on classpath: read
+                // SecurityContextHolder lazily
+                request.setUserPrincipalProvider(
+                        SpringSecuritySupport::currentPrincipal);
+                request.setUserInRole(SpringSecuritySupport::isGranted);
             } else {
-                request.setUserPrincipalInt(wrappedRequest.getUserPrincipal());
+                // Spring Security Web on classpath: delegate to
+                // SecurityContextHolderAwareRequestWrapper lazily so that
+                // security context populated after setup (e.g. @WithMockUser)
+                // is picked up at test execution time
+                request.setUserPrincipalProvider(
+                        wrappedRequest::getUserPrincipal);
                 request.setUserInRole(
                         (principal, role) -> wrappedRequest.isUserInRole(role));
             }
-        }
-    }
-
-    private static void applySimplifiedSpringSecurity(MockRequest request) {
-        Authentication authentication = SpringSecuritySupport.authentication();
-        if (authentication == null || authentication.getPrincipal() == null) {
-            request.setUserPrincipalInt(null);
-            request.setUserInRole((principal, role) -> false);
-        } else {
-            request.setUserPrincipalInt(authentication);
-            request.setUserInRole(SpringSecuritySupport::isGranted);
         }
     }
 
@@ -156,8 +153,10 @@ public class MockSpringServlet extends SpringServlet {
         private static final boolean SPRING_SECURITY_PRESENT = hasSpringSecurity();
         private static final UnaryOperator<HttpServletRequest> springSecurityRequestWrapper = springSecurityRequestWrapper();
 
-        private static Authentication authentication() {
-            return SecurityContextHolder.getContext().getAuthentication();
+        private static Principal currentPrincipal() {
+            Authentication auth = SecurityContextHolder.getContext()
+                    .getAuthentication();
+            return (auth != null && auth.getPrincipal() != null) ? auth : null;
         }
 
         private static boolean hasSpringSecurity() {

@@ -15,18 +15,21 @@
  */
 package com.example.base;
 
-import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
 
-@Route("welcome")
-@RouteAlias("")
-// TODO This don't work here for many releases now???
-// @PWA(name = "My Foo PWA", shortName = "Foo PWA")
-public class WelcomeView extends VerticalLayout {
-    public WelcomeView() {
-        setWidth(null);
-        add(new Text("Welcome!"));
+@Route("external-nav")
+public class ExternalNavigationView extends VerticalLayout {
+
+    public ExternalNavigationView() {
+        add(new Button("Go to Vaadin", e -> {
+            getUI().ifPresent(
+                    ui -> ui.getPage().setLocation("https://vaadin.com/"));
+        }));
+        add(new Button("Pay", e -> {
+            getUI().ifPresent(ui -> ui.getPage()
+                    .open("https://payment.example.com/checkout?id=123"));
+        }));
     }
 }

@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.Set;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,11 +51,12 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  * class ViewTest extends SpringBrowserlessTest {
  *
  * }
+ * 
  * &#64;Configuration
  * class ViewTestConfig {
  *     &#64;Bean
  *     MyService myService() {
- *         return new my MockMyService();
+ *         return new MockMyService();
  *     }
  * }
  * }
@@ -62,10 +64,16 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  */
 @ExtendWith({ SpringExtension.class })
 @TestExecutionListeners(listeners = BrowserlessTestSpringLookupInitializer.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
-public abstract class SpringBrowserlessTest extends BrowserlessTest {
+public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
+        implements TesterWrappers {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Override
+    protected final String testingEngine() {
+        return "JUnit 6";
+    }
 
     @Override
     protected Set<Class<?>> lookupServices() {
@@ -73,11 +81,25 @@ public abstract class SpringBrowserlessTest extends BrowserlessTest {
                 SpringSecurityRequestCustomizer.class);
     }
 
+    /**
+     * Sets up the mock Vaadin Spring environment before each test. Runs as a
+     * {@code @BeforeEach} method so that it fires <em>after</em> all JUnit 5
+     * extension {@code beforeEach} callbacks — in particular after
+     * {@code SpringExtension.beforeEach()}, which populates the Spring Security
+     * context for annotations such as {@code @WithMockUser}.
+     */
     @BeforeEach
+    @Override
     protected void initVaadinEnvironment() {
         scanTesters();
         MockSpringServlet servlet = new MockSpringServlet(discoverRoutes(),
                 applicationContext, MockedUI::new);
         MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+    }
+
+    @AfterEach
+    @Override
+    protected void cleanVaadinEnvironment() {
+        super.cleanVaadinEnvironment();
     }
 }

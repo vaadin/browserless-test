@@ -47,11 +47,50 @@ public class BrowserlessTestSpringLookupInitializer
 
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
+    /**
+     * Sets the Spring ApplicationContext for the current thread so that the
+     * lookup initializer can adapt it during Vaadin environment setup. This is
+     * intended for use by extensions that integrate with Spring without
+     * extending {@link SpringBrowserlessTest}.
+     *
+     * @param ctx
+     *            the application context to use
+     */
+    public static void setCurrentApplicationContext(ApplicationContext ctx) {
+        applicationContext.set(ctx);
+    }
+
+    /**
+     * Clears the Spring ApplicationContext for the current thread.
+     */
+    public static void clearCurrentApplicationContext() {
+        applicationContext.remove();
+    }
+
     @Override
-    public void beforeTestMethod(TestContext testContext) throws Exception {
+    public void prepareTestInstance(TestContext testContext) throws Exception {
         // SpringLookup requires a WebApplicationContext. Store current test
         // ApplicationContext so that it can be adapted later on by this
-        // initializer
+        // initializer. This must be done in prepareTestInstance so the
+        // ThreadLocal is populated before any JUnit 5 extension
+        // beforeAll/beforeEach callbacks fire.
+        setApplicationContext(testContext);
+    }
+
+    @Override
+    public void beforeTestMethod(TestContext testContext) throws Exception {
+        // Re-set ThreadLocal per test method: afterTestMethod clears it, so
+        // for @TestInstance(PER_CLASS) (where prepareTestInstance runs only
+        // once) this ensures subsequent methods still see the context.
+        setApplicationContext(testContext);
+    }
+
+    @Override
+    public void afterTestMethod(TestContext testContext) throws Exception {
+        BrowserlessTestSpringLookupInitializer.applicationContext.remove();
+    }
+
+    private void setApplicationContext(TestContext testContext) {
         BrowserlessTestSpringLookupInitializer.applicationContext
                 .set(testContext.getApplicationContext());
         ApplicationContext appCtx = testContext.getApplicationContext();
@@ -65,11 +104,6 @@ public class BrowserlessTestSpringLookupInitializer
                             SpringSecurityRequestCustomizer.class.getName(),
                             new SpringSecurityRequestCustomizer());
         }
-    }
-
-    @Override
-    public void afterTestMethod(TestContext testContext) throws Exception {
-        BrowserlessTestSpringLookupInitializer.applicationContext.remove();
     }
 
     @Override

@@ -441,6 +441,19 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
+     * Gets a query object for finding a component inside the UI
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     */
+    public <T extends Component> ComponentQuery<T> get(Class<T> componentType) {
+        return $(componentType);
+    }
+
+    /**
      * Gets a query object for finding a component nested inside the given
      * component.
      *
@@ -459,6 +472,23 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
+     * Gets a query object for finding a component nested inside the given
+     * component.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param fromThis
+     *            component used as starting element for search.
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     */
+    public <T extends Component> ComponentQuery<T> get(Class<T> componentType,
+            Component fromThis) {
+        return $(componentType, fromThis);
+    }
+
+    /**
      * Gets a query object for finding a component inside the current view
      *
      * @param componentType
@@ -473,6 +503,20 @@ public abstract class BaseBrowserlessTest {
                 .orElseThrow(() -> new AssertionError(
                         "Cannot get Component instance for current view"));
         return new ComponentQuery<>(componentType).from(viewComponent);
+    }
+
+    /**
+     * Gets a query object for finding a component inside the current view
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     */
+    public <T extends Component> ComponentQuery<T> getView(
+            Class<T> componentType) {
+        return $view(componentType);
     }
 
     /**

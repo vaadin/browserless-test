@@ -13,20 +13,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.example.base;
+package com.example;
 
-import com.vaadin.flow.component.Text;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@Route("welcome")
-@RouteAlias("")
-// TODO This don't work here for many releases now???
-// @PWA(name = "My Foo PWA", shortName = "Foo PWA")
-public class WelcomeView extends VerticalLayout {
-    public WelcomeView() {
-        setWidth(null);
-        add(new Text("Welcome!"));
+@SpringBootApplication
+public class TestApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TestApplication.class, args);
     }
 }

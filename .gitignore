@@ -1,2 +1,3 @@
 target
 spotless-index
+src/main/frontend/generated
