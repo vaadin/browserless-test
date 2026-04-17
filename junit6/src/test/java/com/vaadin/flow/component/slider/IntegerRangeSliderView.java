@@ -15,29 +15,20 @@
  */
 package com.vaadin.flow.component.slider;
 
-import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasComponents;
+import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.router.Route;
 
-/**
- * Tester for Slider components.
- *
- * @param <T>
- *            component type
- */
-@Tests(Slider.class)
-public class SliderTester<T extends Slider>
-        extends NumberSliderTester<T, Double> {
-    /**
-     * Wrap given component for testing.
-     *
-     * @param component
-     *            target component
-     */
-    public SliderTester(T component) {
-        super(component);
-    }
+@Tag("div")
+@Route(value = "integer-range-slider", registerAtStartup = false)
+public class IntegerRangeSliderView extends Component implements HasComponents {
 
-    @Override
-    protected Double fromDouble(double value) {
-        return value;
+    IntegerRangeSlider rangeSlider;
+
+    public IntegerRangeSliderView() {
+        rangeSlider = new IntegerRangeSlider(0, 100);
+        rangeSlider.setStep(10);
+        add(rangeSlider);
     }
 }
