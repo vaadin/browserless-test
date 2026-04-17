@@ -113,6 +113,10 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.select.SelectTester;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavTester;
+import com.vaadin.flow.component.slider.IntegerRangeSlider;
+import com.vaadin.flow.component.slider.IntegerRangeSliderTester;
+import com.vaadin.flow.component.slider.IntegerSlider;
+import com.vaadin.flow.component.slider.IntegerSliderTester;
 import com.vaadin.flow.component.slider.RangeSlider;
 import com.vaadin.flow.component.slider.RangeSliderTester;
 import com.vaadin.flow.component.slider.Slider;
@@ -316,8 +320,20 @@ public interface TesterWrappers {
                 rangeSlider);
     }
 
+    default IntegerRangeSliderTester<IntegerRangeSlider> test(
+            IntegerRangeSlider integerRangeSlider) {
+        return BaseBrowserlessTest.internalWrap(IntegerRangeSliderTester.class,
+                integerRangeSlider);
+    }
+
     default SliderTester<Slider> test(Slider slider) {
         return BaseBrowserlessTest.internalWrap(SliderTester.class, slider);
+    }
+
+    default IntegerSliderTester<IntegerSlider> test(
+            IntegerSlider integerSlider) {
+        return BaseBrowserlessTest.internalWrap(IntegerSliderTester.class,
+                integerSlider);
     }
 
     default TabsTester<Tabs> test(Tabs tabs) {
