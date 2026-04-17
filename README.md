@@ -146,7 +146,7 @@ class MainViewTest extends QuarkusBrowserlessTest {
 }
 ```
 
-### Plain JUnit 5
+### Plain JUnit 6
 
 ```java
 import com.vaadin.browserless.BrowserlessTest;
