@@ -21,14 +21,14 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.Route;
 
 @Tag("div")
-@Route(value = "range-slider", registerAtStartup = false)
-public class RangeSliderView extends Component implements HasComponents {
+@Route(value = "integer-slider", registerAtStartup = false)
+public class IntegerSliderView extends Component implements HasComponents {
 
-    RangeSlider rangeSlider;
+    IntegerSlider slider;
 
-    public RangeSliderView() {
-        rangeSlider = new RangeSlider(0, 100);
-        rangeSlider.setStep(10.0);
-        add(rangeSlider);
+    public IntegerSliderView() {
+        slider = new IntegerSlider(0, 100);
+        slider.setStep(10);
+        add(slider);
     }
 }

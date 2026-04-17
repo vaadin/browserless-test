@@ -28,9 +28,9 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-class RangeSliderTesterTest extends BrowserlessTest {
+class IntegerRangeSliderTesterTest extends BrowserlessTest {
 
-    RangeSliderView view;
+    IntegerRangeSliderView view;
 
     @BeforeAll
     static void enableSliderFeatureFlag() {
@@ -45,13 +45,13 @@ class RangeSliderTesterTest extends BrowserlessTest {
     @BeforeEach
     void init() {
         RouteConfiguration.forApplicationScope()
-                .setAnnotatedRoute(RangeSliderView.class);
-        view = navigate(RangeSliderView.class);
+                .setAnnotatedRoute(IntegerRangeSliderView.class);
+        view = navigate(IntegerRangeSliderView.class);
     }
 
     @Test
     void setValue_usable_valueChanges() {
-        RangeSliderValue range = new RangeSliderValue(20.0, 80.0);
+        IntegerRangeSliderValue range = new IntegerRangeSliderValue(20, 80);
         test(view.rangeSlider).setValue(range);
         Assertions.assertEquals(range, view.rangeSlider.getValue(),
                 "Range value should be set");
@@ -59,14 +59,14 @@ class RangeSliderTesterTest extends BrowserlessTest {
 
     @Test
     void setValue_usable_eventFired() {
-        AtomicReference<RangeSliderValue> received = new AtomicReference<>();
+        AtomicReference<IntegerRangeSliderValue> received = new AtomicReference<>();
         view.rangeSlider.addValueChangeListener(event -> {
             if (event.isFromClient()) {
                 received.set(event.getValue());
             }
         });
 
-        RangeSliderValue range = new RangeSliderValue(30.0, 70.0);
+        IntegerRangeSliderValue range = new IntegerRangeSliderValue(30, 70);
         test(view.rangeSlider).setValue(range);
         Assertions.assertEquals(range, received.get(),
                 "Value change event should have fired");
@@ -77,7 +77,7 @@ class RangeSliderTesterTest extends BrowserlessTest {
         view.rangeSlider.setEnabled(false);
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.rangeSlider)
-                        .setValue(new RangeSliderValue(20.0, 80.0)));
+                        .setValue(new IntegerRangeSliderValue(20, 80)));
     }
 
     @Test
@@ -85,137 +85,137 @@ class RangeSliderTesterTest extends BrowserlessTest {
         view.rangeSlider.setReadOnly(true);
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.rangeSlider)
-                        .setValue(new RangeSliderValue(20.0, 80.0)));
+                        .setValue(new IntegerRangeSliderValue(20, 80)));
     }
 
     @Test
     void setValue_startBelowMin_throws() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.rangeSlider)
-                        .setValue(new RangeSliderValue(-10.0, 80.0)));
+                        .setValue(new IntegerRangeSliderValue(-10, 80)));
     }
 
     @Test
     void setValue_endAboveMax_throws() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.rangeSlider)
-                        .setValue(new RangeSliderValue(20.0, 110.0)));
+                        .setValue(new IntegerRangeSliderValue(20, 110)));
     }
 
     @Test
     void setValue_startExceedsEnd_throws() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.rangeSlider)
-                        .setValue(new RangeSliderValue(80.0, 20.0)));
+                        .setValue(new IntegerRangeSliderValue(80, 20)));
     }
 
     @Test
     void setStart_usable_updatesStart() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
-        test(view.rangeSlider).setStart(40.0);
-        Assertions.assertEquals(new RangeSliderValue(40.0, 80.0),
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
+        test(view.rangeSlider).setStart(40);
+        Assertions.assertEquals(new IntegerRangeSliderValue(40, 80),
                 view.rangeSlider.getValue(), "Start should be updated");
     }
 
     @Test
     void setEnd_usable_updatesEnd() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
-        test(view.rangeSlider).setEnd(60.0);
-        Assertions.assertEquals(new RangeSliderValue(20.0, 60.0),
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
+        test(view.rangeSlider).setEnd(60);
+        Assertions.assertEquals(new IntegerRangeSliderValue(20, 60),
                 view.rangeSlider.getValue(), "End should be updated");
     }
 
     @Test
     void setStart_exceedsEnd_throws() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 50.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 50));
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.rangeSlider).setStart(60.0));
+                () -> test(view.rangeSlider).setStart(60));
     }
 
     @Test
     void setEnd_belowStart_throws() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(50.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(50, 80));
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.rangeSlider).setEnd(40.0));
+                () -> test(view.rangeSlider).setEnd(40));
     }
 
     @Test
     void incrementStart_usable_increasesByStep() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
         test(view.rangeSlider).incrementStart();
-        Assertions.assertEquals(30.0, view.rangeSlider.getValue().start(),
+        Assertions.assertEquals(30, view.rangeSlider.getValue().start(),
                 "Start should increase by step");
     }
 
     @Test
     void decrementStart_usable_decreasesByStep() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
         test(view.rangeSlider).decrementStart();
-        Assertions.assertEquals(10.0, view.rangeSlider.getValue().start(),
+        Assertions.assertEquals(10, view.rangeSlider.getValue().start(),
                 "Start should decrease by step");
     }
 
     @Test
     void incrementStart_atEnd_clampsToEnd() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(50.0, 50.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(50, 50));
         test(view.rangeSlider).incrementStart();
-        Assertions.assertEquals(50.0, view.rangeSlider.getValue().start(),
+        Assertions.assertEquals(50, view.rangeSlider.getValue().start(),
                 "Start should be clamped to end");
     }
 
     @Test
     void decrementStart_atMin_staysAtMin() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(0.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(0, 80));
         test(view.rangeSlider).decrementStart();
-        Assertions.assertEquals(0.0, view.rangeSlider.getValue().start(),
+        Assertions.assertEquals(0, view.rangeSlider.getValue().start(),
                 "Start should stay at min");
     }
 
     @Test
     void incrementEnd_usable_increasesByStep() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
         test(view.rangeSlider).incrementEnd();
-        Assertions.assertEquals(90.0, view.rangeSlider.getValue().end(),
+        Assertions.assertEquals(90, view.rangeSlider.getValue().end(),
                 "End should increase by step");
     }
 
     @Test
     void decrementEnd_usable_decreasesByStep() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
         test(view.rangeSlider).decrementEnd();
-        Assertions.assertEquals(70.0, view.rangeSlider.getValue().end(),
+        Assertions.assertEquals(70, view.rangeSlider.getValue().end(),
                 "End should decrease by step");
     }
 
     @Test
     void incrementEnd_atMax_staysAtMax() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 100.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 100));
         test(view.rangeSlider).incrementEnd();
-        Assertions.assertEquals(100.0, view.rangeSlider.getValue().end(),
+        Assertions.assertEquals(100, view.rangeSlider.getValue().end(),
                 "End should stay at max");
     }
 
     @Test
     void decrementEnd_atStart_clampsToStart() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(50.0, 50.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(50, 50));
         test(view.rangeSlider).decrementEnd();
-        Assertions.assertEquals(50.0, view.rangeSlider.getValue().end(),
+        Assertions.assertEquals(50, view.rangeSlider.getValue().end(),
                 "End should be clamped to start");
     }
 
     @Test
     void incrementStartBy_usable_increasesByMultipleSteps() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(0.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(0, 80));
         test(view.rangeSlider).incrementStartBy(3);
-        Assertions.assertEquals(30.0, view.rangeSlider.getValue().start(),
+        Assertions.assertEquals(30, view.rangeSlider.getValue().start(),
                 "Start should increase by 3 steps");
     }
 
     @Test
     void decrementEndBy_usable_decreasesByMultipleSteps() {
-        test(view.rangeSlider).setValue(new RangeSliderValue(20.0, 80.0));
+        test(view.rangeSlider).setValue(new IntegerRangeSliderValue(20, 80));
         test(view.rangeSlider).decrementEndBy(2);
-        Assertions.assertEquals(60.0, view.rangeSlider.getValue().end(),
+        Assertions.assertEquals(60, view.rangeSlider.getValue().end(),
                 "End should decrease by 2 steps");
     }
 

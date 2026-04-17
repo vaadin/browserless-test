@@ -11,7 +11,7 @@
     </parent>
     <artifactId>browserless-test-bom</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <name>Vaadin Browserless Test (Bill of Materials)</name>
     <description>Vaadin Browserless Test (Bill of Materials)</description>
     <url>http://vaadin.com</url>
@@ -47,6 +47,11 @@
             <dependency>
                 <groupId>com.vaadin</groupId>
                 <artifactId>browserless-test-junit6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>browserless-test-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
