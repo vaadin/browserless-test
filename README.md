@@ -34,12 +34,13 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 
 ## Modules
 
-| Module | Artifact ID | Description                                                                       |
-|--------|-------------|-----------------------------------------------------------------------------------|
-| **shared** | `browserless-test-shared` | Core framework: mocked Vaadin environment, component testers, navigation, queries |
-| **junit6** | `browserless-test-junit6` | JUnit 6 integration: base classes and extensions                                  |
+| Module      | Artifact ID                | Description                                                                       |
+|-------------|----------------------------|-----------------------------------------------------------------------------------|
+| **shared**  | `browserless-test-shared`  | Core framework: mocked Vaadin environment, component testers, navigation, queries |
+| **junit6**  | `browserless-test-junit6`  | JUnit 6 integration: base classes and extensions                                  |
+| **spring**  | `browserless-test-spring`  | Spring / Spring Boot integration                                                  |
 | **quarkus** | `browserless-test-quarkus` | Quarkus integration                                                               |
-| **bom** | `browserless-test-bom` | Bill of Materials for dependency management                                       |
+| **bom**     | `browserless-test-bom`     | Bill of Materials for dependency management                                       |
 
 ## Requirements
 
@@ -69,28 +70,15 @@ Add the BOM to your `<dependencyManagement>` section:
 
 ### 2. Add the test dependency
 
-**Plain JUnit 6:**
-
-```xml
-<dependency>
-    <groupId>com.vaadin</groupId>
-    <artifactId>browserless-test-junit6</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
 **Spring Boot:**
 
 ```xml
 <dependency>
     <groupId>com.vaadin</groupId>
-    <artifactId>browserless-test-junit6</artifactId>
+    <artifactId>browserless-test-spring</artifactId>
     <scope>test</scope>
 </dependency>
 ```
-
-The Spring integration is built into the junit6 module. Use `SpringBrowserlessTest`
-as your base class (see [Quick Start](#quick-start) below).
 
 **Quarkus:**
 
@@ -102,42 +90,17 @@ as your base class (see [Quick Start](#quick-start) below).
 </dependency>
 ```
 
-## Quick Start
+**Plain JUnit 6:**
 
-### Plain JUnit 5
-
-```java
-import com.vaadin.browserless.BrowserlessTest;
-import com.vaadin.browserless.ViewPackages;
-import com.vaadin.flow.component.button.Button;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-@ViewPackages(classes = CartView.class)
-class CartViewTest extends BrowserlessTest {
-
-    @Test
-    void addItemToCart() {
-        CartView view = navigate(CartView.class);
-
-        // interact with components through testers
-        test(view.getAddButton()).click();
-
-        // find components and verify state
-        Span cartCount = $(Span.class).withId("cart-count").single();
-        assertEquals("1", cartCount.getText());
-    }
-
-    @Test
-    void queryComponents() {
-        navigate(CartView.class);
-
-        // find components by type
-        Button btn = $(Button.class).first();
-        assertNotNull(btn);
-    }
-}
+```xml
+<dependency>
+    <groupId>com.vaadin</groupId>
+    <artifactId>browserless-test-junit6</artifactId>
+    <scope>test</scope>
+</dependency>
 ```
+
+## Quick Start
 
 ### Spring Boot
 
@@ -179,6 +142,41 @@ class MainViewTest extends QuarkusBrowserlessTest {
     void accessProtectedView() {
         MainView view = navigate(MainView.class);
         assertNotNull(view);
+    }
+}
+```
+
+### Plain JUnit 5
+
+```java
+import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.button.Button;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ViewPackages(classes = CartView.class)
+class CartViewTest extends BrowserlessTest {
+
+    @Test
+    void addItemToCart() {
+        CartView view = navigate(CartView.class);
+
+        // interact with components through testers
+        test(view.getAddButton()).click();
+
+        // find components and verify state
+        Span cartCount = $(Span.class).withId("cart-count").single();
+        assertEquals("1", cartCount.getText());
+    }
+
+    @Test
+    void queryComponents() {
+        navigate(CartView.class);
+
+        // find components by type
+        Button btn = $(Button.class).first();
+        assertNotNull(btn);
     }
 }
 ```
