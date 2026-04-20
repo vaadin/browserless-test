@@ -86,15 +86,15 @@ data class Routes(
                 .acceptPackages(*(packageNames.map { it ?: "" }.toTypedArray()))
         classGraph.scan().use { scanResult: ScanResult ->
             scanResult.getClassesWithAnnotation(Route::class.java.name).mapTo(routes) { info: ClassInfo ->
-                findClassOrThrow(info.name).asSubclass(Component::class.java)
+                scanResult.loadClass(info.name,Component::class.java, false)
             }
             scanResult.getClassesImplementing(HasErrorParameter::class.java.name).mapTo(errorRoutes) { info: ClassInfo ->
-                findClassOrThrow(info.name).asSubclass(HasErrorParameter::class.java)
+                scanResult.loadClass(info.name,HasErrorParameter::class.java, false)
             }
             scanResult.getClassesWithAnnotation(Layout::class.java.name)
                     .filter { it.implementsInterface(RouterLayout::class.java.name) }
                     .mapTo(layouts) { info: ClassInfo ->
-                        findClassOrThrow(info.name).asSubclass(RouterLayout::class.java)
+                        scanResult.loadClass(info.name,RouterLayout::class.java, false)
                     }
         }
 
