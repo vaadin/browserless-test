@@ -94,7 +94,7 @@ data class Routes(
             scanResult.getClassesWithAnnotation(Layout::class.java.name)
                     .filter { it.implementsInterface(RouterLayout::class.java.name) }
                     .mapTo(layouts) { info: ClassInfo ->
-                        findClassOrThrow(info.name).asSubclass(RouterLayout::class.java)
+                        scanResult.loadClass(info.name,RouterLayout::class.java, false)
                     }
         }
 
