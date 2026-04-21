@@ -175,6 +175,14 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
     var isUserInRole: (Principal, role: String) -> Boolean = { _, _ -> false }
 
     /**
+     * Sets the user-in-role checker using a [java.util.function.BiPredicate].
+     * Java-friendly alternative to setting [isUserInRole] directly.
+     */
+    fun roleChecker(checker: java.util.function.BiPredicate<Principal, String>) {
+        isUserInRole = { principal, role -> checker.test(principal, role) }
+    }
+
+    /**
      * Set [isUserInRole] to modify the outcome of this function.
      */
     override fun isUserInRole(role: String): Boolean {
@@ -217,9 +225,25 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
     var userPrincipalInt: Principal? = null
 
     /**
-     * Set via [userPrincipalInt].
+     * Optional provider for [getUserPrincipal]. When set, takes precedence over
+     * [userPrincipalInt], allowing the principal to be resolved lazily at
+     * call time (e.g. from a security context that is populated after setup).
      */
-    override fun getUserPrincipal(): Principal? = userPrincipalInt
+    var userPrincipalProvider: (() -> Principal?)? = null
+
+    /**
+     * Sets the user principal provider using a [java.util.function.Supplier].
+     * Java-friendly alternative to setting [userPrincipalProvider] directly.
+     */
+    fun principalProvider(supplier: java.util.function.Supplier<Principal?>) {
+        userPrincipalProvider = { supplier.get() }
+    }
+
+    /**
+     * Returns the principal from [userPrincipalProvider] if set, otherwise
+     * falls back to [userPrincipalInt].
+     */
+    override fun getUserPrincipal(): Principal? = userPrincipalProvider?.invoke() ?: userPrincipalInt
 
     override fun getReader(): BufferedReader {
         throw UnsupportedOperationException("not implemented")

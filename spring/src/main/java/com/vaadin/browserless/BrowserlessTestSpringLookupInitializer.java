@@ -48,10 +48,29 @@ public class BrowserlessTestSpringLookupInitializer
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
     @Override
-    public void beforeTestMethod(TestContext testContext) throws Exception {
+    public void prepareTestInstance(TestContext testContext) throws Exception {
         // SpringLookup requires a WebApplicationContext. Store current test
         // ApplicationContext so that it can be adapted later on by this
-        // initializer
+        // initializer. This must be done in prepareTestInstance so the
+        // ThreadLocal is populated before any JUnit 5 extension
+        // beforeAll/beforeEach callbacks fire.
+        setApplicationContext(testContext);
+    }
+
+    @Override
+    public void beforeTestMethod(TestContext testContext) throws Exception {
+        // Re-set ThreadLocal per test method: afterTestMethod clears it, so
+        // for @TestInstance(PER_CLASS) (where prepareTestInstance runs only
+        // once) this ensures subsequent methods still see the context.
+        setApplicationContext(testContext);
+    }
+
+    @Override
+    public void afterTestMethod(TestContext testContext) throws Exception {
+        BrowserlessTestSpringLookupInitializer.applicationContext.remove();
+    }
+
+    private void setApplicationContext(TestContext testContext) {
         BrowserlessTestSpringLookupInitializer.applicationContext
                 .set(testContext.getApplicationContext());
         ApplicationContext appCtx = testContext.getApplicationContext();
@@ -67,9 +86,26 @@ public class BrowserlessTestSpringLookupInitializer
         }
     }
 
-    @Override
-    public void afterTestMethod(TestContext testContext) throws Exception {
-        BrowserlessTestSpringLookupInitializer.applicationContext.remove();
+    /**
+     * Sets the application context to be used by the lookup initializer.
+     * <p>
+     * This is used by {@code SpringBrowserlessApplicationContext} to configure
+     * the Spring context for multi-user testing without relying on the
+     * {@link TestExecutionListener} lifecycle.
+     *
+     * @param appCtx
+     *            the Spring application context
+     */
+    public static void setApplicationContext(ApplicationContext appCtx) {
+        applicationContext.set(appCtx);
+        if (appCtx instanceof ConfigurableApplicationContext
+                && !appCtx.containsBean(
+                        SpringSecurityRequestCustomizer.class.getName())) {
+            ((ConfigurableApplicationContext) appCtx).getBeanFactory()
+                    .registerSingleton(
+                            SpringSecurityRequestCustomizer.class.getName(),
+                            new SpringSecurityRequestCustomizer());
+        }
     }
 
     @Override
