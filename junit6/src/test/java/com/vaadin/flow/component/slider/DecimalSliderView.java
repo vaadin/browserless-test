@@ -21,13 +21,13 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.Route;
 
 @Tag("div")
-@Route(value = "slider", registerAtStartup = false)
-public class SliderView extends Component implements HasComponents {
+@Route(value = "decimal-slider", registerAtStartup = false)
+public class DecimalSliderView extends Component implements HasComponents {
 
-    Slider slider;
+    DecimalSlider slider;
 
-    public SliderView() {
-        slider = new Slider(0, 100);
+    public DecimalSliderView() {
+        slider = new DecimalSlider(0, 100);
         slider.setStep(10.0);
         add(slider);
     }

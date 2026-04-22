@@ -18,26 +18,31 @@ package com.vaadin.flow.component.slider;
 import com.vaadin.browserless.Tests;
 
 /**
- * Tester for Slider components.
+ * Tester for DecimalRangeSlider components.
  *
  * @param <T>
  *            component type
  */
-@Tests(Slider.class)
-public class SliderTester<T extends Slider>
-        extends NumberSliderTester<T, Double> {
+@Tests(DecimalRangeSlider.class)
+public class DecimalRangeSliderTester<T extends DecimalRangeSlider>
+        extends NumberRangeSliderTester<T, DecimalRangeSliderValue, Double> {
     /**
      * Wrap given component for testing.
      *
      * @param component
      *            target component
      */
-    public SliderTester(T component) {
+    public DecimalRangeSliderTester(T component) {
         super(component);
     }
 
     @Override
     protected Double fromDouble(double value) {
         return value;
+    }
+
+    @Override
+    protected DecimalRangeSliderValue createRange(Double start, Double end) {
+        return new DecimalRangeSliderValue(start, end);
     }
 }
