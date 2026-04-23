@@ -19,9 +19,11 @@ import jakarta.enterprise.inject.spi.CDI;
 
 import java.util.Set;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.BaseBrowserlessTest;
+import com.vaadin.browserless.TesterWrappers;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
@@ -36,14 +38,13 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * work.
  *
  * With Quarkus testing framework, setting up the CDI environment can be
- * achieved by annotating the {@link BrowserlessTest} class with
- * {@code @QuarkusTest}. The annotation registers a JUnit extension that deploys
- * and starts the whole application, including the initialization of the CDI
- * container. The drawback of this approach is that the application also starts
- * the HTTP server, effectively initializing the entire Vaadin application.
- * Tests are still performed in a mocked environment, but it is not possible
- * out-of-the-box to run them in isolation, with only the components needed by
- * the test.
+ * achieved by annotating the test class with {@code @QuarkusTest}. The
+ * annotation registers a JUnit extension that deploys and starts the whole
+ * application, including the initialization of the CDI container. The drawback
+ * of this approach is that the application also starts the HTTP server,
+ * effectively initializing the entire Vaadin application. Tests are still
+ * performed in a mocked environment, but it is not possible out-of-the-box to
+ * run them in isolation, with only the components needed by the test.
  *
  * <pre>
  * {
@@ -68,16 +69,38 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * may still be removed by the CDI container because considered unused or not
  * found because of missing bean defining annotations. For the above reasons,
  * currently, using {@code @QuarkusComponentTest} is not recommended.
+ *
+ * <p>
+ * This class extends {@link BaseBrowserlessTest} directly (not
+ * {@code BrowserlessTest}) to avoid inheriting
+ * {@code @ExtendWith(BrowserlessTestExtension.class)}. The Vaadin environment
+ * lifecycle is instead managed by {@code @BeforeEach}/{@code @AfterEach}
+ * methods, which JUnit 5 fires <em>after</em> all extension {@code beforeEach}
+ * callbacks — in particular after {@code QuarkusTestExtension.beforeEach()},
+ * which activates the CDI request scope and applies {@code @TestSecurity}
+ * identities.
  */
+public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
+        implements TesterWrappers {
 
-public abstract class QuarkusBrowserlessTest extends BrowserlessTest {
+    @Override
+    protected final String testingEngine() {
+        return "JUnit 6";
+    }
 
     @BeforeEach
+    @Override
     protected void initVaadinEnvironment() {
         scanTesters();
         MockQuarkusServlet servlet = new MockQuarkusServlet(discoverRoutes(),
                 CDI.current().getBeanManager(), MockedUI::new);
         MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+    }
+
+    @AfterEach
+    @Override
+    protected void cleanVaadinEnvironment() {
+        super.cleanVaadinEnvironment();
     }
 
     @Override
