@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.browserless.internal.Routes;
 
 /**
- * Tests multi-tab scenarios: one user with multiple windows
- * sharing a session but with independent UI state.
+ * Tests multi-tab scenarios: one user with multiple windows sharing a session
+ * but with independent UI state.
  */
 class MultiTabTest {
 
@@ -35,8 +35,8 @@ class MultiTabTest {
     @BeforeEach
     void setUp() {
         SharedCounterView.counter.set(0);
-        Routes routes = new Routes().autoDiscoverViews(
-                SharedCounterView.class.getPackageName());
+        Routes routes = new Routes()
+                .autoDiscoverViews(SharedCounterView.class.getPackageName());
         app = BrowserlessApplicationContext.create(routes);
     }
 
@@ -52,10 +52,8 @@ class MultiTabTest {
         var window2 = user.newWindow();
 
         // Same session
-        Assertions.assertSame(user.getSession(),
-                window1.getUI().getSession());
-        Assertions.assertSame(user.getSession(),
-                window2.getUI().getSession());
+        Assertions.assertSame(user.getSession(), window1.getUI().getSession());
+        Assertions.assertSame(user.getSession(), window2.getUI().getSession());
 
         // But different UI instances
         Assertions.assertNotSame(window1.getUI(), window2.getUI());
@@ -74,7 +72,6 @@ class MultiTabTest {
         // Each window shows its own view
         Assertions.assertInstanceOf(SharedCounterView.class,
                 window1.getCurrentView());
-        Assertions.assertInstanceOf(SimpleView.class,
-                window2.getCurrentView());
+        Assertions.assertInstanceOf(SimpleView.class, window2.getCurrentView());
     }
 }

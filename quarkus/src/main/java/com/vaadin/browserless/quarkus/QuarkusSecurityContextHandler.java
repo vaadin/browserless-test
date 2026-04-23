@@ -26,8 +26,8 @@ import com.vaadin.browserless.SecurityContextHandler;
 /**
  * Quarkus Security implementation of {@link SecurityContextHandler}.
  * <p>
- * Manages the {@link SecurityIdentity} via
- * {@link CurrentIdentityAssociation} for multi-user test isolation.
+ * Manages the {@link SecurityIdentity} via {@link CurrentIdentityAssociation}
+ * for multi-user test isolation.
  * <p>
  * The {@link #setupAuthentication(Object)} method expects a
  * {@link SecurityIdentity} instance as the credentials parameter.
@@ -66,8 +66,7 @@ public class QuarkusSecurityContextHandler
     @Override
     public void clearContext() {
         getIdentityAssociation().setIdentity(
-                QuarkusSecurityIdentity.builder()
-                        .setAnonymous(true).build());
+                QuarkusSecurityIdentity.builder().setAnonymous(true).build());
     }
 
     private CurrentIdentityAssociation getIdentityAssociation() {

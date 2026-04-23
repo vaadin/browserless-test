@@ -52,7 +52,8 @@ public final class QuarkusBrowserlessApplicationContext {
     /**
      * Creates a Quarkus-integrated application context.
      *
-     * @param routes the discovered routes
+     * @param routes
+     *            the discovered routes
      * @return a new application context configured for Quarkus
      */
     public static BrowserlessApplicationContext<SecurityIdentity> create(
@@ -64,21 +65,20 @@ public final class QuarkusBrowserlessApplicationContext {
      * Creates a Quarkus-integrated application context with a custom UI
      * factory.
      *
-     * @param routes    the discovered routes
-     * @param uiFactory the UI factory
+     * @param routes
+     *            the discovered routes
+     * @param uiFactory
+     *            the UI factory
      * @return a new application context configured for Quarkus
      */
     public static BrowserlessApplicationContext<SecurityIdentity> create(
             Routes routes, UIFactory uiFactory) {
-        return BrowserlessApplicationContext
-                .<SecurityIdentity>builder(routes)
+        return BrowserlessApplicationContext.<SecurityIdentity> builder(routes)
                 .withServletFactory(r -> new MockQuarkusServlet(r,
                         CDI.current().getBeanManager(), uiFactory))
                 .withUIFactory(uiFactory)
-                .withLookupServices(
-                        Set.of(QuarkusTestLookupInitializer.class))
-                .withSecurityContextHandler(
-                        new QuarkusSecurityContextHandler())
+                .withLookupServices(Set.of(QuarkusTestLookupInitializer.class))
+                .withSecurityContextHandler(new QuarkusSecurityContextHandler())
                 .build();
     }
 }

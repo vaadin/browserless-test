@@ -35,9 +35,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.vaadin.browserless.internal.Routes;
 
 /**
- * Tests multi-user security context isolation with Spring Security.
- * Verifies that switching between users' windows correctly saves and
- * restores Spring SecurityContext.
+ * Tests multi-user security context isolation with Spring Security. Verifies
+ * that switching between users' windows correctly saves and restores Spring
+ * SecurityContext.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = SecurityTestConfig.NavigationAccessControlConfig.class)
@@ -50,8 +50,7 @@ class MultiUserSecurityTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews(
-                "com.testapp.security");
+        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
         app = SpringBrowserlessApplicationContext.create(routes,
                 applicationContext);
     }
@@ -64,8 +63,7 @@ class MultiUserSecurityTest {
     @Test
     void authenticatedUser_seesProtectedView() {
         var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret",
-                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
 
         var admin = app.newUser(adminAuth);
         var adminWindow = admin.newWindow();
@@ -91,8 +89,7 @@ class MultiUserSecurityTest {
     @Test
     void multipleUsers_securityContextIsolated() {
         var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret",
-                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
 
         var admin = app.newUser(adminAuth);
         var adminWindow = admin.newWindow();

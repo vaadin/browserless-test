@@ -30,8 +30,8 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  * Factory for creating a Spring-integrated
  * {@link BrowserlessApplicationContext}.
  * <p>
- * Configures the context with Spring-aware servlet, security context
- * handling, and lookup services.
+ * Configures the context with Spring-aware servlet, security context handling,
+ * and lookup services.
  *
  * <pre>
  * var app = SpringBrowserlessApplicationContext.create(routes, springCtx);
@@ -51,8 +51,10 @@ public final class SpringBrowserlessApplicationContext {
     /**
      * Creates a Spring-integrated application context.
      *
-     * @param routes the discovered routes
-     * @param applicationContext the Spring application context
+     * @param routes
+     *            the discovered routes
+     * @param applicationContext
+     *            the Spring application context
      * @return a new application context configured for Spring
      */
     public static BrowserlessApplicationContext<Authentication> create(
@@ -61,12 +63,14 @@ public final class SpringBrowserlessApplicationContext {
     }
 
     /**
-     * Creates a Spring-integrated application context with a custom UI
-     * factory.
+     * Creates a Spring-integrated application context with a custom UI factory.
      *
-     * @param routes the discovered routes
-     * @param applicationContext the Spring application context
-     * @param uiFactory the UI factory
+     * @param routes
+     *            the discovered routes
+     * @param applicationContext
+     *            the Spring application context
+     * @param uiFactory
+     *            the UI factory
      * @return a new application context configured for Spring
      */
     public static BrowserlessApplicationContext<Authentication> create(
@@ -76,16 +80,14 @@ public final class SpringBrowserlessApplicationContext {
         BrowserlessTestSpringLookupInitializer
                 .setApplicationContext(applicationContext);
 
-        return BrowserlessApplicationContext
-                .<Authentication>builder(routes)
+        return BrowserlessApplicationContext.<Authentication> builder(routes)
                 .withServletFactory(r -> new MockSpringServlet(r,
                         applicationContext, uiFactory))
                 .withUIFactory(uiFactory)
-                .withLookupServices(Set.of(
-                        BrowserlessTestSpringLookupInitializer.class,
-                        SpringSecurityRequestCustomizer.class))
-                .withSecurityContextHandler(
-                        new SpringSecurityContextHandler())
+                .withLookupServices(
+                        Set.of(BrowserlessTestSpringLookupInitializer.class,
+                                SpringSecurityRequestCustomizer.class))
+                .withSecurityContextHandler(new SpringSecurityContextHandler())
                 .build();
     }
 }
