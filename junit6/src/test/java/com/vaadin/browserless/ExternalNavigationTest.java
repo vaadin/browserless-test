@@ -56,8 +56,7 @@ class ExternalNavigationTest {
         Assertions.assertNull(ui.getExternalNavigationURL());
 
         // Click Page.setLocation button
-        ui.test(ui.$(Button.class).withText("Go to Vaadin").single())
-                .click();
+        ui.test(ui.$(Button.class).withText("Go to Vaadin").single()).click();
 
         Assertions.assertEquals("https://vaadin.com/",
                 ui.getExternalNavigationURL());
@@ -73,8 +72,7 @@ class ExternalNavigationTest {
         ui.test(ui.$(Button.class).withText("Pay").single()).click();
 
         Assertions.assertNull(ui.getExternalNavigationURL());
-        Assertions.assertEquals(
-                "https://payment.example.com/checkout?id=123",
+        Assertions.assertEquals("https://payment.example.com/checkout?id=123",
                 ui.getExternalNavigationURL("_blank"));
     }
 
@@ -149,10 +147,8 @@ class ExternalNavigationTest {
         ui.test(ui.$(Button.class).withText("Open Tab 2").single()).click();
 
         Map<String, List<String>> opened = ui.getOpenedWindows();
-        Assertions.assertEquals(
-                List.of("https://tab1.example.com/",
-                        "https://tab2.example.com/"),
-                opened.get("_blank"));
+        Assertions.assertEquals(List.of("https://tab1.example.com/",
+                "https://tab2.example.com/"), opened.get("_blank"));
     }
 
     @Test
@@ -180,8 +176,7 @@ class ExternalNavigationTest {
                 "helpWindow");
 
         Map<String, List<String>> opened = ui.getOpenedWindows();
-        Assertions.assertEquals(
-                List.of("https://help.example.com/updated"),
+        Assertions.assertEquals(List.of("https://help.example.com/updated"),
                 opened.get("helpWindow"));
     }
 
@@ -202,12 +197,9 @@ class ExternalNavigationTest {
         // openedWindows contains only non-self entries
         Map<String, List<String>> opened = ui.getOpenedWindows();
         Assertions.assertEquals(2, opened.size());
-        Assertions.assertEquals(
-                List.of("https://help.example.com/"),
+        Assertions.assertEquals(List.of("https://help.example.com/"),
                 opened.get("helpWindow"));
-        Assertions.assertEquals(
-                List.of("https://tab1.example.com/",
-                        "https://tab2.example.com/"),
-                opened.get("_blank"));
+        Assertions.assertEquals(List.of("https://tab1.example.com/",
+                "https://tab2.example.com/"), opened.get("_blank"));
     }
 }

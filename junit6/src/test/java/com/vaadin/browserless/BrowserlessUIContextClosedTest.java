@@ -25,8 +25,8 @@ import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.html.Div;
 
 /**
- * Tests that calling methods on a closed {@link BrowserlessUIContext}
- * throws {@link IllegalStateException}.
+ * Tests that calling methods on a closed {@link BrowserlessUIContext} throws
+ * {@link IllegalStateException}.
  */
 class BrowserlessUIContextClosedTest {
 
@@ -34,8 +34,8 @@ class BrowserlessUIContextClosedTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews(
-                SimpleView.class.getPackageName());
+        Routes routes = new Routes()
+                .autoDiscoverViews(SimpleView.class.getPackageName());
         app = BrowserlessApplicationContext.create(routes);
     }
 
@@ -49,8 +49,7 @@ class BrowserlessUIContextClosedTest {
         var window = app.newUser().newWindow();
         window.close();
 
-        Assertions.assertThrows(IllegalStateException.class,
-                window::activate,
+        Assertions.assertThrows(IllegalStateException.class, window::activate,
                 "activate() on a closed context should throw");
     }
 

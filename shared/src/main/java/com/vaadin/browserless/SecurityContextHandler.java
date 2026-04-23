@@ -18,13 +18,13 @@ package com.vaadin.browserless;
 /**
  * Abstracts per-user security context management for multi-user testing.
  * <p>
- * Framework modules (Spring, Quarkus) provide implementations that bridge
- * their security infrastructure (e.g. Spring's {@code SecurityContextHolder},
- * Quarkus's {@code CurrentIdentityAssociation}) with the browserless
- * multi-user context hierarchy.
+ * Framework modules (Spring, Quarkus) provide implementations that bridge their
+ * security infrastructure (e.g. Spring's {@code SecurityContextHolder},
+ * Quarkus's {@code CurrentIdentityAssociation}) with the browserless multi-user
+ * context hierarchy.
  * <p>
- * Implementations must be thread-safe with respect to the thread-local
- * security state they manage.
+ * Implementations must be thread-safe with respect to the thread-local security
+ * state they manage.
  *
  * @see BrowserlessApplicationContext.Builder#withSecurityContextHandler(SecurityContextHandler)
  */
@@ -35,18 +35,19 @@ public interface SecurityContextHandler<C> {
      * <p>
      * The type parameter {@code C} is determined by the framework
      * implementation. For example, Spring uses
-     * {@code org.springframework.security.core.Authentication} and Quarkus
-     * uses {@code io.quarkus.security.identity.SecurityIdentity}.
+     * {@code org.springframework.security.core.Authentication} and Quarkus uses
+     * {@code io.quarkus.security.identity.SecurityIdentity}.
      *
-     * @param credentials framework-specific credentials object
+     * @param credentials
+     *            framework-specific credentials object
      */
     void setupAuthentication(C credentials);
 
     /**
      * Captures the current thread's security context as an opaque snapshot.
      * <p>
-     * Called automatically when switching away from a user context to
-     * preserve its security state.
+     * Called automatically when switching away from a user context to preserve
+     * its security state.
      *
      * @return an opaque snapshot of the current security context, or
      *         {@code null} if no security context is active
@@ -54,11 +55,12 @@ public interface SecurityContextHandler<C> {
     Object saveContext();
 
     /**
-     * Restores a previously saved security context snapshot onto the
-     * current thread.
+     * Restores a previously saved security context snapshot onto the current
+     * thread.
      *
-     * @param snapshot a snapshot previously returned by {@link #saveContext()},
-     *                 or {@code null} to clear the context
+     * @param snapshot
+     *            a snapshot previously returned by {@link #saveContext()}, or
+     *            {@code null} to clear the context
      */
     void restoreContext(Object snapshot);
 

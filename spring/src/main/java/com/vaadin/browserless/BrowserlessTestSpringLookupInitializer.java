@@ -89,11 +89,12 @@ public class BrowserlessTestSpringLookupInitializer
     /**
      * Sets the application context to be used by the lookup initializer.
      * <p>
-     * This is used by {@code SpringBrowserlessApplicationContext} to
-     * configure the Spring context for multi-user testing without relying
-     * on the {@link TestExecutionListener} lifecycle.
+     * This is used by {@code SpringBrowserlessApplicationContext} to configure
+     * the Spring context for multi-user testing without relying on the
+     * {@link TestExecutionListener} lifecycle.
      *
-     * @param appCtx the Spring application context
+     * @param appCtx
+     *            the Spring application context
      */
     public static void setApplicationContext(ApplicationContext appCtx) {
         applicationContext.set(appCtx);

@@ -35,9 +35,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.vaadin.browserless.internal.Routes;
 
 /**
- * Tests that the Spring security context snapshot is a defensive copy,
- * not a mutable reference. Mutating the live SecurityContext on the
- * thread after switching users must not corrupt the saved snapshot.
+ * Tests that the Spring security context snapshot is a defensive copy, not a
+ * mutable reference. Mutating the live SecurityContext on the thread after
+ * switching users must not corrupt the saved snapshot.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = SecurityTestConfig.NavigationAccessControlConfig.class)
@@ -63,8 +63,7 @@ class SpringSecuritySnapshotTest {
     @Test
     void mutatingLiveContext_doesNotCorruptSavedSnapshot() {
         var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret",
-                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
 
         // Create admin user and verify access
         var admin = app.newUser(adminAuth);

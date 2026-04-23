@@ -29,33 +29,26 @@ import com.vaadin.flow.router.Route;
 public class ExternalNavigationView extends VerticalLayout {
 
     public ExternalNavigationView() {
-        Button setLocation = new Button("Go to Vaadin",
-                e -> UI.getCurrent().getPage()
-                        .setLocation("https://vaadin.com/"));
+        Button setLocation = new Button("Go to Vaadin", e -> UI.getCurrent()
+                .getPage().setLocation("https://vaadin.com/"));
 
-        Button openNew = new Button("Pay",
-                e -> UI.getCurrent().getPage()
-                        .open("https://payment.example.com/checkout?id=123"));
+        Button openNew = new Button("Pay", e -> UI.getCurrent().getPage()
+                .open("https://payment.example.com/checkout?id=123"));
 
-        Button openNamedWindow = new Button("Open Help",
-                e -> UI.getCurrent().getPage()
-                        .open("https://help.example.com/", "helpWindow"));
+        Button openNamedWindow = new Button("Open Help", e -> UI.getCurrent()
+                .getPage().open("https://help.example.com/", "helpWindow"));
 
-        Button openParent = new Button("Open Parent",
-                e -> UI.getCurrent().getPage()
-                        .open("https://parent.example.com/", "_parent"));
+        Button openParent = new Button("Open Parent", e -> UI.getCurrent()
+                .getPage().open("https://parent.example.com/", "_parent"));
 
-        Button openTop = new Button("Open Top",
-                e -> UI.getCurrent().getPage()
-                        .open("https://top.example.com/", "_top"));
+        Button openTop = new Button("Open Top", e -> UI.getCurrent().getPage()
+                .open("https://top.example.com/", "_top"));
 
-        Button openBlank1 = new Button("Open Tab 1",
-                e -> UI.getCurrent().getPage()
-                        .open("https://tab1.example.com/"));
+        Button openBlank1 = new Button("Open Tab 1", e -> UI.getCurrent()
+                .getPage().open("https://tab1.example.com/"));
 
-        Button openBlank2 = new Button("Open Tab 2",
-                e -> UI.getCurrent().getPage()
-                        .open("https://tab2.example.com/"));
+        Button openBlank2 = new Button("Open Tab 2", e -> UI.getCurrent()
+                .getPage().open("https://tab2.example.com/"));
 
         add(setLocation, openNew, openNamedWindow, openParent, openTop,
                 openBlank1, openBlank2);
