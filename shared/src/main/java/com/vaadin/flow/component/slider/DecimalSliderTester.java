@@ -15,20 +15,29 @@
  */
 package com.vaadin.flow.component.slider;
 
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasComponents;
-import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.Route;
+import com.vaadin.browserless.Tests;
 
-@Tag("div")
-@Route(value = "range-slider", registerAtStartup = false)
-public class RangeSliderView extends Component implements HasComponents {
+/**
+ * Tester for DecimalSlider components.
+ *
+ * @param <T>
+ *            component type
+ */
+@Tests(DecimalSlider.class)
+public class DecimalSliderTester<T extends DecimalSlider>
+        extends NumberSliderTester<T, Double> {
+    /**
+     * Wrap given component for testing.
+     *
+     * @param component
+     *            target component
+     */
+    public DecimalSliderTester(T component) {
+        super(component);
+    }
 
-    RangeSlider rangeSlider;
-
-    public RangeSliderView() {
-        rangeSlider = new RangeSlider(0, 100);
-        rangeSlider.setStep(10.0);
-        add(rangeSlider);
+    @Override
+    protected Double fromDouble(double value) {
+        return value;
     }
 }

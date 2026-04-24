@@ -32,9 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ViewPackages
-class SliderTesterTest extends BrowserlessTest {
+class DecimalSliderTesterTest extends BrowserlessTest {
 
-    SliderView view;
+    DecimalSliderView view;
 
     @BeforeAll
     static void enableSliderFeatureFlag() {
@@ -49,8 +49,8 @@ class SliderTesterTest extends BrowserlessTest {
     @BeforeEach
     void init() {
         RouteConfiguration.forApplicationScope()
-                .setAnnotatedRoute(SliderView.class);
-        view = navigate(SliderView.class);
+                .setAnnotatedRoute(DecimalSliderView.class);
+        view = navigate(DecimalSliderView.class);
     }
 
     @Test

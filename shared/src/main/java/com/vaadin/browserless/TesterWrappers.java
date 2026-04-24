@@ -113,14 +113,14 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.select.SelectTester;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavTester;
+import com.vaadin.flow.component.slider.DecimalRangeSlider;
+import com.vaadin.flow.component.slider.DecimalRangeSliderTester;
+import com.vaadin.flow.component.slider.DecimalSlider;
+import com.vaadin.flow.component.slider.DecimalSliderTester;
 import com.vaadin.flow.component.slider.IntegerRangeSlider;
 import com.vaadin.flow.component.slider.IntegerRangeSliderTester;
 import com.vaadin.flow.component.slider.IntegerSlider;
 import com.vaadin.flow.component.slider.IntegerSliderTester;
-import com.vaadin.flow.component.slider.RangeSlider;
-import com.vaadin.flow.component.slider.RangeSliderTester;
-import com.vaadin.flow.component.slider.Slider;
-import com.vaadin.flow.component.slider.SliderTester;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetTester;
 import com.vaadin.flow.component.tabs.Tabs;
@@ -315,8 +315,9 @@ public interface TesterWrappers {
         return BaseBrowserlessTest.internalWrap(SideNavTester.class, sideNav);
     }
 
-    default RangeSliderTester<RangeSlider> test(RangeSlider rangeSlider) {
-        return BaseBrowserlessTest.internalWrap(RangeSliderTester.class,
+    default DecimalRangeSliderTester<DecimalRangeSlider> test(
+            DecimalRangeSlider rangeSlider) {
+        return BaseBrowserlessTest.internalWrap(DecimalRangeSliderTester.class,
                 rangeSlider);
     }
 
@@ -326,8 +327,9 @@ public interface TesterWrappers {
                 integerRangeSlider);
     }
 
-    default SliderTester<Slider> test(Slider slider) {
-        return BaseBrowserlessTest.internalWrap(SliderTester.class, slider);
+    default DecimalSliderTester<DecimalSlider> test(DecimalSlider slider) {
+        return BaseBrowserlessTest.internalWrap(DecimalSliderTester.class,
+                slider);
     }
 
     default IntegerSliderTester<IntegerSlider> test(
