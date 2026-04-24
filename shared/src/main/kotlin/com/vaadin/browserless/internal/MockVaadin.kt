@@ -289,6 +289,19 @@ object MockVaadin {
         createUI(uiFactory, objs.session)
     }
 
+    /**
+     * Creates a new [UI] for the given [session] using [uiFactory] and
+     * attaches it to the Vaadin thread-locals.
+     *
+     * The caller must have already installed the thread-locals for the
+     * target user ([VaadinService], [VaadinSession], [VaadinRequest],
+     * [VaadinResponse]) before calling this function; [VaadinRequest.getCurrent]
+     * must return a non-null request. If a route target is registered for the
+     * empty path `""`, the new UI will navigate to it.
+     *
+     * @param uiFactory factory that produces a fresh, unattached [UI]
+     * @param session the session that will own the new UI
+     */
     @JvmStatic
     fun createUI(uiFactory: UIFactory, session: VaadinSession) {
         val request: VaadinRequest = checkNotNull(VaadinRequest.getCurrent())
@@ -467,15 +480,6 @@ object MockVaadin {
         service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
     }
 
-    /**
-     * Clears the current UI from thread-locals without firing detach events.
-     * Useful for multi-user context where UIs are managed independently.
-     */
-    @JvmStatic
-    fun clearCurrentUI() {
-        UI.setCurrent(null)
-        strongRefUI.remove()
-    }
 }
 
 private val _VaadinService_sessionInitListeners: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {

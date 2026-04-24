@@ -29,7 +29,7 @@ import com.vaadin.browserless.SecurityContextHandler;
  * Manages the {@link SecurityIdentity} via {@link CurrentIdentityAssociation}
  * for multi-user test isolation.
  * <p>
- * The {@link #setupAuthentication(Object)} method expects a
+ * The {@link #setupAuthentication(SecurityIdentity)} method expects a
  * {@link SecurityIdentity} instance as the credentials parameter.
  *
  * @see SecurityContextHandler
