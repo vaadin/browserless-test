@@ -395,6 +395,9 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             VaadinService.setCurrent(user.getApp().getService());
             VaadinSession.setCurrent(user.getSession());
             UI.setCurrent(ui);
+            // Restore this user's security context so detach listeners see
+            // the right identity, not whatever the thread happens to carry
+            user.restoreSecurityContext();
             MockVaadin.closeCurrentUI(true);
             ui = null;
         }
