@@ -23,12 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Paragraph;
 
 /**
- * Tests multi-tab scenarios: one user with multiple windows sharing a session
- * but with independent UI state.
+ * Tests multi-window scenarios: one user with multiple windows sharing a
+ * session but with independent UI state.
  */
-class MultiTabTest {
+class MultiWindowTest {
 
     private BrowserlessApplicationContext<Void> app;
 
@@ -57,6 +59,39 @@ class MultiTabTest {
 
         // But different UI instances
         Assertions.assertNotSame(window1.getUI(), window2.getUI());
+    }
+
+    @Test
+    void sameUser_interleavingOperations_preservePerWindowViewState() {
+        var user = app.newUser();
+        var w1 = user.newWindow();
+        var w2 = user.newWindow();
+
+        w1.navigate(SharedCounterView.class);
+        w2.navigate(SharedCounterView.class);
+
+        // w1 increments — its display reflects the new shared counter
+        w1.test(w1.$(Button.class).withText("Increment").single()).click();
+        Assertions.assertEquals("Count: 1",
+                w1.$(Paragraph.class).single().getText());
+
+        // w2 increments — its display reflects the (now larger) counter
+        w2.test(w2.$(Button.class).withText("Increment").single()).click();
+        Assertions.assertEquals("Count: 2",
+                w2.$(Paragraph.class).single().getText());
+
+        // Switching back to w1 must not corrupt its independent UI state —
+        // the display still shows the value from w1's own last increment,
+        // not whatever w2 most recently set.
+        Assertions.assertEquals("Count: 1",
+                w1.$(Paragraph.class).single().getText(),
+                "w1's display should retain its own state across"
+                        + " activations from w2");
+
+        // And w1 can still observe the shared counter via Refresh.
+        w1.test(w1.$(Button.class).withText("Refresh").single()).click();
+        Assertions.assertEquals("Count: 2",
+                w1.$(Paragraph.class).single().getText());
     }
 
     @Test

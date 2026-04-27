@@ -51,7 +51,6 @@ public class BrowserlessUserContext implements AutoCloseable {
     private Object securitySnapshot;
     private boolean closed;
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     BrowserlessUserContext(BrowserlessApplicationContext<?> app,
             Object credentials) {
         this.app = app;
@@ -61,6 +60,10 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinSession previousSession = VaadinSession.getCurrent();
         VaadinRequest previousRequest = VaadinRequest.getCurrent();
         VaadinResponse previousResponse = VaadinResponse.getCurrent();
+        // Raw type so we can pass the Object credentials to setupAuthentication
+        // without forcing every caller (and the surrounding wildcard
+        // BrowserlessApplicationContext<?>) to know the concrete C.
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         SecurityContextHandler handler = app.getSecurityContextHandler();
         Object previousSecuritySnapshot = handler != null
                 ? handler.saveContext()

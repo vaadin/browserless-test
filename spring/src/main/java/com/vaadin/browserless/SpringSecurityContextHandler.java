@@ -47,12 +47,9 @@ public class SpringSecurityContextHandler
 
     @Override
     public void setupAuthentication(Authentication credentials) {
-        SecurityContext ctx = SecurityContextHolder.getContext();
-        if (ctx == null) {
-            ctx = SecurityContextHolder.createEmptyContext();
-            SecurityContextHolder.setContext(ctx);
-        }
-        ctx.setAuthentication(
+        // SecurityContextHolder.getContext() never returns null — the strategy
+        // lazily installs an empty context if the slot is unset.
+        SecurityContextHolder.getContext().setAuthentication(
                 credentials != null ? credentials : anonymousAuthentication());
     }
 

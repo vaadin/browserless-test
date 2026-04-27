@@ -35,11 +35,10 @@ import com.vaadin.flow.server.VaadinSession;
 /**
  * UI-level context for multi-user browserless testing.
  * <p>
- * Represents a single browser window/tab (one {@link UI} instance). All DSL
- * methods ({@link #navigate}, {@link #$}, {@link #$view}, {@link #test})
- * automatically call {@link #activate()} before executing, which transparently
- * switches the thread-local Vaadin state and security context to this window's
- * user.
+ * Represents a single browser window (one {@link UI} instance). All DSL methods
+ * ({@link #navigate}, {@link #$}, {@link #$view}, {@link #test}) automatically
+ * call {@link #activate()} before executing, which transparently switches the
+ * thread-local Vaadin state and security context to this window's user.
  * <p>
  * This means you can freely interleave calls on different windows without
  * explicit context switching:
