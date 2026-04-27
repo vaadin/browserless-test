@@ -51,11 +51,7 @@ public class QuarkusSecurityContextHandler
 
     @Override
     public SecurityIdentity saveContext() {
-        try {
-            return CurrentIdentityAssociation.current();
-        } catch (Exception e) {
-            return null;
-        }
+        return CurrentIdentityAssociation.current();
     }
 
     @Override
