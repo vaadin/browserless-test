@@ -71,19 +71,9 @@ public class BrowserlessTestSpringLookupInitializer
     }
 
     private void setApplicationContext(TestContext testContext) {
-        BrowserlessTestSpringLookupInitializer.applicationContext
-                .set(testContext.getApplicationContext());
         ApplicationContext appCtx = testContext.getApplicationContext();
-        // Register a MockRequestCustomizer bean so that request will have
-        // access to authentication details from Spring Security
-        if (appCtx instanceof ConfigurableApplicationContext
-                && !appCtx.containsBean(
-                        SpringSecurityRequestCustomizer.class.getName())) {
-            ((ConfigurableApplicationContext) appCtx).getBeanFactory()
-                    .registerSingleton(
-                            SpringSecurityRequestCustomizer.class.getName(),
-                            new SpringSecurityRequestCustomizer());
-        }
+        BrowserlessTestSpringLookupInitializer.applicationContext.set(appCtx);
+        registerSpringSecurityRequestCustomizerIfNeeded(appCtx);
     }
 
     /**
@@ -98,7 +88,17 @@ public class BrowserlessTestSpringLookupInitializer
      */
     public static void setApplicationContext(ApplicationContext appCtx) {
         applicationContext.set(appCtx);
-        if (appCtx instanceof ConfigurableApplicationContext
+        registerSpringSecurityRequestCustomizerIfNeeded(appCtx);
+    }
+
+    private static void registerSpringSecurityRequestCustomizerIfNeeded(
+            ApplicationContext appCtx) {
+        // Register a MockRequestCustomizer bean so that the request has access
+        // to authentication details from Spring Security. Skip when Spring
+        // Security is not on the classpath: the customizer would be a no-op,
+        // and advertising it as a bean is misleading.
+        if (SpringSecuritySupport.isPresent()
+                && appCtx instanceof ConfigurableApplicationContext
                 && !appCtx.containsBean(
                         SpringSecurityRequestCustomizer.class.getName())) {
             ((ConfigurableApplicationContext) appCtx).getBeanFactory()

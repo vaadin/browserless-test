@@ -78,14 +78,17 @@ public final class SpringBrowserlessApplicationContext {
         BrowserlessTestSpringLookupInitializer
                 .setApplicationContext(applicationContext);
 
-        return BrowserlessApplicationContext.<Authentication> builder(routes)
+        BrowserlessApplicationContext.Builder<Authentication> builder = BrowserlessApplicationContext
+                .<Authentication> builder(routes)
                 .withServletFactory(r -> new MockSpringServlet(r,
                         applicationContext, uiFactory))
-                .withUIFactory(uiFactory)
-                .withLookupServices(
-                        BrowserlessTestSpringLookupInitializer.class,
-                        SpringSecurityRequestCustomizer.class)
-                .withSecurityContextHandler(new SpringSecurityContextHandler())
-                .build();
+                .withUIFactory(uiFactory).withLookupServices(
+                        BrowserlessTestSpringLookupInitializer.class);
+        if (SpringSecuritySupport.isPresent()) {
+            builder.withLookupServices(SpringSecurityRequestCustomizer.class)
+                    .withSecurityContextHandler(
+                            new SpringSecurityContextHandler());
+        }
+        return builder.build();
     }
 }
