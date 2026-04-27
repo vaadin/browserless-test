@@ -17,8 +17,6 @@ package com.vaadin.browserless.quarkus;
 
 import jakarta.enterprise.inject.spi.CDI;
 
-import java.util.Set;
-
 import io.quarkus.security.identity.SecurityIdentity;
 
 import com.vaadin.browserless.BrowserlessApplicationContext;
@@ -77,7 +75,7 @@ public final class QuarkusBrowserlessApplicationContext {
                 .withServletFactory(r -> new MockQuarkusServlet(r,
                         CDI.current().getBeanManager(), uiFactory))
                 .withUIFactory(uiFactory)
-                .withLookupServices(Set.of(QuarkusTestLookupInitializer.class))
+                .withLookupServices(QuarkusTestLookupInitializer.class)
                 .withSecurityContextHandler(new QuarkusSecurityContextHandler())
                 .build();
     }
