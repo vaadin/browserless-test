@@ -37,9 +37,16 @@ public interface SecurityContextHandler<C> {
      * implementation. For example, Spring uses
      * {@code org.springframework.security.core.Authentication} and Quarkus uses
      * {@code io.quarkus.security.identity.SecurityIdentity}.
+     * <p>
+     * Implementations must accept {@code null} credentials and produce an
+     * anonymous-equivalent state — e.g. Spring sets an
+     * {@code AnonymousAuthenticationToken}, mirroring
+     * {@code @WithAnonymousUser}. {@link #clearContext()} is invoked
+     * immediately before this method so that earlier state cannot leak through.
      *
      * @param credentials
-     *            framework-specific credentials object
+     *            framework-specific credentials object, or {@code null} for an
+     *            anonymous user
      */
     void setupAuthentication(C credentials);
 
@@ -68,4 +75,34 @@ public interface SecurityContextHandler<C> {
      * Clears the security context from the current thread.
      */
     void clearContext();
+
+    /**
+     * Builds framework-specific credentials for the given username and roles.
+     * <p>
+     * Used by {@link BrowserlessApplicationContext#newUser(String, String...)}
+     * so tests can authenticate a user without writing the framework-specific
+     * boilerplate. Spring's implementation produces a
+     * {@code UsernamePasswordAuthenticationToken} carrying a {@code User}
+     * principal (mirroring {@code @WithMockUser}); Quarkus's implementation
+     * produces a {@code QuarkusSecurityIdentity}.
+     * <p>
+     * The default implementation throws {@link UnsupportedOperationException} —
+     * handlers that don't have a natural mapping from username + roles to
+     * {@code C} can simply leave it unimplemented; callers must then use
+     * {@link BrowserlessApplicationContext#newUser(Object) newUser(C
+     * credentials)} directly.
+     *
+     * @param username
+     *            the username
+     * @param roles
+     *            the roles for the user; never {@code null}, may be empty
+     * @return the credentials, never {@code null}
+     */
+    default C createCredentials(String username, String... roles) {
+        throw new UnsupportedOperationException("This "
+                + getClass().getSimpleName()
+                + " does not support building credentials from a username and"
+                + " roles. Override createCredentials(...) or call"
+                + " newUser(C credentials) with explicit credentials.");
+    }
 }

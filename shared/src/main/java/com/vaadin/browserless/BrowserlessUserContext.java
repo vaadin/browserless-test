@@ -61,8 +61,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinSession previousSession = VaadinSession.getCurrent();
         VaadinRequest previousRequest = VaadinRequest.getCurrent();
         VaadinResponse previousResponse = VaadinResponse.getCurrent();
-        SecurityContextHandler handler = (SecurityContextHandler) app
-                .getSecurityContextHandler();
+        SecurityContextHandler handler = app.getSecurityContextHandler();
         Object previousSecuritySnapshot = handler != null
                 ? handler.saveContext()
                 : null;
@@ -90,9 +89,10 @@ public class BrowserlessUserContext implements AutoCloseable {
             if (handler != null) {
                 // Start with a clean security context for this user
                 handler.clearContext();
-                if (credentials != null) {
-                    handler.setupAuthentication(credentials);
-                }
+                // Always delegate to the handler so it can interpret null
+                // credentials (e.g. Spring sets an
+                // AnonymousAuthenticationToken)
+                handler.setupAuthentication(credentials);
                 // Capture as this user's initial security snapshot
                 securitySnapshot = handler.saveContext();
             }

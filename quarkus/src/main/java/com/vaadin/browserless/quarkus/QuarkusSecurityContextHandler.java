@@ -17,8 +17,12 @@ package com.vaadin.browserless.quarkus;
 
 import jakarta.enterprise.inject.spi.CDI;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
 import io.quarkus.security.identity.CurrentIdentityAssociation;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 
 import com.vaadin.browserless.SecurityContextHandler;
@@ -46,7 +50,7 @@ public class QuarkusSecurityContextHandler
     }
 
     @Override
-    public Object saveContext() {
+    public SecurityIdentity saveContext() {
         try {
             return CurrentIdentityAssociation.current();
         } catch (Exception e) {
@@ -56,10 +60,14 @@ public class QuarkusSecurityContextHandler
 
     @Override
     public void restoreContext(Object snapshot) {
-        if (snapshot instanceof SecurityIdentity identity) {
+        if (snapshot == null) {
+            clearContext();
+        } else if (snapshot instanceof SecurityIdentity identity) {
             getIdentityAssociation().setIdentity(identity);
         } else {
-            clearContext();
+            throw new IllegalArgumentException(
+                    "Expected a SecurityIdentity snapshot, got "
+                            + snapshot.getClass().getName());
         }
     }
 
@@ -71,5 +79,18 @@ public class QuarkusSecurityContextHandler
 
     private CurrentIdentityAssociation getIdentityAssociation() {
         return CDI.current().select(CurrentIdentityAssociation.class).get();
+    }
+
+    /**
+     * Builds a non-anonymous {@link SecurityIdentity} for the given username
+     * and roles.
+     */
+    @Override
+    public SecurityIdentity createCredentials(String username,
+            String... roles) {
+        return QuarkusSecurityIdentity.builder()
+                .setPrincipal(new QuarkusPrincipal(username))
+                .addRoles(new HashSet<>(Arrays.asList(roles)))
+                .setAnonymous(false).build();
     }
 }

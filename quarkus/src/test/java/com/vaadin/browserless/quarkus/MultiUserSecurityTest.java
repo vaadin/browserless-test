@@ -82,6 +82,16 @@ class MultiUserSecurityTest {
     }
 
     @Test
+    void newUser_byUsernameAndRoles_authenticatesUser() {
+        var window = app.newUser("john", "USER").newWindow();
+
+        // Helper-built identity grants access to a @PermitAll view
+        window.navigate(ProtectedView.class);
+        Assertions.assertInstanceOf(ProtectedView.class,
+                window.getCurrentView());
+    }
+
+    @Test
     void multipleUsers_securityContextIsolated() {
         var adminIdentity = QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal("john"))

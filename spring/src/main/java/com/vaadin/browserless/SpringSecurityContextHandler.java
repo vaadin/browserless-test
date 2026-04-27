@@ -15,9 +15,18 @@
  */
 package com.vaadin.browserless;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 
 /**
  * Spring Security implementation of {@link SecurityContextHandler}.
@@ -26,7 +35,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * {@link SecurityContextHolder} for multi-user test isolation.
  * <p>
  * The {@link #setupAuthentication(Object)} method expects an
- * {@link Authentication} instance as the credentials parameter.
+ * {@link Authentication} instance as the credentials parameter, or {@code null}
+ * for an anonymous user — in which case an {@link AnonymousAuthenticationToken}
+ * is installed (mirroring the behaviour of {@code @WithAnonymousUser}).
  *
  * @see SecurityContextHandler
  * @see SpringBrowserlessApplicationContext
@@ -36,18 +47,23 @@ public class SpringSecurityContextHandler
 
     @Override
     public void setupAuthentication(Authentication credentials) {
-        if (credentials != null) {
-            SecurityContext ctx = SecurityContextHolder.getContext();
-            if (ctx == null) {
-                ctx = SecurityContextHolder.createEmptyContext();
-                SecurityContextHolder.setContext(ctx);
-            }
-            ctx.setAuthentication(credentials);
+        SecurityContext ctx = SecurityContextHolder.getContext();
+        if (ctx == null) {
+            ctx = SecurityContextHolder.createEmptyContext();
+            SecurityContextHolder.setContext(ctx);
         }
+        ctx.setAuthentication(
+                credentials != null ? credentials : anonymousAuthentication());
+    }
+
+    private static AnonymousAuthenticationToken anonymousAuthentication() {
+        return new AnonymousAuthenticationToken("browserless-anonymous-key",
+                "anonymousUser",
+                AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
     }
 
     @Override
-    public Object saveContext() {
+    public SecurityContext saveContext() {
         SecurityContext current = SecurityContextHolder.getContext();
         SecurityContext copy = SecurityContextHolder.createEmptyContext();
         copy.setAuthentication(current.getAuthentication());
@@ -56,15 +72,38 @@ public class SpringSecurityContextHandler
 
     @Override
     public void restoreContext(Object snapshot) {
-        if (snapshot instanceof SecurityContext ctx) {
+        if (snapshot == null) {
+            SecurityContextHolder.clearContext();
+        } else if (snapshot instanceof SecurityContext ctx) {
             SecurityContextHolder.setContext(ctx);
         } else {
-            SecurityContextHolder.clearContext();
+            throw new IllegalArgumentException(
+                    "Expected a SecurityContext snapshot, got "
+                            + snapshot.getClass().getName());
         }
     }
 
     @Override
     public void clearContext() {
         SecurityContextHolder.clearContext();
+    }
+
+    /**
+     * Builds an {@link Authentication} for the given username and roles, in the
+     * same shape produced by Spring Security's {@code @WithMockUser}: a
+     * {@link UsernamePasswordAuthenticationToken} carrying a {@link User}
+     * principal whose authorities are the given roles, prefixed with
+     * {@code ROLE_} when not already prefixed.
+     */
+    @Override
+    public Authentication createCredentials(String username, String... roles) {
+        List<GrantedAuthority> authorities = new ArrayList<>(roles.length);
+        for (String role : roles) {
+            authorities.add(new SimpleGrantedAuthority(
+                    role.startsWith("ROLE_") ? role : "ROLE_" + role));
+        }
+        User principal = new User(username, "", authorities);
+        return UsernamePasswordAuthenticationToken.authenticated(principal,
+                principal.getPassword(), principal.getAuthorities());
     }
 }

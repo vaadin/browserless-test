@@ -109,29 +109,30 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     /**
      * Creates a new user context representing an anonymous user session.
      * <p>
-     * The returned context has its own
-     * {@link com.vaadin.flow.server.VaadinSession}, HTTP request, and response.
-     * Equivalent to {@link #newUser(Object) newUser(null)}: no authentication
-     * is set up, even if a {@link SecurityContextHandler} is configured.
+     * Equivalent to {@link #newUser(Object) newUser(null)}: when a
+     * {@link SecurityContextHandler} is configured, the handler is asked to
+     * install its anonymous-equivalent state (e.g. Spring sets an
+     * {@code AnonymousAuthenticationToken}).
      *
      * @return the new user context
      * @throws IllegalStateException
      *             if this context has been closed
      */
     public BrowserlessUserContext newUser() {
-        return newUser(null);
+        return newUser((C) null);
     }
 
     /**
      * Creates a new user context with the given credentials.
      * <p>
      * If a {@link SecurityContextHandler} is configured, the security context
-     * for this user is first cleared, then — if {@code credentials} is
-     * non-{@code null} — the credentials are passed to
+     * for this user is first cleared, then the credentials are passed to
      * {@link SecurityContextHandler#setupAuthentication(Object)
-     * SecurityContextHandler.setupAuthentication()}. The resulting security
-     * state is captured as this user's initial snapshot and is automatically
-     * restored whenever one of this user's windows is activated.
+     * SecurityContextHandler.setupAuthentication()} — including when
+     * {@code credentials} is {@code null}, so that the handler can install its
+     * anonymous-equivalent state. The resulting security state is captured as
+     * this user's initial snapshot and is automatically restored whenever one
+     * of this user's windows is activated.
      *
      * @param credentials
      *            framework-specific credentials, or {@code null} for an
@@ -145,6 +146,43 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         var user = new BrowserlessUserContext(this, credentials);
         users.add(user);
         return user;
+    }
+
+    /**
+     * Creates a new user context for the given username and roles.
+     * <p>
+     * Delegates to
+     * {@link SecurityContextHandler#createCredentials(String, String...)} on
+     * the configured handler, then to {@link #newUser(Object)}. Spring and
+     * Quarkus handlers ship with overrides that mirror the conventions of
+     * {@code @WithMockUser} / Quarkus security identity construction; custom
+     * handlers must override {@code createCredentials} to opt into this helper.
+     *
+     * @param username
+     *            the username
+     * @param roles
+     *            the roles for the user; may be empty
+     * @return the new user context
+     * @throws IllegalStateException
+     *             if this context has been closed, or no
+     *             {@link SecurityContextHandler} is configured
+     * @throws UnsupportedOperationException
+     *             if the configured handler doesn't override
+     *             {@link SecurityContextHandler#createCredentials(String, String...)}
+     */
+    public BrowserlessUserContext newUser(String username, String... roles) {
+        checkNotClosed();
+        Objects.requireNonNull(username, "username must not be null");
+        Objects.requireNonNull(roles, "roles must not be null");
+        if (securityContextHandler == null) {
+            throw new IllegalStateException(
+                    "No SecurityContextHandler configured. Use"
+                            + " Builder.withSecurityContextHandler(...) or a"
+                            + " framework-specific application context that"
+                            + " installs one by default.");
+        }
+        return newUser(
+                securityContextHandler.createCredentials(username, roles));
     }
 
     /**
