@@ -102,13 +102,10 @@ public class BrowserlessUserContext implements AutoCloseable {
             VaadinSession.setCurrent(previousSession);
             CurrentInstance.set(VaadinRequest.class, previousRequest);
             CurrentInstance.set(VaadinResponse.class, previousResponse);
-            // Restore previous security context
+            // Restore previous security context — handler contract specifies
+            // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
-                if (previousSecuritySnapshot != null) {
-                    handler.restoreContext(previousSecuritySnapshot);
-                } else {
-                    handler.clearContext();
-                }
+                handler.restoreContext(previousSecuritySnapshot);
             }
         }
     }
@@ -197,11 +194,8 @@ public class BrowserlessUserContext implements AutoCloseable {
     void restoreSecurityContext() {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();
         if (handler != null) {
-            if (securitySnapshot != null) {
-                handler.restoreContext(securitySnapshot);
-            } else {
-                handler.clearContext();
-            }
+            // Contract: handler.restoreContext(null) clears the context.
+            handler.restoreContext(securitySnapshot);
         }
     }
 
