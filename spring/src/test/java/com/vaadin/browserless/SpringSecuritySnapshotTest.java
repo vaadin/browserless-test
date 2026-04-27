@@ -57,6 +57,37 @@ class SpringSecuritySnapshotTest {
     }
 
     @Test
+    void mutationOnActiveUser_isCapturedAndRestoredOnSwitchBack() {
+        var admin = app.newUser("john", "USER");
+        var adminWindow = admin.newWindow();
+
+        // Sanity: admin's auth is on the thread.
+        Assertions.assertEquals("john", SecurityContextHolder.getContext()
+                .getAuthentication().getName());
+
+        // Mutate the live SecurityContext *while admin is still active* —
+        // simulating a test that programmatically changes auth mid-flight
+        // (e.g. logging out the current user).
+        SecurityContextHolder.getContext().setAuthentication(null);
+
+        // Switching to another user captures the outgoing (admin's) live
+        // state — including the mutation — into admin's snapshot.
+        var bob = app.newUser("bob", "USER");
+        bob.newWindow();
+
+        // Re-activating admin must restore the *mutated* state, not the
+        // creation-time auth: mutations on the active user are captured at
+        // the user-switch point, per the BrowserlessUserContext contract.
+        adminWindow.activate();
+        Assertions.assertNull(
+                SecurityContextHolder.getContext().getAuthentication(),
+                "Mutations applied while admin was active should survive a"
+                        + " round-trip through bob — captured into admin's"
+                        + " snapshot on the user-switch and restored on"
+                        + " re-activation.");
+    }
+
+    @Test
     void mutatingLiveContext_doesNotCorruptSavedSnapshot() {
         // Create admin user and verify access
         var admin = app.newUser("john", "USER");
