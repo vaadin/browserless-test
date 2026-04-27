@@ -202,15 +202,30 @@ object MockVaadin {
     private fun closeCurrentSession() {
         val session: VaadinSession? = VaadinSession.getCurrent()
         if (session != null) {
-            val service: VaadinService = VaadinService.getCurrent()
-            service.fireSessionDestroy(session)
-            VaadinSession.setCurrent(null)
-            // service destroys session via session.access(); we need to run that action now.
-            currentlyClosingSession.set(true)
-            runUIQueue(session = session)
-            currentlyClosingSession.set(false)
+            fireSessionDestroyAndDrain(session)
         }
         strongRefSession.remove()
+    }
+
+    /**
+     * Fires session-destroy listeners on [session] and drains pending
+     * [VaadinSession.access] tasks scheduled during destruction. The
+     * `currentlyClosingSession` flag is set for the duration so the
+     * `afterSessionClose` recreation hook (used by single-user `setup`) is
+     * suppressed — multi-user callers manage their own session lifecycle.
+     */
+    @JvmStatic
+    public fun fireSessionDestroyAndDrain(session: VaadinSession) {
+        val service: VaadinService = session.service
+        service.fireSessionDestroy(session)
+        VaadinSession.setCurrent(null)
+        // service destroys session via session.access(); we need to run that action now.
+        currentlyClosingSession.set(true)
+        try {
+            runUIQueue(session = session)
+        } finally {
+            currentlyClosingSession.set(false)
+        }
     }
 
     private val currentlyClosingSession: ThreadLocal<Boolean> = object : ThreadLocal<Boolean>() {

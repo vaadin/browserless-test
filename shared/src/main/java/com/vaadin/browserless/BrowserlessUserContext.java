@@ -145,12 +145,15 @@ public class BrowserlessUserContext implements AutoCloseable {
         }
         windows.clear();
 
-        // Destroy session
+        // Destroy session: fire destroy listeners and drain the queue,
+        // mirroring MockVaadin.closeCurrentSession (which gates the
+        // session-recreation hook via a thread-local flag).
         VaadinService.setCurrent(app.getService());
         VaadinSession.setCurrent(session);
-        app.getService().fireSessionDestroy(session);
-        VaadinSession.setCurrent(null);
+        MockVaadin.fireSessionDestroyAndDrain(session);
         VaadinService.setCurrent(null);
+        CurrentInstance.set(VaadinRequest.class, null);
+        CurrentInstance.set(VaadinResponse.class, null);
     }
 
     /**
