@@ -44,9 +44,9 @@ public class QuarkusSecurityContextHandler
 
     @Override
     public void setupAuthentication(SecurityIdentity credentials) {
-        if (credentials != null) {
-            getIdentityAssociation().setIdentity(credentials);
-        }
+        SecurityIdentity identity = credentials != null ? credentials
+                : QuarkusSecurityIdentity.builder().setAnonymous(true).build();
+        getIdentityAssociation().setIdentity(identity);
     }
 
     @Override
