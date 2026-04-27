@@ -34,9 +34,12 @@ import com.vaadin.flow.server.VaadinSession;
  * instances) via {@link #newWindow()}.
  * <p>
  * Security context (if a {@link SecurityContextHandler} is configured on the
- * parent {@link BrowserlessApplicationContext}) is automatically captured when
- * this context is created and saved/restored when switching between users'
- * windows.
+ * parent {@link BrowserlessApplicationContext}) is initialised when this user
+ * is created and refreshed on user-switch (when activating a different user's
+ * window), capturing the outgoing user's live thread-local state at that
+ * moment. Mutations to the security context while one of this user's windows is
+ * active persist on the thread and are captured into this user's snapshot at
+ * the next user-switch — same-user window switches don't touch the snapshot.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
