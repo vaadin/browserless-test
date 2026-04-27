@@ -38,7 +38,7 @@ import com.vaadin.flow.server.VaadinServletService;
  * Manages a shared {@link VaadinServletService} and servlet that are shared
  * across all users and their windows. This models the application level of the
  * Vaadin hierarchy: one application contains multiple user sessions, each with
- * multiple UI instances (browser tabs).
+ * multiple UI instances (browser windows).
  * <p>
  * Create instances via {@link #create(Routes)} for plain Java or use the
  * {@link #builder(Routes)} for full customization. Framework-specific modules
@@ -119,7 +119,11 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
      *             if this context has been closed
      */
     public BrowserlessUserContext newUser() {
-        return newUser((C) null);
+        // Cast disambiguates from newUser(String, String...) when C
+        // happens to be String — null alone would match both overloads.
+        @SuppressWarnings("unchecked")
+        C nullCredentials = (C) null;
+        return newUser(nullCredentials);
     }
 
     /**
