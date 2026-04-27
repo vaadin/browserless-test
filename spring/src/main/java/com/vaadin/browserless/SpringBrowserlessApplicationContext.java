@@ -15,8 +15,6 @@
  */
 package com.vaadin.browserless;
 
-import java.util.Set;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 
@@ -85,8 +83,8 @@ public final class SpringBrowserlessApplicationContext {
                         applicationContext, uiFactory))
                 .withUIFactory(uiFactory)
                 .withLookupServices(
-                        Set.of(BrowserlessTestSpringLookupInitializer.class,
-                                SpringSecurityRequestCustomizer.class))
+                        BrowserlessTestSpringLookupInitializer.class,
+                        SpringSecurityRequestCustomizer.class)
                 .withSecurityContextHandler(new SpringSecurityContextHandler())
                 .build();
     }

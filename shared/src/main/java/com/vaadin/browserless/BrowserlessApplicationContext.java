@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -52,6 +53,10 @@ import com.vaadin.flow.server.VaadinServletService;
  * app.close();
  * </pre>
  *
+ * @param <C>
+ *            the credentials type accepted by {@link #newUser(Object)}, as
+ *            defined by the configured {@link SecurityContextHandler};
+ *            {@link Void} when no security context handler is configured
  * @see BrowserlessUserContext
  * @see BrowserlessUIContext
  */
@@ -75,6 +80,10 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
     /**
      * Creates a plain Java application context with default settings.
+     * <p>
+     * The returned context has no {@link SecurityContextHandler} configured;
+     * use {@link #builder(Routes)} to enable framework-specific security
+     * integration.
      *
      * @param routes
      *            the discovered routes
@@ -98,14 +107,16 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     }
 
     /**
-     * Creates a new user context representing an independent user session.
+     * Creates a new user context representing an anonymous user session.
      * <p>
      * The returned context has its own
      * {@link com.vaadin.flow.server.VaadinSession}, HTTP request, and response.
-     * If credentials are provided and a {@link SecurityContextHandler} is
-     * configured, authentication is set up automatically.
+     * Equivalent to {@link #newUser(Object) newUser(null)}: no authentication
+     * is set up, even if a {@link SecurityContextHandler} is configured.
      *
      * @return the new user context
+     * @throws IllegalStateException
+     *             if this context has been closed
      */
     public BrowserlessUserContext newUser() {
         return newUser(null);
@@ -114,16 +125,20 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     /**
      * Creates a new user context with the given credentials.
      * <p>
-     * The credentials are passed to
+     * If a {@link SecurityContextHandler} is configured, the security context
+     * for this user is first cleared, then — if {@code credentials} is
+     * non-{@code null} — the credentials are passed to
      * {@link SecurityContextHandler#setupAuthentication(Object)
-     * SecurityContextHandler.setupAuthentication()} if a handler is configured.
-     * The security context is then automatically captured as the user's initial
-     * snapshot.
+     * SecurityContextHandler.setupAuthentication()}. The resulting security
+     * state is captured as this user's initial snapshot and is automatically
+     * restored whenever one of this user's windows is activated.
      *
      * @param credentials
      *            framework-specific credentials, or {@code null} for an
      *            anonymous user
      * @return the new user context
+     * @throws IllegalStateException
+     *             if this context has been closed
      */
     public BrowserlessUserContext newUser(C credentials) {
         checkNotClosed();
@@ -135,7 +150,10 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     /**
      * Closes this application context and all its user contexts.
      * <p>
-     * Fires service destroy listeners and clears thread-local state.
+     * Closes every {@link BrowserlessUserContext} created by this application
+     * (which in turn closes their windows), fires service destroy listeners,
+     * and resets the {@link VaadinService} thread-local. This method is
+     * idempotent: subsequent invocations have no effect.
      */
     @Override
     public void close() {
@@ -176,6 +194,9 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
     /**
      * Builder for creating a customized {@link BrowserlessApplicationContext}.
+     *
+     * @param <C>
+     *            the credentials type for the security context handler
      */
     public static class Builder<C> {
 
@@ -204,11 +225,15 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
         /**
          * Sets a custom servlet factory. The factory receives the routes and
-         * must return a fully configured {@link VaadinServlet}.
+         * must return a fully configured {@link VaadinServlet}. When unset, a
+         * default servlet that uses the configured {@link UIFactory} is created
+         * by {@link #build()}.
          *
          * @param factory
          *            the servlet factory
          * @return this builder
+         * @throws NullPointerException
+         *             if {@code factory} is {@code null}
          */
         public Builder<C> withServletFactory(
                 Function<Routes, VaadinServlet> factory) {
@@ -217,11 +242,15 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         }
 
         /**
-         * Sets the UI factory for creating new UI instances.
+         * Sets the UI factory used when creating UI instances for this
+         * application's windows. Defaults to a factory producing
+         * {@link MockedUI} instances.
          *
          * @param uiFactory
          *            the UI factory
          * @return this builder
+         * @throws NullPointerException
+         *             if {@code uiFactory} is {@code null}
          */
         public Builder<C> withUIFactory(UIFactory uiFactory) {
             this.uiFactory = Objects.requireNonNull(uiFactory);
@@ -229,15 +258,32 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         }
 
         /**
-         * Sets the Vaadin Lookup service classes.
+         * Adds the given Vaadin Lookup service classes to the set configured
+         * for this builder. Successive calls accumulate; the builder starts
+         * with an empty set. Calling with no arguments is a no-op.
          *
          * @param services
-         *            the service implementation classes
+         *            the service implementation classes to add
          * @return this builder
+         * @throws NullPointerException
+         *             if {@code services} or any of its elements is
+         *             {@code null}
          */
-        public Builder<C> withLookupServices(Set<Class<?>> services) {
-            this.lookupServices = Objects.requireNonNull(services);
+        public Builder<C> withLookupServices(Class<?>... services) {
+            Objects.requireNonNull(services);
+            if (services.length == 0) {
+                return this;
+            }
+            Set<Class<?>> updated = new LinkedHashSet<>(this.lookupServices);
+            for (Class<?> service : services) {
+                updated.add(Objects.requireNonNull(service));
+            }
+            this.lookupServices = updated;
             return this;
+        }
+
+        Set<Class<?>> getLookupServices() {
+            return lookupServices;
         }
 
         /**
