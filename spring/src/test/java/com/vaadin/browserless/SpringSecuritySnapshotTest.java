@@ -15,8 +15,6 @@
  */
 package com.vaadin.browserless;
 
-import java.util.List;
-
 import com.testapp.security.ProtectedView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -25,9 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -62,11 +58,8 @@ class SpringSecuritySnapshotTest {
 
     @Test
     void mutatingLiveContext_doesNotCorruptSavedSnapshot() {
-        var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
-
         // Create admin user and verify access
-        var admin = app.newUser(adminAuth);
+        var admin = app.newUser("john", "USER");
         var adminWindow = admin.newWindow();
         adminWindow.navigate(ProtectedView.class);
         Assertions.assertInstanceOf(ProtectedView.class,

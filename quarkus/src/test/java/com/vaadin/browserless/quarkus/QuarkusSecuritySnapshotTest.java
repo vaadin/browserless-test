@@ -84,5 +84,15 @@ class QuarkusSecuritySnapshotTest {
                 adminWindow.getCurrentView(),
                 "Admin snapshot should survive mutation of the live"
                         + " CurrentIdentityAssociation");
+
+        // Assert identity contents directly, so the test doesn't pass merely
+        // because of an unrelated re-authentication path
+        SecurityIdentity restored = CurrentIdentityAssociation.current();
+        Assertions.assertEquals("john", restored.getPrincipal().getName(),
+                "Restored identity should have admin's principal");
+        Assertions.assertTrue(restored.getRoles().contains("USER"),
+                "Restored identity should have admin's USER role");
+        Assertions.assertFalse(restored.isAnonymous(),
+                "Restored identity should not be anonymous");
     }
 }

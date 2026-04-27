@@ -26,6 +26,8 @@ import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.authentication.AuthenticationTrustResolver;
+import org.springframework.security.authentication.AuthenticationTrustResolverImpl;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -152,11 +154,15 @@ public class MockSpringServlet extends SpringServlet {
         private static final String ROLE_PREFIX = "ROLE_";
         private static final boolean SPRING_SECURITY_PRESENT = hasSpringSecurity();
         private static final UnaryOperator<HttpServletRequest> springSecurityRequestWrapper = springSecurityRequestWrapper();
+        private static final AuthenticationTrustResolver TRUST_RESOLVER = new AuthenticationTrustResolverImpl();
 
         private static Principal currentPrincipal() {
             Authentication auth = SecurityContextHolder.getContext()
                     .getAuthentication();
-            return (auth != null && auth.getPrincipal() != null) ? auth : null;
+            if (!TRUST_RESOLVER.isAuthenticated(auth)) {
+                return null;
+            }
+            return auth.getPrincipal() != null ? auth : null;
         }
 
         private static boolean hasSpringSecurity() {

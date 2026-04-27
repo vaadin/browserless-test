@@ -15,8 +15,6 @@
  */
 package com.vaadin.browserless;
 
-import java.util.List;
-
 import com.testapp.security.LoginView;
 import com.testapp.security.ProtectedView;
 import org.junit.jupiter.api.AfterEach;
@@ -26,9 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -62,10 +58,7 @@ class MultiUserSecurityTest {
 
     @Test
     void authenticatedUser_seesProtectedView() {
-        var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
-
-        var admin = app.newUser(adminAuth);
+        var admin = app.newUser("john", "USER");
         var adminWindow = admin.newWindow();
 
         // Authenticated user sees the protected view
@@ -88,10 +81,7 @@ class MultiUserSecurityTest {
 
     @Test
     void multipleUsers_securityContextIsolated() {
-        var adminAuth = new UsernamePasswordAuthenticationToken("john",
-                "secret", List.of(new SimpleGrantedAuthority("ROLE_USER")));
-
-        var admin = app.newUser(adminAuth);
+        var admin = app.newUser("john", "USER");
         var adminWindow = admin.newWindow();
 
         var anon = app.newUser();
