@@ -83,6 +83,57 @@ class BrowserlessClosePathCleanupTest {
     }
 
     @Test
+    void uiClose_clearsActiveContextWhenClosingTheActiveWindow() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var window = app.newUser().newWindow();
+            Assertions.assertSame(window, BrowserlessUIContext.getActive(),
+                    "Sanity check: newWindow activates the new window");
+
+            window.close();
+
+            Assertions.assertNull(BrowserlessUIContext.getActive(),
+                    "Closing the active window must clear the activeContext"
+                            + " ThreadLocal");
+        }
+    }
+
+    @Test
+    void uiClose_leavesActiveContextAloneWhenClosingANonActiveWindow() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var user = app.newUser();
+            var window1 = user.newWindow();
+            var window2 = user.newWindow();
+            Assertions.assertSame(window2, BrowserlessUIContext.getActive(),
+                    "Sanity check: window2 is the active context");
+
+            // Close the *non*-active window. activeContext must not be touched.
+            window1.close();
+            Assertions.assertSame(window2, BrowserlessUIContext.getActive(),
+                    "Closing a non-active window must not affect activeContext");
+
+            // Closing the active window clears the ThreadLocal.
+            window2.close();
+            Assertions.assertNull(BrowserlessUIContext.getActive(),
+                    "Closing the last active window must clear activeContext");
+        }
+    }
+
+    @Test
+    void appClose_doesNotLeakActiveContextAcrossInvocations() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            app.newUser().newWindow();
+            // Sanity: window is active during the try block
+            Assertions.assertNotNull(BrowserlessUIContext.getActive());
+        }
+
+        // After app.close() (try-with-resources), the activeContext must not
+        // retain a reference to a closed window — otherwise reuse of this
+        // thread by a subsequent test method observes stale state.
+        Assertions.assertNull(BrowserlessUIContext.getActive(),
+                "app.close() must leave activeContext clear");
+    }
+
+    @Test
     void uiClose_restoresUserSecurityContextForDetachListeners() {
         var handler = new CapturingHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
