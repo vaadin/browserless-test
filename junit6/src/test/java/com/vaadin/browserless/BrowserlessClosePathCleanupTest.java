@@ -24,8 +24,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
+import com.vaadin.flow.server.VaadinSession;
 
 /**
  * Tests that closing user/UI contexts properly tears down thread-local state,
@@ -143,7 +145,8 @@ class BrowserlessClosePathCleanupTest {
             var aliceWindow = alice.newWindow();
 
             var bob = app.newUser("bob");
-            bob.newWindow(); // activates bob; thread now carries "bob"
+            var bobWindow = bob.newWindow(); // activates bob; thread now
+                                             // carries "bob"
 
             // Sanity: bob is the live snapshot
             Assertions.assertEquals("bob", handler.live.get(),
@@ -161,6 +164,90 @@ class BrowserlessClosePathCleanupTest {
                     "Detach listener should see this user's security"
                             + " snapshot, not whatever the thread happened"
                             + " to carry");
+            Assertions.assertSame(bobWindow, BrowserlessUIContext.getActive(),
+                    "Closing a non-active window owned by a different user"
+                            + " must not displace the active context");
+        }
+    }
+
+    @Test
+    void uiClose_detachListenerSeesClosingUserRequest() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var alice = app.newUser();
+            var aliceWindow = alice.newWindow();
+            var aliceRequest = VaadinRequest.getCurrent();
+
+            var bob = app.newUser();
+            bob.newWindow(); // activates bob; thread now carries bob's request
+
+            var observed = new AtomicReference<VaadinRequest>();
+            aliceWindow.getUI().addDetachListener(
+                    e -> observed.set(VaadinRequest.getCurrent()));
+
+            aliceWindow.close();
+
+            Assertions.assertSame(aliceRequest, observed.get(),
+                    "Detach listener should see the closing user's"
+                            + " VaadinRequest, not whatever the thread"
+                            + " happened to carry from the active user");
+        }
+    }
+
+    @Test
+    void uiClose_nonActiveCrossUserCloseLeavesThreadCoherentWithActiveContext() {
+        var handler = new CapturingHandler();
+        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+                .withSecurityContextHandler(handler).build()) {
+
+            var alice = app.newUser("alice");
+            var aliceWindow = alice.newWindow();
+
+            var bob = app.newUser("bob");
+            var bobWindow = bob.newWindow();
+
+            // Sanity: bob is the live state on the thread
+            Assertions.assertSame(bobWindow.getUI(), UI.getCurrent());
+            Assertions.assertSame(bob.getSession(), VaadinSession.getCurrent());
+            Assertions.assertEquals("bob", handler.live.get());
+
+            aliceWindow.close();
+
+            // After closing alice's non-active window, the thread must still
+            // reflect bob (the active context) — the close() path must repair
+            // any coherence it temporarily breaks.
+            Assertions.assertSame(bobWindow, BrowserlessUIContext.getActive(),
+                    "Sanity: bob remains the active context");
+            Assertions.assertSame(bobWindow.getUI(), UI.getCurrent(),
+                    "UI.getCurrent() must remain coherent with activeContext"
+                            + " after a non-active cross-user close");
+            Assertions.assertSame(bob.getSession(), VaadinSession.getCurrent(),
+                    "VaadinSession.getCurrent() must remain coherent with"
+                            + " activeContext after a non-active cross-user"
+                            + " close");
+            Assertions.assertEquals("bob", handler.live.get(),
+                    "Security context must remain bob's after a non-active"
+                            + " cross-user close, not the closed user's"
+                            + " snapshot");
+        }
+    }
+
+    @Test
+    void userClose_clearsSecurityContext() {
+        var handler = new CapturingHandler();
+        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+                .withSecurityContextHandler(handler).build()) {
+            var user = app.newUser("alice");
+            user.newWindow();
+
+            // Sanity: alice's snapshot is live on the thread
+            Assertions.assertEquals("alice", handler.live.get());
+
+            user.close();
+
+            Assertions.assertNull(handler.live.get(),
+                    "user.close() must clear the security context so the"
+                            + " closing user's snapshot does not leak onto"
+                            + " the thread");
         }
     }
 

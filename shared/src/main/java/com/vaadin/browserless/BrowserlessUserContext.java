@@ -157,6 +157,12 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinService.setCurrent(null);
         CurrentInstance.set(VaadinRequest.class, null);
         CurrentInstance.set(VaadinResponse.class, null);
+        // Drop this user's security snapshot from the thread so it does not
+        // leak into subsequent activations or tests sharing the thread.
+        SecurityContextHandler<?> handler = app.getSecurityContextHandler();
+        if (handler != null) {
+            handler.clearContext();
+        }
     }
 
     /**

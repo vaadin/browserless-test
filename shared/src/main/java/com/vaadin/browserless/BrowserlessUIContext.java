@@ -386,19 +386,37 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             return;
         }
         closed = true;
-        if (activeContext.get() == this) {
+        BrowserlessUIContext stillActive = activeContext.get();
+        boolean wasActive = stillActive == this;
+        if (wasActive) {
             activeContext.remove();
+        } else if (stillActive != null && stillActive.user != this.user) {
+            // Cross-user non-active close: capture the active user's live
+            // security state before the detach run displaces it, so the
+            // re-activation below restores their up-to-date snapshot.
+            stillActive.user.saveSecurityContext();
         }
         if (ui != null) {
-            // Set thread-locals to properly close the UI
+            // Set thread-locals so detach listeners see this user's identity
+            // (service/session/UI/request/response/security), not whatever
+            // the thread happens to carry from another user's window.
             VaadinService.setCurrent(user.getApp().getService());
             VaadinSession.setCurrent(user.getSession());
             UI.setCurrent(ui);
-            // Restore this user's security context so detach listeners see
-            // the right identity, not whatever the thread happens to carry
+            CurrentInstance.set(VaadinRequest.class, user.getRequest());
+            CurrentInstance.set(VaadinResponse.class, user.getResponse());
             user.restoreSecurityContext();
             MockVaadin.closeCurrentUI(true);
             ui = null;
+        }
+        // After a non-active close, re-establish thread-local coherence with
+        // activeContext by re-activating the still-active window. Clear
+        // activeContext first so activate() takes the full-restore branch
+        // (previous == null) and re-installs the active user's security
+        // snapshot we saved above.
+        if (!wasActive && stillActive != null && !stillActive.closed) {
+            activeContext.remove();
+            stillActive.activate();
         }
     }
 
