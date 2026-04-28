@@ -30,11 +30,11 @@ public class QuarkusSecurityCustomizer implements MockRequestCustomizer {
 
     @Override
     public void apply(MockRequest request) {
-        request.setUserPrincipalProvider(() -> {
+        request.principalProvider(() -> {
             SecurityIdentity current = CurrentIdentityAssociation.current();
             return current.isAnonymous() ? null : current.getPrincipal();
         });
-        request.setUserInRole((principal, role) -> {
+        request.roleChecker((principal, role) -> {
             SecurityIdentity current = CurrentIdentityAssociation.current();
             return !current.isAnonymous()
                     && current.getPrincipal().equals(principal)

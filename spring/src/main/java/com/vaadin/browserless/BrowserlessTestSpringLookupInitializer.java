@@ -71,12 +71,34 @@ public class BrowserlessTestSpringLookupInitializer
     }
 
     private void setApplicationContext(TestContext testContext) {
-        BrowserlessTestSpringLookupInitializer.applicationContext
-                .set(testContext.getApplicationContext());
         ApplicationContext appCtx = testContext.getApplicationContext();
-        // Register a MockRequestCustomizer bean so that request will have
-        // access to authentication details from Spring Security
-        if (appCtx instanceof ConfigurableApplicationContext
+        BrowserlessTestSpringLookupInitializer.applicationContext.set(appCtx);
+        registerSpringSecurityRequestCustomizerIfNeeded(appCtx);
+    }
+
+    /**
+     * Sets the application context to be used by the lookup initializer.
+     * <p>
+     * This is used by {@code SpringBrowserlessApplicationContext} to configure
+     * the Spring context for multi-user testing without relying on the
+     * {@link TestExecutionListener} lifecycle.
+     *
+     * @param appCtx
+     *            the Spring application context
+     */
+    public static void setApplicationContext(ApplicationContext appCtx) {
+        applicationContext.set(appCtx);
+        registerSpringSecurityRequestCustomizerIfNeeded(appCtx);
+    }
+
+    private static void registerSpringSecurityRequestCustomizerIfNeeded(
+            ApplicationContext appCtx) {
+        // Register a MockRequestCustomizer bean so that the request has access
+        // to authentication details from Spring Security. Skip when Spring
+        // Security is not on the classpath: the customizer would be a no-op,
+        // and advertising it as a bean is misleading.
+        if (SpringSecuritySupport.isPresent()
+                && appCtx instanceof ConfigurableApplicationContext
                 && !appCtx.containsBean(
                         SpringSecurityRequestCustomizer.class.getName())) {
             ((ConfigurableApplicationContext) appCtx).getBeanFactory()

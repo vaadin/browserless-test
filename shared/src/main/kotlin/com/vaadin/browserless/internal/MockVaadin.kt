@@ -50,6 +50,18 @@ import com.vaadin.browserless.mocks.createVaadinServletRequest
 import com.vaadin.browserless.mocks.createVaadinServletResponse
 import com.vaadin.browserless.mocks.serviceSafe
 
+/**
+ * Holds the objects created during session initialization, before they are
+ * installed as thread-locals. Used by [MockVaadin.createSessionObjects] to
+ * allow callers (e.g. multi-user context) to manage thread-locals themselves.
+ */
+data class SessionObjects(
+    val session: VaadinSession,
+    val request: VaadinRequest,
+    val response: VaadinResponse,
+    val httpSession: MockHttpSession
+)
+
 object MockVaadin {
     // prevent GC on Vaadin Session and Vaadin UI as they are only soft-referenced from the Vaadin itself.
     // use ThreadLocals so that multiple threads may initialize fresh Vaadin instances at the same time.
@@ -113,6 +125,24 @@ object MockVaadin {
     fun setup(uiFactory: UIFactory = UIFactory { MockedUI() }, servlet: VaadinServlet,
               lookupServices: Set<Class<*>> = emptySet()
     ) {
+        val service = setupServlet(servlet, lookupServices)
+        VaadinService.setCurrent(service)
+
+        // init Vaadin Session
+        createSession(servlet.servletContext, uiFactory)
+    }
+
+    /**
+     * Initializes the given [servlet] and its service, but does NOT create a
+     * session, UI, or set any thread-locals. Call this when you need to share
+     * a single service across multiple independent sessions (multi-user testing).
+     *
+     * @return the initialized [VaadinServletService]
+     */
+    @JvmStatic
+    fun setupServlet(servlet: VaadinServlet,
+                     lookupServices: Set<Class<*>> = emptySet()
+    ): VaadinServletService {
         if (!servlet.isInitialized) {
             val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
             val config = MockServletConfig(ctx)
@@ -121,16 +151,14 @@ object MockVaadin {
         }
         val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
-        VaadinService.setCurrent(service)
-
-        // init Vaadin Session
-        createSession(servlet.servletContext, uiFactory)
+        return service
     }
 
     /**
      * Properly closes the current UI and fire the detach event on it.
      * Does nothing if there is no current UI.
      */
+    @JvmStatic
     fun closeCurrentUI(fireUIDetach: Boolean) {
         val ui: UI = UI.getCurrent() ?: return
         lastNavigation.set(ui.internals.activeViewLocation)
@@ -174,15 +202,30 @@ object MockVaadin {
     private fun closeCurrentSession() {
         val session: VaadinSession? = VaadinSession.getCurrent()
         if (session != null) {
-            val service: VaadinService = VaadinService.getCurrent()
-            service.fireSessionDestroy(session)
-            VaadinSession.setCurrent(null)
-            // service destroys session via session.access(); we need to run that action now.
-            currentlyClosingSession.set(true)
-            runUIQueue(session = session)
-            currentlyClosingSession.set(false)
+            fireSessionDestroyAndDrain(session)
         }
         strongRefSession.remove()
+    }
+
+    /**
+     * Fires session-destroy listeners on [session] and drains pending
+     * [VaadinSession.access] tasks scheduled during destruction. The
+     * `currentlyClosingSession` flag is set for the duration so the
+     * `afterSessionClose` recreation hook (used by single-user `setup`) is
+     * suppressed — multi-user callers manage their own session lifecycle.
+     */
+    @JvmStatic
+    public fun fireSessionDestroyAndDrain(session: VaadinSession) {
+        val service: VaadinService = session.service
+        service.fireSessionDestroy(session)
+        VaadinSession.setCurrent(null)
+        // service destroys session via session.access(); we need to run that action now.
+        currentlyClosingSession.set(true)
+        try {
+            runUIQueue(session = session)
+        } finally {
+            currentlyClosingSession.set(false)
+        }
     }
 
     private val currentlyClosingSession: ThreadLocal<Boolean> = object : ThreadLocal<Boolean>() {
@@ -202,50 +245,80 @@ object MockVaadin {
      */
     var mockRequestFactory: (MockHttpSession) -> MockRequest = { MockRequest(it) }
 
-    private fun createSession(ctx: ServletContext, uiFactory: UIFactory) {
-        val service: VaadinServletService = checkNotNull(VaadinService.getCurrent()) as VaadinServletService
-        val httpSession: MockHttpSession = MockHttpSession.create(ctx)
+    /**
+     * Creates a new session, request and response for the given [service],
+     * but does NOT set any thread-locals or create a UI.
+     *
+     * Use this when you need to create multiple independent sessions for
+     * multi-user testing. The caller is responsible for setting thread-locals
+     * (via [VaadinSession.setCurrent], [CurrentInstance], etc.) and for
+     * creating the UI via [createUI].
+     *
+     * @param service the initialized Vaadin service (from [setupServlet])
+     * @return the created session objects
+     */
+    @JvmStatic
+    fun createSessionObjects(service: VaadinServletService): SessionObjects {
+        val httpSession: MockHttpSession = MockHttpSession.create(service.servlet.servletContext)
 
         // init Vaadin Request
         val mockRequest = mockRequestFactory(httpSession)
-        // so that session.browser.updateRequestDetails() also creates browserDetails
         mockRequest.headers["User-Agent"] = listOf(userAgent)
         service.context.getAttribute(Lookup::class.java)
                 .lookup(MockRequestCustomizer::class.java)?.apply(mockRequest)
         val request = createVaadinServletRequest(mockRequest, service)
-        strongRefReq.set(request)
-        CurrentInstance.set(VaadinRequest::class.java, request)
 
         // init Session.
-        // Use the underlying Service to create the Vaadin Session; however
-        // you MUST mock certain things in order for browserless testing to work.
-        // See MockSession for more details. By default the service is a MockService
-        // which creates MockSession.
-        val session: VaadinSession = service._createVaadinSession(VaadinRequest.getCurrent())
+        val session: VaadinSession = service._createVaadinSession(request)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)
         check(session.lockInstance != null) { "$session created from $service has null lock. See the MockSession class on how to mock locks properly" }
         check((session.lockInstance as ReentrantLock).isLocked) { "$session created from $service: lock must be locked!" }
 
-        VaadinSession.setCurrent(session)
-        strongRefSession.set(session)
         session.browser = WebBrowser(request)
         checkNotNull(session.browser.browserApplication) { "The WebBrowser has not been mocked properly" }
 
         // init Vaadin Response
         val response = createVaadinServletResponse(MockResponse(), service)
-        strongRefRes.set(response)
-        CurrentInstance.set(VaadinResponse::class.java, response)
 
-        // fire session init listeners
-        service.fireSessionInitListeners(SessionInitEvent(service, session, request))
-
-        // create UI
-        createUI(uiFactory, session)
+        return SessionObjects(session, request, response, httpSession)
     }
 
-    internal fun createUI(uiFactory: UIFactory, session: VaadinSession) {
+    private fun createSession(ctx: ServletContext, uiFactory: UIFactory) {
+        val service: VaadinServletService = checkNotNull(VaadinService.getCurrent()) as VaadinServletService
+        val objs = createSessionObjects(service)
+
+        // install thread-locals
+        strongRefReq.set(objs.request)
+        CurrentInstance.set(VaadinRequest::class.java, objs.request)
+        VaadinSession.setCurrent(objs.session)
+        strongRefSession.set(objs.session)
+        strongRefRes.set(objs.response)
+        CurrentInstance.set(VaadinResponse::class.java, objs.response)
+
+        // fire session init listeners
+        service.fireSessionInitListeners(SessionInitEvent(service, objs.session, objs.request))
+
+        // create UI
+        createUI(uiFactory, objs.session)
+    }
+
+    /**
+     * Creates a new [UI] for the given [session] using [uiFactory] and
+     * attaches it to the Vaadin thread-locals.
+     *
+     * The caller must have already installed the thread-locals for the
+     * target user ([VaadinService], [VaadinSession], [VaadinRequest],
+     * [VaadinResponse]) before calling this function; [VaadinRequest.getCurrent]
+     * must return a non-null request. If a route target is registered for the
+     * empty path `""`, the new UI will navigate to it.
+     *
+     * @param uiFactory factory that produces a fresh, unattached [UI]
+     * @param session the session that will own the new UI
+     */
+    @JvmStatic
+    fun createUI(uiFactory: UIFactory, session: VaadinSession) {
         val request: VaadinRequest = checkNotNull(VaadinRequest.getCurrent())
         val ui: UI = uiFactory()
         require(ui.session == null) {
@@ -403,6 +476,25 @@ object MockVaadin {
             createSession(mockSession.servletContext, uiFactory)
         }
     }
+
+    /**
+     * Fires session init listeners on the given service.
+     * Java-friendly static wrapper for the internal extension function.
+     */
+    @JvmStatic
+    fun fireSessionInit(service: VaadinService, session: VaadinSession, request: VaadinRequest) {
+        service.fireSessionInitListeners(SessionInitEvent(service, session, request))
+    }
+
+    /**
+     * Fires service destroy listeners on the given service.
+     * Java-friendly static wrapper for the internal extension function.
+     */
+    @JvmStatic
+    fun fireServiceDestroy(service: VaadinService) {
+        service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+    }
+
 }
 
 private val _VaadinService_sessionInitListeners: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -411,7 +503,7 @@ private val _VaadinService_sessionInitListeners: Field by lazy(LazyThreadSafetyM
     field
 }
 
-private fun VaadinService.fireSessionInitListeners(event: SessionInitEvent) {
+internal fun VaadinService.fireSessionInitListeners(event: SessionInitEvent) {
     @Suppress("UNCHECKED_CAST")
     val sessionInitListeners: Collection<SessionInitListener> =
             _VaadinService_sessionInitListeners.get(this) as Collection<SessionInitListener>
@@ -426,7 +518,7 @@ private val _VaadinService_sessionDestroyListeners: Field by lazy(LazyThreadSafe
     field
 }
 
-private fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent) {
+internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent) {
     @Suppress("UNCHECKED_CAST")
     val listeners: Collection<ServiceDestroyListener> =
             _VaadinService_sessionDestroyListeners.get(this) as Collection<ServiceDestroyListener>
@@ -435,13 +527,43 @@ private fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent
     }
 }
 
-private class MockPage(ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
+internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
+
+    private companion object {
+        private val SELF_NAMES = setOf("_self", "_parent", "_top", "")
+    }
+
+    private val navigations: MutableMap<String, MutableList<String>> = mutableMapOf()
+
+    val lastExternalNavigationURL: String?
+        get() = navigations["_self"]?.lastOrNull()
+
+    fun getExternalNavigationURL(windowName: String): String? =
+        navigations[normalizeWindowName(windowName)]?.lastOrNull()
+
+    val openedWindows: Map<String, List<String>>
+        get() = navigations.filterKeys { it != "_self" }
+            .mapValues { (_, urls) -> urls.toList() }
+
+    override fun open(url: String, windowName: String) {
+        val normalized = normalizeWindowName(windowName)
+        if (normalized == "_blank") {
+            navigations.getOrPut(normalized) { mutableListOf() }.add(url)
+        } else {
+            navigations[normalized] = mutableListOf(url)
+        }
+        super.open(url, windowName)
+    }
+
     override fun reload() {
         // recreate the UI on reload(), to simulate browser's F5
         super.reload()
         MockVaadin.closeCurrentUI(true)
         MockVaadin.createUI(uiFactory, session)
     }
+
+    private fun normalizeWindowName(windowName: String?): String =
+        if (windowName == null || windowName in SELF_NAMES) "_self" else windowName
 }
 
 fun interface MockRequestCustomizer {
