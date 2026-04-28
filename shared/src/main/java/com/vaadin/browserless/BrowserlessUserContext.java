@@ -38,9 +38,14 @@ import com.vaadin.flow.server.VaadinSession;
  * parent {@link BrowserlessApplicationContext}) is initialised when this user
  * is created and refreshed on user-switch (when activating a different user's
  * window), capturing the outgoing user's live thread-local state at that
- * moment. Mutations to the security context while one of this user's windows is
- * active persist on the thread and are captured into this user's snapshot at
- * the next user-switch — same-user window switches don't touch the snapshot.
+ * moment. The new user's authentication is installed on the thread before
+ * {@code SessionInit} listeners fire, so listeners observe this user's identity
+ * — matching the Vaadin+Spring flow where the security filter chain runs before
+ * the servlet. The user's initial snapshot is captured after init fires, so any
+ * security mutation a listener performs persists into the snapshot. Mutations
+ * to the security context while one of this user's windows is active persist on
+ * the thread and are captured into the snapshot at the next user-switch —
+ * same-user window switches don't touch the snapshot.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
@@ -90,10 +95,9 @@ public class BrowserlessUserContext implements AutoCloseable {
             CurrentInstance.set(VaadinRequest.class, request);
             CurrentInstance.set(VaadinResponse.class, response);
 
-            // Fire session init listeners
-            MockVaadin.fireSessionInit(app.getService(), session, request);
-
-            // Set up authentication for this user
+            // Set up authentication BEFORE firing session-init listeners so
+            // they observe this user's identity, mirroring the Vaadin+Spring
+            // flow where the security filter chain runs before the servlet.
             if (handler != null) {
                 // Start with a clean security context for this user
                 handler.clearContext();
@@ -101,7 +105,15 @@ public class BrowserlessUserContext implements AutoCloseable {
                 // credentials (e.g. Spring sets an
                 // AnonymousAuthenticationToken)
                 handler.setupAuthentication(credentials);
-                // Capture as this user's initial security snapshot
+            }
+
+            // Fire session init listeners
+            MockVaadin.fireSessionInit(app.getService(), session, request);
+
+            // Capture as this user's initial security snapshot, after init
+            // so any security mutation a listener performs persists into
+            // this user's snapshot rather than being silently discarded.
+            if (handler != null) {
                 securitySnapshot = handler.saveContext();
             }
         } finally {
