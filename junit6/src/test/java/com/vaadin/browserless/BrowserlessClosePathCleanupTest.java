@@ -137,7 +137,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_restoresUserSecurityContextForDetachListeners() {
-        var handler = new CapturingHandler();
+        var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
                 .withSecurityContextHandler(handler).build()) {
 
@@ -195,7 +195,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_nonActiveCrossUserCloseLeavesThreadCoherentWithActiveContext() {
-        var handler = new CapturingHandler();
+        var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
                 .withSecurityContextHandler(handler).build()) {
 
@@ -243,7 +243,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void userClose_clearsSecurityContext() {
-        var handler = new CapturingHandler();
+        var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var user = app.newUser("alice");
@@ -263,7 +263,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void userClose_destroyListenerSeesClosingUserSecurity() {
-        var handler = new CapturingHandler();
+        var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var alice = app.newUser("alice");
@@ -291,7 +291,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void userClose_leavesActiveUserCoherentOnTheThread() {
-        var handler = new CapturingHandler();
+        var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.<String> builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var alice = app.newUser("alice");
@@ -326,41 +326,4 @@ class BrowserlessClosePathCleanupTest {
         }
     }
 
-    /**
-     * Minimal {@link SecurityContextHandler} that stores a string snapshot in a
-     * thread-local, so tests can observe save/restore behaviour without pulling
-     * in Spring or Quarkus dependencies.
-     */
-    private static class CapturingHandler
-            implements SecurityContextHandler<String> {
-        private final ThreadLocal<String> live = new ThreadLocal<>();
-
-        @Override
-        public void setupAuthentication(String credentials) {
-            live.set(credentials != null ? credentials : "<anon>");
-        }
-
-        @Override
-        public Object saveContext() {
-            return live.get();
-        }
-
-        @Override
-        public void restoreContext(Object snapshot) {
-            if (snapshot == null) {
-                live.remove();
-            } else if (snapshot instanceof String s) {
-                live.set(s);
-            } else {
-                throw new IllegalArgumentException(
-                        "Expected a String snapshot, got "
-                                + snapshot.getClass().getName());
-            }
-        }
-
-        @Override
-        public void clearContext() {
-            live.remove();
-        }
-    }
 }
