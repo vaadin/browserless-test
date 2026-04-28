@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.SessionObjects;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
@@ -63,6 +64,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinSession previousSession = VaadinSession.getCurrent();
         VaadinRequest previousRequest = VaadinRequest.getCurrent();
         VaadinResponse previousResponse = VaadinResponse.getCurrent();
+        UI previousUI = UI.getCurrent();
         // Raw type so we can pass the Object credentials to setupAuthentication
         // without forcing every caller (and the surrounding wildcard
         // BrowserlessApplicationContext<?>) to know the concrete C.
@@ -108,6 +110,7 @@ public class BrowserlessUserContext implements AutoCloseable {
             VaadinSession.setCurrent(previousSession);
             CurrentInstance.set(VaadinRequest.class, previousRequest);
             CurrentInstance.set(VaadinResponse.class, previousResponse);
+            UI.setCurrent(previousUI);
             // Restore previous security context — handler contract specifies
             // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
@@ -135,7 +138,10 @@ public class BrowserlessUserContext implements AutoCloseable {
     /**
      * Closes this user context and all its windows.
      * <p>
-     * Destroys the Vaadin session and clears associated state.
+     * Destroys the Vaadin session and clears associated state. If a window
+     * belonging to a different user is the active context on the calling thread
+     * when this method runs, that window is re-activated at the end so
+     * subsequent operations on it see a coherent thread-local state.
      */
     @Override
     public void close() {
@@ -148,13 +154,34 @@ public class BrowserlessUserContext implements AutoCloseable {
         }
         windows.clear();
 
+        // After window.close() iterations the thread state may belong to a
+        // window of another user (see BrowserlessUIContext.close()'s
+        // re-activation step for cross-user non-active closes). Capture the
+        // active context now so we can restore it after the destroy phase.
+        BrowserlessUIContext active = BrowserlessUIContext.getActive();
+        boolean activeIsAnotherUser = active != null
+                && active.getUser() != this;
+
+        // Set thread-locals so destroy listeners (and the security snapshot
+        // observed by them) see this user's identity, not whatever the
+        // thread happens to carry from another active user. VaadinRequest
+        // and VaadinResponse are set for parity even though Vaadin's
+        // session-destroy listeners run under session.access semantics that
+        // null them out — keeping the prep symmetric protects against
+        // future Vaadin changes.
+        VaadinService.setCurrent(app.getService());
+        VaadinSession.setCurrent(session);
+        CurrentInstance.set(VaadinRequest.class, request);
+        CurrentInstance.set(VaadinResponse.class, response);
+        restoreSecurityContext();
+
         // Destroy session: fire destroy listeners and drain the queue,
         // mirroring MockVaadin.closeCurrentSession (which gates the
         // session-recreation hook via a thread-local flag).
-        VaadinService.setCurrent(app.getService());
-        VaadinSession.setCurrent(session);
         MockVaadin.fireSessionDestroyAndDrain(session);
+
         VaadinService.setCurrent(null);
+        VaadinSession.setCurrent(null);
         CurrentInstance.set(VaadinRequest.class, null);
         CurrentInstance.set(VaadinResponse.class, null);
         // Drop this user's security snapshot from the thread so it does not
@@ -162,6 +189,15 @@ public class BrowserlessUserContext implements AutoCloseable {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();
         if (handler != null) {
             handler.clearContext();
+        }
+
+        // If a different user's window is still active, re-establish its
+        // thread-locals (UI/Session/Request/Response/security) so any
+        // subsequent operation on it observes a coherent state. Clear
+        // activeContext first so activate() takes the full-restore branch.
+        if (activeIsAnotherUser && !active.isClosed()) {
+            BrowserlessUIContext.clearActiveContext();
+            active.activate();
         }
     }
 

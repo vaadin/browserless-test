@@ -445,4 +445,20 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     static BrowserlessUIContext getActive() {
         return activeContext.get();
     }
+
+    /**
+     * Clears the active-context ThreadLocal without otherwise touching the
+     * thread-local Vaadin state. Used by close paths that re-activate a
+     * surviving window via {@link #activate()} — clearing first ensures
+     * {@code activate()} takes the full-restore branch
+     * ({@code previous == null}) and re-installs the active user's security
+     * snapshot.
+     */
+    static void clearActiveContext() {
+        activeContext.remove();
+    }
+
+    boolean isClosed() {
+        return closed;
+    }
 }
