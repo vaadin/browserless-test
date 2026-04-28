@@ -105,13 +105,23 @@ class BrowserlessClosePathCleanupTest {
             var user = app.newUser();
             var window1 = user.newWindow();
             var window2 = user.newWindow();
+            var window2UI = window2.getUI();
             Assertions.assertSame(window2, BrowserlessUIContext.getActive(),
                     "Sanity check: window2 is the active context");
+            Assertions.assertSame(window2UI, UI.getCurrent(),
+                    "Sanity check: UI.getCurrent() points at window2");
 
-            // Close the *non*-active window. activeContext must not be touched.
+            // Close the *non*-active window. activeContext must not be touched
+            // and the active sibling's thread-locals must remain coherent.
             window1.close();
             Assertions.assertSame(window2, BrowserlessUIContext.getActive(),
                     "Closing a non-active window must not affect activeContext");
+            Assertions.assertSame(window2UI, UI.getCurrent(),
+                    "UI.getCurrent() must still point at the active sibling"
+                            + " after a same-user non-active close");
+            Assertions.assertSame(user.getSession(), VaadinSession.getCurrent(),
+                    "VaadinSession.getCurrent() must still point at the user's"
+                            + " session after a same-user non-active close");
 
             // Closing the active window clears the ThreadLocal.
             window2.close();
