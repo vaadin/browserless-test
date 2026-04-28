@@ -71,12 +71,16 @@ public final class QuarkusBrowserlessApplicationContext {
      */
     public static BrowserlessApplicationContext<SecurityIdentity> create(
             Routes routes, UIFactory uiFactory) {
-        return BrowserlessApplicationContext.<SecurityIdentity> builder(routes)
+        BrowserlessApplicationContext.Builder<SecurityIdentity> builder = BrowserlessApplicationContext
+                .<SecurityIdentity> builder(routes)
                 .withServletFactory(r -> new MockQuarkusServlet(r,
                         CDI.current().getBeanManager(), uiFactory))
                 .withUIFactory(uiFactory)
-                .withLookupServices(QuarkusTestLookupInitializer.class)
-                .withSecurityContextHandler(new QuarkusSecurityContextHandler())
-                .build();
+                .withLookupServices(QuarkusTestLookupInitializer.class);
+        if (QuarkusSecuritySupport.isPresent()) {
+            builder.withSecurityContextHandler(
+                    new QuarkusSecurityContextHandler());
+        }
+        return builder.build();
     }
 }
