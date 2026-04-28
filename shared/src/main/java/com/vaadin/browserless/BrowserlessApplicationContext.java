@@ -21,7 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
@@ -244,7 +244,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
         private final Routes routes;
         private SecurityContextHandler<C> securityContextHandler;
-        private Function<Routes, VaadinServlet> servletFactory;
+        private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
         private Set<Class<?>> lookupServices = Collections.emptySet();
 
@@ -267,9 +267,14 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
         /**
          * Sets a custom servlet factory. The factory receives the routes and
-         * must return a fully configured {@link VaadinServlet}. When unset, a
-         * default servlet that uses the configured {@link UIFactory} is created
-         * by {@link #build()}.
+         * the {@link UIFactory} configured via
+         * {@link #withUIFactory(UIFactory)} (or its default), and must return a
+         * fully configured {@link VaadinServlet}. Wiring the {@code UIFactory}
+         * through the builder ensures the servlet uses the same factory as
+         * {@link BrowserlessUIContext} window creation, so paths like the
+         * legacy {@code afterSessionClose} session-recreation hook don't end up
+         * producing UIs of a different type. When unset, a default servlet that
+         * uses the configured {@code UIFactory} is created by {@link #build()}.
          *
          * @param factory
          *            the servlet factory
@@ -278,7 +283,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          *             if {@code factory} is {@code null}
          */
         public Builder<C> withServletFactory(
-                Function<Routes, VaadinServlet> factory) {
+                BiFunction<Routes, UIFactory, VaadinServlet> factory) {
             this.servletFactory = Objects.requireNonNull(factory);
             return this;
         }
@@ -335,7 +340,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          */
         public BrowserlessApplicationContext<C> build() {
             VaadinServlet servlet = servletFactory != null
-                    ? servletFactory.apply(routes)
+                    ? servletFactory.apply(routes, uiFactory)
                     : new MockVaadinServlet(routes, uiFactory);
             VaadinServletService service = MockVaadin.setupServlet(servlet,
                     lookupServices);

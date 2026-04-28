@@ -80,8 +80,8 @@ public final class SpringBrowserlessApplicationContext {
 
         BrowserlessApplicationContext.Builder<Authentication> builder = BrowserlessApplicationContext
                 .<Authentication> builder(routes)
-                .withServletFactory(r -> new MockSpringServlet(r,
-                        applicationContext, uiFactory))
+                .withServletFactory((r, uif) -> new MockSpringServlet(r,
+                        applicationContext, uif))
                 .withUIFactory(uiFactory).withLookupServices(
                         BrowserlessTestSpringLookupInitializer.class);
         if (SpringSecuritySupport.isPresent()) {
