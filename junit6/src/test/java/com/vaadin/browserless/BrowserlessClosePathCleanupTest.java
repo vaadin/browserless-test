@@ -204,6 +204,8 @@ class BrowserlessClosePathCleanupTest {
 
             var bob = app.newUser("bob");
             var bobWindow = bob.newWindow();
+            var bobRequest = VaadinRequest.getCurrent();
+            var bobResponse = VaadinResponse.getCurrent();
 
             // Sanity: bob is the live state on the thread
             Assertions.assertSame(bobWindow.getUI(), UI.getCurrent());
@@ -222,6 +224,14 @@ class BrowserlessClosePathCleanupTest {
                             + " after a non-active cross-user close");
             Assertions.assertSame(bob.getSession(), VaadinSession.getCurrent(),
                     "VaadinSession.getCurrent() must remain coherent with"
+                            + " activeContext after a non-active cross-user"
+                            + " close");
+            Assertions.assertSame(bobRequest, VaadinRequest.getCurrent(),
+                    "VaadinRequest.getCurrent() must remain coherent with"
+                            + " activeContext after a non-active cross-user"
+                            + " close");
+            Assertions.assertSame(bobResponse, VaadinResponse.getCurrent(),
+                    "VaadinResponse.getCurrent() must remain coherent with"
                             + " activeContext after a non-active cross-user"
                             + " close");
             Assertions.assertEquals("bob", handler.live.get(),
@@ -248,6 +258,71 @@ class BrowserlessClosePathCleanupTest {
                     "user.close() must clear the security context so the"
                             + " closing user's snapshot does not leak onto"
                             + " the thread");
+        }
+    }
+
+    @Test
+    void userClose_destroyListenerSeesClosingUserSecurity() {
+        var handler = new CapturingHandler();
+        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+                .withSecurityContextHandler(handler).build()) {
+            var alice = app.newUser("alice");
+            alice.newWindow();
+
+            var bob = app.newUser("bob");
+            bob.newWindow(); // activates bob; thread now carries "bob"
+
+            var observed = new AtomicReference<String>();
+            app.getService().addSessionDestroyListener(event -> {
+                if (event.getSession() == alice.getSession()) {
+                    observed.set(handler.live.get());
+                }
+            });
+
+            alice.close();
+
+            Assertions.assertEquals("alice", observed.get(),
+                    "session-destroy listener should see the closing"
+                            + " user's security snapshot, not whatever"
+                            + " the thread happened to carry from another"
+                            + " active user");
+        }
+    }
+
+    @Test
+    void userClose_leavesActiveUserCoherentOnTheThread() {
+        var handler = new CapturingHandler();
+        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+                .withSecurityContextHandler(handler).build()) {
+            var alice = app.newUser("alice");
+            alice.newWindow();
+
+            var bob = app.newUser("bob");
+            var bobWindow = bob.newWindow();
+            var bobUI = UI.getCurrent();
+            var bobSession = VaadinSession.getCurrent();
+            var bobRequest = VaadinRequest.getCurrent();
+            var bobResponse = VaadinResponse.getCurrent();
+
+            alice.close();
+
+            // After closing a non-active user, the thread must remain
+            // coherent with bob (the active user) — alice.close() must not
+            // leave the thread cleared while activeContext still points to
+            // bob's window.
+            Assertions.assertSame(bobWindow, BrowserlessUIContext.getActive(),
+                    "bob's window should still be the active context");
+            Assertions.assertSame(bobUI, UI.getCurrent(),
+                    "UI thread-local should still be bob's");
+            Assertions.assertSame(bobSession, VaadinSession.getCurrent(),
+                    "VaadinSession thread-local should still be bob's");
+            Assertions.assertSame(bobRequest, VaadinRequest.getCurrent(),
+                    "VaadinRequest thread-local should still be bob's");
+            Assertions.assertSame(bobResponse, VaadinResponse.getCurrent(),
+                    "VaadinResponse thread-local should still be bob's");
+            Assertions.assertEquals("bob", handler.live.get(),
+                    "Security context should still be bob's, not cleared"
+                            + " by alice.close()");
         }
     }
 

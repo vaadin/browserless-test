@@ -17,8 +17,7 @@ package com.vaadin.browserless.quarkus;
 
 import jakarta.enterprise.inject.spi.CDI;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Set;
 
 import io.quarkus.security.identity.CurrentIdentityAssociation;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -86,7 +85,6 @@ public class QuarkusSecurityContextHandler
             String... roles) {
         return QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal(username))
-                .addRoles(new HashSet<>(Arrays.asList(roles)))
-                .setAnonymous(false).build();
+                .addRoles(Set.of(roles)).setAnonymous(false).build();
     }
 }
