@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,11 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import org.jspecify.annotations.Nullable;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.geolocation.GeolocationAvailability;
-import com.vaadin.flow.component.geolocation.GeolocationClient;
-import com.vaadin.flow.component.geolocation.GeolocationOptions;
-import com.vaadin.flow.component.geolocation.GeolocationOutcome;
-import com.vaadin.flow.component.geolocation.GeolocationResult;
 import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.shared.Registration;
 

@@ -13,13 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
 import org.jspecify.annotations.Nullable;
-
-import com.vaadin.flow.component.geolocation.GeolocationError;
-import com.vaadin.flow.component.geolocation.GeolocationOptions;
-import com.vaadin.flow.component.geolocation.GeolocationPosition;
 
 /**
  * A pending one-shot {@code Geolocation.get(...)} request observed by the test

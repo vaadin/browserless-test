@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,17 +25,11 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.geolocation.GeolocationCoordinates;
-import com.vaadin.flow.component.geolocation.GeolocationError;
-import com.vaadin.flow.component.geolocation.GeolocationErrorCode;
-import com.vaadin.flow.component.geolocation.GeolocationOutcome;
-import com.vaadin.flow.component.geolocation.GeolocationPosition;
-import com.vaadin.flow.component.geolocation.GeolocationTracker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-@ViewPackages(packages = "com.vaadin.browserless.geolocation")
+@ViewPackages(packages = "com.vaadin.flow.component.geolocation")
 public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
 
     @Tag("div")

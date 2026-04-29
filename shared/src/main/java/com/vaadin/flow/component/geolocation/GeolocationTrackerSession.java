@@ -13,17 +13,25 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-/**
- * Browserless test support for the Flow
- * {@link com.vaadin.flow.component.geolocation.Geolocation Geolocation API}.
- * <p>
- * Application unit tests obtain a
- * {@link com.vaadin.browserless.geolocation.GeolocationTestController}
- * via {@link com.vaadin.browserless.geolocation.GeolocationTestController#install(com.vaadin.flow.component.UI)
- * install(ui)} and drive position outcomes, error conditions, and
- * permission state without a real browser.
- */
-@NullMarked
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
-import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import com.vaadin.flow.component.Component;
+
+/**
+ * View into a tracker session managed by the test client. Returned by
+ * {@link GeolocationTestController#activeTrackers()}.
+ */
+public interface GeolocationTrackerSession {
+
+    /** The component that owns this tracker session. */
+    Component owner();
+
+    /** Options the tracker was started with, or {@code null}. */
+    @Nullable
+    GeolocationOptions options();
+
+    /** Whether the tracker is currently receiving updates. */
+    boolean isActive();
+}

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,14 +26,6 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.geolocation.GeolocationAvailability;
-import com.vaadin.flow.component.geolocation.GeolocationCoordinates;
-import com.vaadin.flow.component.geolocation.GeolocationError;
-import com.vaadin.flow.component.geolocation.GeolocationErrorCode;
-import com.vaadin.flow.component.geolocation.GeolocationOptions;
-import com.vaadin.flow.component.geolocation.GeolocationOutcome;
-import com.vaadin.flow.component.geolocation.GeolocationPosition;
-import com.vaadin.flow.component.geolocation.GeolocationTracker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ViewPackages(packages = "com.vaadin.browserless.geolocation")
+@ViewPackages(packages = "com.vaadin.flow.component.geolocation")
 public class GeolocationTestControllerTest extends BrowserlessTest {
 
     @Test

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.geolocation;
+package com.vaadin.flow.component.geolocation;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -26,15 +26,6 @@ import org.jspecify.annotations.Nullable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.geolocation.Geolocation;
-import com.vaadin.flow.component.geolocation.GeolocationAvailability;
-import com.vaadin.flow.component.geolocation.GeolocationClient;
-import com.vaadin.flow.component.geolocation.GeolocationCoordinates;
-import com.vaadin.flow.component.geolocation.GeolocationError;
-import com.vaadin.flow.component.geolocation.GeolocationErrorCode;
-import com.vaadin.flow.component.geolocation.GeolocationOptions;
-import com.vaadin.flow.component.geolocation.GeolocationPosition;
-import com.vaadin.flow.component.geolocation.GeolocationTracker;
 
 /**
  * Browserless test driver for the {@link Geolocation} facade. Replaces the UI's
