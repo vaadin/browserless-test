@@ -20,8 +20,8 @@ import org.jspecify.annotations.Nullable;
 import com.vaadin.flow.component.Component;
 
 /**
- * View into a tracker session managed by the test client. Returned by
- * {@link GeolocationTestController#activeTrackers()}.
+ * View into a tracker session managed by the simulator. Returned by
+ * {@link GeolocationSimulator#activeTrackers()}.
  */
 public interface GeolocationTrackerSession {
 

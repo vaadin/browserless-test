@@ -17,10 +17,10 @@
  * Browserless test support for the Flow
  * {@link com.vaadin.flow.component.geolocation.Geolocation Geolocation API}.
  * <p>
- * Application unit tests obtain a {@link GeolocationTestController}
- * via {@link GeolocationTestController#install(com.vaadin.flow.component.UI)
- * install(ui)} and drive position outcomes, error conditions, and
- * permission state without a real browser.
+ * Application unit tests obtain a {@link GeolocationSimulator} via
+ * {@link GeolocationSimulator#of(com.vaadin.flow.component.UI)
+ * of(ui)} and drive position outcomes, error conditions, and permission
+ * state without a real browser.
  */
 @NullMarked
 package com.vaadin.flow.component.geolocation;
