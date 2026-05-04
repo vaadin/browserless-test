@@ -106,7 +106,8 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
         if (position != null) {
             this.cachedError = null;
         }
-        if (availability == GeolocationAvailability.GRANTED && position != null) {
+        if (availability == GeolocationAvailability.GRANTED
+                && position != null) {
             for (ActiveWatch watch : new ArrayList<>(watches)) {
                 if (watch.isActive()) {
                     watch.push(position);
