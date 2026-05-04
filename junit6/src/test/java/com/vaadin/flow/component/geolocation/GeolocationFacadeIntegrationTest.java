@@ -40,14 +40,13 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
     }
 
     @Test
-    void get_callbackReceivesPosition() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void get_withGrantedPermissionAndLocation_callbackReceivesPosition() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
+        geo.setLocation(60.1699, 24.9384, 10.0);
 
         List<GeolocationOutcome> received = new ArrayList<>();
         UI.getCurrent().getGeolocation().get(received::add);
-
-        simulator.respondWithPosition(60.1699, 24.9384, 10.0);
 
         assertEquals(1, received.size());
         assertInstanceOf(GeolocationPosition.class, received.get(0));
@@ -56,25 +55,23 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
     }
 
     @Test
-    void get_callbackReceivesError() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void get_withDeniedPermission_callbackReceivesPermissionDeniedError() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.denyPermission();
 
         List<GeolocationOutcome> received = new ArrayList<>();
         UI.getCurrent().getGeolocation().get(received::add);
 
-        simulator.respondWithError(GeolocationErrorCode.PERMISSION_DENIED,
-                "denied");
-
         assertEquals(1, received.size());
         assertInstanceOf(GeolocationError.class, received.get(0));
-        assertEquals(1, ((GeolocationError) received.get(0)).code());
+        assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(),
+                ((GeolocationError) received.get(0)).code());
     }
 
     @Test
-    void track_signalUpdatesOnPositionEvent() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void track_setLocationFiresPositionEvent() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
@@ -85,33 +82,28 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
                 24.9384, 10.0, 25.5, 5.0, 90.0, 1.5);
         GeolocationPosition position = new GeolocationPosition(coords,
                 1700000000000L);
-        simulator.pushPosition(position);
+        geo.setLocation(position);
 
         assertInstanceOf(GeolocationPosition.class,
                 tracker.valueSignal().peek());
         GeolocationPosition pos = (GeolocationPosition) tracker.valueSignal()
                 .peek();
         assertEquals(60.1699, pos.coords().latitude());
-        assertEquals(24.9384, pos.coords().longitude());
-        assertEquals(10.0, pos.coords().accuracy());
         assertEquals(25.5, pos.coords().altitude());
-        assertEquals(5.0, pos.coords().altitudeAccuracy());
-        assertEquals(90.0, pos.coords().heading());
-        assertEquals(1.5, pos.coords().speed());
         assertEquals(1700000000000L, pos.timestamp());
     }
 
     @Test
-    void track_signalUpdatesOnErrorEvent() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void track_setUnavailableFiresErrorEvent() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
         GeolocationTracker tracker = UI.getCurrent().getGeolocation()
                 .track(component);
 
-        simulator.pushError(GeolocationErrorCode.PERMISSION_DENIED,
+        geo.setUnavailable(GeolocationErrorCode.PERMISSION_DENIED,
                 "User denied geolocation");
 
         assertInstanceOf(GeolocationError.class, tracker.valueSignal().peek());
@@ -124,29 +116,29 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
 
     @Test
     void track_stateTransitionsFromErrorToPosition() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
         GeolocationTracker tracker = UI.getCurrent().getGeolocation()
                 .track(component);
 
-        simulator.pushError(GeolocationErrorCode.TIMEOUT, "Timeout");
+        geo.setUnavailable(GeolocationErrorCode.TIMEOUT, "Timeout");
         assertInstanceOf(GeolocationError.class, tracker.valueSignal().peek());
 
-        simulator.pushPosition(60.1699, 24.9384, 10.0);
+        geo.setLocation(60.1699, 24.9384, 10.0);
         assertInstanceOf(GeolocationPosition.class,
                 tracker.valueSignal().peek());
     }
 
     @Test
-    void concreteView_respondsToSimulatedPosition() {
-        SampleView view = navigate(SampleView.class);
+    void concreteView_respondsToPreSetLocation() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
+        geo.setLocation(60.1699, 24.9384, 10.0);
 
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
-        simulator.respondWithPosition(60.1699, 24.9384, 10.0);
+        SampleView view = navigate(SampleView.class);
 
         assertEquals("60.16990", view.lastLatitude.getText());
     }

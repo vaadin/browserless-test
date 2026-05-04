@@ -28,16 +28,45 @@ import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 
 /**
- * Browserless test driver for the {@link Geolocation} facade. Attaches an
- * in-memory geolocation client to the UI; tests then drive outcomes (positions,
- * errors, permission state) by calling methods on the simulator.
+ * Browserless test driver for the {@link Geolocation} facade. Provides a
+ * state-based simulation of the browser's geolocation: tests describe the
+ * world (the user's permission and the sensor's reading), then exercise the
+ * application, which observes that world through the {@code Geolocation} API.
  * <p>
- * Obtain via {@link #of(UI)}: idempotent, creates and attaches a
- * {@link BrowserlessGeolocationClient} on the first call and returns the same
- * simulator on subsequent calls for the same UI. The simulator is pre-attached
- * to every {@link com.vaadin.browserless.mocks.MockedUI}, so test code only
- * needs to call {@code GeolocationSimulator.of(UI.getCurrent())} to retrieve
- * it.
+ * Two orthogonal axes drive the model:
+ * <ul>
+ * <li><b>Permission</b> — {@link #grantPermission()},
+ * {@link #denyPermission()}, {@link #resetPermission()},
+ * {@link #simulateUnsupported()}. Default state is
+ * {@link GeolocationAvailability#PROMPT PROMPT}: the browser would show a
+ * permission dialog on the next call.</li>
+ * <li><b>Sensor reading</b> — {@link #setLocation(double, double)},
+ * {@link #setLocation(GeolocationPosition)}, {@link #clearLocation()},
+ * {@link #setUnavailable(GeolocationErrorCode, String)},
+ * {@link #clearUnavailable()}. Default state: no fix.</li>
+ * </ul>
+ * <p>
+ * Resolution rules for {@code Geolocation.get(...)}:
+ * <ul>
+ * <li>{@link GeolocationAvailability#PROMPT PROMPT} or
+ * {@link GeolocationAvailability#UNKNOWN UNKNOWN}: the call stays pending
+ * until the permission is decided.</li>
+ * <li>{@link GeolocationAvailability#DENIED DENIED} or
+ * {@link GeolocationAvailability#UNSUPPORTED UNSUPPORTED}: the call resolves
+ * with an error.</li>
+ * <li>{@link GeolocationAvailability#GRANTED GRANTED}: the call resolves with
+ * the cached fix if {@link #setLocation} was called, with the cached error if
+ * {@link #setUnavailable} was called, or stays pending otherwise.</li>
+ * </ul>
+ * <p>
+ * Trackers behave the same way: the active watch fires on
+ * {@link #setLocation(double, double) setLocation} (when permission is
+ * granted) and on {@link #setUnavailable(GeolocationErrorCode, String)
+ * setUnavailable}; calling {@link #denyPermission()} delivers a
+ * {@code PERMISSION_DENIED} error to active watches and stops them.
+ * <p>
+ * Obtain via {@link #current()} or {@link #forUI(UI)}: idempotent, both create
+ * the simulator on the first call and return the same instance afterward.
  */
 public final class GeolocationSimulator implements Serializable {
 
@@ -48,15 +77,23 @@ public final class GeolocationSimulator implements Serializable {
     }
 
     /**
-     * Attaches an in-memory geolocation client to the given UI and returns the
-     * simulator bound to it. Idempotent: a second call on the same UI returns
-     * the simulator already attached.
+     * Returns the simulator bound to {@link UI#getCurrent()}.
+     *
+     * @return the simulator for the current UI
+     */
+    public static GeolocationSimulator current() {
+        return forUI(UI.getCurrent());
+    }
+
+    /**
+     * Returns the simulator bound to the given UI, attaching an in-memory
+     * geolocation client on the first call. Idempotent.
      *
      * @param ui
      *            the UI to attach to
      * @return the simulator bound to the in-memory client
      */
-    public static GeolocationSimulator of(UI ui) {
+    public static GeolocationSimulator forUI(UI ui) {
         GeolocationSimulator existing = ComponentUtil.getData(ui,
                 GeolocationSimulator.class);
         if (existing != null) {
@@ -70,127 +107,60 @@ public final class GeolocationSimulator implements Serializable {
     }
 
     /**
-     * Sets the simulated availability and notifies subscribers (including the
-     * UI's {@code availabilitySignal()}).
-     *
-     * @param availability
-     *            the new availability state
+     * Sets permission to {@link GeolocationAvailability#GRANTED GRANTED}.
+     * Pending {@code get(...)} calls resolve with the current fix or error if
+     * either has been set; otherwise they stay pending until one is.
      */
-    public void setAvailability(GeolocationAvailability availability) {
-        client.setAvailability(availability);
+    public void grantPermission() {
+        client.setAvailability(GeolocationAvailability.GRANTED);
     }
 
     /**
-     * Convenience: sets availability to
-     * {@link GeolocationAvailability#UNSUPPORTED}, simulating an insecure page
-     * context or a Permissions-Policy block.
+     * Sets permission to {@link GeolocationAvailability#DENIED DENIED}. Any
+     * pending {@code get(...)} call resolves with a
+     * {@code PERMISSION_DENIED} error. Active watches receive a
+     * {@code PERMISSION_DENIED} error and are stopped.
+     */
+    public void denyPermission() {
+        client.setAvailability(GeolocationAvailability.DENIED);
+        client.deliverDeniedToWatches();
+    }
+
+    /**
+     * Resets permission to {@link GeolocationAvailability#PROMPT PROMPT} —
+     * the default starting state, equivalent to a fresh page where the user
+     * has not yet responded to the permission dialog.
+     */
+    public void resetPermission() {
+        client.setAvailability(GeolocationAvailability.PROMPT);
+    }
+
+    /**
+     * Sets availability to {@link GeolocationAvailability#UNSUPPORTED
+     * UNSUPPORTED}, simulating a browser without the Geolocation API or a
+     * page context where it is unusable. Pending {@code get(...)} calls
+     * resolve with a {@code POSITION_UNAVAILABLE} error.
      */
     public void simulateUnsupported() {
-        setAvailability(GeolocationAvailability.UNSUPPORTED);
+        client.setAvailability(GeolocationAvailability.UNSUPPORTED);
     }
 
     /**
-     * Returns the current simulated availability.
-     *
-     * @return the current availability
-     */
-    public GeolocationAvailability currentAvailability() {
-        return client.currentAvailability();
-    }
-
-    /**
-     * Resolves the oldest pending {@code Geolocation.get(...)} request with the
-     * given position.
+     * Sets the cached sensor fix. When permission is granted, pending
+     * {@code get(...)} calls resolve with this position and active watches
+     * receive it.
      *
      * @param position
-     *            the position to deliver
-     * @throws IllegalStateException
-     *             if no get() request is pending
+     *            the position the sensor reports
      */
-    public void respondWithPosition(GeolocationPosition position) {
-        nextPending().respondWith(position);
+    public void setLocation(GeolocationPosition position) {
+        client.setCachedFix(position);
     }
 
     /**
-     * Convenience overload that constructs a {@link GeolocationPosition} with
-     * the given coordinates and a current-time timestamp; altitude, altitude
-     * accuracy, heading and speed are {@code null}.
-     *
-     * @param latitude
-     *            latitude in degrees
-     * @param longitude
-     *            longitude in degrees
-     * @param accuracy
-     *            horizontal accuracy in metres
-     * @throws IllegalStateException
-     *             if no get() request is pending
-     */
-    public void respondWithPosition(double latitude, double longitude,
-            double accuracy) {
-        GeolocationCoordinates coords = new GeolocationCoordinates(latitude,
-                longitude, accuracy, null, null, null, null);
-        respondWithPosition(
-                new GeolocationPosition(coords, System.currentTimeMillis()));
-    }
-
-    /**
-     * Resolves the oldest pending {@code Geolocation.get(...)} request with the
-     * given error.
-     *
-     * @param code
-     *            the error code
-     * @param message
-     *            the error message
-     * @throws IllegalStateException
-     *             if no get() request is pending
-     */
-    public void respondWithError(GeolocationErrorCode code, String message) {
-        nextPending().respondWith(new GeolocationError(code.code(), message));
-    }
-
-    /**
-     * Convenience overload that uses {@code code.name()} as the error message.
-     *
-     * @param code
-     *            the error code
-     * @throws IllegalStateException
-     *             if no get() request is pending
-     */
-    public void respondWithError(GeolocationErrorCode code) {
-        respondWithError(code, code.name());
-    }
-
-    private BrowserlessGeolocationClient.PendingGet nextPending() {
-        BrowserlessGeolocationClient.PendingGet entry = client.pending()
-                .pollFirst();
-        if (entry == null) {
-            throw new IllegalStateException(
-                    "No pending Geolocation.get() request to resolve");
-        }
-        return entry;
-    }
-
-    /**
-     * Broadcasts a position update to every active watch, exactly as a
-     * {@code vaadin-geolocation-position} DOM event would. If no watches are
-     * active the call is a no-op.
-     *
-     * @param position
-     *            the position to deliver
-     */
-    public void pushPosition(GeolocationPosition position) {
-        for (BrowserlessGeolocationClient.ActiveWatch w : new ArrayList<>(
-                client.watches())) {
-            if (w.isActive()) {
-                w.push(position);
-            }
-        }
-    }
-
-    /**
-     * Convenience overload constructing a position with current-time timestamp
-     * and {@code null} altitude/heading/speed fields, then broadcasting it to
-     * every active watch.
+     * Convenience overload constructing a {@link GeolocationPosition} with
+     * a current-time timestamp; altitude, altitude accuracy, heading and
+     * speed are {@code null}.
      *
      * @param latitude
      *            latitude in degrees
@@ -199,37 +169,59 @@ public final class GeolocationSimulator implements Serializable {
      * @param accuracy
      *            horizontal accuracy in metres
      */
-    public void pushPosition(double latitude, double longitude,
+    public void setLocation(double latitude, double longitude,
             double accuracy) {
         GeolocationCoordinates coords = new GeolocationCoordinates(latitude,
                 longitude, accuracy, null, null, null, null);
-        pushPosition(
+        setLocation(
                 new GeolocationPosition(coords, System.currentTimeMillis()));
     }
 
     /**
-     * Broadcasts an error to every active watch, exactly as a
-     * {@code vaadin-geolocation-error} DOM event would. If no watches are
-     * active the call is a no-op.
+     * Convenience overload using a default accuracy of 10 metres.
+     *
+     * @param latitude
+     *            latitude in degrees
+     * @param longitude
+     *            longitude in degrees
+     */
+    public void setLocation(double latitude, double longitude) {
+        setLocation(latitude, longitude, 10.0);
+    }
+
+    /**
+     * Clears the cached sensor fix. Pending {@code get(...)} calls and active
+     * watches are unaffected; they wait for the next state change.
+     */
+    public void clearLocation() {
+        client.setCachedFix(null);
+    }
+
+    /**
+     * Sets a sticky sensor error. When permission is granted, pending
+     * {@code get(...)} calls resolve with this error and active watches
+     * receive it. Setting an error clears any cached fix.
      *
      * @param code
      *            the error code
      * @param message
      *            the error message
      */
-    public void pushError(GeolocationErrorCode code, String message) {
-        GeolocationError error = new GeolocationError(code.code(), message);
-        for (BrowserlessGeolocationClient.ActiveWatch w : new ArrayList<>(
-                client.watches())) {
-            if (w.isActive()) {
-                w.push(error);
-            }
-        }
+    public void setUnavailable(GeolocationErrorCode code, String message) {
+        client.setCachedError(new GeolocationError(code.code(), message));
+    }
+
+    /**
+     * Clears any cached sensor error. Pending {@code get(...)} calls stay
+     * pending; active watches are unaffected.
+     */
+    public void clearUnavailable() {
+        client.setCachedError(null);
     }
 
     /**
      * Returns the pending one-shot {@code Geolocation.get(...)} requests in
-     * arrival order. Resolved requests are not included.
+     * arrival order.
      *
      * @return an unmodifiable view of pending requests
      */
@@ -242,8 +234,8 @@ public final class GeolocationSimulator implements Serializable {
     }
 
     /**
-     * Returns the most recent pending {@code Geolocation.get(...)} request, if
-     * any.
+     * Returns the most recent pending {@code Geolocation.get(...)} request,
+     * if any.
      *
      * @return the most recent pending request, or empty
      */

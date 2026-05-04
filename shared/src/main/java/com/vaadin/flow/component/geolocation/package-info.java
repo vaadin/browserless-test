@@ -18,9 +18,11 @@
  * {@link com.vaadin.flow.component.geolocation.Geolocation Geolocation API}.
  * <p>
  * Application unit tests obtain a {@link GeolocationSimulator} via
- * {@link GeolocationSimulator#of(com.vaadin.flow.component.UI)
- * of(ui)} and drive position outcomes, error conditions, and permission
- * state without a real browser.
+ * {@link GeolocationSimulator#current() current()} (or
+ * {@link GeolocationSimulator#forUI(com.vaadin.flow.component.UI) forUI(ui)}
+ * for multi-user scenarios) and describe the user's permission and the
+ * sensor's reading; the application observes that state through the
+ * {@code Geolocation} facade without any real browser.
  */
 @NullMarked
 package com.vaadin.flow.component.geolocation;

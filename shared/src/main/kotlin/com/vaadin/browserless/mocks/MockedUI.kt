@@ -29,7 +29,7 @@ import com.vaadin.browserless.internal.simulateClosedEvent
 open class MockedUI : UI() {
 
     init {
-        GeolocationSimulator.of(this)
+        GeolocationSimulator.forUI(this)
     }
 
 

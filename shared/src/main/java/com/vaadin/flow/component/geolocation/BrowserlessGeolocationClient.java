@@ -19,6 +19,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,16 +30,20 @@ import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.shared.Registration;
 
 /**
- * In-memory {@link GeolocationClient}. Records every {@code get(...)} and
- * {@code startWatch(...)} call so the simulator can resolve them later. Never
- * touches {@code executeJs} or DOM events.
+ * In-memory {@link GeolocationClient}. The simulator drives this client through
+ * two orthogonal axes — permission state and sensor reading — and the client
+ * resolves pending {@code get(...)} calls and emits to active watches based on
+ * the combination of those axes.
  */
 final class BrowserlessGeolocationClient implements GeolocationClient {
 
     private final Deque<PendingGet> pending = new ArrayDeque<>();
     private final List<ActiveWatch> watches = new ArrayList<>();
     private final List<SerializableConsumer<GeolocationAvailability>> availabilityListeners = new ArrayList<>();
+
     private GeolocationAvailability availability = GeolocationAvailability.PROMPT;
+    private @Nullable GeolocationPosition cachedFix;
+    private @Nullable GeolocationError cachedError;
     private boolean closed;
 
     @Override
@@ -46,6 +51,7 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
             @Nullable GeolocationOptions options) {
         PendingGet entry = new PendingGet(options);
         pending.add(entry);
+        tryResolve(entry);
         return entry.future;
     }
 
@@ -83,8 +89,6 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
         pending.clear();
     }
 
-    // --- Simulator surface (package-private) ---------------
-
     void setAvailability(GeolocationAvailability next) {
         if (next == availability) {
             return;
@@ -93,6 +97,49 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
         for (SerializableConsumer<GeolocationAvailability> listener : new ArrayList<>(
                 availabilityListeners)) {
             listener.accept(next);
+        }
+        flushPending();
+    }
+
+    void setCachedFix(@Nullable GeolocationPosition position) {
+        this.cachedFix = position;
+        if (position != null) {
+            this.cachedError = null;
+        }
+        if (availability == GeolocationAvailability.GRANTED && position != null) {
+            for (ActiveWatch watch : new ArrayList<>(watches)) {
+                if (watch.isActive()) {
+                    watch.push(position);
+                }
+            }
+            flushPending();
+        }
+    }
+
+    void setCachedError(@Nullable GeolocationError error) {
+        this.cachedError = error;
+        if (error != null) {
+            this.cachedFix = null;
+        }
+        if (availability == GeolocationAvailability.GRANTED && error != null) {
+            for (ActiveWatch watch : new ArrayList<>(watches)) {
+                if (watch.isActive()) {
+                    watch.push(error);
+                }
+            }
+            flushPending();
+        }
+    }
+
+    void deliverDeniedToWatches() {
+        GeolocationError error = new GeolocationError(
+                GeolocationErrorCode.PERMISSION_DENIED.code(),
+                "Permission denied");
+        for (ActiveWatch watch : new ArrayList<>(watches)) {
+            if (watch.isActive()) {
+                watch.push(error);
+                watch.stop();
+            }
         }
     }
 
@@ -104,7 +151,55 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
         return Collections.unmodifiableList(watches);
     }
 
-    // --- Internal types -------------------------------------------
+    private void tryResolve(PendingGet entry) {
+        switch (availability) {
+        case DENIED -> entry.respondWith(new GeolocationError(
+                GeolocationErrorCode.PERMISSION_DENIED.code(),
+                "Permission denied"));
+        case UNSUPPORTED -> entry.respondWith(new GeolocationError(
+                GeolocationErrorCode.POSITION_UNAVAILABLE.code(),
+                "Geolocation is not supported"));
+        case GRANTED -> {
+            if (cachedFix != null) {
+                entry.respondWith(cachedFix);
+            } else if (cachedError != null) {
+                entry.respondWith(cachedError);
+            }
+        }
+        case PROMPT, UNKNOWN -> {
+            // wait for permission to be decided
+        }
+        }
+        if (entry.resolved) {
+            pending.remove(entry);
+        }
+    }
+
+    private void flushPending() {
+        for (Iterator<PendingGet> it = pending.iterator(); it.hasNext();) {
+            PendingGet entry = it.next();
+            switch (availability) {
+            case DENIED -> entry.respondWith(new GeolocationError(
+                    GeolocationErrorCode.PERMISSION_DENIED.code(),
+                    "Permission denied"));
+            case UNSUPPORTED -> entry.respondWith(new GeolocationError(
+                    GeolocationErrorCode.POSITION_UNAVAILABLE.code(),
+                    "Geolocation is not supported"));
+            case GRANTED -> {
+                if (cachedFix != null) {
+                    entry.respondWith(cachedFix);
+                } else if (cachedError != null) {
+                    entry.respondWith(cachedError);
+                }
+            }
+            case PROMPT, UNKNOWN -> {
+            }
+            }
+            if (entry.resolved) {
+                it.remove();
+            }
+        }
+    }
 
     static final class PendingGet {
         final CompletableFuture<GeolocationOutcome> future = new CompletableFuture<>();

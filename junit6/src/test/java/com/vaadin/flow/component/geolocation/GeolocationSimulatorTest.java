@@ -28,97 +28,140 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ViewPackages(packages = "com.vaadin.flow.component.geolocation")
 public class GeolocationSimulatorTest extends BrowserlessTest {
 
     @Test
-    void of_isIdempotent() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
-        GeolocationSimulator again = GeolocationSimulator.of(UI.getCurrent());
+    void current_isIdempotent() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        GeolocationSimulator again = GeolocationSimulator.current();
         assertSame(simulator, again,
-                "of should return the same simulator on repeat call");
+                "current() should return the same simulator on repeat call");
     }
 
     @Test
-    void setAvailability_updatesFacadeSignal() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
-        simulator.setAvailability(GeolocationAvailability.GRANTED);
+    void defaultAvailability_isPrompt() {
+        GeolocationSimulator.current();
+        assertEquals(GeolocationAvailability.PROMPT,
+                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+    }
+
+    @Test
+    void grantPermission_updatesFacadeSignal() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
         assertEquals(GeolocationAvailability.GRANTED,
                 UI.getCurrent().getGeolocation().availabilitySignal().peek());
     }
 
     @Test
+    void denyPermission_updatesFacadeSignal() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.denyPermission();
+        assertEquals(GeolocationAvailability.DENIED,
+                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+    }
+
+    @Test
     void simulateUnsupported_setsAvailabilityToUnsupported() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+        GeolocationSimulator simulator = GeolocationSimulator.current();
         simulator.simulateUnsupported();
-        assertEquals(GeolocationAvailability.UNSUPPORTED,
-                simulator.currentAvailability());
         assertEquals(GeolocationAvailability.UNSUPPORTED,
                 UI.getCurrent().getGeolocation().availabilitySignal().peek());
     }
 
     @Test
-    void respondWithPosition_resolvesOldestPendingGet() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void grantPermission_thenSetLocation_resolvesPendingGet() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
 
         List<GeolocationOutcome> received = new ArrayList<>();
         UI.getCurrent().getGeolocation().get(received::add);
+        assertTrue(received.isEmpty(),
+                "get() should stay pending while permission is PROMPT");
 
-        simulator.respondWithPosition(60.1699, 24.9384, 10.0);
+        simulator.grantPermission();
+        assertTrue(received.isEmpty(),
+                "get() should stay pending until a fix is set");
 
+        simulator.setLocation(60.1699, 24.9384, 10.0);
         assertEquals(1, received.size());
         GeolocationPosition pos = (GeolocationPosition) received.get(0);
         assertEquals(60.1699, pos.coords().latitude());
-        assertEquals(24.9384, pos.coords().longitude());
-        assertEquals(10.0, pos.coords().accuracy());
     }
 
     @Test
-    void respondWithError_resolvesPendingGetWithError() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void setLocationFirst_thenGrantPermission_resolvesPendingGet() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.setLocation(60.1699, 24.9384, 10.0);
+
+        List<GeolocationOutcome> received = new ArrayList<>();
+        UI.getCurrent().getGeolocation().get(received::add);
+        assertTrue(received.isEmpty(),
+                "get() should stay pending until permission is granted");
+
+        simulator.grantPermission();
+        assertEquals(1, received.size());
+    }
+
+    @Test
+    void setLocationBeforeGet_withGrantedPermission_resolvesImmediately() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
+        simulator.setLocation(60.1699, 24.9384, 10.0);
 
         List<GeolocationOutcome> received = new ArrayList<>();
         UI.getCurrent().getGeolocation().get(received::add);
 
-        simulator.respondWithError(GeolocationErrorCode.PERMISSION_DENIED,
-                "denied");
+        assertEquals(1, received.size());
+    }
+
+    @Test
+    void denyPermission_resolvesPendingGetWithPermissionDenied() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+
+        List<GeolocationOutcome> received = new ArrayList<>();
+        UI.getCurrent().getGeolocation().get(received::add);
+
+        simulator.denyPermission();
 
         assertEquals(1, received.size());
         GeolocationError err = (GeolocationError) received.get(0);
-        assertEquals(1, err.code());
-        assertEquals("denied", err.message());
+        assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(), err.code());
     }
 
     @Test
-    void respondWithPosition_withNoPendingRequest_throws() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
-        assertThrows(IllegalStateException.class,
-                () -> simulator.respondWithPosition(60.0, 25.0, 10.0));
+    void setUnavailable_withGrantedPermission_resolvesPendingGetWithError() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
+
+        List<GeolocationOutcome> received = new ArrayList<>();
+        UI.getCurrent().getGeolocation().get(received::add);
+
+        simulator.setUnavailable(GeolocationErrorCode.POSITION_UNAVAILABLE,
+                "no fix");
+
+        assertEquals(1, received.size());
+        GeolocationError err = (GeolocationError) received.get(0);
+        assertEquals(GeolocationErrorCode.POSITION_UNAVAILABLE.code(),
+                err.code());
+        assertEquals("no fix", err.message());
     }
 
     @Test
-    void pushPosition_updatesTrackerSignal() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void setLocation_updatesActiveTrackerSignal() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
         GeolocationTracker tracker = UI.getCurrent().getGeolocation()
                 .track(owner);
 
-        simulator.pushPosition(60.0, 25.0, 10.0);
+        simulator.setLocation(60.0, 25.0, 10.0);
 
         GeolocationPosition pos = (GeolocationPosition) tracker.valueSignal()
                 .peek();
@@ -126,47 +169,59 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
     }
 
     @Test
-    void pushError_updatesTrackerSignal() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void setUnavailable_updatesActiveTrackerSignalWithError() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
         GeolocationTracker tracker = UI.getCurrent().getGeolocation()
                 .track(owner);
 
-        simulator.pushError(GeolocationErrorCode.TIMEOUT, "took too long");
+        simulator.setUnavailable(GeolocationErrorCode.TIMEOUT, "took too long");
 
         GeolocationError err = (GeolocationError) tracker.valueSignal().peek();
-        assertEquals(3, err.code());
+        assertEquals(GeolocationErrorCode.TIMEOUT.code(), err.code());
     }
 
     @Test
-    void pushPosition_afterStop_doesNotUpdateStoppedTracker() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void denyPermission_stopsActiveTrackersWithError() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
+        TestComponent owner = new TestComponent();
+        UI.getCurrent().add(owner);
+
+        GeolocationTracker tracker = UI.getCurrent().getGeolocation()
+                .track(owner);
+
+        simulator.denyPermission();
+
+        GeolocationError err = (GeolocationError) tracker.valueSignal().peek();
+        assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(), err.code());
+        assertEquals(0, simulator.activeTrackers().size());
+    }
+
+    @Test
+    void setLocation_afterTrackerStop_doesNotUpdateStoppedTracker() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
         GeolocationTracker tracker = UI.getCurrent().getGeolocation()
                 .track(owner);
-        // Record the value before stop
         Object valueBefore = tracker.valueSignal().peek();
         tracker.stop();
 
-        // With broadcast semantics, pushPosition is a no-op when no watches
-        // are active. The stopped tracker's signal must not be updated.
-        simulator.pushPosition(60.0, 25.0, 10.0);
+        simulator.setLocation(60.0, 25.0, 10.0);
 
         assertSame(valueBefore, tracker.valueSignal().peek(),
-                "Stopped tracker signal must not be updated by broadcast push");
-        assertEquals(0, simulator.activeTrackers().size(),
-                "No active trackers should remain after stop");
+                "Stopped tracker signal must not be updated");
+        assertEquals(0, simulator.activeTrackers().size());
     }
 
     @Test
-    void lastRequest_exposesOptions() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+    void lastRequest_exposesOptions_whilePending() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
         GeolocationOptions opts = GeolocationOptions.builder()
                 .highAccuracy(true).timeout(Duration.ofSeconds(7)).build();
         UI.getCurrent().getGeolocation().get(opts, r -> {
@@ -180,25 +235,8 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
     }
 
     @Test
-    void respondWith_resolvesViaInspection() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
-        List<GeolocationOutcome> received = new ArrayList<>();
-        UI.getCurrent().getGeolocation().get(received::add);
-
-        GeolocationRequest req = simulator.lastRequest().orElseThrow();
-        req.respondWith(new GeolocationPosition(
-                new GeolocationCoordinates(1, 2, 3, null, null, null, null),
-                100L));
-
-        assertEquals(1, received.size());
-        assertFalse(req.isPending());
-    }
-
-    @Test
     void activeTrackers_listsRunningTracker() {
-        GeolocationSimulator simulator = GeolocationSimulator
-                .of(UI.getCurrent());
+        GeolocationSimulator simulator = GeolocationSimulator.current();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
