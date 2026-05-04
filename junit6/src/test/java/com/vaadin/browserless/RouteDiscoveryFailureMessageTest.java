@@ -34,8 +34,7 @@ class RouteDiscoveryFailureMessageTest {
         Assertions.assertTrue(msg.contains("com.example.views"),
                 "message should name the scanned package, was:\n" + msg);
         Assertions.assertTrue(msg.contains("ServiceConfigurationError"),
-                "message should name the underlying error type, was:\n"
-                        + msg);
+                "message should name the underlying error type, was:\n" + msg);
         Assertions.assertTrue(
                 msg.contains("com.example.MyProvider not a subtype"),
                 "message should include the original cause message, was:\n"
@@ -55,17 +54,15 @@ class RouteDiscoveryFailureMessageTest {
     @Test
     void message_pointsAtDiscoverRoutesOverrideAndViewPackages() {
         String msg = BaseBrowserlessTest.routeDiscoveryFailureMessage(
-                Set.of("com.example"),
-                new ServiceConfigurationError("boom"));
+                Set.of("com.example"), new ServiceConfigurationError("boom"));
 
         Assertions.assertTrue(msg.contains("@ViewPackages"),
                 "message should suggest @ViewPackages, was:\n" + msg);
-        Assertions.assertTrue(
-                msg.contains("protected Routes discoverRoutes()"),
+        Assertions.assertTrue(msg.contains("protected Routes discoverRoutes()"),
                 "message should show a discoverRoutes() override snippet, "
                         + "was:\n" + msg);
-        Assertions.assertTrue(msg.contains("new Routes()")
-                && msg.contains("getRoutes().add"),
+        Assertions.assertTrue(
+                msg.contains("new Routes()") && msg.contains("getRoutes().add"),
                 "message should show how to populate Routes, was:\n" + msg);
     }
 }
