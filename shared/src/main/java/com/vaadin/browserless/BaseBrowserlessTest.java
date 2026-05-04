@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceConfigurationError;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -161,10 +162,46 @@ public abstract class BaseBrowserlessTest {
                 ? Set.of("")
                 : packageNames;
 
-        return packageNames.stream()
-                .map(pkg -> routesCache.computeIfAbsent(pkg,
-                        p -> new Routes().autoDiscoverViews(p)))
-                .reduce(new Routes(), Routes::merge);
+        try {
+            return packageNames.stream()
+                    .map(pkg -> routesCache.computeIfAbsent(pkg,
+                            p -> new Routes().autoDiscoverViews(p)))
+                    .reduce(new Routes(), Routes::merge);
+        } catch (ServiceConfigurationError e) {
+            throw new BrowserlessTestSetupException(
+                    routeDiscoveryFailureMessage(packageNames, e), e);
+        }
+    }
+
+    static String routeDiscoveryFailureMessage(Set<String> packages,
+            Throwable cause) {
+        String scope = packages.equals(Set.of("")) ? "the whole classpath"
+                : "package(s) " + packages;
+        return "Failed to auto-discover Vaadin routes by scanning " + scope
+                + ": "
+                + cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                + "\n\nThis usually means a class loaded during the scan "
+                + "triggers java.util.ServiceLoader (e.g. via Vaadin's Lookup, "
+                + "an InstantiatorFactory, or another SPI) and one of the "
+                + "registered providers cannot be loaded on the test classpath."
+                + "\n\nWorkarounds:"
+                + "\n  1. Restrict the scan to your view package(s) by adding "
+                + "@ViewPackages(MyView.class) (or @ViewPackages(packages = \"com.example.views\")) "
+                + "to your test class."
+                + "\n  2. Override discoverRoutes() in your test class (or "
+                + "test base class) and build the Routes explicitly, skipping "
+                + "the classpath scan entirely:"
+                + "\n"
+                + "\n      @Override"
+                + "\n      protected Routes discoverRoutes() {"
+                + "\n          Routes routes = new Routes();"
+                + "\n          routes.getRoutes().add(MyView.class);"
+                + "\n          // routes.getLayouts().add(MyLayout.class);"
+                + "\n          // routes.getErrorRoutes().add(MyErrorView.class);"
+                + "\n          return routes;"
+                + "\n      }"
+                + "\n\nSee the original ServiceConfigurationError chained as "
+                + "the cause for the SPI/provider that failed to load.";
     }
 
     /**
