@@ -202,6 +202,52 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
     }
 
     @Test
+    void setLocation_multipleTimes_pushesEveryPositionToTracker() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
+        TestComponent owner = new TestComponent();
+        UI.getCurrent().add(owner);
+        GeolocationTracker tracker = UI.getCurrent().getGeolocation()
+                .track(owner);
+
+        simulator.setLocation(60.0, 25.0, 10.0);
+        assertEquals(60.0, ((GeolocationPosition) tracker.valueSignal().peek())
+                .coords().latitude());
+
+        simulator.setLocation(61.0, 25.0, 10.0);
+        assertEquals(61.0, ((GeolocationPosition) tracker.valueSignal().peek())
+                .coords().latitude());
+
+        simulator.setLocation(62.0, 25.0, 10.0);
+        assertEquals(62.0, ((GeolocationPosition) tracker.valueSignal().peek())
+                .coords().latitude());
+    }
+
+    @Test
+    void setLocation_withMultipleTrackers_pushesPositionToAll() {
+        GeolocationSimulator simulator = GeolocationSimulator.current();
+        simulator.grantPermission();
+        TestComponent ownerA = new TestComponent();
+        TestComponent ownerB = new TestComponent();
+        UI.getCurrent().add(ownerA, ownerB);
+
+        GeolocationTracker trackerA = UI.getCurrent().getGeolocation()
+                .track(ownerA);
+        GeolocationTracker trackerB = UI.getCurrent().getGeolocation()
+                .track(ownerB);
+
+        simulator.setLocation(60.0, 25.0, 10.0);
+
+        GeolocationPosition posA = (GeolocationPosition) trackerA.valueSignal()
+                .peek();
+        GeolocationPosition posB = (GeolocationPosition) trackerB.valueSignal()
+                .peek();
+        assertEquals(60.0, posA.coords().latitude());
+        assertEquals(60.0, posB.coords().latitude());
+        assertEquals(2, simulator.activeTrackers().size());
+    }
+
+    @Test
     void setLocation_afterTrackerStop_doesNotUpdateStoppedTracker() {
         GeolocationSimulator simulator = GeolocationSimulator.current();
         simulator.grantPermission();
