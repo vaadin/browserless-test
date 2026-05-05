@@ -90,8 +90,8 @@ public final class GeolocationSimulator implements Serializable {
      * automatically whenever browserless-test-shared is on the classpath:
      * Flow's {@link com.vaadin.flow.di.Lookup Lookup} resolves the
      * {@link BrowserlessGeolocationClientFactory} registered in
-     * {@code META-INF/services} and the factory publishes the simulator at
-     * UI construction time. This call is a pure lookup with no side effects.
+     * {@code META-INF/services} and the factory publishes the simulator at UI
+     * construction time. This call is a pure lookup with no side effects.
      *
      * @param ui
      *            the UI to query
