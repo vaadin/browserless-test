@@ -13,7 +13,6 @@ import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.ComponentEventListener
 import com.vaadin.flow.component.ModalityMode
 import com.vaadin.flow.component.UI
-import com.vaadin.flow.component.geolocation.GeolocationSimulator
 import com.vaadin.flow.shared.Registration
 import java.util.concurrent.atomic.AtomicReference
 import com.vaadin.flow.router.NavigationTrigger
@@ -27,11 +26,6 @@ import com.vaadin.browserless.internal.simulateClosedEvent
  * The class is open, in order to be extensible in user's library
  */
 open class MockedUI : UI() {
-
-    init {
-        GeolocationSimulator.forUI(this)
-    }
-
 
     override fun setChildComponentModal(childComponent: Component?, mode: ModalityMode) {
         super.setChildComponentModal(childComponent, mode)
