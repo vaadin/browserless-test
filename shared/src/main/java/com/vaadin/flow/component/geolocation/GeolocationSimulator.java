@@ -87,20 +87,20 @@ public final class GeolocationSimulator implements Serializable {
 
     /**
      * Returns the simulator bound to the given UI. The simulator is installed
-     * automatically whenever browserless-test-shared is on the classpath:
-     * Flow's {@link com.vaadin.flow.di.Lookup Lookup} resolves the
-     * {@link BrowserlessGeolocationClientFactory} registered in
-     * {@code META-INF/services} and the factory publishes the simulator at UI
-     * construction time. This call is a pure lookup with no side effects.
+     * automatically whenever browserless mocking is active: the
+     * {@link BrowserlessGeolocationClientFactory} is wired into Flow's
+     * {@link com.vaadin.flow.di.Lookup Lookup} by
+     * {@code MockVaadinHelper.BrowserlessLookupInitializer} and the factory
+     * publishes the simulator at UI construction time. This call is a pure
+     * lookup with no side effects.
      *
      * @param ui
      *            the UI to query
      * @return the simulator bound to the UI's in-memory client
      * @throws IllegalStateException
-     *             if the simulator is not registered (the
-     *             {@link BrowserlessGeolocationClientFactory} service file is
-     *             missing from the classpath, or the UI was constructed before
-     *             Flow's {@link com.vaadin.flow.di.Lookup Lookup} was set up)
+     *             if the simulator is not registered (browserless mocking is
+     *             not active, or the UI was constructed before Flow's
+     *             {@link com.vaadin.flow.di.Lookup Lookup} was set up)
      */
     public static GeolocationSimulator forUI(UI ui) {
         GeolocationSimulator existing = ComponentUtil.getData(ui,
