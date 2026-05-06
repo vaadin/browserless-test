@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.geolocation.GeolocationFacadeIntegrationTest;
 import com.vaadin.flow.di.InstantiatorFactory;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.router.RouteBaseData;
@@ -78,6 +79,7 @@ class BrowserlessBaseClassTest {
             allViews.add(SingleParam.class);
             allViews.add(TemplatedParam.class);
             allViews.add(AutoLayoutView.class);
+            allViews.add(GeolocationFacadeIntegrationTest.SampleView.class);
             Assertions.assertEquals(allViews.size(), routes.size());
             Assertions.assertTrue(routes.containsAll(allViews));
         }
