@@ -25,6 +25,9 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.router.Route;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -129,4 +132,29 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
                 tracker.valueSignal().peek());
     }
 
+    @Test
+    void concreteView_respondsToPreSetLocation() {
+        GeolocationSimulator geo = GeolocationSimulator.current();
+        geo.grantPermission();
+        geo.setLocation(60.1699, 24.9384, 10.0);
+
+        SampleView view = navigate(SampleView.class);
+
+        assertEquals("60.16990", view.lastLatitude.getText());
+    }
+
+    @Route("sample-geo")
+    public static class SampleView extends Div {
+        final Span lastLatitude = new Span();
+
+        public SampleView() {
+            add(lastLatitude);
+            UI.getCurrent().getGeolocation().get(outcome -> {
+                if (outcome instanceof GeolocationPosition pos) {
+                    lastLatitude.setText(
+                            String.format("%.5f", pos.coords().latitude()));
+                }
+            });
+        }
+    }
 }
