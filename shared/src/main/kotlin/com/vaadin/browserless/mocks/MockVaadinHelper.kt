@@ -11,6 +11,8 @@ package com.vaadin.browserless.mocks
 
 import com.vaadin.browserless.internal.findClass
 import com.vaadin.browserless.internal.findClassOrThrow
+import com.vaadin.flow.component.geolocation.BrowserlessGeolocationClientFactory
+import com.vaadin.flow.component.geolocation.GeolocationClientFactory
 import com.vaadin.flow.di.Lookup
 import com.vaadin.flow.di.LookupInitializer
 import com.vaadin.flow.server.VaadinContext
@@ -129,13 +131,12 @@ object MockVaadinHelper {
         // Additional services wired through lookup that the testing environment can hook in,
         // supplementing ones defined in LookupServletContainerInitializer HandlesTypes annotations.
         //
-        // Example:
-        // mapOf(GeolocationClientFactory::class to BrowserlessGeolocationClientFactory::class)
-        //
         // Use Object class as a value placeholder for a service without default implementation,
         // but that can be hooked in by the test class in the services' set
         // mapOf(Service::class to Object::class)
-        protected open val additionalServices: Map<KClass<*>, KClass<*>> = emptyMap()
+        protected open val additionalServices: Map<KClass<*>, KClass<*>> = mapOf(
+                GeolocationClientFactory::class to BrowserlessGeolocationClientFactory::class
+        )
 
         fun updateServices(services: MutableSet<Class<*>>) {
             additionalServices

@@ -20,10 +20,10 @@ import com.vaadin.flow.component.UI;
 
 /**
  * {@link GeolocationClientFactory} that produces an in-memory test client and
- * publishes a {@link GeolocationSimulator} on the UI for tests to drive.
- * Registered through {@code META-INF/services}; Flow's
- * {@link com.vaadin.flow.di.Lookup Lookup} resolves it automatically when
- * browserless-test-shared is on the classpath.
+ * publishes a {@link GeolocationSimulator} on the UI for tests to drive. Wired
+ * into Flow's {@link com.vaadin.flow.di.Lookup Lookup} by
+ * {@code MockVaadinHelper.BrowserlessLookupInitializer}, scoping registration
+ * to the browserless mocking lifecycle instead of leaking through SPI.
  */
 public final class BrowserlessGeolocationClientFactory
         implements GeolocationClientFactory {
