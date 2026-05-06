@@ -153,6 +153,23 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
     }
 
     private void tryResolve(PendingGet entry) {
+        attemptResolve(entry);
+        if (entry.resolved) {
+            pending.remove(entry);
+        }
+    }
+
+    private void flushPending() {
+        for (Iterator<PendingGet> it = pending.iterator(); it.hasNext();) {
+            PendingGet entry = it.next();
+            attemptResolve(entry);
+            if (entry.resolved) {
+                it.remove();
+            }
+        }
+    }
+
+    private void attemptResolve(PendingGet entry) {
         switch (availability) {
         case DENIED -> entry.respondWith(new GeolocationError(
                 GeolocationErrorCode.PERMISSION_DENIED.code(),
@@ -170,35 +187,6 @@ final class BrowserlessGeolocationClient implements GeolocationClient {
         case PROMPT, UNKNOWN -> {
             // wait for permission to be decided
         }
-        }
-        if (entry.resolved) {
-            pending.remove(entry);
-        }
-    }
-
-    private void flushPending() {
-        for (Iterator<PendingGet> it = pending.iterator(); it.hasNext();) {
-            PendingGet entry = it.next();
-            switch (availability) {
-            case DENIED -> entry.respondWith(new GeolocationError(
-                    GeolocationErrorCode.PERMISSION_DENIED.code(),
-                    "Permission denied"));
-            case UNSUPPORTED -> entry.respondWith(new GeolocationError(
-                    GeolocationErrorCode.POSITION_UNAVAILABLE.code(),
-                    "Geolocation is not supported"));
-            case GRANTED -> {
-                if (cachedFix != null) {
-                    entry.respondWith(cachedFix);
-                } else if (cachedError != null) {
-                    entry.respondWith(cachedError);
-                }
-            }
-            case PROMPT, UNKNOWN -> {
-            }
-            }
-            if (entry.resolved) {
-                it.remove();
-            }
         }
     }
 
