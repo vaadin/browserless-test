@@ -47,7 +47,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
     void defaultAvailability_isPrompt() {
         GeolocationSimulator.current();
         assertEquals(GeolocationAvailability.PROMPT,
-                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+                Geolocation.availabilityHintSignal().peek());
     }
 
     @Test
@@ -55,7 +55,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         GeolocationSimulator simulator = GeolocationSimulator.current();
         simulator.grantPermission();
         assertEquals(GeolocationAvailability.GRANTED,
-                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+                Geolocation.availabilityHintSignal().peek());
     }
 
     @Test
@@ -63,7 +63,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         GeolocationSimulator simulator = GeolocationSimulator.current();
         simulator.denyPermission();
         assertEquals(GeolocationAvailability.DENIED,
-                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+                Geolocation.availabilityHintSignal().peek());
     }
 
     @Test
@@ -71,7 +71,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         GeolocationSimulator simulator = GeolocationSimulator.current();
         simulator.simulateUnsupported();
         assertEquals(GeolocationAvailability.UNSUPPORTED,
-                UI.getCurrent().getGeolocation().availabilitySignal().peek());
+                Geolocation.availabilityHintSignal().peek());
     }
 
     @Test
@@ -80,8 +80,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
         assertTrue(received.isEmpty(),
                 "get() should stay pending while permission is PROMPT");
 
@@ -104,8 +103,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
         assertTrue(received.isEmpty(),
                 "get() should stay pending until permission is granted");
 
@@ -123,8 +121,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
 
         assertEquals(1, received.size());
         assertTrue(errors.isEmpty(), "No errors should be reported");
@@ -136,8 +133,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
 
         simulator.denyPermission();
 
@@ -155,8 +151,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
 
         simulator.setUnavailable(GeolocationErrorCode.POSITION_UNAVAILABLE,
                 "no fix");
@@ -165,7 +160,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         GeolocationError err = errors.getFirst();
         assertEquals(GeolocationErrorCode.POSITION_UNAVAILABLE.code(),
                 err.code());
-        assertEquals("no fix", err.message());
+        assertEquals("no fix", err.debugInfo());
 
         assertTrue(received.isEmpty(), "No positions should be reported");
     }
@@ -177,12 +172,11 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
 
         simulator.setLocation(60.0, 25.0, 10.0);
 
-        GeolocationPosition pos = (GeolocationPosition) watcher.valueSignal()
+        GeolocationPosition pos = (GeolocationPosition) watcher.positionSignal()
                 .peek();
         assertEquals(60.0, pos.coords().latitude());
     }
@@ -194,12 +188,12 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
 
         simulator.setUnavailable(GeolocationErrorCode.TIMEOUT, "took too long");
 
-        GeolocationError err = (GeolocationError) watcher.valueSignal().peek();
+        GeolocationError err = (GeolocationError) watcher.positionSignal()
+                .peek();
         assertEquals(GeolocationErrorCode.TIMEOUT.code(), err.code());
     }
 
@@ -210,12 +204,12 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
 
         simulator.denyPermission();
 
-        GeolocationError err = (GeolocationError) watcher.valueSignal().peek();
+        GeolocationError err = (GeolocationError) watcher.positionSignal()
+                .peek();
         assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(), err.code());
         assertEquals(0, simulator.activeTrackers().size());
     }
@@ -226,20 +220,22 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         simulator.grantPermission();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
 
         simulator.setLocation(60.0, 25.0, 10.0);
-        assertEquals(60.0, ((GeolocationPosition) watcher.valueSignal().peek())
-                .coords().latitude());
+        assertEquals(60.0,
+                ((GeolocationPosition) watcher.positionSignal().peek()).coords()
+                        .latitude());
 
         simulator.setLocation(61.0, 25.0, 10.0);
-        assertEquals(61.0, ((GeolocationPosition) watcher.valueSignal().peek())
-                .coords().latitude());
+        assertEquals(61.0,
+                ((GeolocationPosition) watcher.positionSignal().peek()).coords()
+                        .latitude());
 
         simulator.setLocation(62.0, 25.0, 10.0);
-        assertEquals(62.0, ((GeolocationPosition) watcher.valueSignal().peek())
-                .coords().latitude());
+        assertEquals(62.0,
+                ((GeolocationPosition) watcher.positionSignal().peek()).coords()
+                        .latitude());
     }
 
     @Test
@@ -250,17 +246,15 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         TestComponent ownerB = new TestComponent();
         UI.getCurrent().add(ownerA, ownerB);
 
-        GeolocationWatcher watcherA = UI.getCurrent().getGeolocation()
-                .watchPosition(ownerA);
-        GeolocationWatcher watcherB = UI.getCurrent().getGeolocation()
-                .watchPosition(ownerB);
+        GeolocationWatcher watcherA = Geolocation.watchPosition(ownerA);
+        GeolocationWatcher watcherB = Geolocation.watchPosition(ownerB);
 
         simulator.setLocation(60.0, 25.0, 10.0);
 
-        GeolocationPosition posA = (GeolocationPosition) watcherA.valueSignal()
-                .peek();
-        GeolocationPosition posB = (GeolocationPosition) watcherB.valueSignal()
-                .peek();
+        GeolocationPosition posA = (GeolocationPosition) watcherA
+                .positionSignal().peek();
+        GeolocationPosition posB = (GeolocationPosition) watcherB
+                .positionSignal().peek();
         assertEquals(60.0, posA.coords().latitude());
         assertEquals(60.0, posB.coords().latitude());
         assertEquals(2, simulator.activeTrackers().size());
@@ -272,14 +266,13 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         simulator.grantPermission();
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
-        Object valueBefore = watcher.valueSignal().peek();
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
+        Object valueBefore = watcher.positionSignal().peek();
         watcher.stop();
 
         simulator.setLocation(60.0, 25.0, 10.0);
 
-        assertSame(valueBefore, watcher.valueSignal().peek(),
+        assertSame(valueBefore, watcher.positionSignal().peek(),
                 "Stopped tracker signal must not be updated");
         assertEquals(0, simulator.activeTrackers().size());
     }
@@ -289,7 +282,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         GeolocationSimulator simulator = GeolocationSimulator.current();
         GeolocationOptions opts = GeolocationOptions.builder()
                 .highAccuracy(true).timeout(Duration.ofSeconds(7)).build();
-        UI.getCurrent().getGeolocation().getPosition(r -> {
+        Geolocation.getPosition(r -> {
         }, e -> {
         }, opts);
 
@@ -306,8 +299,7 @@ public class GeolocationSimulatorTest extends BrowserlessTest {
         TestComponent owner = new TestComponent();
         UI.getCurrent().add(owner);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(owner);
+        GeolocationWatcher watcher = Geolocation.watchPosition(owner);
 
         List<GeolocationTrackerSession> active = simulator.activeTrackers();
         assertEquals(1, active.size());

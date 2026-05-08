@@ -106,6 +106,12 @@ public final class GeolocationSimulator implements Serializable {
         GeolocationSimulator existing = ComponentUtil.getData(ui,
                 GeolocationSimulator.class);
         if (existing == null) {
+            // trigger geo location client initialization that should in turn
+            // also set up the simulator
+            Geolocation.availabilityHintSignal(ui);
+            existing = ComponentUtil.getData(ui, GeolocationSimulator.class);
+        }
+        if (existing == null) {
             throw new IllegalStateException(
                     "GeolocationSimulator is not registered for this UI. "
                             + "Ensure browserless-test-shared is on the classpath "
