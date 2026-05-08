@@ -48,8 +48,7 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
 
         assertEquals(1, received.size());
         assertEquals(60.1699, received.getFirst().coords().latitude());
@@ -64,8 +63,7 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
 
         List<GeolocationPosition> received = new ArrayList<>();
         List<GeolocationError> errors = new ArrayList<>();
-        UI.getCurrent().getGeolocation().getPosition(received::add,
-                errors::add);
+        Geolocation.getPosition(received::add, errors::add);
 
         assertEquals(1, errors.size());
         assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(),
@@ -81,8 +79,7 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(component);
+        GeolocationWatcher watcher = Geolocation.watchPosition(component);
 
         GeolocationCoordinates coords = new GeolocationCoordinates(60.1699,
                 24.9384, 10.0, 25.5, 5.0, 90.0, 1.5);
@@ -91,8 +88,8 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
         geo.setLocation(position);
 
         assertInstanceOf(GeolocationPosition.class,
-                watcher.valueSignal().peek());
-        GeolocationPosition pos = (GeolocationPosition) watcher.valueSignal()
+                watcher.positionSignal().peek());
+        GeolocationPosition pos = (GeolocationPosition) watcher.positionSignal()
                 .peek();
         assertEquals(60.1699, pos.coords().latitude());
         assertEquals(25.5, pos.coords().altitude());
@@ -106,18 +103,18 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(component);
+        GeolocationWatcher watcher = Geolocation.watchPosition(component);
 
         geo.setUnavailable(GeolocationErrorCode.PERMISSION_DENIED,
                 "User denied geolocation");
 
-        assertInstanceOf(GeolocationError.class, watcher.valueSignal().peek());
-        GeolocationError error = (GeolocationError) watcher.valueSignal()
+        assertInstanceOf(GeolocationError.class,
+                watcher.positionSignal().peek());
+        GeolocationError error = (GeolocationError) watcher.positionSignal()
                 .peek();
         assertEquals(GeolocationErrorCode.PERMISSION_DENIED.code(),
                 error.code());
-        assertEquals("User denied geolocation", error.message());
+        assertEquals("User denied geolocation", error.debugInfo());
     }
 
     @Test
@@ -127,15 +124,15 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
         TestComponent component = new TestComponent();
         UI.getCurrent().add(component);
 
-        GeolocationWatcher watcher = UI.getCurrent().getGeolocation()
-                .watchPosition(component);
+        GeolocationWatcher watcher = Geolocation.watchPosition(component);
 
         geo.setUnavailable(GeolocationErrorCode.TIMEOUT, "Timeout");
-        assertInstanceOf(GeolocationError.class, watcher.valueSignal().peek());
+        assertInstanceOf(GeolocationError.class,
+                watcher.positionSignal().peek());
 
         geo.setLocation(60.1699, 24.9384, 10.0);
         assertInstanceOf(GeolocationPosition.class,
-                watcher.valueSignal().peek());
+                watcher.positionSignal().peek());
     }
 
     @Test
@@ -155,7 +152,7 @@ public class GeolocationFacadeIntegrationTest extends BrowserlessTest {
 
         public SampleView() {
             add(lastLatitude);
-            UI.getCurrent().getGeolocation().getPosition(pos -> {
+            Geolocation.getPosition(pos -> {
                 lastLatitude.setText(
                         String.format("%.5f", pos.coords().latitude()));
             }, err -> {
