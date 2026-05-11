@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
+import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.flow.component.html.Div;
 
 /**
@@ -79,5 +80,32 @@ class BrowserlessUIContextClosedTest {
         window.close();
         // Second close should not throw
         Assertions.assertDoesNotThrow(window::close);
+    }
+
+    @Test
+    void newWindow_uiFactoryThrows_doesNotLeakActiveContext() {
+        UIFactory throwingFactory = () -> {
+            throw new IllegalStateException("simulated UI factory failure");
+        };
+        BrowserlessApplicationContext<Void> failingApp = BrowserlessApplicationContext
+                .<Void> builder(new Routes()
+                        .autoDiscoverViews(SimpleView.class.getPackageName()))
+                .withUIFactory(throwingFactory).build();
+        BrowserlessUIContext leakedActive;
+        try {
+            var failingUser = failingApp.newUser();
+            Assertions.assertThrows(RuntimeException.class,
+                    failingUser::newWindow,
+                    "newWindow() should propagate the UI factory failure");
+            leakedActive = BrowserlessUIContext.getActive();
+        } finally {
+            // Defensively clear so a failing assertion does not poison other
+            // tests sharing this thread.
+            BrowserlessUIContext.clearActiveContext();
+            failingApp.close();
+        }
+        Assertions.assertNull(leakedActive,
+                "A failed UI construction must not leave a half-built"
+                        + " BrowserlessUIContext as the active context");
     }
 }

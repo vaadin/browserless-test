@@ -63,12 +63,58 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     BrowserlessUIContext(BrowserlessUserContext user) {
         this.user = user;
 
-        // Activate this context (sets thread-locals + restores security)
-        activate();
+        BrowserlessUIContext previous = activeContext.get();
 
-        // Create the UI
-        MockVaadin.createUI(user.getApp().getUIFactory(), user.getSession());
-        this.ui = UI.getCurrent();
+        // Save outgoing user's security context on user switch — symmetric
+        // with activate().
+        if (previous != null && previous.user != this.user) {
+            previous.user.saveSecurityContext();
+        }
+
+        // Install Vaadin thread-locals required by MockVaadin.createUI (it
+        // reads VaadinRequest.getCurrent()). UI is intentionally not touched
+        // here — createUI sets UI.setCurrent itself after instantiating the
+        // UI, so leaving it alone avoids clobbering a prior UI if createUI
+        // throws before reaching its own UI.setCurrent.
+        VaadinService.setCurrent(user.getApp().getService());
+        VaadinSession.setCurrent(user.getSession());
+        CurrentInstance.set(VaadinRequest.class, user.getRequest());
+        CurrentInstance.set(VaadinResponse.class, user.getResponse());
+
+        // Restore security context on user switch (or first activation) so
+        // UIInit listeners observe this user's identity.
+        boolean switchingUser = previous == null || previous.user != this.user;
+        if (switchingUser) {
+            user.restoreSecurityContext();
+        }
+
+        try {
+            MockVaadin.createUI(user.getApp().getUIFactory(),
+                    user.getSession());
+            this.ui = UI.getCurrent();
+        } catch (RuntimeException ex) {
+            // Roll back thread-local state: do not leak this half-built
+            // context as the active context.
+            if (previous != null && !previous.closed) {
+                activeContext.remove();
+                previous.activate();
+            } else {
+                VaadinService.setCurrent(null);
+                VaadinSession.setCurrent(null);
+                UI.setCurrent(null);
+                CurrentInstance.set(VaadinRequest.class, null);
+                CurrentInstance.set(VaadinResponse.class, null);
+                SecurityContextHandler<?> handler = user.getApp()
+                        .getSecurityContextHandler();
+                if (handler != null) {
+                    handler.clearContext();
+                }
+            }
+            throw ex;
+        }
+
+        // Publish as active only after the UI was fully constructed.
+        activeContext.set(this);
     }
 
     /**
