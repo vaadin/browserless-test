@@ -15,11 +15,20 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+import com.example.SingleParam;
 import com.example.multiuser.SimpleView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
@@ -36,7 +45,8 @@ class BrowserlessUIContextClosedTest {
     @BeforeEach
     void setUp() {
         Routes routes = new Routes()
-                .autoDiscoverViews(SimpleView.class.getPackageName());
+                .autoDiscoverViews(SimpleView.class.getPackageName())
+                .autoDiscoverViews(SingleParam.class.getPackageName());
         app = BrowserlessApplicationContext.create(routes);
     }
 
@@ -45,33 +55,49 @@ class BrowserlessUIContextClosedTest {
         app.close();
     }
 
-    @Test
-    void activate_afterClose_throws() {
-        var window = app.newUser().newWindow();
-        window.close();
-
-        Assertions.assertThrows(IllegalStateException.class, window::activate,
-                "activate() on a closed context should throw");
-    }
-
-    @Test
-    void navigate_afterClose_throws() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("dslMethodsThatRequireOpenContext")
+    void dslMethod_afterClose_throws(String name,
+            Consumer<BrowserlessUIContext> invocation) {
         var window = app.newUser().newWindow();
         window.close();
 
         Assertions.assertThrows(IllegalStateException.class,
-                () -> window.navigate(SimpleView.class),
-                "navigate() on a closed context should throw");
+                () -> invocation.accept(window),
+                name + " on a closed context should throw");
     }
 
-    @Test
-    void query_afterClose_throws() {
-        var window = app.newUser().newWindow();
-        window.close();
+    static Stream<Arguments> dslMethodsThatRequireOpenContext() {
+        return Stream.of(row("activate()", BrowserlessUIContext::activate),
+                row("navigate(Class)", w -> w.navigate(SimpleView.class)),
+                row("navigate(Class, parameter)",
+                        w -> w.navigate(SingleParam.class, "x")),
+                row("navigate(Class, parameters)",
+                        w -> w.navigate(SimpleView.class, Map.of())),
+                row("navigate(String, Class)",
+                        w -> w.navigate("simple", SimpleView.class)),
+                row("$(Class)", w -> w.$(Div.class)),
+                row("$(Class, Component)", w -> w.$(Div.class, new Div())),
+                row("$view(Class)", w -> w.$view(SimpleView.class)),
+                row("get(Class)", w -> w.get(Div.class)),
+                row("get(Class, Component)", w -> w.get(Div.class, new Div())),
+                row("getView(Class)", w -> w.getView(SimpleView.class)),
+                // SimpleView (VerticalLayout) has no TesterWrappers overload,
+                // so it routes to the generic test(Y) which calls activate().
+                row("test(Component)", w -> w.test(new SimpleView())),
+                row("getCurrentView()", BrowserlessUIContext::getCurrentView),
+                row("roundTrip()", BrowserlessUIContext::roundTrip),
+                row("getExternalNavigationURL()",
+                        BrowserlessUIContext::getExternalNavigationURL),
+                row("getExternalNavigationURL(String)",
+                        w -> w.getExternalNavigationURL("popup")),
+                row("getOpenedWindows()",
+                        BrowserlessUIContext::getOpenedWindows));
+    }
 
-        Assertions.assertThrows(IllegalStateException.class,
-                () -> window.$(Div.class),
-                "$() on a closed context should throw");
+    private static Arguments row(String name,
+            Consumer<BrowserlessUIContext> invocation) {
+        return Arguments.of(Named.of(name, name), invocation);
     }
 
     @Test
