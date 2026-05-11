@@ -66,16 +66,19 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     private final VaadinServlet servlet;
     private final UIFactory uiFactory;
     private final SecurityContextHandler<C> securityContextHandler;
+    private final List<Runnable> closeHooks;
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private boolean closed;
 
     private BrowserlessApplicationContext(VaadinServletService service,
             VaadinServlet servlet, UIFactory uiFactory,
-            SecurityContextHandler<C> securityContextHandler) {
+            SecurityContextHandler<C> securityContextHandler,
+            List<Runnable> closeHooks) {
         this.service = service;
         this.servlet = servlet;
         this.uiFactory = uiFactory;
         this.securityContextHandler = securityContextHandler;
+        this.closeHooks = closeHooks;
     }
 
     /**
@@ -209,6 +212,20 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         users.clear();
         MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);
+        List<RuntimeException> hookFailures = new ArrayList<>();
+        for (Runnable hook : closeHooks) {
+            try {
+                hook.run();
+            } catch (RuntimeException e) {
+                hookFailures.add(e);
+            }
+        }
+        if (!hookFailures.isEmpty()) {
+            RuntimeException aggregate = new RuntimeException(
+                    "One or more close hooks failed");
+            hookFailures.forEach(aggregate::addSuppressed);
+            throw aggregate;
+        }
     }
 
     VaadinServletService getService() {
@@ -247,6 +264,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
         private Set<Class<?>> lookupServices = Collections.emptySet();
+        private final List<Runnable> closeHooks = new ArrayList<>();
 
         Builder(Routes routes) {
             this.routes = Objects.requireNonNull(routes);
@@ -334,6 +352,31 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         }
 
         /**
+         * Registers a hook to be invoked when the built application context is
+         * closed.
+         * <p>
+         * Hooks run in registration order, after users and the Vaadin service
+         * have been torn down, exactly once (subsequent {@code close()} calls
+         * are no-ops). They are intended for releasing framework-specific state
+         * attached during context creation — for example, Spring's
+         * lookup-initializer ThreadLocal. A throwing hook does not prevent the
+         * remaining hooks from running; any thrown {@link RuntimeException}s
+         * are collected and surfaced from {@code close()} as a single
+         * {@link RuntimeException} with the originals attached as suppressed
+         * exceptions.
+         *
+         * @param hook
+         *            the hook to register; must not be {@code null}
+         * @return this builder
+         * @throws NullPointerException
+         *             if {@code hook} is {@code null}
+         */
+        public Builder<C> withCloseHook(Runnable hook) {
+            this.closeHooks.add(Objects.requireNonNull(hook));
+            return this;
+        }
+
+        /**
          * Builds the application context.
          *
          * @return a new application context
@@ -345,7 +388,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
             VaadinServletService service = MockVaadin.setupServlet(servlet,
                     lookupServices);
             return new BrowserlessApplicationContext<>(service, servlet,
-                    uiFactory, securityContextHandler);
+                    uiFactory, securityContextHandler, List.copyOf(closeHooks));
         }
     }
 }

@@ -67,7 +67,7 @@ public class BrowserlessTestSpringLookupInitializer
 
     @Override
     public void afterTestMethod(TestContext testContext) throws Exception {
-        BrowserlessTestSpringLookupInitializer.applicationContext.remove();
+        clearApplicationContext();
     }
 
     private void setApplicationContext(TestContext testContext) {
@@ -89,6 +89,28 @@ public class BrowserlessTestSpringLookupInitializer
     public static void setApplicationContext(ApplicationContext appCtx) {
         applicationContext.set(appCtx);
         registerSpringSecurityRequestCustomizerIfNeeded(appCtx);
+    }
+
+    /**
+     * Clears the application context for the current thread.
+     * <p>
+     * Companion to {@link #setApplicationContext(ApplicationContext)} used by
+     * {@code SpringBrowserlessApplicationContext} to release the ThreadLocal
+     * when an application context is closed outside the
+     * {@link TestExecutionListener} lifecycle.
+     */
+    public static void clearApplicationContext() {
+        applicationContext.remove();
+    }
+
+    /**
+     * Returns the application context currently registered for this thread, or
+     * {@code null} if none is set.
+     *
+     * @return the registered application context, or {@code null}
+     */
+    public static ApplicationContext getApplicationContext() {
+        return applicationContext.get();
     }
 
     private static void registerSpringSecurityRequestCustomizerIfNeeded(
