@@ -24,7 +24,6 @@ import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinRequest;
@@ -71,22 +70,14 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             previous.user.saveSecurityContext();
         }
 
-        // Install Vaadin thread-locals required by MockVaadin.createUI (it
-        // reads VaadinRequest.getCurrent()). UI is intentionally not touched
-        // here — createUI sets UI.setCurrent itself after instantiating the
-        // UI, so leaving it alone avoids clobbering a prior UI if createUI
-        // throws before reaching its own UI.setCurrent.
-        VaadinService.setCurrent(user.getApp().getService());
-        VaadinSession.setCurrent(user.getSession());
-        CurrentInstance.set(VaadinRequest.class, user.getRequest());
-        CurrentInstance.set(VaadinResponse.class, user.getResponse());
-
-        // Restore security context on user switch (or first activation) so
-        // UIInit listeners observe this user's identity.
-        boolean switchingUser = previous == null || previous.user != this.user;
-        if (switchingUser) {
-            user.restoreSecurityContext();
-        }
+        // Install this user's Vaadin thread-locals (service/session/request/
+        // response/security) so MockVaadin.createUI observes this user's
+        // identity. UI is intentionally not touched here — createUI sets
+        // UI.setCurrent itself after instantiating the UI, so leaving it
+        // alone avoids clobbering a prior UI if createUI throws before
+        // reaching its own UI.setCurrent. On same-user re-entry the security
+        // restore is a no-op (snapshot matches live thread state).
+        user.applySessionThreadLocals();
 
         try {
             MockVaadin.createUI(user.getApp().getUIFactory(),
@@ -96,19 +87,9 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             // Roll back thread-local state: do not leak this half-built
             // context as the active context.
             if (previous != null && !previous.closed) {
-                activeContext.remove();
-                previous.activate();
+                reactivateSurviving(previous);
             } else {
-                VaadinService.setCurrent(null);
-                VaadinSession.setCurrent(null);
-                UI.setCurrent(null);
-                CurrentInstance.set(VaadinRequest.class, null);
-                CurrentInstance.set(VaadinResponse.class, null);
-                SecurityContextHandler<?> handler = user.getApp()
-                        .getSecurityContextHandler();
-                if (handler != null) {
-                    handler.clearContext();
-                }
+                user.clearThreadLocals();
             }
             throw ex;
         }
@@ -144,18 +125,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             previous.user.saveSecurityContext();
         }
 
-        // Set Vaadin thread-locals
-        VaadinService.setCurrent(user.getApp().getService());
-        VaadinSession.setCurrent(user.getSession());
-        UI.setCurrent(ui);
-        CurrentInstance.set(VaadinRequest.class, user.getRequest());
-        CurrentInstance.set(VaadinResponse.class, user.getResponse());
-
-        // Restore security context on user switch or first activation
-        boolean switchingUser = previous == null || previous.user != this.user;
-        if (switchingUser) {
-            user.restoreSecurityContext();
-        }
+        // Install this user's Vaadin thread-locals and UI, restoring the
+        // user's security snapshot. On same-user re-entry the security
+        // restore is a no-op (snapshot matches live thread state).
+        user.applyUIThreadLocals(ui);
 
         activeContext.set(this);
     }
@@ -446,23 +419,14 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             // Set thread-locals so detach listeners see this user's identity
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.
-            VaadinService.setCurrent(user.getApp().getService());
-            VaadinSession.setCurrent(user.getSession());
-            UI.setCurrent(ui);
-            CurrentInstance.set(VaadinRequest.class, user.getRequest());
-            CurrentInstance.set(VaadinResponse.class, user.getResponse());
-            user.restoreSecurityContext();
+            user.applyUIThreadLocals(ui);
             MockVaadin.closeCurrentUI(true);
             ui = null;
         }
         // After a non-active close, re-establish thread-local coherence with
-        // activeContext by re-activating the still-active window. Clear
-        // activeContext first so activate() takes the full-restore branch
-        // (previous == null) and re-installs the active user's security
-        // snapshot we saved above.
+        // activeContext by re-activating the still-active window.
         if (!wasActive && stillActive != null && !stillActive.closed) {
-            activeContext.remove();
-            stillActive.activate();
+            reactivateSurviving(stillActive);
         }
     }
 
@@ -494,14 +458,27 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
 
     /**
      * Clears the active-context ThreadLocal without otherwise touching the
-     * thread-local Vaadin state. Used by close paths that re-activate a
-     * surviving window via {@link #activate()} — clearing first ensures
-     * {@code activate()} takes the full-restore branch
-     * ({@code previous == null}) and re-installs the active user's security
-     * snapshot.
+     * thread-local Vaadin state. Reserved for defensive test cleanup; lifecycle
+     * code paths should prefer
+     * {@link #reactivateSurviving(BrowserlessUIContext)} which both clears and
+     * re-installs the surviving window's state.
      */
     static void clearActiveContext() {
         activeContext.remove();
+    }
+
+    /**
+     * Re-establishes thread-local coherence with {@link #activeContext} by
+     * re-activating the given surviving window. Clears {@code activeContext}
+     * first so {@link #activate()} takes the full-restore branch
+     * ({@code previous == null}) and re-installs the active user's security
+     * snapshot. Used by lifecycle paths (constructor rollback, non-active
+     * window close, cross-user session destroy) that temporarily displaced the
+     * active window's thread-local state.
+     */
+    static void reactivateSurviving(BrowserlessUIContext stillActive) {
+        activeContext.remove();
+        stillActive.activate();
     }
 
     boolean isClosed() {

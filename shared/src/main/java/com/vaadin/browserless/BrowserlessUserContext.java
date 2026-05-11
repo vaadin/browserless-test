@@ -90,10 +90,11 @@ public class BrowserlessUserContext implements AutoCloseable {
             this.request = objs.getRequest();
             this.response = objs.getResponse();
 
-            // Install thread-locals temporarily for session init listeners
-            VaadinSession.setCurrent(session);
-            CurrentInstance.set(VaadinRequest.class, request);
-            CurrentInstance.set(VaadinResponse.class, response);
+            // Install thread-locals temporarily for session init listeners.
+            // restoreSecurityContext() is a no-op here (snapshot is still
+            // null), and the explicit clearContext()+setupAuthentication
+            // below replaces it before any listener observes the state.
+            applySessionThreadLocals();
 
             // Set up authentication BEFORE firing session-init listeners so
             // they observe this user's identity, mirroring the Vaadin+Spring
@@ -181,35 +182,23 @@ public class BrowserlessUserContext implements AutoCloseable {
         // session-destroy listeners run under session.access semantics that
         // null them out — keeping the prep symmetric protects against
         // future Vaadin changes.
-        VaadinService.setCurrent(app.getService());
-        VaadinSession.setCurrent(session);
-        CurrentInstance.set(VaadinRequest.class, request);
-        CurrentInstance.set(VaadinResponse.class, response);
-        restoreSecurityContext();
+        applySessionThreadLocals();
 
         // Destroy session: fire destroy listeners and drain the queue,
         // mirroring MockVaadin.closeCurrentSession (which gates the
         // session-recreation hook via a thread-local flag).
         MockVaadin.fireSessionDestroyAndDrain(session);
 
-        VaadinService.setCurrent(null);
-        VaadinSession.setCurrent(null);
-        CurrentInstance.set(VaadinRequest.class, null);
-        CurrentInstance.set(VaadinResponse.class, null);
-        // Drop this user's security snapshot from the thread so it does not
-        // leak into subsequent activations or tests sharing the thread.
-        SecurityContextHandler<?> handler = app.getSecurityContextHandler();
-        if (handler != null) {
-            handler.clearContext();
-        }
+        // Drop this user's thread-local state — including the security
+        // snapshot — so it does not leak into subsequent activations or
+        // tests sharing the thread.
+        clearThreadLocals();
 
         // If a different user's window is still active, re-establish its
         // thread-locals (UI/Session/Request/Response/security) so any
-        // subsequent operation on it observes a coherent state. Clear
-        // activeContext first so activate() takes the full-restore branch.
+        // subsequent operation on it observes a coherent state.
         if (activeIsAnotherUser && !active.isClosed()) {
-            BrowserlessUIContext.clearActiveContext();
-            active.activate();
+            BrowserlessUIContext.reactivateSurviving(active);
         }
     }
 
@@ -232,6 +221,54 @@ public class BrowserlessUserContext implements AutoCloseable {
 
     VaadinResponse getResponse() {
         return response;
+    }
+
+    /**
+     * Applies this user's session-level Vaadin thread-locals
+     * (service/session/request/response/security) on the current thread, and
+     * restores this user's security snapshot. Does not touch
+     * {@link UI#setCurrent}. Used by the {@link BrowserlessUIContext}
+     * constructor (where {@code MockVaadin.createUI} sets {@code UI.setCurrent}
+     * itself, so we intentionally leave any prior UI in place until
+     * {@code createUI} succeeds) and by this class's own constructor +
+     * {@code close()}.
+     */
+    void applySessionThreadLocals() {
+        VaadinService.setCurrent(app.getService());
+        VaadinSession.setCurrent(session);
+        CurrentInstance.set(VaadinRequest.class, request);
+        CurrentInstance.set(VaadinResponse.class, response);
+        restoreSecurityContext();
+    }
+
+    /**
+     * Applies this user's full Vaadin thread-local state on the current thread:
+     * the session-level state from {@link #applySessionThreadLocals()} plus
+     * {@code UI.setCurrent(ui)}. Used by
+     * {@link BrowserlessUIContext#activate()} and
+     * {@link BrowserlessUIContext#close()}.
+     */
+    void applyUIThreadLocals(UI ui) {
+        applySessionThreadLocals();
+        UI.setCurrent(ui);
+    }
+
+    /**
+     * Clears all Vaadin thread-locals and the security context on the current
+     * thread. Vaadin thread-locals are cleared before security so a future
+     * security handler that reads {@code VaadinSession.getCurrent()} during
+     * clear-out sees {@code null}.
+     */
+    void clearThreadLocals() {
+        VaadinService.setCurrent(null);
+        VaadinSession.setCurrent(null);
+        UI.setCurrent(null);
+        CurrentInstance.set(VaadinRequest.class, null);
+        CurrentInstance.set(VaadinResponse.class, null);
+        SecurityContextHandler<?> handler = app.getSecurityContextHandler();
+        if (handler != null) {
+            handler.clearContext();
+        }
     }
 
     /**
