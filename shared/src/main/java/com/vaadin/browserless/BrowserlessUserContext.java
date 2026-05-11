@@ -34,6 +34,11 @@ import com.vaadin.flow.server.VaadinSession;
  * request, and response. Each user context can have multiple windows (UI
  * instances) via {@link #newWindow()}.
  * <p>
+ * Instances of this class are <strong>thread-affine</strong>: they must be
+ * created, used, and closed on the same thread. The active context is held in a
+ * {@link ThreadLocal} and is not visible to other threads. This class is not
+ * safe for concurrent access from multiple threads.
+ * <p>
  * Security context (if a {@link SecurityContextHandler} is configured on the
  * parent {@link BrowserlessApplicationContext}) is initialised when this user
  * is created and refreshed on user-switch (when activating a different user's
@@ -42,10 +47,13 @@ import com.vaadin.flow.server.VaadinSession;
  * {@code SessionInit} listeners fire, so listeners observe this user's identity
  * — matching the Vaadin+Spring flow where the security filter chain runs before
  * the servlet. The user's initial snapshot is captured after init fires, so any
- * security mutation a listener performs persists into the snapshot. Mutations
- * to the security context while one of this user's windows is active persist on
- * the thread and are captured into the snapshot at the next user-switch —
- * same-user window switches don't touch the snapshot.
+ * security mutation a listener performs persists into the snapshot.
+ * <p>
+ * The security snapshot is <strong>per-user, not per-window</strong>: all of a
+ * user's windows share one snapshot. Security-context mutations made while one
+ * window is active persist on the thread and remain visible to other windows of
+ * the same user; the snapshot is re-captured only on user-switch, so same-user
+ * window switches don't touch it.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext

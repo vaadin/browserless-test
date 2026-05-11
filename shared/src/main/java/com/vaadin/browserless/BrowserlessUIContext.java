@@ -39,6 +39,11 @@ import com.vaadin.flow.server.VaadinSession;
  * call {@link #activate()} before executing, which transparently switches the
  * thread-local Vaadin state and security context to this window's user.
  * <p>
+ * Instances of this class are <strong>thread-affine</strong>: they must be
+ * created, used, and closed on the same thread. The active context is held in a
+ * {@link ThreadLocal} and is not visible to other threads. This class is not
+ * safe for concurrent access from multiple threads.
+ * <p>
  * This means you can freely interleave calls on different windows without
  * explicit context switching:
  *
@@ -107,6 +112,10 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      * {@link SecurityContextHandler} is configured and the previous active
      * context belonged to a different user, the outgoing user's security
      * context is automatically saved and this user's context is restored.
+     * <p>
+     * The security context is a per-user snapshot, not per-window: switching
+     * between windows of the same user does not save or restore security state,
+     * so mutations made by one window are observed by sibling windows.
      * <p>
      * This method is called automatically by all DSL methods. You only need to
      * call it explicitly if you are accessing Vaadin APIs directly (e.g.

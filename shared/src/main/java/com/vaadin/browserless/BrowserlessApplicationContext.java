@@ -40,6 +40,12 @@ import com.vaadin.flow.server.VaadinServletService;
  * Vaadin hierarchy: one application contains multiple user sessions, each with
  * multiple UI instances (browser windows).
  * <p>
+ * Instances of this class are <strong>thread-affine</strong>: they must be
+ * created, used, and closed on the same thread. The active context is held in a
+ * {@link ThreadLocal} and is not visible to other threads. This class is not
+ * safe for concurrent access from multiple threads; driving the same context
+ * from parallel test threads is unsupported.
+ * <p>
  * Create instances via {@link #create(Routes)} for plain Java or use the
  * {@link #builder(Routes)} for full customization. Framework-specific modules
  * (Spring, Quarkus) provide their own convenience factory methods.
