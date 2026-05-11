@@ -17,12 +17,16 @@ package com.vaadin.browserless;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.RouteParameters;
@@ -309,6 +313,44 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
+     * Wraps a component in the given {@link ComponentTester}.
+     *
+     * @param tester
+     *            test wrapper to use
+     * @param component
+     *            component to wrap
+     * @param <T>
+     *            the tester type
+     * @param <Y>
+     *            the component type
+     * @return the initialized tester for the component
+     */
+    public <T extends ComponentTester<Y>, Y extends Component> T test(
+            Class<T> tester, Y component) {
+        activate();
+        return BaseBrowserlessTest.internalWrap(tester, component);
+    }
+
+    /**
+     * Simulates a keyboard shortcut performed on the browser.
+     *
+     * @param key
+     *            primary key of the shortcut; must not be a {@link KeyModifier}
+     * @param modifiers
+     *            key modifiers; can be empty
+     */
+    public void fireShortcut(Key key, KeyModifier... modifiers) {
+        activate();
+        if (ui.hasModalComponent()) {
+            ShortcutsKt._fireShortcut(
+                    ui.getInternals().getActiveModalComponent(), key,
+                    modifiers);
+        } else {
+            ShortcutsKt.fireShortcut(key, modifiers);
+        }
+    }
+
+    /**
      * Gets the current view displayed in this window.
      *
      * @return the current view
@@ -324,6 +366,45 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public void roundTrip() {
         activate();
         BaseBrowserlessTest.roundTrip();
+    }
+
+    /**
+     * Processes all pending Signals tasks with a default max wait time of 100
+     * milliseconds. Convenience for tests that need to wait for asynchronous
+     * Signal effects triggered from background threads or non-UI contexts.
+     *
+     * <p>
+     * If this window's {@link VaadinSession} lock is held by the current
+     * thread, it is temporarily released during the wait to allow background
+     * threads to acquire the lock and enqueue tasks.
+     *
+     * @return {@code true} if any pending Signals tasks were processed
+     * @see #runPendingSignalsTasks(long, TimeUnit)
+     */
+    public boolean runPendingSignalsTasks() {
+        return runPendingSignalsTasks(100, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Processes all pending Signals tasks, waiting up to the specified timeout
+     * for the first task to arrive. Once the first task is found, all remaining
+     * tasks in the queue are processed immediately without additional waiting.
+     *
+     * @param maxWaitTime
+     *            the maximum time to wait for the first task to arrive in the
+     *            given time unit. If &lt;= 0, returns immediately if no tasks
+     *            are available.
+     * @param unit
+     *            the time unit of the timeout value
+     * @return {@code true} if any pending Signals tasks were processed
+     */
+    public boolean runPendingSignalsTasks(long maxWaitTime, TimeUnit unit) {
+        activate();
+        TestSignalEnvironment env = user.getApp().getSignalsTestEnvironment();
+        if (env == null) {
+            return false;
+        }
+        return env.runPendingTasks(maxWaitTime, unit);
     }
 
     /**
