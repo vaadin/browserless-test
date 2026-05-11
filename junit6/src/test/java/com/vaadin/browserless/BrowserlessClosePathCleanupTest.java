@@ -100,6 +100,99 @@ class BrowserlessClosePathCleanupTest {
     }
 
     @Test
+    void uiClose_clearsThreadLocalsWhenClosingTheActiveWindow() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var window = app.newUser().newWindow();
+            // Sanity: thread-locals reflect the active window before close
+            Assertions.assertNotNull(UI.getCurrent(),
+                    "Sanity check: UI.getCurrent() should be set");
+            Assertions.assertNotNull(VaadinSession.getCurrent(),
+                    "Sanity check: VaadinSession.getCurrent() should be set");
+            Assertions.assertNotNull(VaadinRequest.getCurrent(),
+                    "Sanity check: VaadinRequest.getCurrent() should be set");
+            Assertions.assertNotNull(VaadinResponse.getCurrent(),
+                    "Sanity check: VaadinResponse.getCurrent() should be set");
+
+            window.close();
+
+            Assertions.assertNull(BrowserlessUIContext.getActive(),
+                    "Closing the active window must clear activeContext");
+            Assertions.assertNull(UI.getCurrent(),
+                    "Closing the active window with no surviving sibling"
+                            + " must clear UI thread-local so user code"
+                            + " reading UI.getCurrent() between close() and"
+                            + " the next activate() does not see stale state");
+            Assertions.assertNull(VaadinSession.getCurrent(),
+                    "Closing the active window with no surviving sibling"
+                            + " must clear VaadinSession thread-local");
+            Assertions.assertNull(VaadinRequest.getCurrent(),
+                    "Closing the active window with no surviving sibling"
+                            + " must clear VaadinRequest thread-local");
+            Assertions.assertNull(VaadinResponse.getCurrent(),
+                    "Closing the active window with no surviving sibling"
+                            + " must clear VaadinResponse thread-local");
+        }
+    }
+
+    @Test
+    void uiClose_clearsSecurityContextWhenClosingTheActiveWindow() {
+        var handler = new CapturingSecurityHandler();
+        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+                .withSecurityContextHandler(handler).build()) {
+            var alice = app.newUser("alice");
+            var aliceWindow = alice.newWindow();
+            // Sanity: alice's snapshot is live on the thread
+            Assertions.assertEquals("alice", handler.live.get(),
+                    "Sanity check: alice's security snapshot is live");
+
+            aliceWindow.close();
+
+            Assertions.assertNull(handler.live.get(),
+                    "Closing the active window with no surviving sibling"
+                            + " must clear the security context so the"
+                            + " closed user's snapshot does not leak onto"
+                            + " the thread");
+        }
+    }
+
+    @Test
+    void uiClose_clearsThreadLocalsWhenNoSurvivingActiveContext() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var user = app.newUser();
+            var window1 = user.newWindow();
+            var window2 = user.newWindow(); // activates window2
+
+            // Close the active window first — activeContext becomes null but
+            // window1 remains open as a non-active window.
+            window2.close();
+            Assertions.assertNull(BrowserlessUIContext.getActive(),
+                    "Sanity: activeContext is null after closing the active"
+                            + " window");
+
+            // Close the remaining (non-active) window. activeContext stays
+            // null and no sibling is reactivated, so thread-locals installed
+            // for window1's detach listeners must be cleared on the way out.
+            window1.close();
+
+            Assertions.assertNull(BrowserlessUIContext.getActive(),
+                    "activeContext must still be null after closing the"
+                            + " last remaining window");
+            Assertions.assertNull(UI.getCurrent(),
+                    "Closing a non-active window with no surviving active"
+                            + " context must clear UI thread-local");
+            Assertions.assertNull(VaadinSession.getCurrent(),
+                    "Closing a non-active window with no surviving active"
+                            + " context must clear VaadinSession thread-local");
+            Assertions.assertNull(VaadinRequest.getCurrent(),
+                    "Closing a non-active window with no surviving active"
+                            + " context must clear VaadinRequest thread-local");
+            Assertions.assertNull(VaadinResponse.getCurrent(),
+                    "Closing a non-active window with no surviving active"
+                            + " context must clear VaadinResponse thread-local");
+        }
+    }
+
+    @Test
     void uiClose_leavesActiveContextAloneWhenClosingANonActiveWindow() {
         try (var app = BrowserlessApplicationContext.create(routes)) {
             var user = app.newUser();

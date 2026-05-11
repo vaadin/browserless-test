@@ -423,10 +423,17 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             MockVaadin.closeCurrentUI(true);
             ui = null;
         }
-        // After a non-active close, re-establish thread-local coherence with
-        // activeContext by re-activating the still-active window.
+        // Re-establish thread-local coherence with activeContext. After a
+        // non-active close with a surviving active sibling, re-activate it.
+        // Otherwise (active close, or no surviving active context) clear the
+        // closing user's thread-locals so user code reading e.g.
+        // SecurityContextHolder / UI.getCurrent() between close() and the
+        // next activate() does not observe stale state from the closed
+        // window.
         if (!wasActive && stillActive != null && !stillActive.closed) {
             reactivateSurviving(stillActive);
+        } else {
+            user.clearThreadLocals();
         }
     }
 
