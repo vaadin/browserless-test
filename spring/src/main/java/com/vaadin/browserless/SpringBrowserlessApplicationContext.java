@@ -33,7 +33,7 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  *
  * <pre>
  * var app = SpringBrowserlessApplicationContext.create(routes, springCtx);
- * var admin = app.newUser(adminAuth);
+ * var admin = app.newUser("admin", "ADMIN");
  * var window = admin.newWindow();
  * window.navigate(ProtectedView.class);
  * </pre>
