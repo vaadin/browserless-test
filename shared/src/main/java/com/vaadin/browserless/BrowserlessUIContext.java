@@ -430,6 +430,12 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             // the thread happens to carry from another user's window.
             user.applyUIThreadLocals(ui);
             MockVaadin.closeCurrentUI(true);
+            // closeCurrentUI() records the closing UI's active view location
+            // into MockVaadin's lastNavigation ThreadLocal so the single-user
+            // reload/session-recreation flow can restore it on the next UI.
+            // No createUI follows here, so the recording would otherwise leak
+            // into the next unrelated newWindow() on this thread.
+            MockVaadin.clearLastNavigation();
             ui = null;
         }
         // Re-establish thread-local coherence with activeContext. After a

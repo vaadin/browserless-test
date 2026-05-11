@@ -393,6 +393,31 @@ class BrowserlessClosePathCleanupTest {
     }
 
     @Test
+    void uiClose_doesNotLeakLastNavigationIntoNewWindow() {
+        try (var app = BrowserlessApplicationContext.create(routes)) {
+            var user = app.newUser();
+            var w1 = user.newWindow();
+            w1.navigate(SimpleView.class);
+            Assertions.assertEquals("simple",
+                    w1.getUI().getInternals().getActiveViewLocation().getPath(),
+                    "Sanity check: w1 navigated to SimpleView");
+
+            // w2 becomes the active window. Closing the non-active, already-
+            // navigated w1 must not leave behind any thread-local state that
+            // forces the next freshly created window to inherit w1's last
+            // location.
+            user.newWindow();
+            w1.close();
+
+            var w3 = user.newWindow();
+            Assertions.assertEquals("",
+                    w3.getUI().getInternals().getActiveViewLocation().getPath(),
+                    "Closing a navigated window must not leak its last"
+                            + " location into the next newWindow() call");
+        }
+    }
+
+    @Test
     void userClose_leavesActiveUserCoherentOnTheThread() {
         var handler = new CapturingSecurityHandler();
         try (var app = BrowserlessApplicationContext.builder(routes)

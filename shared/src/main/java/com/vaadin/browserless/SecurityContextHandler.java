@@ -79,7 +79,8 @@ public interface SecurityContextHandler<C> {
     /**
      * Builds framework-specific credentials for the given username and roles.
      * <p>
-     * Used by {@link BrowserlessApplicationContext#newUser(String, String...)}
+     * Used by
+     * {@link SecuredBrowserlessApplicationContext#newUser(String, String...)}
      * so tests can authenticate a user without writing the framework-specific
      * boilerplate. Spring's implementation produces a
      * {@code UsernamePasswordAuthenticationToken} carrying a {@code User}
@@ -89,7 +90,7 @@ public interface SecurityContextHandler<C> {
      * The default implementation throws {@link UnsupportedOperationException} —
      * handlers that don't have a natural mapping from username + roles to
      * {@code C} can simply leave it unimplemented; callers must then use
-     * {@link BrowserlessApplicationContext#newUser(Object) newUser(C
+     * {@link SecuredBrowserlessApplicationContext#newUser(Object) newUser(C
      * credentials)} directly.
      *
      * @param username

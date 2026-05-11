@@ -491,6 +491,23 @@ object MockVaadin {
         UI.setCurrent(null)
         strongRefUI.remove()
     }
+
+    /**
+     * Clears the `lastNavigation` ThreadLocal recorded by [closeCurrentUI].
+     *
+     * [closeCurrentUI] records the closing UI's active view location into
+     * `lastNavigation` so that the immediately following [createUI] call (in
+     * the single-user reload / session-recreation flow) can restore that
+     * location on the new UI. Multi-user lifecycle close paths
+     * (`BrowserlessUIContext.close`) call [closeCurrentUI] without a matching
+     * [createUI], so this method must be invoked afterwards to prevent the
+     * recorded location from leaking into the next unrelated [createUI] on the
+     * same thread (e.g. `user.newWindow()`).
+     */
+    @JvmStatic
+    fun clearLastNavigation() {
+        lastNavigation.remove()
+    }
 }
 
 private val _VaadinService_sessionInitListeners: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {

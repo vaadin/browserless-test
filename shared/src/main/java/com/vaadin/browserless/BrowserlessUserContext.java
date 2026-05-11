@@ -100,9 +100,12 @@ public class BrowserlessUserContext implements AutoCloseable {
             this.response = objs.getResponse();
 
             // Install thread-locals temporarily for session init listeners.
-            // restoreSecurityContext() is a no-op here (snapshot is still
-            // null), and the explicit clearContext()+setupAuthentication
-            // below replaces it before any listener observes the state.
+            // applySessionThreadLocals() ends with restoreSecurityContext()
+            // forwarding our still-null snapshot to
+            // handler.restoreContext(null),
+            // which the handler contract specifies as clearing the context.
+            // The explicit clearContext()+setupAuthentication below then
+            // installs this user's identity before any listener observes it.
             applySessionThreadLocals();
 
             // Set up authentication BEFORE firing session-init listeners so
