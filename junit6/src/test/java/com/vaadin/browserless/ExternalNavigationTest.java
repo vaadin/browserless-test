@@ -33,7 +33,7 @@ import com.vaadin.flow.component.button.Button;
  */
 class ExternalNavigationTest {
 
-    private BrowserlessApplicationContext<Void> app;
+    private BrowserlessApplicationContext app;
 
     @BeforeEach
     void setUp() {

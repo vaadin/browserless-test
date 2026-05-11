@@ -32,7 +32,7 @@ import com.vaadin.flow.component.html.Paragraph;
  */
 class MultiWindowTest {
 
-    private BrowserlessApplicationContext<Void> app;
+    private BrowserlessApplicationContext app;
 
     @BeforeEach
     void setUp() {

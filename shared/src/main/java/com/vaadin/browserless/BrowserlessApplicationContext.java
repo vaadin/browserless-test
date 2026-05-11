@@ -46,9 +46,14 @@ import com.vaadin.flow.server.VaadinServletService;
  * safe for concurrent access from multiple threads; driving the same context
  * from parallel test threads is unsupported.
  * <p>
- * Create instances via {@link #create(Routes)} for plain Java or use the
- * {@link #builder(Routes)} for full customization. Framework-specific modules
- * (Spring, Quarkus) provide their own convenience factory methods.
+ * This base class is unsecured: it has no {@link SecurityContextHandler}. For
+ * multi-user security isolation, configure a handler via
+ * {@link Builder#withSecurityContextHandler(SecurityContextHandler)} — the
+ * builder transitions to {@link SecuredBrowserlessApplicationContext.Builder}
+ * and {@link SecuredBrowserlessApplicationContext.Builder#build() build()}
+ * returns the typed {@link SecuredBrowserlessApplicationContext}, which exposes
+ * credential-aware {@code newUser(...)} overloads. Framework-specific modules
+ * (Spring, Quarkus) provide convenience factory methods for both paths.
  *
  * <pre>
  * var app = BrowserlessApplicationContext.create(routes);
@@ -59,29 +64,22 @@ import com.vaadin.flow.server.VaadinServletService;
  * app.close();
  * </pre>
  *
- * @param <C>
- *            the credentials type accepted by {@link #newUser(Object)}, as
- *            defined by the configured {@link SecurityContextHandler};
- *            {@link Void} when no security context handler is configured
  * @see BrowserlessUserContext
  * @see BrowserlessUIContext
+ * @see SecuredBrowserlessApplicationContext
  */
-public class BrowserlessApplicationContext<C> implements AutoCloseable {
+public class BrowserlessApplicationContext implements AutoCloseable {
 
     private final VaadinServletService service;
     private final UIFactory uiFactory;
-    private final SecurityContextHandler<C> securityContextHandler;
     private final List<Runnable> closeHooks;
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private boolean closed;
 
-    private BrowserlessApplicationContext(VaadinServletService service,
-            UIFactory uiFactory,
-            SecurityContextHandler<C> securityContextHandler,
-            List<Runnable> closeHooks) {
+    BrowserlessApplicationContext(VaadinServletService service,
+            UIFactory uiFactory, List<Runnable> closeHooks) {
         this.service = service;
         this.uiFactory = uiFactory;
-        this.securityContextHandler = securityContextHandler;
         this.closeHooks = closeHooks;
     }
 
@@ -89,111 +87,51 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
      * Creates a plain Java application context with default settings.
      * <p>
      * The returned context has no {@link SecurityContextHandler} configured;
-     * use {@link #builder(Routes)} to enable framework-specific security
-     * integration.
+     * use {@link #builder(Routes)} and
+     * {@link Builder#withSecurityContextHandler(SecurityContextHandler)} to
+     * enable framework-specific security integration.
      *
      * @param routes
      *            the discovered routes
      * @return a new application context
      */
-    public static BrowserlessApplicationContext<Void> create(Routes routes) {
-        return BrowserlessApplicationContext.<Void> builder(routes).build();
+    public static BrowserlessApplicationContext create(Routes routes) {
+        return builder(routes).build();
     }
 
     /**
      * Creates a builder for customizing the application context.
      *
-     * @param <C>
-     *            the credentials type for the security context handler
      * @param routes
      *            the discovered routes
      * @return a new builder
      */
-    public static <C> Builder<C> builder(Routes routes) {
-        return new Builder<>(routes);
+    public static Builder builder(Routes routes) {
+        return new Builder(routes);
     }
 
     /**
      * Creates a new user context representing an anonymous user session.
      * <p>
-     * Equivalent to {@link #newUser(Object) newUser(null)}: when a
-     * {@link SecurityContextHandler} is configured, the handler is asked to
+     * When a {@link SecurityContextHandler} is configured (on a
+     * {@link SecuredBrowserlessApplicationContext}), the handler is asked to
      * install its anonymous-equivalent state (e.g. Spring sets an
-     * {@code AnonymousAuthenticationToken}).
+     * {@code AnonymousAuthenticationToken}). On this unsecured base class no
+     * security setup is performed.
      *
      * @return the new user context
      * @throws IllegalStateException
      *             if this context has been closed
      */
     public BrowserlessUserContext newUser() {
-        // Cast disambiguates from newUser(String, String...) when C
-        // happens to be String — null alone would match both overloads.
-        @SuppressWarnings("unchecked")
-        C nullCredentials = (C) null;
-        return newUser(nullCredentials);
+        return newUserInternal(null);
     }
 
-    /**
-     * Creates a new user context with the given credentials.
-     * <p>
-     * If a {@link SecurityContextHandler} is configured, the security context
-     * for this user is first cleared, then the credentials are passed to
-     * {@link SecurityContextHandler#setupAuthentication(Object)
-     * SecurityContextHandler.setupAuthentication()} — including when
-     * {@code credentials} is {@code null}, so that the handler can install its
-     * anonymous-equivalent state. The resulting security state is captured as
-     * this user's initial snapshot and is automatically restored whenever one
-     * of this user's windows is activated.
-     *
-     * @param credentials
-     *            framework-specific credentials, or {@code null} for an
-     *            anonymous user
-     * @return the new user context
-     * @throws IllegalStateException
-     *             if this context has been closed
-     */
-    public BrowserlessUserContext newUser(C credentials) {
+    BrowserlessUserContext newUserInternal(Object credentials) {
         checkNotClosed();
         var user = new BrowserlessUserContext(this, credentials);
         users.add(user);
         return user;
-    }
-
-    /**
-     * Creates a new user context for the given username and roles.
-     * <p>
-     * Delegates to
-     * {@link SecurityContextHandler#createCredentials(String, String...)} on
-     * the configured handler, then to {@link #newUser(Object)}. Spring and
-     * Quarkus handlers ship with overrides that mirror the conventions of
-     * {@code @WithMockUser} / Quarkus security identity construction; custom
-     * handlers must override {@code createCredentials} to opt into this helper.
-     *
-     * @param username
-     *            the username
-     * @param roles
-     *            the roles for the user; may be empty
-     * @return the new user context
-     * @throws IllegalStateException
-     *             if this context has been closed, or no
-     *             {@link SecurityContextHandler} is configured
-     * @throws UnsupportedOperationException
-     *             if the configured handler doesn't override
-     *             {@link SecurityContextHandler#createCredentials(String, String...)}
-     */
-    public BrowserlessUserContext newUser(String username, String... roles) {
-        checkNotClosed();
-        Objects.requireNonNull(username, "username must not be null");
-        Objects.requireNonNull(roles, "roles must not be null");
-        if (securityContextHandler == null) {
-            throw new IllegalStateException(
-                    "No SecurityContextHandler configured. Use"
-                            + " Builder.withSecurityContextHandler(...) or a"
-                            + " framework-specific application context that"
-                            + " installs one by default.");
-        }
-        return newUser(
-                securityContextHandler.createCredentials(username, roles));
     }
 
     /**
@@ -240,11 +178,16 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         return uiFactory;
     }
 
-    SecurityContextHandler<C> getSecurityContextHandler() {
-        return securityContextHandler;
+    /**
+     * Returns the configured security context handler, or {@code null} when
+     * unsecured. Overridden by {@link SecuredBrowserlessApplicationContext} to
+     * return its typed, non-null handler.
+     */
+    SecurityContextHandler<?> getSecurityContextHandler() {
+        return null;
     }
 
-    private void checkNotClosed() {
+    void checkNotClosed() {
         if (closed) {
             throw new IllegalStateException(
                     "BrowserlessApplicationContext is already closed");
@@ -253,14 +196,16 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
     /**
      * Builder for creating a customized {@link BrowserlessApplicationContext}.
-     *
-     * @param <C>
-     *            the credentials type for the security context handler
+     * <p>
+     * Calling {@link #withSecurityContextHandler(SecurityContextHandler)}
+     * transitions to a {@link SecuredBrowserlessApplicationContext.Builder}
+     * whose {@link SecuredBrowserlessApplicationContext.Builder#build()
+     * build()} returns the credential-typed
+     * {@link SecuredBrowserlessApplicationContext}.
      */
-    public static class Builder<C> {
+    public static class Builder {
 
         private final Routes routes;
-        private SecurityContextHandler<C> securityContextHandler;
         private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
         private Set<Class<?>> lookupServices = Collections.emptySet();
@@ -271,16 +216,25 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         }
 
         /**
-         * Sets the security context handler for multi-user auth isolation.
+         * Sets the security context handler for multi-user auth isolation and
+         * transitions to a credential-typed
+         * {@link SecuredBrowserlessApplicationContext.Builder}. The base
+         * builder's accumulated state (servlet factory, UI factory, lookup
+         * services, close hooks) is carried over.
          *
+         * @param <C>
+         *            the credentials type accepted by the handler
          * @param handler
-         *            the handler, or {@code null} for no security management
-         * @return this builder
+         *            the handler; must not be {@code null}
+         * @return a secured builder configured with the given handler
+         * @throws NullPointerException
+         *             if {@code handler} is {@code null}
          */
-        public Builder<C> withSecurityContextHandler(
+        public <C> SecuredBrowserlessApplicationContext.Builder<C> withSecurityContextHandler(
                 SecurityContextHandler<C> handler) {
-            this.securityContextHandler = handler;
-            return this;
+            Objects.requireNonNull(handler, "handler must not be null");
+            return new SecuredBrowserlessApplicationContext.Builder<>(this,
+                    handler);
         }
 
         /**
@@ -300,7 +254,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          * @throws NullPointerException
          *             if {@code factory} is {@code null}
          */
-        public Builder<C> withServletFactory(
+        public Builder withServletFactory(
                 BiFunction<Routes, UIFactory, VaadinServlet> factory) {
             this.servletFactory = Objects.requireNonNull(factory);
             return this;
@@ -317,7 +271,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          * @throws NullPointerException
          *             if {@code uiFactory} is {@code null}
          */
-        public Builder<C> withUIFactory(UIFactory uiFactory) {
+        public Builder withUIFactory(UIFactory uiFactory) {
             this.uiFactory = Objects.requireNonNull(uiFactory);
             return this;
         }
@@ -334,7 +288,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          *             if {@code services} or any of its elements is
          *             {@code null}
          */
-        public Builder<C> withLookupServices(Class<?>... services) {
+        public Builder withLookupServices(Class<?>... services) {
             Objects.requireNonNull(services);
             if (services.length == 0) {
                 return this;
@@ -371,7 +325,7 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          * @throws NullPointerException
          *             if {@code hook} is {@code null}
          */
-        public Builder<C> withCloseHook(Runnable hook) {
+        public Builder withCloseHook(Runnable hook) {
             this.closeHooks.add(Objects.requireNonNull(hook));
             return this;
         }
@@ -381,14 +335,24 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
          *
          * @return a new application context
          */
-        public BrowserlessApplicationContext<C> build() {
+        public BrowserlessApplicationContext build() {
+            return new BrowserlessApplicationContext(buildService(), uiFactory,
+                    buildCloseHooks());
+        }
+
+        VaadinServletService buildService() {
             VaadinServlet servlet = servletFactory != null
                     ? servletFactory.apply(routes, uiFactory)
                     : new MockVaadinServlet(routes, uiFactory);
-            VaadinServletService service = MockVaadin.setupServlet(servlet,
-                    lookupServices);
-            return new BrowserlessApplicationContext<>(service, uiFactory,
-                    securityContextHandler, List.copyOf(closeHooks));
+            return MockVaadin.setupServlet(servlet, lookupServices);
+        }
+
+        UIFactory uiFactory() {
+            return uiFactory;
+        }
+
+        List<Runnable> buildCloseHooks() {
+            return List.copyOf(closeHooks);
         }
     }
 }

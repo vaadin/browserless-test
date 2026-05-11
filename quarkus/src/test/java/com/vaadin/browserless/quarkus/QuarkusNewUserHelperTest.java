@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.BrowserlessApplicationContext;
+import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
 import com.vaadin.browserless.internal.Routes;
 
 /**
@@ -43,12 +43,12 @@ import com.vaadin.browserless.internal.Routes;
 @TestProfile(SecurityTestConfig.NavigationAccessControlConfig.class)
 class QuarkusNewUserHelperTest {
 
-    private BrowserlessApplicationContext<SecurityIdentity> app;
+    private SecuredBrowserlessApplicationContext<SecurityIdentity> app;
 
     @BeforeEach
     void setUp() {
         Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = QuarkusBrowserlessApplicationContext.create(routes);
+        app = QuarkusBrowserlessApplicationContext.createSecured(routes);
     }
 
     @AfterEach

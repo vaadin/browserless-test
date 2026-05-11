@@ -88,4 +88,18 @@ class QuarkusSecurityAbsentTest {
                             + " service when Quarkus Security is present");
         }
     }
+
+    @Test
+    void createSecured_withoutQuarkusSecurity_throws() {
+        QuarkusSecuritySupport.overrideDetector(() -> false);
+
+        Routes routes = new Routes();
+        var ex = Assertions.assertThrows(IllegalStateException.class,
+                () -> QuarkusBrowserlessApplicationContext
+                        .createSecured(routes),
+                "createSecured(...) must reject calls when Quarkus Security is"
+                        + " absent from the classpath");
+        Assertions.assertTrue(ex.getMessage().contains("Quarkus Security"),
+                "ISE message must mention Quarkus Security");
+    }
 }

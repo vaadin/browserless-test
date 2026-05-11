@@ -40,7 +40,7 @@ import com.vaadin.flow.component.html.Div;
  */
 class BrowserlessUIContextClosedTest {
 
-    private BrowserlessApplicationContext<Void> app;
+    private BrowserlessApplicationContext app;
 
     @BeforeEach
     void setUp() {
@@ -113,8 +113,8 @@ class BrowserlessUIContextClosedTest {
         UIFactory throwingFactory = () -> {
             throw new IllegalStateException("simulated UI factory failure");
         };
-        BrowserlessApplicationContext<Void> failingApp = BrowserlessApplicationContext
-                .<Void> builder(new Routes()
+        BrowserlessApplicationContext failingApp = BrowserlessApplicationContext
+                .builder(new Routes()
                         .autoDiscoverViews(SimpleView.class.getPackageName()))
                 .withUIFactory(throwingFactory).build();
         BrowserlessUIContext leakedActive;

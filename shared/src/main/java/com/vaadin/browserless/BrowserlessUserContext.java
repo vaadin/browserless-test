@@ -60,7 +60,7 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public class BrowserlessUserContext implements AutoCloseable {
 
-    private final BrowserlessApplicationContext<?> app;
+    private final BrowserlessApplicationContext app;
     private final VaadinSession session;
     private final VaadinRequest request;
     private final VaadinResponse response;
@@ -68,7 +68,7 @@ public class BrowserlessUserContext implements AutoCloseable {
     private Object securitySnapshot;
     private boolean closed;
 
-    BrowserlessUserContext(BrowserlessApplicationContext<?> app,
+    BrowserlessUserContext(BrowserlessApplicationContext app,
             Object credentials) {
         this.app = app;
 
@@ -79,8 +79,9 @@ public class BrowserlessUserContext implements AutoCloseable {
         VaadinResponse previousResponse = VaadinResponse.getCurrent();
         UI previousUI = UI.getCurrent();
         // Raw type so we can pass the Object credentials to setupAuthentication
-        // without forcing every caller (and the surrounding wildcard
-        // BrowserlessApplicationContext<?>) to know the concrete C.
+        // without knowing the concrete C; getSecurityContextHandler() returns
+        // null on the unsecured base class and a typed handler on the secured
+        // subclass.
         @SuppressWarnings({ "unchecked", "rawtypes" })
         SecurityContextHandler handler = app.getSecurityContextHandler();
         Object previousSecuritySnapshot = handler != null
@@ -219,7 +220,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         return session;
     }
 
-    BrowserlessApplicationContext<?> getApp() {
+    BrowserlessApplicationContext getApp() {
         return app;
     }
 

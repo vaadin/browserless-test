@@ -37,7 +37,7 @@ class BuilderLookupServicesTest {
     private static class ServiceC {
     }
 
-    private BrowserlessApplicationContext.Builder<Void> newBuilder() {
+    private BrowserlessApplicationContext.Builder newBuilder() {
         Routes routes = new Routes(new HashSet<>(), new HashSet<>(),
                 new HashSet<>(), true);
         return BrowserlessApplicationContext.builder(routes);

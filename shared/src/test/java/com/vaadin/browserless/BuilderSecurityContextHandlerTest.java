@@ -24,9 +24,11 @@ import com.vaadin.browserless.internal.Routes;
 
 /**
  * Contract tests for the security-handler-related entry points on
- * {@link BrowserlessApplicationContext} and its
- * {@link BrowserlessApplicationContext.Builder}: the {@code newUser(username,
- * roles...)} helper's failure modes and the builder's null-reset behaviour.
+ * {@link BrowserlessApplicationContext.Builder} and
+ * {@link SecuredBrowserlessApplicationContext}: the
+ * {@code withSecurityContextHandler} null contract and the
+ * {@code newUser(username, roles...)} helper's failure mode for handlers that
+ * do not override {@code createCredentials}.
  */
 class BuilderSecurityContextHandlerTest {
 
@@ -36,33 +38,23 @@ class BuilderSecurityContextHandlerTest {
     }
 
     @Test
-    void withSecurityContextHandler_acceptsNullToReset() {
-        try (var app = BrowserlessApplicationContext
-                .<String> builder(emptyRoutes())
-                .withSecurityContextHandler(new MinimalHandler())
-                .withSecurityContextHandler(null).build()) {
-            Assertions.assertNull(app.getSecurityContextHandler(),
-                    "withSecurityContextHandler(null) must reset the"
-                            + " previously configured handler");
-        }
+    void withSecurityContextHandler_rejectsNull() {
+        var builder = BrowserlessApplicationContext.builder(emptyRoutes());
+        Assertions.assertThrows(NullPointerException.class,
+                () -> builder.withSecurityContextHandler(null));
     }
 
     @Test
-    void newUserByUsernameAndRoles_throwsISE_whenNoHandlerConfigured() {
-        try (var app = BrowserlessApplicationContext
-                .<Void> builder(emptyRoutes()).build()) {
-            var ex = Assertions.assertThrows(IllegalStateException.class,
-                    () -> app.newUser("foo", "BAR"));
-            Assertions.assertTrue(
-                    ex.getMessage().contains("SecurityContextHandler"),
-                    "ISE message should mention SecurityContextHandler");
-        }
+    void securedBuilder_withSecurityContextHandler_rejectsNull() {
+        var secured = BrowserlessApplicationContext.builder(emptyRoutes())
+                .withSecurityContextHandler(new MinimalHandler());
+        Assertions.assertThrows(NullPointerException.class,
+                () -> secured.withSecurityContextHandler(null));
     }
 
     @Test
     void newUserByUsernameAndRoles_throwsUOE_whenHandlerDoesNotOverrideCreateCredentials() {
-        try (var app = BrowserlessApplicationContext
-                .<String> builder(emptyRoutes())
+        try (var app = BrowserlessApplicationContext.builder(emptyRoutes())
                 .withSecurityContextHandler(new MinimalHandler()).build()) {
             var ex = Assertions.assertThrows(
                     UnsupportedOperationException.class,

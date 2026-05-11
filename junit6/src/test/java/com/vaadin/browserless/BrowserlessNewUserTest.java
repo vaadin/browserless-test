@@ -41,7 +41,7 @@ class BrowserlessNewUserTest {
     @Test
     void newUser_sessionInitListenerSeesThisUsersSecurity() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.<String> builder(routes)
+        try (var app = BrowserlessApplicationContext.builder(routes)
                 .withSecurityContextHandler(handler).build()) {
 
             var observed = new AtomicReference<String>();

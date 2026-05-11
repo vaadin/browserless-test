@@ -31,7 +31,7 @@ import com.vaadin.flow.component.html.Paragraph;
  */
 class MultiUserTest {
 
-    private BrowserlessApplicationContext<Void> app;
+    private BrowserlessApplicationContext app;
 
     @BeforeEach
     void setUp() {

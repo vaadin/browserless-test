@@ -51,12 +51,12 @@ class SpringNewUserHelperTest {
     @Autowired
     private ApplicationContext applicationContext;
 
-    private BrowserlessApplicationContext<Authentication> app;
+    private SecuredBrowserlessApplicationContext<Authentication> app;
 
     @BeforeEach
     void setUp() {
         Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = SpringBrowserlessApplicationContext.create(routes,
+        app = SpringBrowserlessApplicationContext.createSecured(routes,
                 applicationContext);
     }
 

@@ -20,7 +20,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -46,6 +48,19 @@ class SpringSecurityAbsentTest {
     @AfterEach
     void tearDown() {
         SpringSecuritySupport.overrideDetector(null);
+        // The lookup initializer registers SpringSecurityRequestCustomizer
+        // as a singleton in the shared Spring context whenever Spring
+        // Security is present. Unregister it so each test starts with a
+        // clean bean registry and the "without Spring Security" assertions
+        // are not poisoned by an earlier "with Spring Security" test.
+        if (applicationContext instanceof ConfigurableApplicationContext cac) {
+            DefaultListableBeanFactory bf = (DefaultListableBeanFactory) cac
+                    .getBeanFactory();
+            String beanName = SpringSecurityRequestCustomizer.class.getName();
+            if (bf.containsSingleton(beanName)) {
+                bf.destroySingleton(beanName);
+            }
+        }
     }
 
     @Test
@@ -110,11 +125,11 @@ class SpringSecurityAbsentTest {
     }
 
     @Test
-    void create_withSpringSecurity_installsHandlerAndCustomizer() {
+    void createSecured_withSpringSecurity_installsHandlerAndCustomizer() {
         // Default detector: actual classpath probe (Spring Security IS present
         // in the spring module's test classpath)
         Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.create(routes,
+        try (var app = SpringBrowserlessApplicationContext.createSecured(routes,
                 applicationContext)) {
             Assertions.assertInstanceOf(SpringSecurityContextHandler.class,
                     app.getSecurityContextHandler(),
@@ -131,6 +146,20 @@ class SpringSecurityAbsentTest {
                     "Customizer must be registered as lookup service when"
                             + " Spring Security is present");
         }
+    }
+
+    @Test
+    void createSecured_withoutSpringSecurity_throws() {
+        SpringSecuritySupport.overrideDetector(() -> false);
+
+        Routes routes = new Routes();
+        var ex = Assertions.assertThrows(IllegalStateException.class,
+                () -> SpringBrowserlessApplicationContext.createSecured(routes,
+                        applicationContext),
+                "createSecured(...) must reject calls when Spring Security is"
+                        + " absent from the classpath");
+        Assertions.assertTrue(ex.getMessage().contains("Spring Security"),
+                "ISE message must mention Spring Security");
     }
 
     @Configuration
