@@ -133,7 +133,7 @@ public class MockSpringServlet extends SpringServlet {
             if (wrappedRequest instanceof MockRequest) {
                 // Spring Security Web not on classpath: read
                 // SecurityContextHolder lazily
-                request.setUserPrincipalProvider(
+                request.principalProvider(
                         SpringSecuritySupport::currentPrincipal);
                 request.setUserInRole(SpringSecuritySupport::isGranted);
             } else {
@@ -141,8 +141,7 @@ public class MockSpringServlet extends SpringServlet {
                 // SecurityContextHolderAwareRequestWrapper lazily so that
                 // security context populated after setup (e.g. @WithMockUser)
                 // is picked up at test execution time
-                request.setUserPrincipalProvider(
-                        wrappedRequest::getUserPrincipal);
+                request.principalProvider(wrappedRequest::getUserPrincipal);
                 request.setUserInRole(
                         (principal, role) -> wrappedRequest.isUserInRole(role));
             }

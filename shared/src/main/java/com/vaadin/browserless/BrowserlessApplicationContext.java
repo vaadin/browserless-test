@@ -69,7 +69,6 @@ import com.vaadin.flow.server.VaadinServletService;
 public class BrowserlessApplicationContext<C> implements AutoCloseable {
 
     private final VaadinServletService service;
-    private final VaadinServlet servlet;
     private final UIFactory uiFactory;
     private final SecurityContextHandler<C> securityContextHandler;
     private final List<Runnable> closeHooks;
@@ -77,11 +76,10 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
     private boolean closed;
 
     private BrowserlessApplicationContext(VaadinServletService service,
-            VaadinServlet servlet, UIFactory uiFactory,
+            UIFactory uiFactory,
             SecurityContextHandler<C> securityContextHandler,
             List<Runnable> closeHooks) {
         this.service = service;
-        this.servlet = servlet;
         this.uiFactory = uiFactory;
         this.securityContextHandler = securityContextHandler;
         this.closeHooks = closeHooks;
@@ -238,10 +236,6 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
         return service;
     }
 
-    VaadinServlet getServlet() {
-        return servlet;
-    }
-
     UIFactory getUIFactory() {
         return uiFactory;
     }
@@ -393,8 +387,8 @@ public class BrowserlessApplicationContext<C> implements AutoCloseable {
                     : new MockVaadinServlet(routes, uiFactory);
             VaadinServletService service = MockVaadin.setupServlet(servlet,
                     lookupServices);
-            return new BrowserlessApplicationContext<>(service, servlet,
-                    uiFactory, securityContextHandler, List.copyOf(closeHooks));
+            return new BrowserlessApplicationContext<>(service, uiFactory,
+                    securityContextHandler, List.copyOf(closeHooks));
         }
     }
 }
