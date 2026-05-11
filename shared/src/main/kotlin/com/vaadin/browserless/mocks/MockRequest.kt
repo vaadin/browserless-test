@@ -175,6 +175,14 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
     var isUserInRole: (Principal, role: String) -> Boolean = { _, _ -> false }
 
     /**
+     * Sets the user-in-role checker using a [java.util.function.BiPredicate].
+     * Java-friendly alternative to setting [isUserInRole] directly.
+     */
+    fun roleChecker(checker: java.util.function.BiPredicate<Principal, String>) {
+        isUserInRole = { principal, role -> checker.test(principal, role) }
+    }
+
+    /**
      * Set [isUserInRole] to modify the outcome of this function.
      */
     override fun isUserInRole(role: String): Boolean {
@@ -220,8 +228,19 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
      * Optional provider for [getUserPrincipal]. When set, takes precedence over
      * [userPrincipalInt], allowing the principal to be resolved lazily at
      * call time (e.g. from a security context that is populated after setup).
+     * Set via [principalProvider].
      */
     var userPrincipalProvider: (() -> Principal?)? = null
+        private set
+
+    /**
+     * Sets the user principal provider. Accepts a [java.util.function.Supplier]
+     * so Java callers can pass a lambda directly; Kotlin callers can do the
+     * same via SAM conversion.
+     */
+    fun principalProvider(supplier: java.util.function.Supplier<Principal?>) {
+        userPrincipalProvider = { supplier.get() }
+    }
 
     /**
      * Returns the principal from [userPrincipalProvider] if set, otherwise
