@@ -259,7 +259,7 @@ authentication is automatically isolated across windows. The
 ```java
 import com.testapp.security.LoginView;
 import com.testapp.security.ProtectedView;
-import com.vaadin.browserless.BrowserlessApplicationContext;
+import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
 import com.vaadin.browserless.SpringBrowserlessApplicationContext;
 import com.vaadin.browserless.internal.Routes;
 import org.junit.jupiter.api.Test;
@@ -281,8 +281,9 @@ class MultiUserSecurityTest {
     @Test
     void securityContextIsIsolatedPerUser() {
         Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        try (BrowserlessApplicationContext<Authentication> app =
-                SpringBrowserlessApplicationContext.create(routes, springCtx)) {
+        try (SecuredBrowserlessApplicationContext<Authentication> app =
+                SpringBrowserlessApplicationContext.createSecured(routes,
+                        springCtx)) {
 
             var adminWindow = app.newUser("john", "USER").newWindow();
             var anonWindow = app.newUser().newWindow();
@@ -316,7 +317,7 @@ builds a matching `QuarkusSecurityIdentity`.
 ```java
 import com.testapp.security.LoginView;
 import com.testapp.security.ProtectedView;
-import com.vaadin.browserless.BrowserlessApplicationContext;
+import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.quarkus.QuarkusBrowserlessApplicationContext;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -330,8 +331,8 @@ class MultiUserSecurityTest {
     @Test
     void securityContextIsIsolatedPerUser() {
         Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        try (BrowserlessApplicationContext<SecurityIdentity> app =
-                QuarkusBrowserlessApplicationContext.create(routes)) {
+        try (SecuredBrowserlessApplicationContext<SecurityIdentity> app =
+                QuarkusBrowserlessApplicationContext.createSecured(routes)) {
 
             var adminWindow = app.newUser("john", "USER").newWindow();
             var anonWindow = app.newUser().newWindow();
