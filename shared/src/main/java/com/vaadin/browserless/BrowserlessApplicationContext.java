@@ -74,6 +74,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final UIFactory uiFactory;
     private final List<Runnable> closeHooks;
     private final List<BrowserlessUserContext> users = new ArrayList<>();
+    private TestSignalEnvironment signalsTestEnvironment;
     private boolean closed;
 
     BrowserlessApplicationContext(VaadinServletService service,
@@ -81,6 +82,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         this.service = service;
         this.uiFactory = uiFactory;
         this.closeHooks = closeHooks;
+        // Always-on Signals support, mirroring BaseBrowserlessTest. Registered
+        // here so it covers session-init listeners fired by
+        // BrowserlessUserContext.
+        this.signalsTestEnvironment = TestSignalEnvironment.register();
     }
 
     /**
@@ -152,6 +157,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             user.close();
         }
         users.clear();
+        if (signalsTestEnvironment != null) {
+            signalsTestEnvironment.unregister();
+            signalsTestEnvironment = null;
+        }
         MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);
         List<RuntimeException> hookFailures = new ArrayList<>();
@@ -176,6 +185,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
     UIFactory getUIFactory() {
         return uiFactory;
+    }
+
+    TestSignalEnvironment getSignalsTestEnvironment() {
+        return signalsTestEnvironment;
     }
 
     /**
