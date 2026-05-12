@@ -140,7 +140,8 @@ class SignalsContextTest {
     }
 
     @Test
-    void applicationContextClose_unregistersSignalEnvironment() {
+    void applicationContextClose_unregistersSignalEnvironment()
+            throws InterruptedException {
         // Pre-condition: the test environment is registered.
         Assertions.assertNotNull(app.getSignalsTestEnvironment(),
                 "Application context must have a signals test environment "
@@ -149,6 +150,25 @@ class SignalsContextTest {
         // Closing the app must unregister the test environment, restoring
         // the default dispatcher to whatever was active before.
         app.close();
+
+        // The application context must clear its reference to the test
+        // environment on close.
+        Assertions.assertNull(app.getSignalsTestEnvironment(),
+                "Application context must clear its signals test "
+                        + "environment reference after close");
+
+        // Directly probe the global registry: with the test environment
+        // unregistered, the default effect dispatcher must no longer queue
+        // tasks on the (now orphaned) test queue. It should fall through to
+        // the immediate executor (or any remaining environment), so the
+        // task runs without anyone calling runPendingSignalsTasks().
+        var latch = new CountDownLatch(1);
+        SignalEnvironment.getDefaultEffectDispatcher()
+                .execute(latch::countDown);
+        Assertions.assertTrue(latch.await(50, TimeUnit.MILLISECONDS),
+                "After close(), tasks submitted to the default effect "
+                        + "dispatcher must not be intercepted by the "
+                        + "closed test environment's queue");
 
         // Re-opening a fresh context must re-install a working test
         // environment — proving the previous unregister fully released the
