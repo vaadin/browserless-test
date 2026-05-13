@@ -56,13 +56,13 @@ public class TesterResolutionTest extends BrowserlessTest {
     @Test
     void detectComponentType_resolvesComponentTypeThroughHierarchy() {
         Assertions.assertEquals(Component.class,
-                detectComponentType(ComponentTester.class));
+                TesterRegistry.detectComponentType(ComponentTester.class));
         Assertions.assertEquals(TestComponent.class,
-                detectComponentType(MyTester.class));
+                TesterRegistry.detectComponentType(MyTester.class));
         Assertions.assertEquals(MyTest.class,
-                detectComponentType(MyExtendedTester.class));
+                TesterRegistry.detectComponentType(MyExtendedTester.class));
         Assertions.assertEquals(TestComponentForConcreteTester.class,
-                detectComponentType(NonGenericTestTester.class));
+                TesterRegistry.detectComponentType(NonGenericTestTester.class));
     }
 
     public static class MyTest extends TestComponent {

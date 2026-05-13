@@ -28,8 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vaadin.browserless.internal.Routes;
-
 /**
  * Tests multi-user security context isolation with Spring Security. Verifies
  * that switching between users' windows correctly saves and restores Spring
@@ -46,9 +44,8 @@ class MultiUserSecurityTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = SpringBrowserlessApplicationContext.createSecured(routes,
-                applicationContext);
+        app = SpringBrowserlessApplicationContext
+                .createSecured(applicationContext, "com.testapp.security");
     }
 
     @AfterEach

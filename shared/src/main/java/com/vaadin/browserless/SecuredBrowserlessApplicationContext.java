@@ -173,6 +173,38 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * @see BrowserlessApplicationContext.Builder#withViewPackages(String...)
+         */
+        public Builder<C> withViewPackages(String... packages) {
+            base.withViewPackages(packages);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withViewPackages(Class[])
+         */
+        public Builder<C> withViewPackages(Class<?>... classes) {
+            base.withViewPackages(classes);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withComponentTesterPackages(String...)
+         */
+        public Builder<C> withComponentTesterPackages(String... packages) {
+            base.withComponentTesterPackages(packages);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withComponentTesterPackages(Class[])
+         */
+        public Builder<C> withComponentTesterPackages(Class<?>... classes) {
+            base.withComponentTesterPackages(classes);
+            return this;
+        }
+
+        /**
          * @see BrowserlessApplicationContext.Builder#withCloseHook
          */
         public Builder<C> withCloseHook(Runnable hook) {

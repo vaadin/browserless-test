@@ -34,7 +34,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.server.VaadinRequest;
 
 /**
@@ -55,9 +54,8 @@ class SpringNewUserHelperTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = SpringBrowserlessApplicationContext.createSecured(routes,
-                applicationContext);
+        app = SpringBrowserlessApplicationContext
+                .createSecured(applicationContext, "com.testapp.security");
     }
 
     @AfterEach

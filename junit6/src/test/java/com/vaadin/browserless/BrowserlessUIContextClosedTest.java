@@ -111,8 +111,8 @@ class BrowserlessUIContextClosedTest {
         UIFactory throwingFactory = () -> {
             throw new IllegalStateException("simulated UI factory failure");
         };
-        BrowserlessApplicationContext failingApp = BrowserlessApplicationContext
-                .builder(new Routes()
+        BrowserlessApplicationContext failingApp = new BrowserlessApplicationContext.Builder(
+                new Routes()
                         .autoDiscoverViews(SimpleView.class.getPackageName()))
                 .withUIFactory(throwingFactory).build();
         BrowserlessUIContext leakedActive;

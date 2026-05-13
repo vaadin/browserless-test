@@ -15,13 +15,14 @@
  */
 package com.vaadin.browserless.quarkus;
 
+import java.util.function.UnaryOperator;
+
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.MockRequestCustomizer;
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.server.VaadinService;
 
@@ -43,8 +44,8 @@ class QuarkusSecurityAbsentTest {
     void newUser_withoutQuarkusSecurity_doesNotThrow() {
         QuarkusSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = QuarkusBrowserlessApplicationContext.create(routes)) {
+        try (var app = QuarkusBrowserlessApplicationContext
+                .create(UnaryOperator.identity())) {
             Assertions.assertDoesNotThrow(() -> {
                 var user = app.newUser();
                 user.newWindow();
@@ -56,8 +57,8 @@ class QuarkusSecurityAbsentTest {
     void create_withoutQuarkusSecurity_doesNotInstallRequestCustomizerLookup() {
         QuarkusSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = QuarkusBrowserlessApplicationContext.create(routes)) {
+        try (var app = QuarkusBrowserlessApplicationContext
+                .create(UnaryOperator.identity())) {
             // Trigger Lookup initialization via a window, then probe the
             // current VaadinService for the registered MockRequestCustomizer.
             app.newUser().newWindow();
@@ -77,8 +78,8 @@ class QuarkusSecurityAbsentTest {
     void create_withQuarkusSecurity_installsRequestCustomizerLookup() {
         // Default detector: actual classpath probe (quarkus-security IS
         // present in the quarkus module's test classpath).
-        Routes routes = new Routes();
-        try (var app = QuarkusBrowserlessApplicationContext.create(routes)) {
+        try (var app = QuarkusBrowserlessApplicationContext
+                .create(UnaryOperator.identity())) {
             app.newUser().newWindow();
             Lookup lookup = VaadinService.getCurrent().getContext()
                     .getAttribute(Lookup.class);
@@ -93,10 +94,9 @@ class QuarkusSecurityAbsentTest {
     void createSecured_withoutQuarkusSecurity_throws() {
         QuarkusSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
         var ex = Assertions.assertThrows(IllegalStateException.class,
                 () -> QuarkusBrowserlessApplicationContext
-                        .createSecured(routes),
+                        .createSecured(UnaryOperator.identity()),
                 "createSecured(...) must reject calls when Quarkus Security is"
                         + " absent from the classpath");
         Assertions.assertTrue(ex.getMessage().contains("Quarkus Security"),

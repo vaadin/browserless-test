@@ -137,7 +137,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_clearsSecurityContextWhenClosingTheActiveWindow() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var alice = app.newUser("alice");
             var aliceWindow = alice.newWindow();
@@ -241,7 +241,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_restoresUserSecurityContextForDetachListeners() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
 
             var alice = app.newUser("alice");
@@ -299,7 +299,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_nonActiveCrossUserCloseLeavesThreadCoherentWithActiveContext() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
 
             var alice = app.newUser("alice");
@@ -347,7 +347,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_clearsSecurityContext() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var user = app.newUser("alice");
             user.newWindow();
@@ -367,7 +367,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_destroyListenerSeesClosingUserSecurity() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var alice = app.newUser("alice");
             alice.newWindow();
@@ -420,7 +420,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_leavesActiveUserCoherentOnTheThread() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
+        try (var app = new BrowserlessApplicationContext.Builder(routes)
                 .withSecurityContextHandler(handler).build()) {
             var alice = app.newUser("alice");
             alice.newWindow();
