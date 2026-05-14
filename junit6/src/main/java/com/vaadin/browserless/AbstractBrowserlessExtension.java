@@ -211,7 +211,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> type) {
+    public <T extends Component> ComponentQuery<T> find(Class<T> type) {
         getUI();
         return BaseBrowserlessTest.internalQuery(type);
     }
@@ -228,7 +228,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query scoped to the given component
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> type,
+    public <T extends Component> ComponentQuery<T> find(Class<T> type,
             Component fromThis) {
         getUI();
         return new ComponentQuery<>(type).from(fromThis);
@@ -243,7 +243,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      *            component type
      * @return a component query scoped to the current view
      */
-    public <T extends Component> ComponentQuery<T> $view(Class<T> type) {
+    public <T extends Component> ComponentQuery<T> findInView(Class<T> type) {
         Component viewComponent = getCurrentView().getElement().getComponent()
                 .orElseThrow(() -> new AssertionError(
                         "Cannot get Component instance for current view"));
@@ -256,7 +256,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      * @return the current view
      */
     public HasElement getCurrentView() {
-        return getUI().getInternals().getActiveRouterTargetsChain().get(0);
+        return getUI().getInternals().getActiveRouterTargetsChain().getFirst();
     }
 
     /**

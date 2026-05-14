@@ -435,7 +435,8 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
+    public <T extends Component> ComponentQuery<T> find(
+            Class<T> componentType) {
         verifyAndGetUI();
         return internalQuery(componentType);
     }
@@ -452,7 +453,7 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType,
+    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
             Component fromThis) {
         verifyAndGetUI();
         return new ComponentQuery<>(componentType).from(fromThis);
@@ -467,12 +468,65 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> $view(
+    public <T extends Component> ComponentQuery<T> findInView(
             Class<T> componentType) {
         Component viewComponent = getCurrentView().getElement().getComponent()
                 .orElseThrow(() -> new AssertionError(
                         "Cannot get Component instance for current view"));
         return new ComponentQuery<>(componentType).from(viewComponent);
+    }
+
+    /**
+     * Gets a query object for finding a component inside the UI.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use {@link #find(Class)}
+     *             instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
+    public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
+        return find(componentType);
+    }
+
+    /**
+     * Gets a query object for finding a component nested inside the given
+     * component.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param fromThis
+     *            component used as starting element for search.
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use
+     *             {@link #find(Class, Component)} instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
+    public <T extends Component> ComponentQuery<T> $(Class<T> componentType,
+            Component fromThis) {
+        return find(componentType, fromThis);
+    }
+
+    /**
+     * Gets a query object for finding a component inside the current view.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use {@link #findInView(Class)}
+     *             instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
+    public <T extends Component> ComponentQuery<T> $view(
+            Class<T> componentType) {
+        return findInView(componentType);
     }
 
     /**

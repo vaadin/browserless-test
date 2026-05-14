@@ -216,7 +216,7 @@ class PopoverTesterTest extends BrowserlessTest {
     @Test
     void forTarget_withComponentQuery_findsPopoverByTarget() {
         PopoverTester tester = PopoverTester
-                .forTarget($(NativeButton.class).withId("target-id"));
+                .forTarget(find(NativeButton.class).withId("target-id"));
         assertFalse(tester.isOpen(), "Popover should be closed initially");
         tester.clickTarget();
         assertTrue(tester.isOpen(),
@@ -226,7 +226,7 @@ class PopoverTesterTest extends BrowserlessTest {
     @Test
     void forTarget_withComponentQuery_throwsWhenNoPopoverForTarget() {
         assertThrows(NoSuchElementException.class, () -> PopoverTester
-                .forTarget($(NativeButton.class).withId("other-id")));
+                .forTarget(find(NativeButton.class).withId("other-id")));
     }
 
     @Test
@@ -241,7 +241,7 @@ class PopoverTesterTest extends BrowserlessTest {
     @Test
     void popoverFor_withComponentQuery_findsPopoverByTarget() {
         PopoverTester tester = popoverFor(
-                $(NativeButton.class).withId("target-id"));
+                find(NativeButton.class).withId("target-id"));
         assertFalse(popover_.isOpen(), "Popover should be closed initially");
         tester.clickTarget();
         assertTrue(tester.isOpen(),
