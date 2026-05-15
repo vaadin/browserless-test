@@ -45,8 +45,8 @@ public class LocatorDemoView extends VerticalLayout {
         Button clear = new Button("Clear", e -> name.setValue(""));
 
         Grid<Person> people = new Grid<>(Person.class);
-        people.setItems(List.of(new Person("Alice", 30),
-                new Person("Bob", 25), new Person("Carol", 40)));
+        people.setItems(List.of(new Person("Alice", 30), new Person("Bob", 25),
+                new Person("Carol", 40)));
         people.addItemClickListener(
                 event -> echo.setText("Clicked: " + event.getItem().name()));
 
@@ -69,9 +69,9 @@ public class LocatorDemoView extends VerticalLayout {
         public PersonForm(Span echo) {
             nameField.setId("pf-name");
             emailField.setId("pf-email");
-            submit = new Button("Submit", e -> echo.setText("Submitted: "
-                    + nameField.getValue() + " <" + emailField.getValue()
-                    + ">"));
+            submit = new Button("Submit",
+                    e -> echo.setText("Submitted: " + nameField.getValue()
+                            + " <" + emailField.getValue() + ">"));
             submit.setId("pf-submit");
             getContent().add(nameField, emailField, submit);
         }

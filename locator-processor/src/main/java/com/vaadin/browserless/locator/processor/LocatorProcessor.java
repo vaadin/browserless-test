@@ -15,18 +15,6 @@
  */
 package com.vaadin.browserless.locator.processor;
 
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -48,6 +36,18 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.SimpleTypeVisitor14;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Annotation processor that walks {@code @Tests}-annotated
@@ -104,10 +104,8 @@ public class LocatorProcessor extends AbstractProcessor {
             try {
                 processTester(tester);
             } catch (Exception ex) {
-                note(Diagnostic.Kind.WARNING,
-                        "Locator generation skipped for "
-                                + tester.getQualifiedName() + ": "
-                                + ex.getMessage());
+                note(Diagnostic.Kind.WARNING, "Locator generation skipped for "
+                        + tester.getQualifiedName() + ": " + ex.getMessage());
             }
         }
 
@@ -124,8 +122,8 @@ public class LocatorProcessor extends AbstractProcessor {
     /**
      * Inspect a tester element and emit one locator per {@code @Tests} target
      * (value or fqn). For each target, the locator's tester type variables
-     * (past the first) are pinned to concrete types when the target's
-     * supertype parameterization fixes them — this turns e.g.
+     * (past the first) are pinned to concrete types when the target's supertype
+     * parameterization fixes them — this turns e.g.
      * {@code getTextField(Class<V>)} into a clean {@code getTextField()} for
      * {@code TextField} (V=String) while still requiring a witness for
      * {@code Grid} (V free per use).
@@ -172,13 +170,12 @@ public class LocatorProcessor extends AbstractProcessor {
 
     /**
      * Generate one locator class targeting {@code target}. Extras that get
-     * pinned by walking {@code target}'s supertypes for the tester's bound
-     * head class are removed from the locator's type parameter list and
-     * substituted in method signatures.
+     * pinned by walking {@code target}'s supertypes for the tester's bound head
+     * class are removed from the locator's type parameter list and substituted
+     * in method signatures.
      */
     private Entry generateLocatorForTarget(TypeElement tester,
-            TypeElement target,
-            List<TypeParameterElement> extraTypeParams) {
+            TypeElement target, List<TypeParameterElement> extraTypeParams) {
         String testerSimple = tester.getSimpleName().toString();
         String testerPkg = processingEnv.getElementUtils().getPackageOf(tester)
                 .getQualifiedName().toString();
@@ -192,8 +189,8 @@ public class LocatorProcessor extends AbstractProcessor {
                 extraTypeParams);
 
         // Locator's own type parameter list = extras that were not pinned.
-        List<TypeParameterElement> freeExtras = extraTypeParams.stream()
-                .filter(tp -> !pinned.containsKey(tp.getSimpleName().toString()))
+        List<TypeParameterElement> freeExtras = extraTypeParams.stream().filter(
+                tp -> !pinned.containsKey(tp.getSimpleName().toString()))
                 .collect(Collectors.toList());
 
         // Component type expression for `Locator<C, SELF>`. The target may
@@ -250,38 +247,34 @@ public class LocatorProcessor extends AbstractProcessor {
         String ctor;
         String superArg = renderSuperArg(target, freeExtras);
         if (freeExtras.isEmpty()) {
-            ctor = "    public " + locatorSimple + "() {\n"
-                    + "        super(" + superArg + ");\n"
-                    + "    }\n";
+            ctor = "    public " + locatorSimple + "() {\n" + "        super("
+                    + superArg + ");\n" + "    }\n";
         } else {
             String params = freeExtras.stream()
-                    .map(tp -> "java.lang.Class<" + tp.getSimpleName()
-                            + "> " + decap(tp.getSimpleName().toString())
-                            + "Type")
+                    .map(tp -> "java.lang.Class<" + tp.getSimpleName() + "> "
+                            + decap(tp.getSimpleName().toString()) + "Type")
                     .collect(Collectors.joining(", "));
             ctor = "    public " + locatorSimple + "(" + params + ") {\n"
-                    + "        super(" + superArg + ");\n"
-                    + "    }\n";
+                    + "        super(" + superArg + ");\n" + "    }\n";
         }
 
         String fqn = pkg + "." + locatorSimple;
         try {
-            JavaFileObject jfo = processingEnv.getFiler()
-                    .createSourceFile(fqn, tester);
+            JavaFileObject jfo = processingEnv.getFiler().createSourceFile(fqn,
+                    tester);
             try (Writer w = jfo.openWriter();
                     PrintWriter out = new PrintWriter(w)) {
-                out.println("/* Generated by LocatorProcessor. Do not edit. */");
+                out.println(
+                        "/* Generated by LocatorProcessor. Do not edit. */");
                 out.println("package " + pkg + ";");
                 out.println();
                 out.println("@javax.annotation.processing.Generated(\""
                         + LocatorProcessor.class.getName() + "\")");
-                out.println(
-                        "@SuppressWarnings({\"unchecked\", \"rawtypes\"})");
+                out.println("@SuppressWarnings({\"unchecked\", \"rawtypes\"})");
                 out.println("public class " + locatorSimple
-                        + locatorTypeParamDecl + " extends " + LOCATOR_FQN
-                        + "<" + componentTypeExpr + ", " + selfType
-                        + "> implements " + CLICKABLE_FQN + "<"
-                        + componentTypeExpr + "> {");
+                        + locatorTypeParamDecl + " extends " + LOCATOR_FQN + "<"
+                        + componentTypeExpr + ", " + selfType + "> implements "
+                        + CLICKABLE_FQN + "<" + componentTypeExpr + "> {");
                 out.println();
                 out.println(ctor);
                 out.println("    @Override");
@@ -298,8 +291,8 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println("}");
             }
         } catch (Exception ioe) {
-            note(Diagnostic.Kind.ERROR, "Failed to write " + fqn + ": "
-                    + ioe.getMessage());
+            note(Diagnostic.Kind.ERROR,
+                    "Failed to write " + fqn + ": " + ioe.getMessage());
             return null;
         }
 
@@ -311,8 +304,7 @@ public class LocatorProcessor extends AbstractProcessor {
     /**
      * Read the {@code @Tests} annotation on the tester, returning the targets
      * listed in {@code value()} together with classes resolved from
-     * {@code fqn()}. Both forms are supported because Vaadin testers use a
-     * mix.
+     * {@code fqn()}. Both forms are supported because Vaadin testers use a mix.
      */
     @SuppressWarnings("unchecked")
     private List<TypeElement> readTestsTargets(TypeElement tester) {
@@ -354,16 +346,14 @@ public class LocatorProcessor extends AbstractProcessor {
     /**
      * For each tester extra (the type variables past the first), walk the
      * target's supertype chain to find the tester's bound head class (e.g.
-     * {@code TextFieldBase} or {@code Grid}). The position of the extra in
-     * the tester's bound determines which type argument on the target's
+     * {@code TextFieldBase} or {@code Grid}). The position of the extra in the
+     * tester's bound determines which type argument on the target's
      * parameterization to pin against.
      */
     private Map<String, TypeMirror> pinExtras(TypeElement tester,
-            TypeElement target,
-            List<TypeParameterElement> extraTypeParams) {
+            TypeElement target, List<TypeParameterElement> extraTypeParams) {
         Map<String, TypeMirror> pinned = new HashMap<>();
-        if (extraTypeParams.isEmpty()
-                || tester.getTypeParameters().isEmpty()) {
+        if (extraTypeParams.isEmpty() || tester.getTypeParameters().isEmpty()) {
             return pinned;
         }
         TypeMirror firstBound = tester.getTypeParameters().get(0).getBounds()
@@ -428,7 +418,8 @@ public class LocatorProcessor extends AbstractProcessor {
                 processingEnv.getTypeUtils().erasure(tm), targetErasure)) {
             return tm;
         }
-        for (TypeMirror sup : processingEnv.getTypeUtils().directSupertypes(tm)) {
+        for (TypeMirror sup : processingEnv.getTypeUtils()
+                .directSupertypes(tm)) {
             TypeMirror result = findInstanceOf(sup, targetErasure);
             if (result != null) {
                 return result;
@@ -611,8 +602,7 @@ public class LocatorProcessor extends AbstractProcessor {
         // Throws clause
         if (!m.getThrownTypes().isEmpty()) {
             sb.append(" throws ");
-            sb.append(m.getThrownTypes().stream()
-                    .map(t -> typeExpr(t, subst))
+            sb.append(m.getThrownTypes().stream().map(t -> typeExpr(t, subst))
                     .collect(Collectors.joining(", ")));
         }
         sb.append(" {\n");
@@ -685,8 +675,8 @@ public class LocatorProcessor extends AbstractProcessor {
     /**
      * Produces the argument passed to {@code super(...)} when constructing a
      * locator. For non-generic targets this is just {@code Target.class}; for
-     * targets that have type parameters not all pinned by the locator, we use
-     * a raw class literal cast (the cast is compile-time only).
+     * targets that have type parameters not all pinned by the locator, we use a
+     * raw class literal cast (the cast is compile-time only).
      */
     private String renderSuperArg(TypeElement target,
             List<TypeParameterElement> freeExtras) {
@@ -703,8 +693,8 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Render a type mirror, substituting any tester-private type variables
-     * with their pinned concrete types via {@code subst}.
+     * Render a type mirror, substituting any tester-private type variables with
+     * their pinned concrete types via {@code subst}.
      */
     private String typeExpr(TypeMirror tm, Map<String, String> subst) {
         if (subst == null || subst.isEmpty()) {
@@ -765,7 +755,8 @@ public class LocatorProcessor extends AbstractProcessor {
         }
 
         @Override
-        public String visitWildcard(javax.lang.model.type.WildcardType t, Void v) {
+        public String visitWildcard(javax.lang.model.type.WildcardType t,
+                Void v) {
             StringBuilder sb = new StringBuilder("?");
             if (t.getExtendsBound() != null) {
                 sb.append(" extends ")
@@ -800,8 +791,7 @@ public class LocatorProcessor extends AbstractProcessor {
         String simpleName = "GeneratedLocators";
         String fqn = pkg + "." + simpleName;
         try {
-            JavaFileObject jfo = processingEnv.getFiler()
-                    .createSourceFile(fqn);
+            JavaFileObject jfo = processingEnv.getFiler().createSourceFile(fqn);
             try (Writer w = jfo.openWriter();
                     PrintWriter out = new PrintWriter(w)) {
                 out.println(
@@ -832,22 +822,20 @@ public class LocatorProcessor extends AbstractProcessor {
                     String retType = locatorFqn + useTp;
                     String params = e.extraTypeParams.stream()
                             .map(tp -> "java.lang.Class<" + tp.getSimpleName()
-                                    + "> " + decap(tp.getSimpleName()
-                                            .toString())
+                                    + "> "
+                                    + decap(tp.getSimpleName().toString())
                                     + "Type")
                             .collect(Collectors.joining(", "));
-                    String passArgs = e.extraTypeParams.stream()
-                            .map(tp -> decap(tp.getSimpleName().toString())
-                                    + "Type")
+                    String passArgs = e.extraTypeParams.stream().map(
+                            tp -> decap(tp.getSimpleName().toString()) + "Type")
                             .collect(Collectors.joining(", "));
                     out.println("    default " + declTp
                             + (declTp.isEmpty() ? "" : " ") + retType + " "
                             + e.entryMethodName + "(" + params + ") {");
                     out.println("        activateLocatorContext();");
-                    out.println(
-                            "        return new " + locatorFqn + diamond(
-                                    e.extraTypeParams) + "(" + passArgs
-                                    + ");");
+                    out.println("        return new " + locatorFqn
+                            + diamond(e.extraTypeParams) + "(" + passArgs
+                            + ");");
                     out.println("    }");
                     out.println();
                 }
@@ -860,8 +848,8 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     private void note(Diagnostic.Kind kind, String msg) {
-        processingEnv.getMessager().printMessage(kind, "[LocatorProcessor] "
-                + msg);
+        processingEnv.getMessager().printMessage(kind,
+                "[LocatorProcessor] " + msg);
     }
 
     private static String decap(String s) {

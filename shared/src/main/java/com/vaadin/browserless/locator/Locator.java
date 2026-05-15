@@ -62,14 +62,19 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component to have a caption equal to the given text. */
+    /**
+     * Requires the matched component to have a caption equal to the given text.
+     */
     public SELF withCaption(String caption) {
         invalidate();
         query.withCaption(caption);
         return self();
     }
 
-    /** Requires the matched component to have a caption containing the given text. */
+    /**
+     * Requires the matched component to have a caption containing the given
+     * text.
+     */
     public SELF withCaptionContaining(String text) {
         invalidate();
         query.withCaptionContaining(text);
@@ -140,7 +145,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      */
     public C component() {
         if (resolved == null) {
-            resolved = pickIndex > 0 ? query.atIndex(pickIndex) : query.single();
+            resolved = pickIndex > 0 ? query.atIndex(pickIndex)
+                    : query.single();
         }
         return resolved;
     }
@@ -153,7 +159,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return query.all();
     }
 
-    /** Returns {@code true} if the filter chain matches at least one component. */
+    /**
+     * Returns {@code true} if the filter chain matches at least one component.
+     */
     public boolean exists() {
         return query.exists();
     }

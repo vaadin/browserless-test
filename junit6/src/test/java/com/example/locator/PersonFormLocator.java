@@ -16,6 +16,7 @@
 package com.example.locator;
 
 import com.example.locator.LocatorDemoView.PersonForm;
+
 import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.ButtonLocator;
 import com.vaadin.flow.component.textfield.TextFieldLocator;
