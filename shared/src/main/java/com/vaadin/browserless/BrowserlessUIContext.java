@@ -39,9 +39,10 @@ import com.vaadin.flow.server.VaadinSession;
  * UI-level context for multi-user browserless testing.
  * <p>
  * Represents a single browser window (one {@link UI} instance). All DSL methods
- * ({@link #navigate}, {@link #$}, {@link #$view}, {@link #test}) automatically
- * call {@link #activate()} before executing, which transparently switches the
- * thread-local Vaadin state and security context to this window's user.
+ * ({@link #navigate}, {@link #find}, {@link #findInView}, {@link #test})
+ * automatically call {@link #activate()} before executing, which transparently
+ * switches the thread-local Vaadin state and security context to this window's
+ * user.
  * <p>
  * Instances of this class are <strong>thread-affine</strong>: they must be
  * created, used, and closed on the same thread. The active context is held in a
@@ -54,7 +55,7 @@ import com.vaadin.flow.server.VaadinSession;
  * <pre>
  * window1.navigate(ViewA.class);
  * window2.navigate(ViewB.class); // auto-switches to window2's user
- * window1.$(Button.class).first(); // auto-switches back to window1's user
+ * window1.find(Button.class).first(); // auto-switches back to window1's user
  * </pre>
  *
  * @see BrowserlessUserContext#newWindow()
@@ -228,7 +229,8 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      *            the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
+    public <T extends Component> ComponentQuery<T> find(
+            Class<T> componentType) {
         activate();
         return new ComponentQuery<>(componentType);
     }
@@ -245,7 +247,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      *            the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType,
+    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
             Component fromThis) {
         activate();
         return new ComponentQuery<>(componentType).from(fromThis);
@@ -261,36 +263,13 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      *            the component type
      * @return a query object
      */
-    public <T extends Component> ComponentQuery<T> $view(
+    public <T extends Component> ComponentQuery<T> findInView(
             Class<T> componentType) {
         activate();
         Component viewComponent = getCurrentView().getElement().getComponent()
                 .orElseThrow(() -> new AssertionError(
                         "Cannot get Component instance for current view"));
         return new ComponentQuery<>(componentType).from(viewComponent);
-    }
-
-    /**
-     * Alias for {@link #$(Class)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> get(Class<T> componentType) {
-        return $(componentType);
-    }
-
-    /**
-     * Alias for {@link #$(Class, Component)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> get(Class<T> componentType,
-            Component fromThis) {
-        return $(componentType, fromThis);
-    }
-
-    /**
-     * Alias for {@link #$view(Class)} — Java-idiomatic name.
-     */
-    public <T extends Component> ComponentQuery<T> getView(
-            Class<T> componentType) {
-        return $view(componentType);
     }
 
     /**

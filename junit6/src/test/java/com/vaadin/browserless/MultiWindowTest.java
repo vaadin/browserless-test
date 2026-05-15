@@ -71,27 +71,27 @@ class MultiWindowTest {
         w2.navigate(SharedCounterView.class);
 
         // w1 increments — its display reflects the new shared counter
-        w1.test(w1.$(Button.class).withText("Increment").single()).click();
+        w1.test(w1.find(Button.class).withText("Increment").single()).click();
         Assertions.assertEquals("Count: 1",
-                w1.$(Paragraph.class).single().getText());
+                w1.find(Paragraph.class).single().getText());
 
         // w2 increments — its display reflects the (now larger) counter
-        w2.test(w2.$(Button.class).withText("Increment").single()).click();
+        w2.test(w2.find(Button.class).withText("Increment").single()).click();
         Assertions.assertEquals("Count: 2",
-                w2.$(Paragraph.class).single().getText());
+                w2.find(Paragraph.class).single().getText());
 
         // Switching back to w1 must not corrupt its independent UI state —
         // the display still shows the value from w1's own last increment,
         // not whatever w2 most recently set.
         Assertions.assertEquals("Count: 1",
-                w1.$(Paragraph.class).single().getText(),
+                w1.find(Paragraph.class).single().getText(),
                 "w1's display should retain its own state across"
                         + " activations from w2");
 
         // And w1 can still observe the shared counter via Refresh.
-        w1.test(w1.$(Button.class).withText("Refresh").single()).click();
+        w1.test(w1.find(Button.class).withText("Refresh").single()).click();
         Assertions.assertEquals("Count: 2",
-                w1.$(Paragraph.class).single().getText());
+                w1.find(Paragraph.class).single().getText());
     }
 
     @Test

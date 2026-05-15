@@ -64,10 +64,10 @@ public class AutoLayoutTest extends BrowserlessTest {
     void navigate_viewWithAutoLayout_canFindChildComponentInLayout() {
         navigate(AutoLayoutView.class);
 
-        Span span = $(Span.class).first();
+        Span span = find(Span.class).first();
 
         Assertions.assertNotNull(span,
-                "Span added by @Layout should be findable via $()");
+                "Span added by @Layout should be findable via find()");
         Assertions.assertEquals("Layout Header", span.getText());
     }
 }

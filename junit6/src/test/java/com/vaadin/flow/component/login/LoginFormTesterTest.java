@@ -39,8 +39,8 @@ public class LoginFormTesterTest extends BrowserlessTest {
     @Test
     void login_generatesLoginEvent() {
         test(view.login).login("user", "pwd");
-        Assertions.assertEquals(1, $(Span.class).from(view).all().size());
-        Span message = $(Span.class).from(view).withId("m1").first();
+        Assertions.assertEquals(1, find(Span.class).from(view).all().size());
+        Span message = find(Span.class).from(view).withId("m1").first();
         Assertions.assertEquals(view.generateLoginMessage("user", "pwd"),
                 message.getText());
     }
@@ -61,8 +61,8 @@ public class LoginFormTesterTest extends BrowserlessTest {
     void forgotPassword_generatesEvent() {
         test(view.login).forgotPassword();
 
-        Assertions.assertEquals(1, $(Span.class).from(view).all().size());
-        Span message = $(Span.class).from(view).withId("m1").first();
+        Assertions.assertEquals(1, find(Span.class).from(view).all().size());
+        Span message = find(Span.class).from(view).withId("m1").first();
         Assertions.assertEquals("forgot", message.getText());
     }
 

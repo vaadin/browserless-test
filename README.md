@@ -173,7 +173,7 @@ class CartViewTest extends BrowserlessTest {
         test(view.getAddButton()).click();
 
         // find components and verify state
-        Span cartCount = $(Span.class).withId("cart-count").single();
+        Span cartCount = find(Span.class).withId("cart-count").single();
         assertEquals("1", cartCount.getText());
     }
 
@@ -182,7 +182,7 @@ class CartViewTest extends BrowserlessTest {
         navigate(CartView.class);
 
         // find components by type
-        Button btn = $(Button.class).first();
+        Button btn = find(Button.class).first();
         assertNotNull(btn);
     }
 }
@@ -201,7 +201,7 @@ layered context API that mirrors the Vaadin hierarchy:
 | `BrowserlessUIContext`             | one `UI` (one browser window)    | `user.newWindow()`                                                                   |
 
 `BrowserlessUIContext` exposes the same DSL as `BrowserlessTest` (`navigate`,
-`$`, `$view`, `test`, `roundTrip`). Every DSL call automatically activates the
+`find`, `findInView`, `test`, `roundTrip`). Every DSL call automatically activates the
 context: Vaadin thread-locals (`VaadinService`, `VaadinSession`, `UI`,
 `VaadinRequest`, `VaadinResponse`) are switched to the target window, and on a
 user-switch the outgoing user's security context is saved and the incoming
@@ -236,13 +236,13 @@ class SharedCounterTest {
             w2.navigate(SharedCounterView.class);
 
             // user 1 increments — only their UI reflects it locally
-            w1.test(w1.$(Button.class).withText("Increment").single()).click();
-            assertEquals("Count: 1", w1.$(Paragraph.class).single().getText());
-            assertEquals("Count: 0", w2.$(Paragraph.class).single().getText());
+            w1.test(w1.find(Button.class).withText("Increment").single()).click();
+            assertEquals("Count: 1", w1.find(Paragraph.class).single().getText());
+            assertEquals("Count: 0", w2.find(Paragraph.class).single().getText());
 
             // user 2 refreshes to observe the shared application state
-            w2.test(w2.$(Button.class).withText("Refresh").single()).click();
-            assertEquals("Count: 1", w2.$(Paragraph.class).single().getText());
+            w2.test(w2.find(Button.class).withText("Refresh").single()).click();
+            assertEquals("Count: 1", w2.find(Paragraph.class).single().getText());
         }
     }
 }
@@ -364,11 +364,11 @@ var w = app.newUser().newWindow();
 w.navigate(CheckoutView.class);
 
 // Page.setLocation("https://vaadin.com/") — _self navigation
-w.test(w.$(Button.class).withText("Go to Vaadin").single()).click();
+w.test(w.find(Button.class).withText("Go to Vaadin").single()).click();
 assertEquals("https://vaadin.com/", w.getExternalNavigationURL());
 
 // Page.open("https://payment.example.com/checkout?id=123") — _blank
-w.test(w.$(Button.class).withText("Pay").single()).click();
+w.test(w.find(Button.class).withText("Pay").single()).click();
 assertEquals("https://payment.example.com/checkout?id=123",
         w.getExternalNavigationURL("_blank"));
 
