@@ -18,11 +18,12 @@ package com.vaadin.browserless;
 import com.example.locator.LocatorDemoView;
 import com.example.locator.LocatorDemoView.Person;
 import com.example.locator.PersonFormLocator;
+import com.vaadin.browserless.internal.PrettyPrintTree;
+import com.vaadin.flow.component.UI;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.flow.component.html.Span;
 
 /**
  * Demonstrates the {@code get*} locator API. The {@code Button}, {@code
@@ -30,10 +31,14 @@ import com.vaadin.flow.component.html.Span;
  * by the {@code LocatorProcessor} annotation processor from the existing
  * {@code @Tests}-annotated tester classes.
  * <p>
- * Note that {@code TextFieldTester} is declared as {@code <T, V>} so the
- * generated {@code getTextField(Class<V>)} entry point takes a value-type
- * witness. This mirrors the existing {@code test(TextField, Class<V>)}
- * overload pattern and gives the user the right typed surface.
+ * Although {@code TextFieldTester} is declared as {@code <T, V>}, the
+ * processor pins {@code V} per {@code @Tests} target by walking the target's
+ * supertype parameterization, so {@code getTextField()},
+ * {@code getEmailField()}, etc. are witness-free while
+ * {@code getBigDecimalField()} carries {@code BigDecimal} automatically. The
+ * remaining witnessed entry points ({@code getGrid(Class<V>)},
+ * {@code getComboBox(Class<V>)}) are testers whose value type isn't pinned
+ * at the target level.
  */
 class LocatorApiTest {
 
@@ -48,11 +53,10 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField(String.class).withId("name").setValue("World");
+            window.getTextField().withId("name").setValue("World");
             window.getButton().withCaption("Save").click();
 
-            Assertions.assertEquals("Saved: World", window
-                    .find(Span.class).withId("echo").single().getText());
+            Assertions.assertEquals("Saved: World", window.getSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -62,11 +66,15 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField(String.class).withId("name").setValue("X");
+            window.getTextField().withId("name").setValue("X");
             window.getButton().withCaption("Clear").click();
 
+            String print = PrettyPrintTree.Companion
+                    .ofVaadin(UI.getCurrent()).print();
+            System.out.println(print);
+
             Assertions.assertEquals("",
-                    window.getTextField(String.class).withId("name")
+                    window.getTextField().withId("name")
                             .component().getValue());
         }
     }
@@ -77,9 +85,9 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField(String.class).withId("name").setValue("hello");
+            window.getTextField().withId("name").setValue("hello");
             Assertions.assertEquals("hello",
-                    window.getTextField(String.class).withId("name")
+                    window.getTextField().withId("name")
                             .component().getValue());
         }
     }
@@ -104,17 +112,17 @@ class LocatorApiTest {
             window.navigate(LocatorDemoView.class);
 
             var save = window.getButton().withCaption("Save");
-            window.getTextField(String.class).withId("name").setValue("first");
+            window.getTextField().withId("name").setValue("first");
             save.click();
 
             // Resolution caches across calls in one chain. After a UI change
             // that could replace the component, invalidate() rewinds the
             // cache.
-            window.getTextField(String.class).withId("name").setValue("second");
+            window.getTextField().withId("name").setValue("second");
             save.invalidate().click();
 
             Assertions.assertEquals("Saved: second", window
-                    .find(Span.class).withId("echo").single().getText());
+                    .getSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -129,7 +137,7 @@ class LocatorApiTest {
             window.get(PersonFormLocator::new).submit();
 
             Assertions.assertEquals("Submitted: Ada <ada@example.com>",
-                    window.find(Span.class).withId("echo").single().getText());
+                    window.getSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -141,16 +149,16 @@ class LocatorApiTest {
             alice.navigate(LocatorDemoView.class);
             bob.navigate(LocatorDemoView.class);
 
-            alice.getTextField(String.class).withId("name")
+            alice.getTextField().withId("name")
                     .setValue("alice-value");
-            bob.getTextField(String.class).withId("name").setValue("bob-value");
+            bob.getTextField().withId("name").setValue("bob-value");
 
             // Each window's locator targets its own UI; values do not leak.
             Assertions.assertEquals("alice-value",
-                    alice.getTextField(String.class).withId("name")
+                    alice.getTextField().withId("name")
                             .component().getValue());
             Assertions.assertEquals("bob-value",
-                    bob.getTextField(String.class).withId("name").component()
+                    bob.getTextField().withId("name").component()
                             .getValue());
         }
     }

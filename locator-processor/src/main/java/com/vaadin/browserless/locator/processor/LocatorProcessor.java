@@ -18,9 +18,11 @@ package com.vaadin.browserless.locator.processor;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -100,10 +102,7 @@ public class LocatorProcessor extends AbstractProcessor {
             }
             TypeElement tester = (TypeElement) e;
             try {
-                Entry entry = processTester(tester);
-                if (entry != null) {
-                    entries.add(entry);
-                }
+                processTester(tester);
             } catch (Exception ex) {
                 note(Diagnostic.Kind.WARNING,
                         "Locator generation skipped for "
@@ -123,49 +122,110 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Inspect a tester element and emit a locator source file. Returns an
-     * {@link Entry} describing the locator for later inclusion in
-     * {@code GeneratedLocators}.
+     * Inspect a tester element and emit one locator per {@code @Tests} target
+     * (value or fqn). For each target, the locator's tester type variables
+     * (past the first) are pinned to concrete types when the target's
+     * supertype parameterization fixes them — this turns e.g.
+     * {@code getTextField(Class<V>)} into a clean {@code getTextField()} for
+     * {@code TextField} (V=String) while still requiring a witness for
+     * {@code Grid} (V free per use).
      */
-    private Entry processTester(TypeElement tester) {
+    private void processTester(TypeElement tester) {
         if (!extendsComponentTester(tester)) {
-            return null;
+            return;
         }
         if (tester.getModifiers().contains(Modifier.ABSTRACT)) {
-            return null;
+            return;
         }
 
-        // Tester type parameters past the first one (which binds the component
-        // type) are forwarded onto the locator as-is. This covers Grid<V>,
-        // ComboBox<V>, CheckboxGroup<V>, etc.
         List<TypeParameterElement> extraTypeParams = tester.getTypeParameters()
                 .stream().skip(1).collect(Collectors.toList());
-        Set<String> forwardedNames = extraTypeParams.stream()
-                .map(tp -> tp.getSimpleName().toString())
-                .collect(Collectors.toSet());
 
-        TypeMirror componentTypeMirror = resolveComponentType(tester,
-                forwardedNames);
-        if (componentTypeMirror == null) {
-            note(Diagnostic.Kind.NOTE,
-                    "Cannot derive component type for "
-                            + tester.getQualifiedName() + "; skipping.");
-            return null;
+        List<TypeElement> targets = readTestsTargets(tester);
+        if (targets.isEmpty()) {
+            // Fallback: derive a single target from the tester's bound. Used
+            // only for testers that don't declare any @Tests value or fqn.
+            Set<String> forwardedNames = extraTypeParams.stream()
+                    .map(tp -> tp.getSimpleName().toString())
+                    .collect(Collectors.toSet());
+            TypeMirror bound = resolveComponentType(tester, forwardedNames);
+            if (bound != null && bound.getKind() == TypeKind.DECLARED) {
+                TypeElement el = (TypeElement) ((DeclaredType) bound)
+                        .asElement();
+                targets = List.of(el);
+            }
+            if (targets.isEmpty()) {
+                note(Diagnostic.Kind.NOTE, "No @Tests target for "
+                        + tester.getQualifiedName() + "; skipping.");
+                return;
+            }
         }
 
-        String pkg = processingEnv.getElementUtils().getPackageOf(tester)
-                .getQualifiedName().toString();
-        String testerSimple = tester.getSimpleName().toString();
-        String locatorSimple = testerSimple.endsWith("Tester")
-                ? testerSimple.substring(0,
-                        testerSimple.length() - "Tester".length()) + "Locator"
-                : testerSimple + "Locator";
+        for (TypeElement target : targets) {
+            Entry entry = generateLocatorForTarget(tester, target,
+                    extraTypeParams);
+            if (entry != null) {
+                entries.add(entry);
+            }
+        }
+    }
 
-        String componentTypeExpr = typeExpr(componentTypeMirror);
-        // Type parameter declaration on the locator class itself
-        String locatorTypeParamDecl = renderTypeParamDecl(extraTypeParams);
-        String locatorTypeParamUse = renderTypeParamUse(extraTypeParams);
+    /**
+     * Generate one locator class targeting {@code target}. Extras that get
+     * pinned by walking {@code target}'s supertypes for the tester's bound
+     * head class are removed from the locator's type parameter list and
+     * substituted in method signatures.
+     */
+    private Entry generateLocatorForTarget(TypeElement tester,
+            TypeElement target,
+            List<TypeParameterElement> extraTypeParams) {
+        String testerSimple = tester.getSimpleName().toString();
+        String testerPkg = processingEnv.getElementUtils().getPackageOf(tester)
+                .getQualifiedName().toString();
+
+        String pkg = processingEnv.getElementUtils().getPackageOf(target)
+                .getQualifiedName().toString();
+        String targetSimple = target.getSimpleName().toString();
+        String locatorSimple = targetSimple + "Locator";
+
+        Map<String, TypeMirror> pinned = pinExtras(tester, target,
+                extraTypeParams);
+
+        // Locator's own type parameter list = extras that were not pinned.
+        List<TypeParameterElement> freeExtras = extraTypeParams.stream()
+                .filter(tp -> !pinned.containsKey(tp.getSimpleName().toString()))
+                .collect(Collectors.toList());
+
+        // Component type expression for `Locator<C, SELF>`. The target may
+        // have its own type parameters; substitute them positionally with the
+        // locator's free extras (matches the GridTester / ComboBoxTester
+        // pattern where the tester's extra Y maps onto the target's T).
+        String componentTypeExpr = renderTargetTypeExpr(target, freeExtras);
+
+        String locatorTypeParamDecl = renderTypeParamDecl(freeExtras);
+        String locatorTypeParamUse = renderTypeParamUse(freeExtras);
         String selfType = locatorSimple + locatorTypeParamUse;
+
+        // Substitution map for pinned tester type variables. The first tester
+        // variable (the component) maps to the target's parameterized form so
+        // the tester is constructed with concrete type arguments.
+        Map<String, String> subst = new HashMap<>();
+        if (!tester.getTypeParameters().isEmpty()) {
+            subst.put(tester.getTypeParameters().get(0).getSimpleName()
+                    .toString(), componentTypeExpr);
+        }
+        for (Map.Entry<String, TypeMirror> e : pinned.entrySet()) {
+            subst.put(e.getKey(), typeExpr(e.getValue()));
+        }
+
+        // Explicit tester type arguments: concrete value for each tester type
+        // parameter. Built from `subst`.
+        String testerTypeArgs = "<" + tester.getTypeParameters().stream()
+                .map(tp -> subst.getOrDefault(tp.getSimpleName().toString(),
+                        tp.getSimpleName().toString()))
+                .collect(Collectors.joining(", ")) + ">";
+        String testerCtor = testerPkg + "." + testerSimple
+                + (tester.getTypeParameters().isEmpty() ? "" : testerTypeArgs);
 
         // Method delegates
         StringBuilder methodSrc = new StringBuilder();
@@ -183,20 +243,18 @@ public class LocatorProcessor extends AbstractProcessor {
             if (METHOD_SKIP_LIST.contains(m.getSimpleName().toString())) {
                 continue;
             }
-            methodSrc.append(renderDelegate(m, testerSimple, pkg,
-                    componentTypeExpr, tester.getTypeParameters()));
+            methodSrc.append(renderDelegate(m, testerCtor, subst));
         }
 
-        // Constructor: pass value-type witnesses through to the tester (for
-        // generic locators) and call super with the (raw) component class.
+        // Constructor: takes Class<V> witnesses only for the free extras.
         String ctor;
-        String superArg = renderSuperArg(componentTypeMirror, extraTypeParams);
-        if (extraTypeParams.isEmpty()) {
+        String superArg = renderSuperArg(target, freeExtras);
+        if (freeExtras.isEmpty()) {
             ctor = "    public " + locatorSimple + "() {\n"
                     + "        super(" + superArg + ");\n"
                     + "    }\n";
         } else {
-            String params = extraTypeParams.stream()
+            String params = freeExtras.stream()
                     .map(tp -> "java.lang.Class<" + tp.getSimpleName()
                             + "> " + decap(tp.getSimpleName().toString())
                             + "Type")
@@ -206,7 +264,6 @@ public class LocatorProcessor extends AbstractProcessor {
                     + "    }\n";
         }
 
-        // Emit source file
         String fqn = pkg + "." + locatorSimple;
         try {
             JavaFileObject jfo = processingEnv.getFiler()
@@ -220,10 +277,11 @@ public class LocatorProcessor extends AbstractProcessor {
                         + LocatorProcessor.class.getName() + "\")");
                 out.println(
                         "@SuppressWarnings({\"unchecked\", \"rawtypes\"})");
-                out.println("public class " + locatorSimple + locatorTypeParamDecl
-                        + " extends " + LOCATOR_FQN + "<" + componentTypeExpr
-                        + ", " + selfType + "> implements " + CLICKABLE_FQN
-                        + "<" + componentTypeExpr + "> {");
+                out.println("public class " + locatorSimple
+                        + locatorTypeParamDecl + " extends " + LOCATOR_FQN
+                        + "<" + componentTypeExpr + ", " + selfType
+                        + "> implements " + CLICKABLE_FQN + "<"
+                        + componentTypeExpr + "> {");
                 out.println();
                 out.println(ctor);
                 out.println("    @Override");
@@ -232,8 +290,7 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println();
                 out.println(
                         "    @Override public void ensureComponentIsUsable() {");
-                out.println("        new " + pkg + "." + testerSimple
-                        + diamond(tester.getTypeParameters()) + "(component())"
+                out.println("        new " + testerCtor + "(component())"
                         + ".ensureComponentIsUsable();");
                 out.println("    }");
                 out.println();
@@ -246,14 +303,168 @@ public class LocatorProcessor extends AbstractProcessor {
             return null;
         }
 
-        // Entry-point method on GeneratedLocators. Derived from the locator's
-        // simple name so users always see a stable `get<ComponentName>`
-        // even when the component type was erased.
-        String entryComponent = locatorSimple.substring(0,
-                locatorSimple.length() - "Locator".length());
-        String entryMethodName = "get" + entryComponent;
+        String entryMethodName = "get" + targetSimple;
         return new Entry(pkg, locatorSimple, locatorTypeParamDecl,
-                locatorTypeParamUse, extraTypeParams, entryMethodName);
+                locatorTypeParamUse, freeExtras, entryMethodName);
+    }
+
+    /**
+     * Read the {@code @Tests} annotation on the tester, returning the targets
+     * listed in {@code value()} together with classes resolved from
+     * {@code fqn()}. Both forms are supported because Vaadin testers use a
+     * mix.
+     */
+    @SuppressWarnings("unchecked")
+    private List<TypeElement> readTestsTargets(TypeElement tester) {
+        List<TypeElement> result = new ArrayList<>();
+        for (AnnotationMirror am : tester.getAnnotationMirrors()) {
+            if (!am.getAnnotationType().toString().equals(TESTS_FQN)) {
+                continue;
+            }
+            for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am
+                    .getElementValues().entrySet()) {
+                String name = entry.getKey().getSimpleName().toString();
+                if (name.equals("value")) {
+                    List<? extends AnnotationValue> list = (List<? extends AnnotationValue>) entry
+                            .getValue().getValue();
+                    for (AnnotationValue v : list) {
+                        TypeMirror tm = (TypeMirror) v.getValue();
+                        if (tm.getKind() == TypeKind.DECLARED) {
+                            result.add((TypeElement) ((DeclaredType) tm)
+                                    .asElement());
+                        }
+                    }
+                } else if (name.equals("fqn")) {
+                    List<? extends AnnotationValue> list = (List<? extends AnnotationValue>) entry
+                            .getValue().getValue();
+                    for (AnnotationValue v : list) {
+                        String fqn = (String) v.getValue();
+                        TypeElement te = processingEnv.getElementUtils()
+                                .getTypeElement(fqn);
+                        if (te != null) {
+                            result.add(te);
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * For each tester extra (the type variables past the first), walk the
+     * target's supertype chain to find the tester's bound head class (e.g.
+     * {@code TextFieldBase} or {@code Grid}). The position of the extra in
+     * the tester's bound determines which type argument on the target's
+     * parameterization to pin against.
+     */
+    private Map<String, TypeMirror> pinExtras(TypeElement tester,
+            TypeElement target,
+            List<TypeParameterElement> extraTypeParams) {
+        Map<String, TypeMirror> pinned = new HashMap<>();
+        if (extraTypeParams.isEmpty()
+                || tester.getTypeParameters().isEmpty()) {
+            return pinned;
+        }
+        TypeMirror firstBound = tester.getTypeParameters().get(0).getBounds()
+                .get(0);
+        if (firstBound.getKind() != TypeKind.DECLARED) {
+            return pinned;
+        }
+        DeclaredType firstBoundDt = (DeclaredType) firstBound;
+        TypeMirror boundHeadErasure = processingEnv.getTypeUtils()
+                .erasure(firstBoundDt);
+
+        // Position of each extra in the tester's bound type args.
+        Map<String, Integer> extraPositions = new HashMap<>();
+        List<? extends TypeMirror> boundArgs = firstBoundDt.getTypeArguments();
+        for (int i = 0; i < boundArgs.size(); i++) {
+            TypeMirror arg = boundArgs.get(i);
+            if (arg.getKind() == TypeKind.TYPEVAR) {
+                String name = ((TypeVariable) arg).asElement().getSimpleName()
+                        .toString();
+                for (TypeParameterElement tp : extraTypeParams) {
+                    if (tp.getSimpleName().contentEquals(name)) {
+                        extraPositions.put(name, i);
+                    }
+                }
+            }
+        }
+
+        // Find the target's parameterization of the bound head class.
+        TypeMirror targetAsHead = findInstanceOf(target.asType(),
+                boundHeadErasure);
+        if (targetAsHead == null
+                || targetAsHead.getKind() != TypeKind.DECLARED) {
+            return pinned;
+        }
+        DeclaredType targetAsHeadDt = (DeclaredType) targetAsHead;
+        List<? extends TypeMirror> targetArgs = targetAsHeadDt
+                .getTypeArguments();
+
+        for (TypeParameterElement extra : extraTypeParams) {
+            String name = extra.getSimpleName().toString();
+            Integer pos = extraPositions.get(name);
+            if (pos == null || pos >= targetArgs.size()) {
+                continue;
+            }
+            TypeMirror actual = targetArgs.get(pos);
+            if (actual.getKind() == TypeKind.TYPEVAR) {
+                continue; // not concrete — leave free
+            }
+            if (actual.getKind() == TypeKind.DECLARED
+                    || actual.getKind() == TypeKind.ARRAY) {
+                pinned.put(name, actual);
+            }
+        }
+        return pinned;
+    }
+
+    private TypeMirror findInstanceOf(TypeMirror tm, TypeMirror targetErasure) {
+        if (tm == null || tm.getKind() != TypeKind.DECLARED) {
+            return null;
+        }
+        if (processingEnv.getTypeUtils().isSameType(
+                processingEnv.getTypeUtils().erasure(tm), targetErasure)) {
+            return tm;
+        }
+        for (TypeMirror sup : processingEnv.getTypeUtils().directSupertypes(tm)) {
+            TypeMirror result = findInstanceOf(sup, targetErasure);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Render the target as a fully-qualified type expression. If the target
+     * declares type parameters of its own, substitute them positionally with
+     * the locator's free extras (which is the right thing for {@code Grid<T>}
+     * and {@code ComboBox<T>} where the tester forwards its row/value type).
+     */
+    private String renderTargetTypeExpr(TypeElement target,
+            List<TypeParameterElement> freeExtras) {
+        String fqn = target.getQualifiedName().toString();
+        List<? extends TypeParameterElement> targetTps = target
+                .getTypeParameters();
+        if (targetTps.isEmpty()) {
+            return fqn;
+        }
+        StringBuilder sb = new StringBuilder(fqn);
+        sb.append('<');
+        for (int i = 0; i < targetTps.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            if (i < freeExtras.size()) {
+                sb.append(freeExtras.get(i).getSimpleName());
+            } else {
+                sb.append('?');
+            }
+        }
+        sb.append('>');
+        return sb.toString();
     }
 
     /**
@@ -365,21 +576,20 @@ public class LocatorProcessor extends AbstractProcessor {
         return false;
     }
 
-    private String renderDelegate(ExecutableElement m, String testerSimple,
-            String pkg, String componentTypeExpr,
-            List<? extends TypeParameterElement> testerTypeParams) {
+    private String renderDelegate(ExecutableElement m, String testerCtor,
+            Map<String, String> subst) {
         StringBuilder sb = new StringBuilder();
         // Method type parameters
         if (!m.getTypeParameters().isEmpty()) {
             sb.append("    public <");
             sb.append(m.getTypeParameters().stream()
-                    .map(this::renderTypeParam)
+                    .map(tp -> renderTypeParamWithSubst(tp, subst))
                     .collect(Collectors.joining(", ")));
             sb.append("> ");
         } else {
             sb.append("    public ");
         }
-        sb.append(typeExpr(m.getReturnType())).append(' ')
+        sb.append(typeExpr(m.getReturnType(), subst)).append(' ')
                 .append(m.getSimpleName()).append('(');
         // Parameters
         List<? extends VariableElement> params = m.getParameters();
@@ -387,8 +597,8 @@ public class LocatorProcessor extends AbstractProcessor {
         for (int i = 0; i < params.size(); i++) {
             VariableElement p = params.get(i);
             String pType = m.isVarArgs() && i == params.size() - 1
-                    ? varargTypeExpr(p.asType())
-                    : typeExpr(p.asType());
+                    ? varargTypeExpr(p.asType(), subst)
+                    : typeExpr(p.asType(), subst);
             if (i > 0) {
                 sb.append(", ");
                 paramNames.append(", ");
@@ -401,22 +611,18 @@ public class LocatorProcessor extends AbstractProcessor {
         // Throws clause
         if (!m.getThrownTypes().isEmpty()) {
             sb.append(" throws ");
-            sb.append(m.getThrownTypes().stream().map(this::typeExpr)
+            sb.append(m.getThrownTypes().stream()
+                    .map(t -> typeExpr(t, subst))
                     .collect(Collectors.joining(", ")));
         }
         sb.append(" {\n");
         // Body
-        String testerCtorArgs = "component()";
         sb.append("        ");
         if (m.getReturnType().getKind() != TypeKind.VOID) {
             sb.append("return ");
         }
-        sb.append("new ").append(pkg).append('.').append(testerSimple)
-                .append(diamond(testerTypeParams)).append('(')
-                .append(testerCtorArgs).append(").");
+        sb.append("new ").append(testerCtor).append("(component()).");
         if (!m.getTypeParameters().isEmpty()) {
-            // Forward method-level type args explicitly so type inference is
-            // not required at the delegate call site.
             sb.append('<');
             sb.append(m.getTypeParameters().stream()
                     .map(tp -> tp.getSimpleName().toString())
@@ -426,6 +632,20 @@ public class LocatorProcessor extends AbstractProcessor {
         sb.append(m.getSimpleName()).append('(').append(paramNames)
                 .append(");\n");
         sb.append("    }\n\n");
+        return sb.toString();
+    }
+
+    private String renderTypeParamWithSubst(TypeParameterElement tp,
+            Map<String, String> subst) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(tp.getSimpleName());
+        List<? extends TypeMirror> bounds = tp.getBounds();
+        if (!bounds.isEmpty()
+                && !bounds.get(0).toString().equals("java.lang.Object")) {
+            sb.append(" extends ");
+            sb.append(bounds.stream().map(t -> typeExpr(t, subst))
+                    .collect(Collectors.joining(" & ")));
+        }
         return sb.toString();
     }
 
@@ -464,38 +684,104 @@ public class LocatorProcessor extends AbstractProcessor {
 
     /**
      * Produces the argument passed to {@code super(...)} when constructing a
-     * locator. For raw or non-generic component types this is just
-     * {@code ComponentClass.class}. For generic component types we use a raw
-     * class literal cast to the parameterized type (no runtime concern — the
-     * cast is for the compiler).
+     * locator. For non-generic targets this is just {@code Target.class}; for
+     * targets that have type parameters not all pinned by the locator, we use
+     * a raw class literal cast (the cast is compile-time only).
      */
-    private String renderSuperArg(TypeMirror componentTypeMirror,
-            List<TypeParameterElement> extraTypeParams) {
-        String erasedExpr = typeExpr(
-                processingEnv.getTypeUtils().erasure(componentTypeMirror));
-        if (extraTypeParams.isEmpty()) {
-            return erasedExpr + ".class";
+    private String renderSuperArg(TypeElement target,
+            List<TypeParameterElement> freeExtras) {
+        String fqn = target.getQualifiedName().toString();
+        if (target.getTypeParameters().isEmpty() && freeExtras.isEmpty()) {
+            return fqn + ".class";
         }
-        // (Class) ComponentClass.class — cast is fine at compile time
-        return "(java.lang.Class) " + erasedExpr + ".class";
+        if (target.getTypeParameters().isEmpty()) {
+            // Target itself is non-generic but we are still parameterizing the
+            // locator with free extras. Plain class literal still works.
+            return fqn + ".class";
+        }
+        return "(java.lang.Class) " + fqn + ".class";
+    }
+
+    /**
+     * Render a type mirror, substituting any tester-private type variables
+     * with their pinned concrete types via {@code subst}.
+     */
+    private String typeExpr(TypeMirror tm, Map<String, String> subst) {
+        if (subst == null || subst.isEmpty()) {
+            return tm.toString();
+        }
+        return new SubstitutingTypeRenderer(subst).visit(tm);
     }
 
     private String typeExpr(TypeMirror tm) {
-        // TypeMirror.toString() produces a fully-qualified form for declared
-        // types, and reuses type variable names verbatim. Good enough for
-        // generated code.
         return tm.toString();
     }
 
-    private String varargTypeExpr(TypeMirror tm) {
-        // The last vararg parameter type is an ArrayType in the model; convert
-        // back to T... form so callers can keep using varargs at the source
-        // level.
-        String s = tm.toString();
+    private String varargTypeExpr(TypeMirror tm, Map<String, String> subst) {
+        String s = typeExpr(tm, subst);
         if (s.endsWith("[]")) {
             return s.substring(0, s.length() - 2) + "...";
         }
         return s;
+    }
+
+    /**
+     * Type renderer that substitutes tester-private type variables with their
+     * pinned concrete types. Used so a method like {@code setValue(V)} on the
+     * tester becomes {@code setValue(String)} on a {@code TextField} locator.
+     */
+    private static final class SubstitutingTypeRenderer
+            extends SimpleTypeVisitor14<String, Void> {
+
+        private final Map<String, String> subst;
+
+        SubstitutingTypeRenderer(Map<String, String> subst) {
+            this.subst = subst;
+        }
+
+        @Override
+        public String visitTypeVariable(TypeVariable t, Void unused) {
+            String name = t.asElement().getSimpleName().toString();
+            return subst.getOrDefault(name, name);
+        }
+
+        @Override
+        public String visitDeclared(DeclaredType t, Void unused) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(((TypeElement) t.asElement()).getQualifiedName());
+            if (!t.getTypeArguments().isEmpty()) {
+                sb.append('<');
+                sb.append(t.getTypeArguments().stream()
+                        .map(arg -> arg.accept(this, null))
+                        .collect(Collectors.joining(", ")));
+                sb.append('>');
+            }
+            return sb.toString();
+        }
+
+        @Override
+        public String visitArray(javax.lang.model.type.ArrayType t, Void v) {
+            return t.getComponentType().accept(this, null) + "[]";
+        }
+
+        @Override
+        public String visitWildcard(javax.lang.model.type.WildcardType t, Void v) {
+            StringBuilder sb = new StringBuilder("?");
+            if (t.getExtendsBound() != null) {
+                sb.append(" extends ")
+                        .append(t.getExtendsBound().accept(this, null));
+            }
+            if (t.getSuperBound() != null) {
+                sb.append(" super ")
+                        .append(t.getSuperBound().accept(this, null));
+            }
+            return sb.toString();
+        }
+
+        @Override
+        protected String defaultAction(TypeMirror t, Void v) {
+            return t.toString();
+        }
     }
 
     private String componentSimpleName(TypeMirror tm) {

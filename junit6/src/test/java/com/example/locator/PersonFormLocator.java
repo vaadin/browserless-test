@@ -38,10 +38,8 @@ public class PersonFormLocator extends Locator<PersonForm, PersonFormLocator> {
     }
 
     public PersonFormLocator fillIn(String name, String email) {
-        new TextFieldLocator<String>(String.class).withId("pf-name")
-                .inside(this).setValue(name);
-        new TextFieldLocator<String>(String.class).withId("pf-email")
-                .inside(this).setValue(email);
+        new TextFieldLocator().withId("pf-name").inside(this).setValue(name);
+        new TextFieldLocator().withId("pf-email").inside(this).setValue(email);
         return this;
     }
 
