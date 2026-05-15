@@ -139,6 +139,15 @@
                         <goals>
                             <goal>compile</goal>
                         </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.vaadin</groupId>
+                                    <artifactId>browserless-test-locator-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>java-test-compile</id>

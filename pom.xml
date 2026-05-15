@@ -24,6 +24,7 @@
     </licenses>
 
     <modules>
+        <module>locator-processor</module>
         <module>shared</module>
         <module>junit6</module>
         <module>spring</module>

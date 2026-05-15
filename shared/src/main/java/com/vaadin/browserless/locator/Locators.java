@@ -17,56 +17,23 @@ package com.vaadin.browserless.locator;
 
 import java.util.function.Supplier;
 
-import com.vaadin.flow.component.button.ButtonLocator;
-import com.vaadin.flow.component.grid.GridLocator;
-import com.vaadin.flow.component.textfield.TextFieldLocator;
-
 /**
- * Prototype mixin offering typed entry points for the {@code get*} tester API.
+ * Mixin offering typed entry points for the {@code get*} tester API.
  * <p>
- * Mixed into test base classes and context objects so that tests can write
- * {@code getButton().withCaption("Save").click()} without naming a
- * {@code Class.class} token or wrapping a component instance with
- * {@code test(...)}.
- * <p>
- * The prototype exposes a small set of component types (Button, TextField,
- * Grid). The end state would auto-generate an entry method per registered
- * tester via an annotation processor.
+ * Most entry points come from {@link GeneratedLocators}, which is emitted by
+ * the locator annotation processor at build time. This interface adds the
+ * generic {@link #get(Supplier)} for user-defined locators and the
+ * {@link #activateLocatorContext()} hook that context-bound implementations
+ * (e.g. {@code BrowserlessUIContext}) override.
  */
-public interface Locators {
+public interface Locators extends GeneratedLocators {
 
     /**
-     * Hook for context-bound implementations (e.g.
-     * {@code BrowserlessUIContext}) to install Vaadin thread-locals before a
-     * locator is built. The default is a no-op so plain test base classes work
-     * out of the box.
+     * Hook for context-bound implementations to install Vaadin thread-locals
+     * before a locator is built. Default is a no-op.
      */
+    @Override
     default void activateLocatorContext() {
-    }
-
-    /** Locator for a {@link com.vaadin.flow.component.button.Button}. */
-    default ButtonLocator getButton() {
-        activateLocatorContext();
-        return new ButtonLocator();
-    }
-
-    /** Locator for a {@link com.vaadin.flow.component.textfield.TextField}. */
-    default TextFieldLocator getTextField() {
-        activateLocatorContext();
-        return new TextFieldLocator();
-    }
-
-    /**
-     * Locator for a {@link com.vaadin.flow.component.grid.Grid} carrying items
-     * of the given value type.
-     *
-     * @param valueType
-     *            the item type of the grid; serves as a type witness so the
-     *            returned locator can expose typed row accessors
-     */
-    default <V> GridLocator<V> getGrid(Class<V> valueType) {
-        activateLocatorContext();
-        return new GridLocator<>(valueType);
     }
 
     /**
@@ -77,12 +44,6 @@ public interface Locators {
      * <pre>
      * window.get(CheckoutFormLocator::new).withId("checkout").submit();
      * </pre>
-     *
-     * @param factory
-     *            constructor reference (or any supplier) for the user locator
-     * @param <L>
-     *            the user locator type
-     * @return a fresh locator instance
      */
     default <L extends Locator<?, L>> L get(Supplier<L> factory) {
         activateLocatorContext();
