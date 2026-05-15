@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.browserless.internal.ShortcutsKt;
+import com.vaadin.browserless.locator.Locators;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -58,7 +60,8 @@ import com.vaadin.flow.server.VaadinSession;
  * @see BrowserlessUserContext#newWindow()
  * @see BrowserlessApplicationContext
  */
-public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
+public class BrowserlessUIContext
+        implements TesterWrappers, Locators, AutoCloseable {
 
     private static final ThreadLocal<BrowserlessUIContext> activeContext = new ThreadLocal<>();
 
@@ -427,6 +430,11 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
             return mockPage.getOpenedWindows();
         }
         return Map.of();
+    }
+
+    @Override
+    public void activateLocatorContext() {
+        activate();
     }
 
     /**
