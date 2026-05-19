@@ -71,10 +71,6 @@ class LocatorApiTest {
             window.findTextField().withId("name").setValue("X");
             window.findButton().withCaption("Clear").click();
 
-            String print = PrettyPrintTree.Companion.ofVaadin(UI.getCurrent())
-                    .print();
-            System.out.println(print);
-
             Assertions.assertEquals("", window.findTextField().withId("name")
                     .component().getValue());
         }
