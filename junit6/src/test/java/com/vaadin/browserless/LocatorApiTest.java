@@ -55,8 +55,11 @@ class LocatorApiTest {
             window.findTextField().withId("name").setValue("World");
             window.findButton().withCaption("Save").click();
 
+            // getText() is inherited via SpanTester -> HtmlClickContainer ->
+            // HtmlContainerTester. The processor walks the supertype chain, so
+            // inherited tester methods become locator delegates too.
             Assertions.assertEquals("Saved: World",
-                    window.findSpan().withId("echo").getComponent().getText());
+                    window.findSpan().withId("echo").getText());
         }
     }
 

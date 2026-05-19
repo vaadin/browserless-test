@@ -31,10 +31,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.SimpleTypeVisitor14;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,11 +96,11 @@ public class LocatorProcessor extends AbstractProcessor {
      * resolution + usability surface) or to the locator's own filter chain.
      * <p>
      * {@code click}, {@code middleClick} and {@code rightClick} are
-     * <em>not</em> skipped: when a tester declares its own override of these
-     * (custom behavior), we want the delegate to be generated, not silently
-     * dropped. When a tester doesn't declare them, the locator inherits them
-     * from {@code com.vaadin.browserless.Clickable} as before, since we only
-     * iterate methods declared directly on the tester.
+     * <em>not</em> skipped: a tester override is delegated like any other
+     * method, and when no tester in the chain declares them the locator picks
+     * them up from its own {@code implements Clickable<C>}. The supertype walk
+     * below stops at {@code ComponentTester}, so {@code Clickable}'s
+     * interface-level defaults are never harvested as delegates.
      */
     private static final Set<String> METHOD_SKIP_LIST = Set.of("getComponent",
             "isUsable", "setModal", "find", "ensureComponentIsUsable");
@@ -254,23 +257,22 @@ public class LocatorProcessor extends AbstractProcessor {
         String testerCtor = testerPkg + "." + testerSimple
                 + (tester.getTypeParameters().isEmpty() ? "" : testerTypeArgs);
 
-        // Method delegates
+        // Method delegates: walk the supertype chain so methods declared on
+        // intermediate base testers (e.g. HtmlContainerTester.getText()) show
+        // up on the locator too. Leaf overrides win on signature collision.
+        // Stops at ComponentTester so its base-machinery members (and the
+        // Clickable interface defaults it inherits) are not delegated.
         StringBuilder methodSrc = new StringBuilder();
-        for (Element member : tester.getEnclosedElements()) {
-            if (member.getKind() != ElementKind.METHOD) {
-                continue;
-            }
-            ExecutableElement m = (ExecutableElement) member;
-            if (!m.getModifiers().contains(Modifier.PUBLIC)) {
-                continue;
-            }
-            if (m.getModifiers().contains(Modifier.STATIC)) {
-                continue;
-            }
-            if (METHOD_SKIP_LIST.contains(m.getSimpleName().toString())) {
-                continue;
-            }
-            methodSrc.append(renderDelegate(m, tester, testerCtor, subst));
+        Types types = processingEnv.getTypeUtils();
+        TypeElement componentTesterEl = processingEnv.getElementUtils()
+                .getTypeElement(COMPONENT_TESTER_FQN);
+        DeclaredType testerType = (DeclaredType) tester.asType();
+        LinkedHashMap<String, ExecutableElement> inherited = new LinkedHashMap<>();
+        collectDelegateMethods(tester, componentTesterEl, inherited);
+        for (ExecutableElement m : inherited.values()) {
+            ExecutableType resolved = (ExecutableType) types
+                    .asMemberOf(testerType, m);
+            methodSrc.append(renderDelegate(m, resolved, testerCtor, subst));
         }
 
         // Constructor: takes Class<V> witnesses only for the free extras. The
@@ -605,10 +607,68 @@ public class LocatorProcessor extends AbstractProcessor {
         return false;
     }
 
-    private String renderDelegate(ExecutableElement m, TypeElement tester,
+    /**
+     * Walk the tester's superclass chain (stopping at {@code ComponentTester}
+     * and {@code Object}), collecting methods eligible for delegation. Leaf
+     * classes are visited first, so an inherited method whose erased signature
+     * matches a leaf override is skipped — the leaf's version wins.
+     */
+    private void collectDelegateMethods(TypeElement type,
+            TypeElement componentTesterEl,
+            LinkedHashMap<String, ExecutableElement> collected) {
+        if (type == null
+                || type.getQualifiedName().contentEquals("java.lang.Object")) {
+            return;
+        }
+        Types types = processingEnv.getTypeUtils();
+        if (componentTesterEl != null
+                && types.isSameType(types.erasure(type.asType()),
+                        types.erasure(componentTesterEl.asType()))) {
+            return;
+        }
+        for (Element member : type.getEnclosedElements()) {
+            if (member.getKind() != ElementKind.METHOD) {
+                continue;
+            }
+            ExecutableElement m = (ExecutableElement) member;
+            if (!m.getModifiers().contains(Modifier.PUBLIC)) {
+                continue;
+            }
+            if (m.getModifiers().contains(Modifier.STATIC)) {
+                continue;
+            }
+            if (METHOD_SKIP_LIST.contains(m.getSimpleName().toString())) {
+                continue;
+            }
+            collected.putIfAbsent(erasedSignatureKey(m), m);
+        }
+        TypeMirror sup = type.getSuperclass();
+        if (sup != null && sup.getKind() == TypeKind.DECLARED) {
+            collectDelegateMethods(
+                    (TypeElement) ((DeclaredType) sup).asElement(),
+                    componentTesterEl, collected);
+        }
+    }
+
+    private String erasedSignatureKey(ExecutableElement m) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(m.getSimpleName()).append('(');
+        List<? extends VariableElement> params = m.getParameters();
+        for (int i = 0; i < params.size(); i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(processingEnv.getTypeUtils()
+                    .erasure(params.get(i).asType()));
+        }
+        sb.append(')');
+        return sb.toString();
+    }
+
+    private String renderDelegate(ExecutableElement m, ExecutableType resolved,
             String testerCtor, Map<String, String> subst) {
         StringBuilder sb = new StringBuilder();
-        sb.append(renderJavadoc(m, tester));
+        sb.append(renderJavadoc(m));
         // Method type parameters
         if (!m.getTypeParameters().isEmpty()) {
             sb.append("    public <");
@@ -619,16 +679,21 @@ public class LocatorProcessor extends AbstractProcessor {
         } else {
             sb.append("    public ");
         }
-        sb.append(typeExpr(m.getReturnType(), subst)).append(' ')
+        sb.append(typeExpr(resolved.getReturnType(), subst)).append(' ')
                 .append(m.getSimpleName()).append('(');
-        // Parameters
+        // Parameters: take names from the element, types from the resolved
+        // ExecutableType so type variables inherited from intermediate base
+        // testers are rebound through the leaf tester's declaration.
         List<? extends VariableElement> params = m.getParameters();
+        List<? extends TypeMirror> resolvedParams = resolved
+                .getParameterTypes();
         StringBuilder paramNames = new StringBuilder();
         for (int i = 0; i < params.size(); i++) {
             VariableElement p = params.get(i);
+            TypeMirror pt = resolvedParams.get(i);
             String pType = m.isVarArgs() && i == params.size() - 1
-                    ? varargTypeExpr(p.asType(), subst)
-                    : typeExpr(p.asType(), subst);
+                    ? varargTypeExpr(pt, subst)
+                    : typeExpr(pt, subst);
             if (i > 0) {
                 sb.append(", ");
                 paramNames.append(", ");
@@ -639,15 +704,16 @@ public class LocatorProcessor extends AbstractProcessor {
         }
         sb.append(')');
         // Throws clause
-        if (!m.getThrownTypes().isEmpty()) {
+        if (!resolved.getThrownTypes().isEmpty()) {
             sb.append(" throws ");
-            sb.append(m.getThrownTypes().stream().map(t -> typeExpr(t, subst))
+            sb.append(resolved.getThrownTypes().stream()
+                    .map(t -> typeExpr(t, subst))
                     .collect(Collectors.joining(", ")));
         }
         sb.append(" {\n");
         // Body
         sb.append("        ");
-        if (m.getReturnType().getKind() != TypeKind.VOID) {
+        if (resolved.getReturnType().getKind() != TypeKind.VOID) {
             sb.append("return ");
         }
         sb.append("new ").append(testerCtor).append("(component()).");
@@ -664,8 +730,9 @@ public class LocatorProcessor extends AbstractProcessor {
         return sb.toString();
     }
 
-    private String renderJavadoc(ExecutableElement m, TypeElement tester) {
-        String linkRef = buildLinkRef(m, tester);
+    private String renderJavadoc(ExecutableElement m) {
+        TypeElement declaring = (TypeElement) m.getEnclosingElement();
+        String linkRef = buildLinkRef(m, declaring);
         String doc = processingEnv.getElementUtils().getDocComment(m);
 
         StringBuilder sb = new StringBuilder();
