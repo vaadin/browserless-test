@@ -103,7 +103,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component to have none of the given CSS class names. */
+    /**
+     * Requires the matched component to have none of the given CSS class names.
+     */
     public SELF withoutClassName(String... className) {
         invalidate();
         query.withoutClassName(className);
@@ -149,8 +151,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Requires the matched component not to have the given attribute value
-     * (or not to have the attribute at all).
+     * Requires the matched component not to have the given attribute value (or
+     * not to have the attribute at all).
      */
     public SELF withoutAttribute(String attribute, String value) {
         invalidate();
@@ -159,8 +161,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Requires the matched component to implement {@code HasValue} and to
-     * have the given value. Has no effect when {@code expectedValue} is
+     * Requires the matched component to implement {@code HasValue} and to have
+     * the given value. Has no effect when {@code expectedValue} is
      * {@code null}.
      */
     public <V> SELF withValue(V expectedValue) {

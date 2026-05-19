@@ -23,9 +23,9 @@ package com.vaadin.browserless.locator;
  * commercial classes onto the compilation classpath — mirroring the existing
  * {@code TesterWrappers} / {@code CommercialTesterWrappers} split.
  * <p>
- * Most entries come from {@link GeneratedCommercialLocators}, which is
- * emitted by the locator annotation processor. Mix this into your own context
- * subclass or test class when you depend on commercial Vaadin components.
+ * Most entries come from {@link GeneratedCommercialLocators}, which is emitted
+ * by the locator annotation processor. Mix this into your own context subclass
+ * or test class when you depend on commercial Vaadin components.
  */
 public interface CommercialLocators
         extends Locators, GeneratedCommercialLocators {

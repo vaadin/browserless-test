@@ -82,9 +82,8 @@ public class LocatorProcessor extends AbstractProcessor {
 
     /**
      * Public methods that we never delegate from the locator. These belong to
-     * the {@code ComponentTester} base machinery (the locator provides its
-     * own resolution + usability surface) or to the locator's own filter
-     * chain.
+     * the {@code ComponentTester} base machinery (the locator provides its own
+     * resolution + usability surface) or to the locator's own filter chain.
      * <p>
      * {@code click}, {@code middleClick} and {@code rightClick} are
      * <em>not</em> skipped: when a tester declares its own override of these
@@ -825,12 +824,12 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Resolve the entry-point FQN from a processor option, falling back to
-     * the framework default. When the option is unset AND the default FQN
-     * already exists on the classpath, the interface is not written — this is
-     * the "end-user build pulling in shared.jar" scenario, where overwriting
-     * the framework interface would lose all the upstream entry methods. We
-     * emit a clear warning so the user knows to set the option.
+     * Resolve the entry-point FQN from a processor option, falling back to the
+     * framework default. When the option is unset AND the default FQN already
+     * exists on the classpath, the interface is not written — this is the
+     * "end-user build pulling in shared.jar" scenario, where overwriting the
+     * framework interface would lose all the upstream entry methods. We emit a
+     * clear warning so the user knows to set the option.
      */
     private void writeEntryPointIfConfigured(String optionKey,
             String defaultFqn, List<Entry> entriesToWrite) {
@@ -838,8 +837,8 @@ public class LocatorProcessor extends AbstractProcessor {
         String fqn = configured != null && !configured.isBlank() ? configured
                 : defaultFqn;
         boolean usingDefault = configured == null || configured.isBlank();
-        if (usingDefault
-                && processingEnv.getElementUtils().getTypeElement(fqn) != null) {
+        if (usingDefault && processingEnv.getElementUtils()
+                .getTypeElement(fqn) != null) {
             note(Diagnostic.Kind.WARNING,
                     fqn + " is already on the classpath; skipping generation."
                             + " To emit a project-specific entry-point"
@@ -849,8 +848,8 @@ public class LocatorProcessor extends AbstractProcessor {
         }
         int lastDot = fqn.lastIndexOf('.');
         if (lastDot < 0) {
-            note(Diagnostic.Kind.ERROR, "Entry-point FQN must be qualified: "
-                    + fqn);
+            note(Diagnostic.Kind.ERROR,
+                    "Entry-point FQN must be qualified: " + fqn);
             return;
         }
         writeInterface(fqn.substring(0, lastDot), fqn.substring(lastDot + 1),
@@ -867,8 +866,8 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     private boolean isCommercial(Entry e, List<String> prefixes) {
-        return prefixes.stream().anyMatch(p -> e.pkg.equals(p)
-                || e.pkg.startsWith(p + "."));
+        return prefixes.stream()
+                .anyMatch(p -> e.pkg.equals(p) || e.pkg.startsWith(p + "."));
     }
 
     private void writeInterface(String pkg, String simpleName,

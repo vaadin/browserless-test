@@ -131,7 +131,8 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.find(PersonFormLocator::new).fillIn("Ada", "ada@example.com");
+            window.find(PersonFormLocator::new).fillIn("Ada",
+                    "ada@example.com");
             window.find(PersonFormLocator::new).submit();
 
             Assertions.assertEquals("Submitted: Ada <ada@example.com>",
@@ -147,12 +148,12 @@ class LocatorApiTest {
 
             // withAttribute — every component with an id has the "id"
             // attribute set on its element.
-            Assertions.assertTrue(
-                    window.findTextField().withAttribute("id", "name").exists());
+            Assertions.assertTrue(window.findTextField()
+                    .withAttribute("id", "name").exists());
 
             // withCondition — typed predicate against the matched type.
-            window.findButton()
-                    .withCondition(b -> "Save".equals(b.getText())).click();
+            window.findButton().withCondition(b -> "Save".equals(b.getText()))
+                    .click();
             Assertions.assertEquals("Saved: ",
                     window.findSpan().withId("echo").component().getText());
         }
@@ -171,8 +172,8 @@ class LocatorApiTest {
                     .click();
 
             // Save button was untouched; Clear emptied the name field.
-            Assertions.assertEquals("",
-                    window.findTextField().withId("name").component().getValue());
+            Assertions.assertEquals("", window.findTextField().withId("name")
+                    .component().getValue());
         }
     }
 
@@ -188,8 +189,8 @@ class LocatorApiTest {
             bob.findTextField().withId("name").setValue("bob-value");
 
             // Each window's locator targets its own UI; values do not leak.
-            Assertions.assertEquals("alice-value",
-                    alice.findTextField().withId("name").component().getValue());
+            Assertions.assertEquals("alice-value", alice.findTextField()
+                    .withId("name").component().getValue());
             Assertions.assertEquals("bob-value",
                     bob.findTextField().withId("name").component().getValue());
         }
