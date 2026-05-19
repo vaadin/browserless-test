@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.vaadin</groupId>
         <artifactId>vaadin-parent</artifactId>
-        <version>3.0.0</version>
+        <version>3.0.2</version>
         <relativePath />
     </parent>
     <artifactId>browserless-test</artifactId>
@@ -50,6 +50,7 @@
         <maven.javadoc.plugin.version>3.11.2</maven.javadoc.plugin.version>
         <build.helper.plugin.version>3.6.1</build.helper.plugin.version>
         <skipUnitTests>${skipTests}</skipUnitTests>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <repositories>
@@ -180,4 +181,37 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>javadocs</id>
+            <activation>
+                <property>
+                    <name>javadocs</name>
+                </property>
+            </activation>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
