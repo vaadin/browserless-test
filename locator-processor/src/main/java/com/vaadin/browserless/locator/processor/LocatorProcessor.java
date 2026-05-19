@@ -18,6 +18,7 @@ package com.vaadin.browserless.locator.processor;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedOptions;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
@@ -40,6 +41,7 @@ import javax.tools.JavaFileObject;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -61,6 +63,7 @@ import java.util.stream.Collectors;
  * complexity of import management. The output compiles cleanly, just verbosely.
  */
 @SupportedAnnotationTypes("com.vaadin.browserless.Tests")
+@SupportedOptions("locator.commercial.packages")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class LocatorProcessor extends AbstractProcessor {
 
@@ -68,6 +71,9 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
+    private static final String OPT_COMMERCIAL_PACKAGES = "locator.commercial.packages";
+    private static final List<String> DEFAULT_COMMERCIAL_PACKAGES = List
+            .of("com.vaadin.flow.component.charts");
 
     /**
      * Public methods that we never delegate from the locator. These belong to
@@ -793,8 +799,42 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     private void writeEntryPointInterface() {
-        String pkg = "com.vaadin.browserless.locator";
-        String simpleName = "GeneratedLocators";
+        List<String> commercialPrefixes = readCommercialPrefixes();
+        List<Entry> core = new ArrayList<>();
+        List<Entry> commercial = new ArrayList<>();
+        for (Entry e : entries) {
+            if (isCommercial(e, commercialPrefixes)) {
+                commercial.add(e);
+            } else {
+                core.add(e);
+            }
+        }
+        if (!core.isEmpty()) {
+            writeInterface("com.vaadin.browserless.locator", "GeneratedLocators",
+                    core);
+        }
+        if (!commercial.isEmpty()) {
+            writeInterface("com.vaadin.browserless.locator",
+                    "GeneratedCommercialLocators", commercial);
+        }
+    }
+
+    private List<String> readCommercialPrefixes() {
+        String opt = processingEnv.getOptions().get(OPT_COMMERCIAL_PACKAGES);
+        if (opt == null || opt.isBlank()) {
+            return DEFAULT_COMMERCIAL_PACKAGES;
+        }
+        return Arrays.stream(opt.split(",")).map(String::trim)
+                .filter(s -> !s.isEmpty()).collect(Collectors.toList());
+    }
+
+    private boolean isCommercial(Entry e, List<String> prefixes) {
+        return prefixes.stream().anyMatch(p -> e.pkg.equals(p)
+                || e.pkg.startsWith(p + "."));
+    }
+
+    private void writeInterface(String pkg, String simpleName,
+            List<Entry> interfaceEntries) {
         String fqn = pkg + "." + simpleName;
         try {
             JavaFileObject jfo = processingEnv.getFiler().createSourceFile(fqn);
@@ -814,7 +854,7 @@ public class LocatorProcessor extends AbstractProcessor {
                 // the same component simple name we keep the first.
                 TreeMap<String, Entry> unique = new TreeMap<>();
                 Set<String> seenMethods = new LinkedHashSet<>();
-                for (Entry e : entries) {
+                for (Entry e : interfaceEntries) {
                     String key = e.entryMethodName + "/"
                             + e.extraTypeParams.size();
                     if (seenMethods.add(key)) {
@@ -849,7 +889,7 @@ public class LocatorProcessor extends AbstractProcessor {
             }
         } catch (Exception ex) {
             note(Diagnostic.Kind.ERROR,
-                    "Failed to write GeneratedLocators: " + ex.getMessage());
+                    "Failed to write " + fqn + ": " + ex.getMessage());
         }
     }
 
