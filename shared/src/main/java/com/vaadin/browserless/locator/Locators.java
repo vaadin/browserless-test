@@ -47,6 +47,11 @@ public interface Locators extends GeneratedLocators {
      */
     default <L extends Locator<?, L>> L find(Supplier<L> factory) {
         activateLocatorContext();
-        return factory.get();
+        L locator = factory.get();
+        if (locator == null) {
+            throw new IllegalStateException(
+                    "Locators.find factory must return a non-null Locator.");
+        }
+        return locator;
     }
 }

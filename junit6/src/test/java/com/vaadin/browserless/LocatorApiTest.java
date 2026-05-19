@@ -202,6 +202,39 @@ class LocatorApiTest {
     }
 
     @Test
+    void filterChain_escapeHatch_nullReturnThrows() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // Returning null from the operator is a contract violation —
+            // fail loudly rather than silently dropping the operator's
+            // intent.
+            IllegalStateException ex = Assertions.assertThrows(
+                    IllegalStateException.class,
+                    () -> window.findButton().with(q -> null));
+            Assertions.assertTrue(ex.getMessage().contains("non-null"),
+                    "message should explain the contract: " + ex.getMessage());
+        }
+    }
+
+    @Test
+    void findSupplier_nullReturnThrows() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // Same contract as Locator.with: a null Locator from the factory
+            // is a contract violation that should surface immediately.
+            IllegalStateException ex = Assertions.assertThrows(
+                    IllegalStateException.class,
+                    () -> window.find(() -> null));
+            Assertions.assertTrue(ex.getMessage().contains("non-null"),
+                    "message should explain the contract: " + ex.getMessage());
+        }
+    }
+
+    @Test
     void multiUser_locatorsRespectActiveWindow() {
         try (var app = BrowserlessApplicationContext.create(routes())) {
             var alice = app.newUser().newWindow();

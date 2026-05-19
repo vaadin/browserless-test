@@ -197,9 +197,14 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     public SELF with(UnaryOperator<ComponentQuery<C>> op) {
         invalidate();
         ComponentQuery<C> next = op.apply(query);
-        if (next != null) {
-            this.query = next;
+        if (next == null) {
+            throw new IllegalStateException(
+                    "Locator.with operator must return a non-null"
+                            + " ComponentQuery (typically by chaining filter"
+                            + " calls that return the same instance, or by"
+                            + " constructing and returning a fresh query).");
         }
+        this.query = next;
         return self();
     }
 
