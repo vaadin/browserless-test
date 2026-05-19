@@ -153,6 +153,22 @@
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
+                        <configuration>
+                            <!-- End-user-style configuration: run the locator
+                                 processor on junit6's own test sources, with
+                                 a project-specific entry-point FQN so we don't
+                                 collide with shared's GeneratedLocators. -->
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.vaadin</groupId>
+                                    <artifactId>browserless-test-locator-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>-Alocator.entrypoint.fqn=com.example.locator.AppLocators</arg>
+                            </compilerArgs>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

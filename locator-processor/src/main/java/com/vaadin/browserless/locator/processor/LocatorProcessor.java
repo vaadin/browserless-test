@@ -63,7 +63,8 @@ import java.util.stream.Collectors;
  * complexity of import management. The output compiles cleanly, just verbosely.
  */
 @SupportedAnnotationTypes("com.vaadin.browserless.Tests")
-@SupportedOptions("locator.commercial.packages")
+@SupportedOptions({ "locator.commercial.packages", "locator.entrypoint.fqn",
+        "locator.commercial.entrypoint.fqn" })
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class LocatorProcessor extends AbstractProcessor {
 
@@ -72,6 +73,10 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
     private static final String OPT_COMMERCIAL_PACKAGES = "locator.commercial.packages";
+    private static final String OPT_ENTRYPOINT_FQN = "locator.entrypoint.fqn";
+    private static final String OPT_COMMERCIAL_ENTRYPOINT_FQN = "locator.commercial.entrypoint.fqn";
+    private static final String DEFAULT_ENTRYPOINT_FQN = "com.vaadin.browserless.locator.GeneratedLocators";
+    private static final String DEFAULT_COMMERCIAL_ENTRYPOINT_FQN = "com.vaadin.browserless.locator.GeneratedCommercialLocators";
     private static final List<String> DEFAULT_COMMERCIAL_PACKAGES = List
             .of("com.vaadin.flow.component.charts");
 
@@ -810,13 +815,46 @@ public class LocatorProcessor extends AbstractProcessor {
             }
         }
         if (!core.isEmpty()) {
-            writeInterface("com.vaadin.browserless.locator", "GeneratedLocators",
-                    core);
+            writeEntryPointIfConfigured(OPT_ENTRYPOINT_FQN,
+                    DEFAULT_ENTRYPOINT_FQN, core);
         }
         if (!commercial.isEmpty()) {
-            writeInterface("com.vaadin.browserless.locator",
-                    "GeneratedCommercialLocators", commercial);
+            writeEntryPointIfConfigured(OPT_COMMERCIAL_ENTRYPOINT_FQN,
+                    DEFAULT_COMMERCIAL_ENTRYPOINT_FQN, commercial);
         }
+    }
+
+    /**
+     * Resolve the entry-point FQN from a processor option, falling back to
+     * the framework default. When the option is unset AND the default FQN
+     * already exists on the classpath, the interface is not written — this is
+     * the "end-user build pulling in shared.jar" scenario, where overwriting
+     * the framework interface would lose all the upstream entry methods. We
+     * emit a clear warning so the user knows to set the option.
+     */
+    private void writeEntryPointIfConfigured(String optionKey,
+            String defaultFqn, List<Entry> entriesToWrite) {
+        String configured = processingEnv.getOptions().get(optionKey);
+        String fqn = configured != null && !configured.isBlank() ? configured
+                : defaultFqn;
+        boolean usingDefault = configured == null || configured.isBlank();
+        if (usingDefault
+                && processingEnv.getElementUtils().getTypeElement(fqn) != null) {
+            note(Diagnostic.Kind.WARNING,
+                    fqn + " is already on the classpath; skipping generation."
+                            + " To emit a project-specific entry-point"
+                            + " interface, set -A" + optionKey
+                            + "=<your.package.YourLocators>.");
+            return;
+        }
+        int lastDot = fqn.lastIndexOf('.');
+        if (lastDot < 0) {
+            note(Diagnostic.Kind.ERROR, "Entry-point FQN must be qualified: "
+                    + fqn);
+            return;
+        }
+        writeInterface(fqn.substring(0, lastDot), fqn.substring(lastDot + 1),
+                entriesToWrite);
     }
 
     private List<String> readCommercialPrefixes() {
