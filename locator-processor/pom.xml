@@ -11,8 +11,14 @@
     <artifactId>browserless-test-locator-processor</artifactId>
     <packaging>jar</packaging>
     <name>Vaadin Browserless Test Locator Processor</name>
-    <description>Annotation processor that generates Locator classes from @Tests-annotated ComponentTester subclasses</description>
+    <description><![CDATA[
+        Annotation processor that generates Locator classes from @Tests-annotated ComponentTester subclasses.
+        This module is for internal use only and not meant to be published on Maven repositories.
+    ]]></description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
     <build>
         <plugins>
             <plugin>
