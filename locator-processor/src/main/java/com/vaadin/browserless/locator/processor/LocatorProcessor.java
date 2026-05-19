@@ -270,7 +270,7 @@ public class LocatorProcessor extends AbstractProcessor {
             if (METHOD_SKIP_LIST.contains(m.getSimpleName().toString())) {
                 continue;
             }
-            methodSrc.append(renderDelegate(m, testerCtor, subst));
+            methodSrc.append(renderDelegate(m, tester, testerCtor, subst));
         }
 
         // Constructor: takes Class<V> witnesses only for the free extras. The
@@ -605,9 +605,10 @@ public class LocatorProcessor extends AbstractProcessor {
         return false;
     }
 
-    private String renderDelegate(ExecutableElement m, String testerCtor,
-            Map<String, String> subst) {
+    private String renderDelegate(ExecutableElement m, TypeElement tester,
+            String testerCtor, Map<String, String> subst) {
         StringBuilder sb = new StringBuilder();
+        sb.append(renderJavadoc(m, tester));
         // Method type parameters
         if (!m.getTypeParameters().isEmpty()) {
             sb.append("    public <");
@@ -661,6 +662,68 @@ public class LocatorProcessor extends AbstractProcessor {
                 .append(");\n");
         sb.append("    }\n\n");
         return sb.toString();
+    }
+
+    private String renderJavadoc(ExecutableElement m, TypeElement tester) {
+        String linkRef = buildLinkRef(m, tester);
+        String doc = processingEnv.getElementUtils().getDocComment(m);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("    /**\n");
+        if (doc != null && !doc.isBlank()) {
+            // getDocComment strips the leading "*" markers but keeps a single
+            // leading space on each line; drop it before re-emitting.
+            String[] raw = doc.stripTrailing().split("\\R", -1);
+            String[] lines = new String[raw.length];
+            int firstTag = raw.length;
+            for (int i = 0; i < raw.length; i++) {
+                lines[i] = raw[i].startsWith(" ") ? raw[i].substring(1)
+                        : raw[i];
+                if (firstTag == raw.length && lines[i].startsWith("@")) {
+                    firstTag = i;
+                }
+            }
+            int descEnd = firstTag;
+            while (descEnd > 0 && lines[descEnd - 1].isEmpty()) {
+                descEnd--;
+            }
+            for (int i = 0; i < descEnd; i++) {
+                appendDocLine(sb, lines[i]);
+            }
+            if (descEnd > 0) {
+                sb.append("     *\n");
+            }
+            sb.append("     * Javadoc copied from {@link ").append(linkRef)
+                    .append("}.\n");
+            if (firstTag < raw.length) {
+                sb.append("     *\n");
+                for (int i = firstTag; i < raw.length; i++) {
+                    appendDocLine(sb, lines[i]);
+                }
+            }
+        } else {
+            sb.append("     * Delegates to {@link ").append(linkRef)
+                    .append("}.\n");
+        }
+        sb.append("     */\n");
+        return sb.toString();
+    }
+
+    private void appendDocLine(StringBuilder sb, String line) {
+        if (line.isEmpty()) {
+            sb.append("     *\n");
+        } else {
+            sb.append("     * ").append(line).append('\n');
+        }
+    }
+
+    private String buildLinkRef(ExecutableElement m, TypeElement tester) {
+        String testerFqn = tester.getQualifiedName().toString();
+        String params = m
+                .getParameters().stream().map(p -> processingEnv.getTypeUtils()
+                        .erasure(p.asType()).toString())
+                .collect(Collectors.joining(","));
+        return testerFqn + "#" + m.getSimpleName() + "(" + params + ")";
     }
 
     private String renderTypeParamWithSubst(TypeParameterElement tp,
