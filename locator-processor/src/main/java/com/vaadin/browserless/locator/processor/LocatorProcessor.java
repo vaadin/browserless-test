@@ -47,7 +47,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1079,15 +1078,38 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println("     */");
                 out.println("    void activateLocatorContext();");
                 out.println();
-                // Deduplicate by entry method signature; if two testers map to
-                // the same component simple name we keep the first.
+                // Detect collisions on (entry-method name, type-witness
+                // arity). Two locators sharing both would produce a method
+                // signature clash on the entry-point interface; the
+                // entry-method name is derived from the target's simple name,
+                // so this normally means two different @Tests targets share a
+                // simple name. Surface it as an ERROR — silently dropping the
+                // duplicate hides a real problem in either the tester set or
+                // the processor's naming scheme; one of them has to give.
                 TreeMap<String, Entry> unique = new TreeMap<>();
-                Set<String> seenMethods = new LinkedHashSet<>();
+                LinkedHashMap<String, Entry> seenMethods = new LinkedHashMap<>();
                 for (Entry e : interfaceEntries) {
                     String key = e.entryMethodName + "/"
                             + e.extraTypeParams.size();
-                    if (seenMethods.add(key)) {
+                    Entry prior = seenMethods.putIfAbsent(key, e);
+                    if (prior == null) {
                         unique.put(e.pkg + "." + e.locatorSimple, e);
+                    } else {
+                        note(Diagnostic.Kind.ERROR,
+                                "Entry-method collision: '" + e.entryMethodName
+                                        + "' with " + e.extraTypeParams.size()
+                                        + " type witness(es) is generated for"
+                                        + " both '" + prior.pkg + "."
+                                        + prior.locatorSimple + "' and '"
+                                        + e.pkg + "." + e.locatorSimple
+                                        + "'. The entry method is derived from"
+                                        + " the target component's simple name,"
+                                        + " so two @Tests targets sharing a"
+                                        + " simple name produce this clash."
+                                        + " Rename one of the targets/testers"
+                                        + " or update the processor's naming"
+                                        + " scheme; the colliding entry is"
+                                        + " dropped from " + fqn + ".");
                     }
                 }
                 for (Entry e : unique.values()) {
