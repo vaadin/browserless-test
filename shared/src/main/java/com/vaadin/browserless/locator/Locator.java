@@ -232,8 +232,18 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     /**
      * Picks the n-th match (1-based) when the filter chain yields multiple
      * matches. Without this, the default expectation is exactly one match.
+     *
+     * @throws IllegalArgumentException
+     *             if {@code index} is zero or negative — mirrors
+     *             {@link ComponentQuery#atIndex(int)}'s own contract, so the
+     *             violation is reported at the locator's filter step rather
+     *             than masked into a "single match" resolution at action time.
      */
     public SELF atIndex(int index) {
+        if (index <= 0) {
+            throw new IllegalArgumentException(
+                    "Index must be greater than zero, but was " + index);
+        }
         invalidate();
         this.pickIndex = index;
         return self();

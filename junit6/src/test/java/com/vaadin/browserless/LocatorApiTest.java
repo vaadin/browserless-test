@@ -216,6 +216,43 @@ class LocatorApiTest {
     }
 
     @Test
+    void atIndex_picksNthMatch() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // The demo view has multiple buttons (Save, Clear, plus Submit
+            // inside the PersonForm composite). atIndex is 1-based, so
+            // atIndex(2) targets Clear.
+            window.findTextField().withId("name").setValue("X");
+            window.findButton().atIndex(2).click();
+            Assertions.assertEquals("", window.findTextField().withId("name")
+                    .component().getValue());
+        }
+    }
+
+    @Test
+    void atIndex_zeroOrNegativeThrows() {
+        // No app context needed — the validation runs on the locator itself
+        // before any resolution attempt.
+        IllegalArgumentException zero = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new com.vaadin.flow.component.button.ButtonLocator()
+                        .atIndex(0));
+        Assertions.assertTrue(zero.getMessage().contains("greater than zero"),
+                "message should explain the contract: " + zero.getMessage());
+
+        IllegalArgumentException negative = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new com.vaadin.flow.component.button.ButtonLocator()
+                        .atIndex(-1));
+        Assertions.assertTrue(
+                negative.getMessage().contains("greater than zero"),
+                "message should explain the contract: "
+                        + negative.getMessage());
+    }
+
+    @Test
     void findSupplier_nullReturnThrows() {
         try (var app = BrowserlessApplicationContext.create(routes())) {
             var window = app.newUser().newWindow();
