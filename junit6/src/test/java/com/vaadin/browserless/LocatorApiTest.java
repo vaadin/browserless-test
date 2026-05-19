@@ -21,9 +21,7 @@ import com.example.locator.PersonFormLocator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 
