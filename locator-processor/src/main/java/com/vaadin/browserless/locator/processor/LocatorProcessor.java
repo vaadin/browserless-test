@@ -302,7 +302,7 @@ public class LocatorProcessor extends AbstractProcessor {
             return null;
         }
 
-        String entryMethodName = "get" + targetSimple;
+        String entryMethodName = "find" + targetSimple;
         return new Entry(pkg, locatorSimple, locatorTypeParamDecl,
                 locatorTypeParamUse, freeExtras, entryMethodName);
     }

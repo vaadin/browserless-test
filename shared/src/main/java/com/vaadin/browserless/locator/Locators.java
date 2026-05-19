@@ -18,11 +18,11 @@ package com.vaadin.browserless.locator;
 import java.util.function.Supplier;
 
 /**
- * Mixin offering typed entry points for the {@code get*} tester API.
+ * Mixin offering typed entry points for the {@code find*} tester API.
  * <p>
  * Most entry points come from {@link GeneratedLocators}, which is emitted by
  * the locator annotation processor at build time. This interface adds the
- * generic {@link #get(Supplier)} for user-defined locators and the
+ * generic {@link #find(Supplier)} for user-defined locators and the
  * {@link #activateLocatorContext()} hook that context-bound implementations
  * (e.g. {@code BrowserlessUIContext}) override.
  */
@@ -42,10 +42,10 @@ public interface Locators extends GeneratedLocators {
      * window switch) and invokes the supplied factory.
      *
      * <pre>
-     * window.get(CheckoutFormLocator::new).withId("checkout").submit();
+     * window.find(CheckoutFormLocator::new).withId("checkout").submit();
      * </pre>
      */
-    default <L extends Locator<?, L>> L get(Supplier<L> factory) {
+    default <L extends Locator<?, L>> L find(Supplier<L> factory) {
         activateLocatorContext();
         return factory.get();
     }

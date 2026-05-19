@@ -26,18 +26,18 @@ import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.UI;
 
 /**
- * Demonstrates the {@code get*} locator API. The {@code Button}, {@code
+ * Demonstrates the {@code find*} locator API. The {@code Button}, {@code
  * TextField}, {@code Grid} locator classes used here are emitted at build time
  * by the {@code LocatorProcessor} annotation processor from the existing
  * {@code @Tests}-annotated tester classes.
  * <p>
  * Although {@code TextFieldTester} is declared as {@code <T, V>}, the processor
  * pins {@code V} per {@code @Tests} target by walking the target's supertype
- * parameterization, so {@code getTextField()}, {@code getEmailField()}, etc.
- * are witness-free while {@code getBigDecimalField()} carries
+ * parameterization, so {@code findTextField()}, {@code findEmailField()}, etc.
+ * are witness-free while {@code findBigDecimalField()} carries
  * {@code BigDecimal} automatically. The remaining witnessed entry points
- * ({@code getGrid(Class<V>)}, {@code getComboBox(Class<V>)}) are testers whose
- * value type isn't pinned at the target level.
+ * ({@code findGrid(Class<V>)}, {@code findComboBox(Class<V>)}) are testers
+ * whose value type isn't pinned at the target level.
  */
 class LocatorApiTest {
 
@@ -52,11 +52,11 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField().withId("name").setValue("World");
-            window.getButton().withCaption("Save").click();
+            window.findTextField().withId("name").setValue("World");
+            window.findButton().withCaption("Save").click();
 
             Assertions.assertEquals("Saved: World",
-                    window.getSpan().withId("echo").getComponent().getText());
+                    window.findSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -66,14 +66,14 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField().withId("name").setValue("X");
-            window.getButton().withCaption("Clear").click();
+            window.findTextField().withId("name").setValue("X");
+            window.findButton().withCaption("Clear").click();
 
             String print = PrettyPrintTree.Companion.ofVaadin(UI.getCurrent())
                     .print();
             System.out.println(print);
 
-            Assertions.assertEquals("", window.getTextField().withId("name")
+            Assertions.assertEquals("", window.findTextField().withId("name")
                     .component().getValue());
         }
     }
@@ -84,8 +84,8 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.getTextField().withId("name").setValue("hello");
-            Assertions.assertEquals("hello", window.getTextField()
+            window.findTextField().withId("name").setValue("hello");
+            Assertions.assertEquals("hello", window.findTextField()
                     .withId("name").component().getValue());
         }
     }
@@ -96,10 +96,10 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            Person first = window.getGrid(Person.class).getRow(0);
+            Person first = window.findGrid(Person.class).getRow(0);
 
             Assertions.assertEquals("Alice", first.name());
-            Assertions.assertEquals(3, window.getGrid(Person.class).size());
+            Assertions.assertEquals(3, window.findGrid(Person.class).size());
         }
     }
 
@@ -109,18 +109,18 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            var save = window.getButton().withCaption("Save");
-            window.getTextField().withId("name").setValue("first");
+            var save = window.findButton().withCaption("Save");
+            window.findTextField().withId("name").setValue("first");
             save.click();
 
             // Resolution caches across calls in one chain. After a UI change
             // that could replace the component, invalidate() rewinds the
             // cache.
-            window.getTextField().withId("name").setValue("second");
+            window.findTextField().withId("name").setValue("second");
             save.invalidate().click();
 
             Assertions.assertEquals("Saved: second",
-                    window.getSpan().withId("echo").getComponent().getText());
+                    window.findSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -130,11 +130,11 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            window.get(PersonFormLocator::new).fillIn("Ada", "ada@example.com");
-            window.get(PersonFormLocator::new).submit();
+            window.find(PersonFormLocator::new).fillIn("Ada", "ada@example.com");
+            window.find(PersonFormLocator::new).submit();
 
             Assertions.assertEquals("Submitted: Ada <ada@example.com>",
-                    window.getSpan().withId("echo").getComponent().getText());
+                    window.findSpan().withId("echo").getComponent().getText());
         }
     }
 
@@ -146,14 +146,14 @@ class LocatorApiTest {
             alice.navigate(LocatorDemoView.class);
             bob.navigate(LocatorDemoView.class);
 
-            alice.getTextField().withId("name").setValue("alice-value");
-            bob.getTextField().withId("name").setValue("bob-value");
+            alice.findTextField().withId("name").setValue("alice-value");
+            bob.findTextField().withId("name").setValue("bob-value");
 
             // Each window's locator targets its own UI; values do not leak.
             Assertions.assertEquals("alice-value",
-                    alice.getTextField().withId("name").component().getValue());
+                    alice.findTextField().withId("name").component().getValue());
             Assertions.assertEquals("bob-value",
-                    bob.getTextField().withId("name").component().getValue());
+                    bob.findTextField().withId("name").component().getValue());
         }
     }
 }
