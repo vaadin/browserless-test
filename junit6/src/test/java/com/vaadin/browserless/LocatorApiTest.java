@@ -199,6 +199,56 @@ class LocatorApiTest {
     }
 
     @Test
+    void exists_truePathAndFalsePath() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            Assertions.assertTrue(
+                    window.findTextField().withId("name").exists(),
+                    "filter chain matching a real component returns true");
+            Assertions.assertFalse(
+                    window.findTextField().withId("does-not-exist").exists(),
+                    "filter chain matching nothing returns false");
+        }
+    }
+
+    @Test
+    void components_returnsAllMatchesAndKeepsLocatorReusable() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var buttons = window.findButton();
+            // Save, Clear, plus PersonForm's Submit.
+            Assertions.assertEquals(3, buttons.components().size());
+
+            // components() bypasses the single-match cache, so the same
+            // instance can still resolve a specific pick afterwards.
+            Assertions.assertEquals("Save",
+                    buttons.atIndex(1).component().getText());
+        }
+    }
+
+    @Test
+    void inside_componentOverload_scopesToDescendants() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            LocatorDemoView.PersonForm form = window
+                    .find(LocatorDemoView.PersonForm.class).single();
+
+            // Globally there are 3 buttons in the view; scoping to the
+            // form's descendants narrows the match down to the single
+            // Submit button inside the composite.
+            Assertions.assertEquals(3, window.findButton().components().size());
+            Assertions.assertEquals(1,
+                    window.findButton().inside(form).components().size());
+        }
+    }
+
+    @Test
     void filterChain_escapeHatch_nullReturnThrows() {
         try (var app = BrowserlessApplicationContext.create(routes())) {
             var window = app.newUser().newWindow();
