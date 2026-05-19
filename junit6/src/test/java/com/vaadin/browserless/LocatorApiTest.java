@@ -27,8 +27,6 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 
-import com.vaadin.browserless.ComponentQuery;
-
 /**
  * Demonstrates the {@code find*} locator API. The {@code Button}, {@code
  * TextField}, {@code Grid} locator classes used here are emitted at build time
@@ -188,16 +186,18 @@ class LocatorApiTest {
 
             window.findTextField().withId("name").setValue("Ada");
 
-            // UnaryOperator returns a fresh query — its contract is `T apply(T)`,
+            // UnaryOperator returns a fresh query — its contract is `T
+            // apply(T)`,
             // so the locator must adopt the returned instance rather than
             // discarding it. The fresh query has no caption filter; only the
             // Save button matches the original Span query state we ignore by
             // returning a new query targeting Save.
-            window.findButton().with(q -> new ComponentQuery<>(Button.class)
-                    .withCaption("Save")).click();
+            window.findButton().with(
+                    q -> new ComponentQuery<>(Button.class).withCaption("Save"))
+                    .click();
 
-            Assertions.assertEquals("Saved: Ada", window.find(Span.class)
-                    .withId("echo").single().getText());
+            Assertions.assertEquals("Saved: Ada",
+                    window.find(Span.class).withId("echo").single().getText());
         }
     }
 

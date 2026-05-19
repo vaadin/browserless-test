@@ -188,11 +188,11 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      *         .click();
      * </pre>
      *
-     * Honors the {@link UnaryOperator} contract: whatever the operator
-     * returns becomes the locator's new underlying query. {@code
+     * Honors the {@link UnaryOperator} contract: whatever the operator returns
+     * becomes the locator's new underlying query. {@code
      * ComponentQuery}'s built-in filter methods all return {@code this}, so a
-     * fluent chain just re-installs the same instance; an operator that
-     * builds and returns a fresh query replaces the prior one wholesale.
+     * fluent chain just re-installs the same instance; an operator that builds
+     * and returns a fresh query replaces the prior one wholesale.
      */
     public SELF with(UnaryOperator<ComponentQuery<C>> op) {
         invalidate();
