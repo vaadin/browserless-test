@@ -193,6 +193,11 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * ComponentQuery}'s built-in filter methods all return {@code this}, so a
      * fluent chain just re-installs the same instance; an operator that builds
      * and returns a fresh query replaces the prior one wholesale.
+     *
+     * @throws IllegalStateException if the operator returns {@code null}
+     *         instead of a {@code ComponentQuery} — the operator is expected
+     *         either to mutate and return the same instance, or to build and
+     *         return a fresh one.
      */
     public SELF with(UnaryOperator<ComponentQuery<C>> op) {
         invalidate();
