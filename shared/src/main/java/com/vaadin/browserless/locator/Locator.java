@@ -223,7 +223,15 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     /**
      * Scopes the search to descendants of the component matched by the given
-     * locator. The parent locator is resolved on demand.
+     * locator.
+     * <p>
+     * The parent is resolved <em>eagerly</em>, at the time of this call: its
+     * {@link #component()} is invoked here, and the returned reference is
+     * captured into this locator's filter chain. The child's own resolution
+     * stays lazy, but the parent reference does not change afterwards — a later
+     * {@link #invalidate()} on {@code parent} does not propagate. If you need
+     * the parent to be re-resolved on a UI change, call {@code inside(parent)}
+     * again after invalidating it.
      */
     public SELF inside(Locator<?, ?> parent) {
         return inside(parent.component());
