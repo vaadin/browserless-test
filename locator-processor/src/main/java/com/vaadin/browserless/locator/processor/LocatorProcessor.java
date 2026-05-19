@@ -877,8 +877,8 @@ public class LocatorProcessor extends AbstractProcessor {
         // a commercial module), not of the tester that wraps it. Match
         // against the target's package so a user-written commercial tester
         // located in their own package is still routed correctly.
-        return prefixes.stream().anyMatch(p -> e.targetPkg.equals(p)
-                || e.targetPkg.startsWith(p + "."));
+        return prefixes.stream().anyMatch(
+                p -> e.targetPkg.equals(p) || e.targetPkg.startsWith(p + "."));
     }
 
     private void writeInterface(String pkg, String simpleName,
