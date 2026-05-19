@@ -29,10 +29,17 @@ import com.vaadin.flow.component.Component;
  * action methods specific to the component type.
  * <p>
  * Resolution is deferred to the first action call ({@link #component()}) and
- * cached. Calling any filter method after resolution invalidates the cache so
- * the next action re-resolves. This means a single locator instance can be
- * reused across an asynchronous boundary (e.g. {@code roundTrip()}) without
- * holding on to a stale component reference.
+ * cached. Every filter method on this class auto-invalidates the cache before
+ * mutating the underlying query, so the next action re-resolves and callers
+ * never have to call {@link #invalidate()} between fluent steps. This means a
+ * single locator instance can be reused across an asynchronous boundary (e.g.
+ * {@code roundTrip()}) without holding on to a stale component reference.
+ * <p>
+ * Filters that this class does not expose directly (for example
+ * {@link ComponentQuery#withPropertyValue} or
+ * {@link ComponentQuery#withResultsSize}) are reachable through the
+ * {@link #with(UnaryOperator)} escape hatch, which lets callers compose any
+ * filter the underlying {@link ComponentQuery} supports without subclassing.
  *
  * @param <C>
  *            the component type
