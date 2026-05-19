@@ -196,10 +196,17 @@ public class LocatorProcessor extends AbstractProcessor {
         String testerPkg = processingEnv.getElementUtils().getPackageOf(tester)
                 .getQualifiedName().toString();
 
-        String pkg = processingEnv.getElementUtils().getPackageOf(target)
+        String targetPkg = processingEnv.getElementUtils().getPackageOf(target)
                 .getQualifiedName().toString();
         String targetSimple = target.getSimpleName().toString();
         String locatorSimple = targetSimple + "Locator";
+        // Locator is emitted in the tester's package, not the target's. For
+        // shared's own testers tester and target share a package, so this is a
+        // no-op. For end-user testers that target a framework component (e.g.
+        // a custom MyButtonTester @Tests(Button.class)), this avoids dropping
+        // a file into a package the user doesn't own and avoids clashing with
+        // the framework-emitted locator of the same name.
+        String pkg = testerPkg;
 
         Map<String, TypeMirror> pinned = pinExtras(tester, target,
                 extraTypeParams);
@@ -313,7 +320,7 @@ public class LocatorProcessor extends AbstractProcessor {
         }
 
         String entryMethodName = "find" + targetSimple;
-        return new Entry(pkg, locatorSimple, locatorTypeParamDecl,
+        return new Entry(pkg, targetPkg, locatorSimple, locatorTypeParamDecl,
                 locatorTypeParamUse, freeExtras, entryMethodName);
     }
 
@@ -866,8 +873,12 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     private boolean isCommercial(Entry e, List<String> prefixes) {
-        return prefixes.stream()
-                .anyMatch(p -> e.pkg.equals(p) || e.pkg.startsWith(p + "."));
+        // "Commercial" is a property of the target component (Chart lives in
+        // a commercial module), not of the tester that wraps it. Match
+        // against the target's package so a user-written commercial tester
+        // located in their own package is still routed correctly.
+        return prefixes.stream().anyMatch(p -> e.targetPkg.equals(p)
+                || e.targetPkg.startsWith(p + "."));
     }
 
     private void writeInterface(String pkg, String simpleName,
@@ -942,7 +953,7 @@ public class LocatorProcessor extends AbstractProcessor {
         return Character.toLowerCase(s.charAt(0)) + s.substring(1);
     }
 
-    private record Entry(String pkg, String locatorSimple,
+    private record Entry(String pkg, String targetPkg, String locatorSimple,
             String locatorTypeParamDecl, String locatorTypeParamUse,
             List<TypeParameterElement> extraTypeParams,
             String entryMethodName) {
