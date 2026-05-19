@@ -227,8 +227,7 @@ class LocatorApiTest {
             // Same contract as Locator.with: a null Locator from the factory
             // is a contract violation that should surface immediately.
             IllegalStateException ex = Assertions.assertThrows(
-                    IllegalStateException.class,
-                    () -> window.find(() -> null));
+                    IllegalStateException.class, () -> window.find(() -> null));
             Assertions.assertTrue(ex.getMessage().contains("non-null"),
                     "message should explain the contract: " + ex.getMessage());
         }

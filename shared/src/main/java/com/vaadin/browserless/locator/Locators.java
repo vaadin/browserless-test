@@ -45,8 +45,9 @@ public interface Locators extends GeneratedLocators {
      * window.find(CheckoutFormLocator::new).withId("checkout").submit();
      * </pre>
      *
-     * @throws IllegalStateException if the factory returns {@code null}
-     *         instead of a fresh locator instance.
+     * @throws IllegalStateException
+     *             if the factory returns {@code null} instead of a fresh
+     *             locator instance.
      */
     default <L extends Locator<?, L>> L find(Supplier<L> factory) {
         activateLocatorContext();
