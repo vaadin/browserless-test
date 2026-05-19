@@ -273,19 +273,28 @@ public class LocatorProcessor extends AbstractProcessor {
             methodSrc.append(renderDelegate(m, testerCtor, subst));
         }
 
-        // Constructor: takes Class<V> witnesses only for the free extras.
+        // Constructor: takes Class<V> witnesses only for the free extras. The
+        // raw-cast in renderSuperArg fires only when the target has its own
+        // type parameters; that's the single line that needs the unchecked
+        // /rawtypes suppression. Scope the annotation to the constructor so
+        // genuine warnings elsewhere in the generated class still surface.
         String ctor;
         String superArg = renderSuperArg(target, freeExtras);
+        boolean needsRawCast = !target.getTypeParameters().isEmpty();
+        String ctorAnno = needsRawCast
+                ? "    @SuppressWarnings({\"unchecked\", \"rawtypes\"})\n"
+                : "";
         if (freeExtras.isEmpty()) {
-            ctor = "    public " + locatorSimple + "() {\n" + "        super("
-                    + superArg + ");\n" + "    }\n";
+            ctor = ctorAnno + "    public " + locatorSimple + "() {\n"
+                    + "        super(" + superArg + ");\n" + "    }\n";
         } else {
             String params = freeExtras.stream()
                     .map(tp -> "java.lang.Class<" + tp.getSimpleName() + "> "
                             + decap(tp.getSimpleName().toString()) + "Type")
                     .collect(Collectors.joining(", "));
-            ctor = "    public " + locatorSimple + "(" + params + ") {\n"
-                    + "        super(" + superArg + ");\n" + "    }\n";
+            ctor = ctorAnno + "    public " + locatorSimple + "(" + params
+                    + ") {\n" + "        super(" + superArg + ");\n"
+                    + "    }\n";
         }
 
         String fqn = pkg + "." + locatorSimple;
@@ -300,7 +309,6 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println();
                 out.println("@javax.annotation.processing.Generated(\""
                         + LocatorProcessor.class.getName() + "\")");
-                out.println("@SuppressWarnings({\"unchecked\", \"rawtypes\"})");
                 out.println("public class " + locatorSimple
                         + locatorTypeParamDecl + " extends " + LOCATOR_FQN + "<"
                         + componentTypeExpr + ", " + selfType + "> implements "
