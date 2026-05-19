@@ -54,13 +54,20 @@ import java.util.stream.Collectors;
 /**
  * Annotation processor that walks {@code @Tests}-annotated
  * {@code ComponentTester} subclasses in the compilation unit and emits a
- * sibling {@code *Locator} class for each, plus a single
- * {@code GeneratedLocators} interface that exposes a typed
- * {@code get<ComponentName>()} entry point per locator.
+ * sibling {@code *Locator} class for each, plus one or more entry-point
+ * interfaces exposing a typed {@code find<ComponentName>()} default method per
+ * locator (one interface for core entries and an optional separate one for
+ * entries whose target lives in a configured commercial package).
  *
  * <p>
  * Generated source uses fully-qualified type names everywhere to avoid the
  * complexity of import management. The output compiles cleanly, just verbosely.
+ *
+ * <p>
+ * <strong>Internal build tool.</strong> This artifact is not published; it is
+ * consumed only by other modules in this repository. The processor options are
+ * an internal contract — break them freely if a refactor benefits, no
+ * deprecation cycle is owed to end users.
  */
 @SupportedAnnotationTypes("com.vaadin.browserless.Tests")
 @SupportedOptions({ "locator.commercial.packages", "locator.entrypoint.fqn",
@@ -89,7 +96,7 @@ public class LocatorProcessor extends AbstractProcessor {
      * <em>not</em> skipped: when a tester declares its own override of these
      * (custom behavior), we want the delegate to be generated, not silently
      * dropped. When a tester doesn't declare them, the locator inherits them
-     * from {@link com.vaadin.browserless.Clickable} as before, since we only
+     * from {@code com.vaadin.browserless.Clickable} as before, since we only
      * iterate methods declared directly on the tester.
      */
     private static final Set<String> METHOD_SKIP_LIST = Set.of("getComponent",
