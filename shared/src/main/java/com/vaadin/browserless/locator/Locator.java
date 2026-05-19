@@ -17,6 +17,7 @@ package com.vaadin.browserless.locator;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.flow.component.Component;
@@ -102,10 +103,92 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
+    /** Requires the matched component to have none of the given CSS class names. */
+    public SELF withoutClassName(String... className) {
+        invalidate();
+        query.withoutClassName(className);
+        return self();
+    }
+
+    /** Requires the matched component to have the given theme set. */
+    public SELF withTheme(String theme) {
+        invalidate();
+        query.withTheme(theme);
+        return self();
+    }
+
+    /** Requires the matched component to not have the given theme set. */
+    public SELF withoutTheme(String theme) {
+        invalidate();
+        query.withoutTheme(theme);
+        return self();
+    }
+
+    /** Requires the matched component to have the given attribute set. */
+    public SELF withAttribute(String attribute) {
+        invalidate();
+        query.withAttribute(attribute);
+        return self();
+    }
+
+    /**
+     * Requires the matched component to have the given attribute with the
+     * expected value.
+     */
+    public SELF withAttribute(String attribute, String value) {
+        invalidate();
+        query.withAttribute(attribute, value);
+        return self();
+    }
+
+    /** Requires the matched component not to have the given attribute. */
+    public SELF withoutAttribute(String attribute) {
+        invalidate();
+        query.withoutAttribute(attribute);
+        return self();
+    }
+
+    /**
+     * Requires the matched component not to have the given attribute value
+     * (or not to have the attribute at all).
+     */
+    public SELF withoutAttribute(String attribute, String value) {
+        invalidate();
+        query.withoutAttribute(attribute, value);
+        return self();
+    }
+
+    /**
+     * Requires the matched component to implement {@code HasValue} and to
+     * have the given value. Has no effect when {@code expectedValue} is
+     * {@code null}.
+     */
+    public <V> SELF withValue(V expectedValue) {
+        invalidate();
+        query.withValue(expectedValue);
+        return self();
+    }
+
     /** Requires the matched component to satisfy the given predicate. */
     public SELF withCondition(Predicate<C> condition) {
         invalidate();
         query.withCondition(condition);
+        return self();
+    }
+
+    /**
+     * Escape hatch for filters not directly exposed on Locator. Applies the
+     * given operator to the underlying {@link ComponentQuery}, letting users
+     * compose any filter the query supports without subclassing.
+     *
+     * <pre>
+     * findButton().with(q -&gt; q.withPropertyValue(Button::getText, "Save"))
+     *         .click();
+     * </pre>
+     */
+    public SELF with(UnaryOperator<ComponentQuery<C>> op) {
+        invalidate();
+        op.apply(query);
         return self();
     }
 

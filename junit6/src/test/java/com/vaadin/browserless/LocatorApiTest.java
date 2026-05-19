@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 
 /**
  * Demonstrates the {@code find*} locator API. The {@code Button}, {@code
@@ -135,6 +136,43 @@ class LocatorApiTest {
 
             Assertions.assertEquals("Submitted: Ada <ada@example.com>",
                     window.findSpan().withId("echo").getComponent().getText());
+        }
+    }
+
+    @Test
+    void filterChain_expandedSurface() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // withAttribute — every component with an id has the "id"
+            // attribute set on its element.
+            Assertions.assertTrue(
+                    window.findTextField().withAttribute("id", "name").exists());
+
+            // withCondition — typed predicate against the matched type.
+            window.findButton()
+                    .withCondition(b -> "Save".equals(b.getText())).click();
+            Assertions.assertEquals("Saved: ",
+                    window.findSpan().withId("echo").component().getText());
+        }
+    }
+
+    @Test
+    void filterChain_escapeHatch_unaryOperator() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // Use the escape hatch to compose a ComponentQuery-only filter
+            // (withPropertyValue is not exposed on Locator directly).
+            window.findButton()
+                    .with(q -> q.withPropertyValue(Button::getText, "Clear"))
+                    .click();
+
+            // Save button was untouched; Clear emptied the name field.
+            Assertions.assertEquals("",
+                    window.findTextField().withId("name").component().getValue());
         }
     }
 
