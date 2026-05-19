@@ -25,6 +25,9 @@ import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Span;
+
+import com.vaadin.browserless.ComponentQuery;
 
 /**
  * Demonstrates the {@code find*} locator API. The {@code Button}, {@code
@@ -174,6 +177,27 @@ class LocatorApiTest {
             // Save button was untouched; Clear emptied the name field.
             Assertions.assertEquals("", window.findTextField().withId("name")
                     .component().getValue());
+        }
+    }
+
+    @Test
+    void filterChain_escapeHatch_returnsDifferentQuery() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            window.findTextField().withId("name").setValue("Ada");
+
+            // UnaryOperator returns a fresh query — its contract is `T apply(T)`,
+            // so the locator must adopt the returned instance rather than
+            // discarding it. The fresh query has no caption filter; only the
+            // Save button matches the original Span query state we ignore by
+            // returning a new query targeting Save.
+            window.findButton().with(q -> new ComponentQuery<>(Button.class)
+                    .withCaption("Save")).click();
+
+            Assertions.assertEquals("Saved: Ada", window.find(Span.class)
+                    .withId("echo").single().getText());
         }
     }
 
