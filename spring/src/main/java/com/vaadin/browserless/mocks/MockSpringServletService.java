@@ -35,7 +35,7 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * <li>Provides some dummy value as a root ID via {@link #getMainDivId}
  * (otherwise the mocked servlet env will crash).</li>
  * <li>Provides a {@link MockSpringVaadinSession} instead of
- * {@link com.vaadin.flow.spring.SpringVaadinSession}.</li>
+ * {@code com.vaadin.flow.spring.SpringVaadinSession}.</li>
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
  *
