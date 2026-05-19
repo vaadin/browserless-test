@@ -70,14 +70,20 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
 
     /**
-     * Public methods declared on {@code ComponentTester} or {@code Clickable}
-     * that we never delegate from the locator. Either provided by the
-     * locator/clickable base directly or replaced by the locator's own filter
+     * Public methods that we never delegate from the locator. These belong to
+     * the {@code ComponentTester} base machinery (the locator provides its
+     * own resolution + usability surface) or to the locator's own filter
      * chain.
+     * <p>
+     * {@code click}, {@code middleClick} and {@code rightClick} are
+     * <em>not</em> skipped: when a tester declares its own override of these
+     * (custom behavior), we want the delegate to be generated, not silently
+     * dropped. When a tester doesn't declare them, the locator inherits them
+     * from {@link com.vaadin.browserless.Clickable} as before, since we only
+     * iterate methods declared directly on the tester.
      */
     private static final Set<String> METHOD_SKIP_LIST = Set.of("getComponent",
-            "isUsable", "setModal", "find", "ensureComponentIsUsable", "click",
-            "middleClick", "rightClick");
+            "isUsable", "setModal", "find", "ensureComponentIsUsable");
 
     /** Collected entries used to emit {@code GeneratedLocators}. */
     private final List<Entry> entries = new ArrayList<>();
