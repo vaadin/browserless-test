@@ -15,6 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+
 import com.example.locator.LocatorDemoView;
 import com.example.locator.LocatorDemoView.Person;
 import com.example.locator.PersonFormLocator;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 
 /**
@@ -245,6 +249,81 @@ class LocatorApiTest {
             Assertions.assertEquals(3, window.findButton().components().size());
             Assertions.assertEquals(1,
                     window.findButton().inside(form).components().size());
+        }
+    }
+
+    @Test
+    void use_seedsLocatorWithComponent_actionWorks() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            LocatorDemoView.PersonForm form = window
+                    .find(LocatorDemoView.PersonForm.class).single();
+
+            // Caller holds direct references to the composite's children —
+            // use(...) skips the filter chain and seeds the locator with
+            // each instance.
+            window.use(form.nameField).setValue("Ada");
+            window.use(form.emailField).setValue("ada@example.com");
+            window.use(form.submit).click();
+
+            Assertions.assertEquals("Submitted: Ada <ada@example.com>",
+                    window.findSpan().withId("echo").getText());
+        }
+    }
+
+    @Test
+    void use_componentAndExistsReturnSeededInstance() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            LocatorDemoView.PersonForm form = window
+                    .find(LocatorDemoView.PersonForm.class).single();
+
+            var loc = window.use(form.submit);
+            Assertions.assertSame(form.submit, loc.component());
+            Assertions.assertEquals(List.of(form.submit), loc.components());
+            Assertions.assertTrue(loc.exists());
+            // invalidate() rewinds the cache; re-resolution still matches
+            // the same instance because the identity predicate is sticky.
+            Assertions.assertSame(form.submit, loc.invalidate().component());
+        }
+    }
+
+    @Test
+    void use_additionalFilterCanExcludeSeededComponent() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            LocatorDemoView.PersonForm form = window
+                    .find(LocatorDemoView.PersonForm.class).single();
+
+            // form.submit's id is "pf-submit"; an extra withId("nope")
+            // filter composes on top of the identity predicate and excludes
+            // the only matching component.
+            var loc = window.use(form.submit).withId("nope");
+            Assertions.assertFalse(loc.exists(),
+                    "incompatible filter must zero out the seeded match");
+            Assertions.assertThrows(NoSuchElementException.class,
+                    loc::component);
+        }
+    }
+
+    @Test
+    void use_genericTarget_carriesTypeArg() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // The demo view has a single Grid<Person>. Get a typed reference
+            // via the typed find entry, then exercise use(Grid<T>) to bind
+            // the locator to that instance.
+            Grid<Person> grid = window.findGrid(Person.class).getComponent();
+            Person first = window.use(grid).getRow(0);
+            Assertions.assertEquals("Alice", first.name());
         }
     }
 

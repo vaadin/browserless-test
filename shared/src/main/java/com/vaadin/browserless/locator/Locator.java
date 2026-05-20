@@ -16,6 +16,7 @@
 package com.vaadin.browserless.locator;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
@@ -40,6 +41,18 @@ import com.vaadin.flow.component.Component;
  * {@link ComponentQuery#withResultsSize}) are reachable through the
  * {@link #with(UnaryOperator)} escape hatch, which lets callers compose any
  * filter the underlying {@link ComponentQuery} supports without subclassing.
+ * <p>
+ * <strong>Construction modes.</strong> The default constructor
+ * ({@link #Locator(Class)}) seeds an empty query that searches the active UI.
+ * Tests that already hold a direct reference to the component they want to act
+ * on can instead use the seeded-query constructor
+ * ({@link #Locator(Class, Component)}), which pre-filters the query with an
+ * identity predicate. Both modes share the same filter/resolution machinery —
+ * additional filters compose on top of the identity predicate, and a filter
+ * that excludes the seeded component just makes {@link #exists()} return
+ * {@code false} and {@link #component()} throw. Custom locator subclasses can
+ * opt in by declaring a second constructor that forwards to
+ * {@code super(Class, component)}.
  *
  * @param <C>
  *            the component type
@@ -61,6 +74,24 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      */
     protected Locator(Class<C> componentType) {
         this.query = new ComponentQuery<>(componentType);
+    }
+
+    /**
+     * Creates a locator seeded with a direct reference to the component to
+     * match. The query is pre-filtered with an identity predicate so the only
+     * resolution is the given instance; additional filter steps compose on top
+     * of it.
+     *
+     * @param componentType
+     *            the component type to match
+     * @param component
+     *            the component instance to seed the query with; must not be
+     *            {@code null}
+     */
+    protected Locator(Class<C> componentType, C component) {
+        Objects.requireNonNull(component, "component");
+        this.query = new ComponentQuery<>(componentType)
+                .withCondition(c -> c == component);
     }
 
     /** Requires the matched component to have the given id. */
