@@ -67,6 +67,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     private ComponentQuery<C> query;
     private C resolved;
     private int pickIndex;
+    private Locator<?, ?> parentLocator;
 
     /**
      * Creates a locator that searches for components of the given type from the
@@ -255,9 +256,14 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Scopes the search to descendants of the given component. */
+    /**
+     * Scopes the search to descendants of the given component. Replaces any
+     * lazy parent previously installed by {@link #inside(Locator)} with a fixed
+     * reference.
+     */
     public SELF inside(Component parent) {
         resetCache();
+        this.parentLocator = null;
         query.from(parent);
         return self();
     }
@@ -266,16 +272,30 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Scopes the search to descendants of the component matched by the given
      * locator.
      * <p>
-     * The parent is resolved <em>eagerly</em>, at the time of this call: its
-     * {@link #component()} is invoked here, and the returned reference is
-     * captured into this locator's filter chain. The child's own resolution
-     * stays lazy, but the parent reference does not change afterwards — a later
-     * {@link #invalidate()} on {@code parent} does not propagate. If you need
-     * the parent to be re-resolved on a UI change, call {@code inside(parent)}
-     * again after invalidating it.
+     * The parent is resolved <em>lazily</em>, at child-resolution time: each
+     * call to {@link #component()}, {@link #components()}, or {@link #exists()}
+     * first invokes {@code parent.component()} and installs the result as this
+     * locator's search context. A later {@link #invalidate()} on {@code parent}
+     * therefore propagates — the next child action re-resolves both. Calling
+     * {@link #inside(Component)} afterwards replaces this lazy parent with a
+     * fixed reference; calling {@code inside(Locator)} again replaces the lazy
+     * parent.
+     *
+     * @throws NullPointerException
+     *             if {@code parent} is {@code null}
+     * @throws IllegalArgumentException
+     *             if {@code parent} is this locator itself — a self-reference
+     *             would recurse indefinitely under lazy resolution
      */
     public SELF inside(Locator<?, ?> parent) {
-        return inside(parent.component());
+        Objects.requireNonNull(parent, "parent");
+        if (parent == this) {
+            throw new IllegalArgumentException(
+                    "A locator cannot scope itself inside itself");
+        }
+        resetCache();
+        this.parentLocator = parent;
+        return self();
     }
 
     /**
@@ -309,6 +329,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      */
     public C component() {
         if (resolved == null) {
+            prepareQueryContext();
             resolved = pickIndex > 0 ? query.atIndex(pickIndex)
                     : query.single();
         }
@@ -320,6 +341,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * assertions on counts without committing to a single match.
      */
     public List<C> components() {
+        prepareQueryContext();
         return query.all();
     }
 
@@ -327,6 +349,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Returns {@code true} if the filter chain matches at least one component.
      */
     public boolean exists() {
+        prepareQueryContext();
         return query.exists();
     }
 
@@ -349,6 +372,12 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     private void resetCache() {
         resolved = null;
+    }
+
+    private void prepareQueryContext() {
+        if (parentLocator != null) {
+            query.from(parentLocator.component());
+        }
     }
 
     @SuppressWarnings("unchecked")

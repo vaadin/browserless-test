@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.Routes;
+import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
@@ -249,6 +250,57 @@ class LocatorApiTest {
             Assertions.assertEquals(3, window.findButton().components().size());
             Assertions.assertEquals(1,
                     window.findButton().inside(form).components().size());
+        }
+    }
+
+    @Test
+    void inside_locatorOverload_evaluatesParentLazily() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            class CountingFormLocator extends
+                    Locator<LocatorDemoView.PersonForm, CountingFormLocator> {
+                int calls = 0;
+
+                CountingFormLocator() {
+                    super(LocatorDemoView.PersonForm.class);
+                }
+
+                @Override
+                public LocatorDemoView.PersonForm component() {
+                    calls++;
+                    return super.component();
+                }
+            }
+            var formLoc = new CountingFormLocator();
+
+            // inside(Locator) must not resolve the parent yet.
+            var childLoc = window.findButton().inside(formLoc);
+            Assertions.assertEquals(0, formLoc.calls,
+                    "inside(Locator) must defer parent resolution");
+
+            // First child action resolves the parent exactly once.
+            Assertions.assertEquals(1, childLoc.components().size());
+            Assertions.assertEquals(1, formLoc.calls);
+
+            // invalidate() on the parent propagates: the next child action
+            // re-asks the parent for its component.
+            formLoc.invalidate();
+            Assertions.assertEquals(1, childLoc.components().size());
+            Assertions.assertEquals(2, formLoc.calls);
+        }
+    }
+
+    @Test
+    void inside_locatorOverload_rejectsSelfReference() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var loc = window.findButton();
+            Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> loc.inside(loc));
         }
     }
 
