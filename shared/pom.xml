@@ -139,6 +139,15 @@
                         <goals>
                             <goal>compile</goal>
                         </goals>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.vaadin</groupId>
+                                    <artifactId>browserless-test-locator-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>java-test-compile</id>
@@ -173,6 +182,18 @@
                         <configuration>
                             <sources>
                                 <source>src/main/kotlin</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-generated-locator-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/annotations</source>
                             </sources>
                         </configuration>
                     </execution>
