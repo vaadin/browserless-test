@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 
@@ -37,9 +36,7 @@ class MultiWindowTest {
     @BeforeEach
     void setUp() {
         SharedCounterView.counter.set(0);
-        Routes routes = new Routes()
-                .autoDiscoverViews(SharedCounterView.class.getPackageName());
-        app = BrowserlessApplicationContext.create(routes);
+        app = BrowserlessApplicationContext.create(SharedCounterView.class);
     }
 
     @AfterEach

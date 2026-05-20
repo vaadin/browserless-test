@@ -30,7 +30,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.flow.component.html.Div;
 
@@ -44,10 +43,8 @@ class BrowserlessUIContextClosedTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes()
-                .autoDiscoverViews(SimpleView.class.getPackageName())
-                .autoDiscoverViews(SingleParam.class.getPackageName());
-        app = BrowserlessApplicationContext.create(routes);
+        app = BrowserlessApplicationContext.create(SimpleView.class,
+                SingleParam.class);
     }
 
     @AfterEach
@@ -111,10 +108,9 @@ class BrowserlessUIContextClosedTest {
         UIFactory throwingFactory = () -> {
             throw new IllegalStateException("simulated UI factory failure");
         };
-        BrowserlessApplicationContext failingApp = new BrowserlessApplicationContext.Builder(
-                new Routes()
-                        .autoDiscoverViews(SimpleView.class.getPackageName()))
-                .withUIFactory(throwingFactory).build();
+        BrowserlessApplicationContext failingApp = BrowserlessApplicationContext
+                .create(b -> b.withViewPackages(SimpleView.class)
+                        .withUIFactory(throwingFactory));
         BrowserlessUIContext leakedActive;
         try {
             var failingUser = failingApp.newUser();

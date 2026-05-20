@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.html.NativeButtonTester;
@@ -40,9 +39,7 @@ class BrowserlessUIContextDSLTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes()
-                .autoDiscoverViews(SignalsView.class.getPackageName());
-        app = BrowserlessApplicationContext.create(routes);
+        app = BrowserlessApplicationContext.create(SignalsView.class);
         window = app.newUser().newWindow();
     }
 

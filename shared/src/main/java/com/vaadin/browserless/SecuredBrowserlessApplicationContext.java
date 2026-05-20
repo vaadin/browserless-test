@@ -29,8 +29,8 @@ import com.vaadin.flow.server.VaadinServletService;
  * <p>
  * Extends {@link BrowserlessApplicationContext} with a configured, non-null
  * {@link SecurityContextHandler} and credential-typed {@code newUser(...)}
- * overloads for installing per-user security state. Build instances via
- * {@link BrowserlessApplicationContext#builder(Routes)} followed by
+ * overloads for installing per-user security state. Build instances via a
+ * {@link BrowserlessApplicationContext.Builder} configured with
  * {@link BrowserlessApplicationContext.Builder#withSecurityContextHandler(SecurityContextHandler)},
  * which transitions to {@link Builder} and produces this typed context.
  * <p>

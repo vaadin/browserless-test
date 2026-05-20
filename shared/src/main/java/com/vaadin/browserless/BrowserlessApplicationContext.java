@@ -159,23 +159,6 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     }
 
     /**
-     * Creates a plain Java application context with explicitly pre-discovered
-     * routes.
-     * <p>
-     * Prefer {@link #create(String...)}, {@link #create(Class...)}, or
-     * {@link #create(UnaryOperator)} for normal use; this overload is intended
-     * for advanced scenarios that need to share a {@link Routes} instance
-     * across contexts.
-     *
-     * @param routes
-     *            the discovered routes
-     * @return a new application context
-     */
-    public static BrowserlessApplicationContext create(Routes routes) {
-        return new Builder(Objects.requireNonNull(routes)).build();
-    }
-
-    /**
      * Creates a new user context representing an anonymous user session.
      * <p>
      * When a {@link SecurityContextHandler} is configured (on a

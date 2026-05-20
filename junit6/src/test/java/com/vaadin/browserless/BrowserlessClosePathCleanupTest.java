@@ -20,10 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.multiuser.SimpleView;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
@@ -36,17 +34,9 @@ import com.vaadin.flow.server.VaadinSession;
  */
 class BrowserlessClosePathCleanupTest {
 
-    private Routes routes;
-
-    @BeforeEach
-    void setUp() {
-        routes = new Routes()
-                .autoDiscoverViews(SimpleView.class.getPackageName());
-    }
-
     @Test
     void userClose_clearsVaadinRequestAndResponseThreadLocals() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var user = app.newUser();
             user.newWindow();
 
@@ -67,7 +57,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void userClose_drainsSessionAccessTasksScheduledByDestroyListeners() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var user = app.newUser();
             user.newWindow();
 
@@ -86,7 +76,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_clearsActiveContextWhenClosingTheActiveWindow() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var window = app.newUser().newWindow();
             Assertions.assertSame(window, BrowserlessUIContext.getActive(),
                     "Sanity check: newWindow activates the new window");
@@ -101,7 +91,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_clearsThreadLocalsWhenClosingTheActiveWindow() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var window = app.newUser().newWindow();
             // Sanity: thread-locals reflect the active window before close
             Assertions.assertNotNull(UI.getCurrent(),
@@ -137,8 +127,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_clearsSecurityContextWhenClosingTheActiveWindow() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
             var alice = app.newUser("alice");
             var aliceWindow = alice.newWindow();
             // Sanity: alice's snapshot is live on the thread
@@ -157,7 +146,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_clearsThreadLocalsWhenNoSurvivingActiveContext() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var user = app.newUser();
             var window1 = user.newWindow();
             var window2 = user.newWindow(); // activates window2
@@ -194,7 +183,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_leavesActiveContextAloneWhenClosingANonActiveWindow() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var user = app.newUser();
             var window1 = user.newWindow();
             var window2 = user.newWindow();
@@ -225,7 +214,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void appClose_doesNotLeakActiveContextAcrossInvocations() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             app.newUser().newWindow();
             // Sanity: window is active during the try block
             Assertions.assertNotNull(BrowserlessUIContext.getActive());
@@ -241,8 +230,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_restoresUserSecurityContextForDetachListeners() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
 
             var alice = app.newUser("alice");
             var aliceWindow = alice.newWindow();
@@ -275,7 +263,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_detachListenerSeesClosingUserRequest() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var alice = app.newUser();
             var aliceWindow = alice.newWindow();
             var aliceRequest = VaadinRequest.getCurrent();
@@ -299,8 +287,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void uiClose_nonActiveCrossUserCloseLeavesThreadCoherentWithActiveContext() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
 
             var alice = app.newUser("alice");
             var aliceWindow = alice.newWindow();
@@ -347,8 +334,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_clearsSecurityContext() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
             var user = app.newUser("alice");
             user.newWindow();
 
@@ -367,8 +353,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_destroyListenerSeesClosingUserSecurity() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
             var alice = app.newUser("alice");
             alice.newWindow();
 
@@ -394,7 +379,7 @@ class BrowserlessClosePathCleanupTest {
 
     @Test
     void uiClose_doesNotLeakLastNavigationIntoNewWindow() {
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext.create(SimpleView.class)) {
             var user = app.newUser();
             var w1 = user.newWindow();
             w1.navigate(SimpleView.class);
@@ -420,8 +405,7 @@ class BrowserlessClosePathCleanupTest {
     @Test
     void userClose_leavesActiveUserCoherentOnTheThread() {
         var handler = new CapturingSecurityHandler();
-        try (var app = new BrowserlessApplicationContext.Builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = securedAppFor(handler)) {
             var alice = app.newUser("alice");
             alice.newWindow();
 
@@ -452,6 +436,13 @@ class BrowserlessClosePathCleanupTest {
                     "Security context should still be bob's, not cleared"
                             + " by alice.close()");
         }
+    }
+
+    private static SecuredBrowserlessApplicationContext<String> securedAppFor(
+            CapturingSecurityHandler handler) {
+        return BrowserlessApplicationContext
+                .createSecured(b -> b.withViewPackages(SimpleView.class)
+                        .withSecurityContextHandler(handler));
     }
 
 }

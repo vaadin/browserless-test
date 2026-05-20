@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.signals.SignalEnvironment;
 
 /**
@@ -43,9 +42,7 @@ class SignalsContextTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes()
-                .autoDiscoverViews(SignalsView.class.getPackageName());
-        app = BrowserlessApplicationContext.create(routes);
+        app = BrowserlessApplicationContext.create(SignalsView.class);
         window = app.newUser().newWindow();
     }
 
@@ -173,8 +170,7 @@ class SignalsContextTest {
         // Re-opening a fresh context must re-install a working test
         // environment — proving the previous unregister fully released the
         // global registry.
-        app = BrowserlessApplicationContext.create(new Routes()
-                .autoDiscoverViews(SignalsView.class.getPackageName()));
+        app = BrowserlessApplicationContext.create(SignalsView.class);
         window = app.newUser().newWindow();
         var view = window.navigate(SignalsView.class);
         CompletableFuture
