@@ -988,41 +988,44 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println("     */");
                 out.println("    void activateLocatorContext();");
                 out.println();
-                // Detect collisions on (entry-method name, type-witness
-                // arity). Two locators sharing both would produce a method
-                // signature clash on the entry-point interface; the
-                // entry-method name is derived from the target's simple name,
-                // so this normally means two different @Tests targets share a
-                // simple name. Surface it as an ERROR — silently dropping the
-                // duplicate hides a real problem in either the tester set or
-                // the processor's naming scheme; one of them has to give.
+                // Detect collisions on the bare entry-method name. The name
+                // is derived from the target component's simple name, so a
+                // clash means either two @Tests targets share a simple name
+                // (across packages) or two testers target the same component
+                // — both of which the processor treats as a real problem in
+                // the tester set. Keying on the name alone (rather than name
+                // + witness arity) also catches the case where two testers
+                // for the same target differ in free type-parameter arity:
+                // their find<X>() overloads would coexist, but their use(X)
+                // companions erase to the same signature and would fail to
+                // compile. Surface it as an ERROR — silently dropping the
+                // duplicate hides a real problem; one of them has to give.
                 TreeMap<String, Entry> unique = new TreeMap<>();
                 LinkedHashMap<String, Entry> seenMethods = new LinkedHashMap<>();
                 for (Entry e : interfaceEntries) {
-                    String key = e.entryMethodName + "/"
-                            + e.extraTypeParams.size();
+                    String key = e.entryMethodName;
                     Entry prior = seenMethods.putIfAbsent(key, e);
                     if (prior == null) {
                         unique.put(e.pkg + "." + e.locatorSimple, e);
                     } else {
                         note(Diagnostic.Kind.ERROR,
                                 "Entry-method collision: '" + e.entryMethodName
-                                        + "' with " + e.extraTypeParams.size()
-                                        + " type witness(es) is generated for"
-                                        + " both '" + prior.pkg + "."
-                                        + prior.locatorSimple + "' and '"
-                                        + e.pkg + "." + e.locatorSimple
+                                        + "()' is generated for both '"
+                                        + prior.pkg + "." + prior.locatorSimple
+                                        + "' and '" + e.pkg + "."
+                                        + e.locatorSimple
                                         + "'. The entry method is derived from"
                                         + " the target component's simple name,"
                                         + " so two @Tests targets sharing a"
-                                        + " simple name produce this clash."
-                                        + " Both the find<X>() factory and the"
-                                        + " companion use(X) factory are"
-                                        + " affected. Rename one of the"
-                                        + " targets/testers or update the"
-                                        + " processor's naming scheme; the"
-                                        + " colliding entry is dropped from "
-                                        + fqn + ".");
+                                        + " simple name — or two testers"
+                                        + " covering the same target —"
+                                        + " produce this clash. Both the"
+                                        + " find<X>() factory and the companion"
+                                        + " use(X) factory are affected. Rename"
+                                        + " one of the targets/testers or"
+                                        + " update the processor's naming"
+                                        + " scheme; the colliding entry is"
+                                        + " dropped from " + fqn + ".");
                     }
                 }
                 for (Entry e : unique.values()) {
