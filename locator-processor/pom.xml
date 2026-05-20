@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.vaadin</groupId>
+        <artifactId>browserless-test</artifactId>
+        <version>1.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>browserless-test-locator-processor</artifactId>
+    <packaging>jar</packaging>
+    <name>Vaadin Browserless Test Locator Processor</name>
+    <description><![CDATA[
+        Annotation processor that generates Locator classes from @Tests-annotated ComponentTester subclasses.
+        This module is for internal use only and not meant to be published on Maven repositories.
+    ]]></description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <skipPublishing>true</skipPublishing>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- This module declares the processor itself; do not
+                         attempt to run it on its own sources. -->
+                    <proc>none</proc>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
