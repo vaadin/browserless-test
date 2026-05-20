@@ -139,7 +139,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public <R extends Component> ComponentQuery<R> find(
             Class<R> componentType) {
-        return BaseBrowserlessTest.internalQuery(componentType).from(component);
+        return new ComponentQuery<>(componentType).from(component);
     }
 
     /**
@@ -412,8 +412,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected <R extends Component> List<R> findAllByQuery(
             Class<R> componentType, Consumer<ComponentQuery<R>> queryBuilder) {
-        ComponentQuery<R> query = BaseBrowserlessTest
-                .internalQuery(componentType).from(component);
+        ComponentQuery<R> query = new ComponentQuery<>(componentType)
+                .from(component);
         queryBuilder.accept(query);
         // Make sure consumer didn't change the starting component
         query.from(component);

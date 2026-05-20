@@ -19,17 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
-import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
-import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
@@ -158,8 +155,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public <T extends Component> T navigate(Class<T> navigationTarget) {
         activate();
-        ui.navigate(navigationTarget);
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget);
     }
 
     /**
@@ -178,8 +174,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
             Class<T> navigationTarget, C parameter) {
         activate();
-        ui.navigate(navigationTarget, parameter);
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget, parameter);
     }
 
     /**
@@ -196,8 +191,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> T navigate(Class<T> navigationTarget,
             Map<String, String> parameters) {
         activate();
-        ui.navigate(navigationTarget, new RouteParameters(parameters));
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(ui, navigationTarget, parameters);
     }
 
     /**
@@ -215,8 +209,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> T navigate(String location,
             Class<T> expectedTarget) {
         activate();
-        ui.navigate(location);
-        return validateNavigationTarget(expectedTarget);
+        return BrowserlessDSL.navigate(ui, location, expectedTarget);
     }
 
     /**
@@ -232,7 +225,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> ComponentQuery<T> find(
             Class<T> componentType) {
         activate();
-        return new ComponentQuery<>(componentType);
+        return BrowserlessDSL.find(ui, componentType);
     }
 
     /**
@@ -250,7 +243,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
             Component fromThis) {
         activate();
-        return new ComponentQuery<>(componentType).from(fromThis);
+        return BrowserlessDSL.find(ui, componentType, fromThis);
     }
 
     /**
@@ -266,10 +259,7 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     public <T extends Component> ComponentQuery<T> findInView(
             Class<T> componentType) {
         activate();
-        Component viewComponent = getCurrentView().getElement().getComponent()
-                .orElseThrow(() -> new AssertionError(
-                        "Cannot get Component instance for current view"));
-        return new ComponentQuery<>(componentType).from(viewComponent);
+        return BrowserlessDSL.findView(ui, componentType);
     }
 
     /**
@@ -311,32 +301,13 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
     }
 
     /**
-     * Simulates a keyboard shortcut performed on the browser.
-     *
-     * @param key
-     *            primary key of the shortcut; must not be a {@link KeyModifier}
-     * @param modifiers
-     *            key modifiers; can be empty
-     */
-    public void fireShortcut(Key key, KeyModifier... modifiers) {
-        activate();
-        if (ui.hasModalComponent()) {
-            ShortcutsKt._fireShortcut(
-                    ui.getInternals().getActiveModalComponent(), key,
-                    modifiers);
-        } else {
-            ShortcutsKt.fireShortcut(key, modifiers);
-        }
-    }
-
-    /**
      * Gets the current view displayed in this window.
      *
      * @return the current view
      */
     public HasElement getCurrentView() {
         activate();
-        return ui.getInternals().getActiveRouterTargetsChain().get(0);
+        return BrowserlessDSL.getCurrentView(ui);
     }
 
     /**
@@ -344,7 +315,21 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public void roundTrip() {
         activate();
-        BaseBrowserlessTest.roundTrip();
+        BrowserlessDSL.roundTrip(ui);
+    }
+
+    /**
+     * Simulates a keyboard shortcut performed on the browser.
+     *
+     * @param key
+     *            primary key of the shortcut. This must not be a
+     *            {@link KeyModifier}.
+     * @param modifiers
+     *            key modifiers. Can be empty.
+     */
+    public void fireShortcut(Key key, KeyModifier... modifiers) {
+        activate();
+        BrowserlessDSL.fireShortcut(ui, key, modifiers);
     }
 
     /**
@@ -379,11 +364,8 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
      */
     public boolean runPendingSignalsTasks(long maxWaitTime, TimeUnit unit) {
         activate();
-        TestSignalEnvironment env = user.getApp().getSignalsTestEnvironment();
-        if (env == null) {
-            return false;
-        }
-        return env.runPendingTasks(maxWaitTime, unit);
+        return BrowserlessDSL.runPendingSignalsTasks(
+                user.getApp().getSignalsTestEnvironment(), maxWaitTime, unit);
     }
 
     /**
@@ -510,22 +492,6 @@ public class BrowserlessUIContext implements TesterWrappers, AutoCloseable {
         } else {
             user.clearThreadLocals();
         }
-    }
-
-    private <T extends Component> T validateNavigationTarget(
-            Class<T> navigationTarget) {
-        HasElement currentView = getCurrentView();
-        if (!navigationTarget.isAssignableFrom(currentView.getClass())) {
-            if (currentView instanceof MockInternalSeverError) {
-                System.err.println(
-                        currentView.getElement().getProperty("stackTrace"));
-            }
-            throw new IllegalArgumentException(
-                    "Navigation resulted in unexpected class "
-                            + currentView.getClass().getName() + " instead of "
-                            + navigationTarget.getName());
-        }
-        return navigationTarget.cast(currentView);
     }
 
     /**
