@@ -192,6 +192,18 @@ public class LocatorProcessor extends AbstractProcessor {
         String testerSimple = tester.getSimpleName().toString();
         String testerPkg = processingEnv.getElementUtils().getPackageOf(tester)
                 .getQualifiedName().toString();
+        if (testerPkg.isEmpty()) {
+            // Filer.createSourceFile cannot place a class in the default
+            // package and the generated source would emit a malformed
+            // "package ;" declaration anyway. Surface this clearly instead
+            // of letting it disappear into the catch below.
+            note(Diagnostic.Kind.ERROR,
+                    "Cannot generate locator for tester '" + testerSimple
+                            + "': testers in the default (unnamed) package are"
+                            + " not supported. Move " + testerSimple
+                            + " into a named package.");
+            return null;
+        }
 
         String targetPkg = processingEnv.getElementUtils().getPackageOf(target)
                 .getQualifiedName().toString();
