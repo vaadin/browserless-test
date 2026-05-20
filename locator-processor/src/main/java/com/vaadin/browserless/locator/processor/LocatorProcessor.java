@@ -45,7 +45,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,22 +165,11 @@ public class LocatorProcessor extends AbstractProcessor {
 
         List<TypeElement> targets = readTestsTargets(tester);
         if (targets.isEmpty()) {
-            // Fallback: derive a single target from the tester's bound. Used
-            // only for testers that don't declare any @Tests value or fqn.
-            Set<String> forwardedNames = extraTypeParams.stream()
-                    .map(tp -> tp.getSimpleName().toString())
-                    .collect(Collectors.toSet());
-            TypeMirror bound = resolveComponentType(tester, forwardedNames);
-            if (bound != null && bound.getKind() == TypeKind.DECLARED) {
-                TypeElement el = (TypeElement) ((DeclaredType) bound)
-                        .asElement();
-                targets = List.of(el);
-            }
-            if (targets.isEmpty()) {
-                note(Diagnostic.Kind.NOTE, "No @Tests target for "
-                        + tester.getQualifiedName() + "; skipping.");
-                return;
-            }
+            // Mirror the runtime tester-scan, which ignores testers without
+            // an explicit @Tests target.
+            note(Diagnostic.Kind.NOTE, "No @Tests target for "
+                    + tester.getQualifiedName() + "; skipping.");
+            return;
         }
 
         for (TypeElement target : targets) {
@@ -499,94 +487,6 @@ public class LocatorProcessor extends AbstractProcessor {
         }
         sb.append('>');
         return sb.toString();
-    }
-
-    /**
-     * Resolve the locator's component type by walking the type hierarchy via
-     * {@link javax.lang.model.util.Types#directSupertypes(TypeMirror)}, which
-     * substitutes type arguments through intermediate base classes. If the
-     * resulting expression references tester-private type variables that are
-     * not forwarded to the locator, fall back to the erased component type.
-     */
-    private TypeMirror resolveComponentType(TypeElement tester,
-            Set<String> forwardedNames) {
-        TypeMirror componentTesterErasure = processingEnv.getTypeUtils()
-                .erasure(processingEnv.getElementUtils()
-                        .getTypeElement(COMPONENT_TESTER_FQN).asType());
-        TypeMirror found = findComponentTesterArg(tester.asType(),
-                componentTesterErasure, new HashSet<>());
-        if (found == null) {
-            return null;
-        }
-        if (found.getKind() == TypeKind.TYPEVAR) {
-            // ComponentTester<T> where T is a tester type variable — unwrap to
-            // T's first bound so we get the actual component class.
-            found = ((TypeVariable) found).getUpperBound();
-        }
-        return erasePrivateTypeVars(tester, found, forwardedNames);
-    }
-
-    private TypeMirror findComponentTesterArg(TypeMirror tm,
-            TypeMirror componentTesterErasure, Set<String> visited) {
-        if (tm == null || tm.getKind() != TypeKind.DECLARED) {
-            return null;
-        }
-        DeclaredType dt = (DeclaredType) tm;
-        String key = ((TypeElement) dt.asElement()).getQualifiedName()
-                .toString();
-        if (!visited.add(key)) {
-            return null;
-        }
-        if (processingEnv.getTypeUtils().isSameType(
-                processingEnv.getTypeUtils().erasure(dt),
-                componentTesterErasure)) {
-            return dt.getTypeArguments().isEmpty() ? null
-                    : dt.getTypeArguments().getFirst();
-        }
-        for (TypeMirror sup : processingEnv.getTypeUtils()
-                .directSupertypes(dt)) {
-            TypeMirror found = findComponentTesterArg(sup,
-                    componentTesterErasure, visited);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    private TypeMirror erasePrivateTypeVars(TypeElement tester, TypeMirror tm,
-            Set<String> forwardedNames) {
-        Set<String> testerOwnNames = tester.getTypeParameters().stream()
-                .map(p -> p.getSimpleName().toString())
-                .collect(Collectors.toSet());
-        Set<String> privateNames = new HashSet<>(testerOwnNames);
-        privateNames.removeAll(forwardedNames);
-        if (privateNames.isEmpty()) {
-            return tm;
-        }
-        boolean[] hit = { false };
-        new SimpleTypeVisitor14<Void, Void>() {
-            @Override
-            public Void visitTypeVariable(TypeVariable t, Void v) {
-                if (privateNames
-                        .contains(t.asElement().getSimpleName().toString())) {
-                    hit[0] = true;
-                }
-                return null;
-            }
-
-            @Override
-            public Void visitDeclared(DeclaredType t, Void v) {
-                for (TypeMirror arg : t.getTypeArguments()) {
-                    arg.accept(this, null);
-                }
-                return null;
-            }
-        }.visit(tm);
-        if (hit[0]) {
-            return processingEnv.getTypeUtils().erasure(tm);
-        }
-        return tm;
     }
 
     private boolean extendsComponentTester(TypeElement tester) {
