@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
-import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.browserless.locator.Locators;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
