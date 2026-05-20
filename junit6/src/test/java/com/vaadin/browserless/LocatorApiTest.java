@@ -361,6 +361,33 @@ class LocatorApiTest {
     }
 
     @Test
+    void atIndex_stickyAcrossFilterSteps_butClearedByInvalidate() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // The demo view has three buttons total: Save (1), Clear (2),
+            // PersonForm's Submit (3). atIndex(2) picks Clear.
+            var btn = window.findButton().atIndex(2);
+            Assertions.assertEquals("Clear", btn.component().getText());
+
+            // atIndex is part of the filter chain — narrowing further
+            // does NOT drop the pick. Once the chain is narrowed to a
+            // single match, atIndex(2) on a single-match query throws.
+            btn.withCaption("Clear");
+            Assertions.assertThrows(IndexOutOfBoundsException.class,
+                    btn::component,
+                    "pickIndex stays sticky across filter steps");
+
+            // invalidate() is the explicit rewind hatch: clears the
+            // cached resolution AND pickIndex. After it, resolution
+            // falls back to single-match, which succeeds.
+            Assertions.assertEquals("Clear",
+                    btn.invalidate().component().getText());
+        }
+    }
+
+    @Test
     void atIndex_zeroOrNegativeThrows() {
         // No app context needed — the validation runs on the locator itself
         // before any resolution attempt.

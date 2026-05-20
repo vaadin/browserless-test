@@ -30,11 +30,14 @@ import com.vaadin.flow.component.Component;
  * action methods specific to the component type.
  * <p>
  * Resolution is deferred to the first action call ({@link #component()}) and
- * cached. Every filter method on this class auto-invalidates the cache before
+ * cached. Every filter method on this class clears the resolution cache before
  * mutating the underlying query, so the next action re-resolves and callers
- * never have to call {@link #invalidate()} between fluent steps. This means a
- * single locator instance can be reused across an asynchronous boundary (e.g.
- * {@code roundTrip()}) without holding on to a stale component reference.
+ * never have to call {@link #invalidate()} between fluent steps. Filter steps
+ * keep the locator's {@link #atIndex(int)} pick sticky — it is part of the
+ * filter chain — so a single locator instance can be reused across an
+ * asynchronous boundary (e.g. {@code roundTrip()}) without holding on to a
+ * stale component reference. {@link #invalidate()} is the explicit rewind hatch
+ * and additionally clears the pick.
  * <p>
  * Filters that this class does not expose directly (for example
  * {@link ComponentQuery#withPropertyValue} or
@@ -96,7 +99,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     /** Requires the matched component to have the given id. */
     public SELF withId(String id) {
-        invalidate();
+        resetCache();
         query.withId(id);
         return self();
     }
@@ -105,7 +108,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Requires the matched component to have a caption equal to the given text.
      */
     public SELF withCaption(String caption) {
-        invalidate();
+        resetCache();
         query.withCaption(caption);
         return self();
     }
@@ -115,28 +118,28 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * text.
      */
     public SELF withCaptionContaining(String text) {
-        invalidate();
+        resetCache();
         query.withCaptionContaining(text);
         return self();
     }
 
     /** Requires the text content of the component to equal the given text. */
     public SELF withText(String text) {
-        invalidate();
+        resetCache();
         query.withText(text);
         return self();
     }
 
     /** Requires the text content of the component to contain the given text. */
     public SELF withTextContaining(String text) {
-        invalidate();
+        resetCache();
         query.withTextContaining(text);
         return self();
     }
 
     /** Requires the matched component to have all the given CSS class names. */
     public SELF withClassName(String... className) {
-        invalidate();
+        resetCache();
         query.withClassName(className);
         return self();
     }
@@ -145,28 +148,28 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Requires the matched component to have none of the given CSS class names.
      */
     public SELF withoutClassName(String... className) {
-        invalidate();
+        resetCache();
         query.withoutClassName(className);
         return self();
     }
 
     /** Requires the matched component to have the given theme set. */
     public SELF withTheme(String theme) {
-        invalidate();
+        resetCache();
         query.withTheme(theme);
         return self();
     }
 
     /** Requires the matched component to not have the given theme set. */
     public SELF withoutTheme(String theme) {
-        invalidate();
+        resetCache();
         query.withoutTheme(theme);
         return self();
     }
 
     /** Requires the matched component to have the given attribute set. */
     public SELF withAttribute(String attribute) {
-        invalidate();
+        resetCache();
         query.withAttribute(attribute);
         return self();
     }
@@ -176,14 +179,14 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * expected value.
      */
     public SELF withAttribute(String attribute, String value) {
-        invalidate();
+        resetCache();
         query.withAttribute(attribute, value);
         return self();
     }
 
     /** Requires the matched component not to have the given attribute. */
     public SELF withoutAttribute(String attribute) {
-        invalidate();
+        resetCache();
         query.withoutAttribute(attribute);
         return self();
     }
@@ -193,7 +196,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * not to have the attribute at all).
      */
     public SELF withoutAttribute(String attribute, String value) {
-        invalidate();
+        resetCache();
         query.withoutAttribute(attribute, value);
         return self();
     }
@@ -204,14 +207,14 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * {@code null}.
      */
     public <V> SELF withValue(V expectedValue) {
-        invalidate();
+        resetCache();
         query.withValue(expectedValue);
         return self();
     }
 
     /** Requires the matched component to satisfy the given predicate. */
     public SELF withCondition(Predicate<C> condition) {
-        invalidate();
+        resetCache();
         query.withCondition(condition);
         return self();
     }
@@ -239,7 +242,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      *             fresh one.
      */
     public SELF with(UnaryOperator<ComponentQuery<C>> op) {
-        invalidate();
+        resetCache();
         ComponentQuery<C> next = op.apply(query);
         if (next == null) {
             throw new IllegalStateException(
@@ -254,7 +257,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     /** Scopes the search to descendants of the given component. */
     public SELF inside(Component parent) {
-        invalidate();
+        resetCache();
         query.from(parent);
         return self();
     }
@@ -290,7 +293,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
             throw new IllegalArgumentException(
                     "Index must be greater than zero, but was " + index);
         }
-        invalidate();
+        resetCache();
         this.pickIndex = index;
         return self();
     }
@@ -328,12 +331,24 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Discards any cached resolution. Call after a UI change that may have
-     * replaced or detached the previously resolved component.
+     * Rewinds picker state: discards any cached resolution and clears the
+     * {@link #atIndex(int)} pick. Filter methods on this class call a private
+     * cache-only reset internally, so they keep the locator's
+     * {@code atIndex(n)} sticky as part of the filter chain. {@code
+     * invalidate()} is the explicit "rewind" hatch: after a UI change that
+     * replaces or detaches the resolved component, calling it forces the next
+     * action to re-resolve, and also drops the pick so the next resolution
+     * defaults back to "single match expected" until the caller re-applies
+     * {@link #atIndex(int)}.
      */
     public SELF invalidate() {
-        resolved = null;
+        resetCache();
+        pickIndex = 0;
         return self();
+    }
+
+    private void resetCache() {
+        resolved = null;
     }
 
     @SuppressWarnings("unchecked")
