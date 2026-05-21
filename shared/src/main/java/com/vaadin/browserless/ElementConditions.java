@@ -25,6 +25,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -197,32 +198,73 @@ public final class ElementConditions {
     }
 
     /**
-     * Checks if the component has its {@code label} property set to exactly
-     * the given value. The {@code label} property is what
-     * {@link com.vaadin.flow.component.HasLabel#getLabel()} reads.
+     * Checks if the component is labelled by exactly the given text. A
+     * component is considered labelled by a text when either:
+     *
+     * <ul>
+     * <li>its {@code label} property (read by
+     * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the
+     * text, or</li>
+     * <li>some {@code <label for="componentId">} element elsewhere in the UI
+     * has that text as its (recursive) content.</li>
+     * </ul>
+     *
+     * The second form covers the HTML pattern where a separate
+     * {@link com.vaadin.flow.component.html.NativeLabel} (or any
+     * {@code <label>} element) targets an input via the {@code for}
+     * attribute.
      *
      * @param label
      *            the expected label, not {@literal null}
      */
     public static <T extends Component> Predicate<T> hasLabel(String label) {
         Objects.requireNonNull(label, "label must not be null");
-        return component -> label
-                .equals(component.getElement().getProperty("label"));
+        return component -> matchesLabel(component, label, false);
     }
 
     /**
-     * Checks if the component's {@code label} property contains the given
-     * text. Comparison is case-sensitive.
+     * Checks if the component's label contains the given text. The label is
+     * read in the same way as {@link #hasLabel(String)} (component's
+     * {@code label} property or a referring {@code <label for="...">}
+     * element). Comparison is case-sensitive.
      *
      * @param text
      *            substring to find in the label, not {@literal null}
      */
     public static <T extends Component> Predicate<T> labelContains(String text) {
         Objects.requireNonNull(text, "text must not be null");
-        return component -> {
-            String label = component.getElement().getProperty("label");
-            return label != null && label.contains(text);
-        };
+        return component -> matchesLabel(component, text, true);
+    }
+
+    private static boolean matchesLabel(Component component, String expected,
+            boolean substring) {
+        String own = component.getElement().getProperty("label");
+        if (matches(own, expected, substring)) {
+            return true;
+        }
+        return component.getId()
+                .map(ElementConditions::referringLabelText)
+                .filter(text -> matches(text, expected, substring))
+                .isPresent();
+    }
+
+    private static boolean matches(String actual, String expected,
+            boolean substring) {
+        if (actual == null) {
+            return false;
+        }
+        return substring ? actual.contains(expected) : actual.equals(expected);
+    }
+
+    private static String referringLabelText(String id) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            return null;
+        }
+        return ElementTreeWalker.walk(ui.getElement())
+                .filter(e -> "label".equalsIgnoreCase(e.getTag()))
+                .filter(e -> id.equals(e.getAttribute("for")))
+                .map(Element::getTextRecursively).findFirst().orElse(null);
     }
 
     /**

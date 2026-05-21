@@ -21,6 +21,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.vaadin.flow.component.html.NativeLabel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -625,15 +626,25 @@ class ComponentQueryTest extends BrowserlessTest {
         TestComponent other = new TestComponent();
         other.getElement().setProperty("label", "Email");
 
+        TestComponent withLabelComponent = new TestComponent();
+        // TODO why don't we set id implicitly, #FFS
+        withLabelComponent.setId("random123");
+        NativeLabel labelComponent = new NativeLabel("Native");
+        labelComponent.setFor(withLabelComponent);
+
         TestComponent noLabel = new TestComponent();
 
         UI.getCurrent().getElement().appendChild(labelled.getElement(),
-                other.getElement(), noLabel.getElement());
+                other.getElement(), noLabel.getElement(), withLabelComponent.getElement(), labelComponent.getElement());
 
         Assertions.assertSame(labelled, find(TestComponent.class)
                 .withLabel("Full name").single());
         Assertions.assertSame(other,
                 find(TestComponent.class).withLabel("Email").single());
+        // A separate <label for="random123"> targets withLabelComponent —
+        // withLabel resolves the relationship via the for attribute.
+        Assertions.assertSame(withLabelComponent,
+                find(TestComponent.class).withLabel("Native").single());
         Assertions.assertTrue(
                 find(TestComponent.class).withLabel("Missing").all().isEmpty());
     }
@@ -648,11 +659,23 @@ class ComponentQueryTest extends BrowserlessTest {
 
         TestComponent noLabel = new TestComponent();
 
-        UI.getCurrent().getElement().appendChild(fullName.getElement(),
-                firstName.getElement(), noLabel.getElement());
+        TextField textFieldWithLabel = new TextField("First name");
 
-        Assertions.assertIterableEquals(List.of(fullName, firstName),
-                find(TestComponent.class).withLabelContaining("name").all());
+        // Component labelled via a separate <label for="..."> — substring
+        // match must traverse the same path as exact match.
+        TestComponent viaForAttr = new TestComponent();
+        viaForAttr.setId("via-for");
+        NativeLabel forLabel = new NativeLabel("Display name");
+        forLabel.setFor(viaForAttr);
+
+        UI.getCurrent().getElement().appendChild(fullName.getElement(),
+                firstName.getElement(), noLabel.getElement(),
+                textFieldWithLabel.getElement(), viaForAttr.getElement(),
+                forLabel.getElement());
+
+        Assertions.assertIterableEquals(
+                List.of(fullName, firstName, textFieldWithLabel, viaForAttr),
+                find(Component.class).withLabelContaining("name").all());
     }
 
     @Test
