@@ -68,6 +68,13 @@ public class BrowserlessUIContext
     private final BrowserlessUserContext user;
     private UI ui;
     private boolean closed;
+    /**
+     * When this context was created by {@link #adhoc(Component)}, it owns
+     * (and on close, closes) the surrounding application context. {@code
+     * null} for windows produced via the standard
+     * {@code app.newUser().newWindow()} chain.
+     */
+    private BrowserlessApplicationContext ownedApp;
 
     BrowserlessUIContext(BrowserlessUserContext user) {
         this.user = user;
@@ -247,6 +254,44 @@ public class BrowserlessUIContext
         ui.getElement().appendChild(component.getElement());
         BaseBrowserlessTest.roundTrip();
         return component;
+    }
+
+    /**
+     * Shorthand for ad-hoc component testing: builds a self-contained
+     * application context with no routes, opens a single user + window, and
+     * {@linkplain #show(Component) shows} the given component. The returned
+     * window owns its surrounding {@link BrowserlessApplicationContext} and
+     * closes it on {@link #close()}, so a single try-with-resources is enough:
+     *
+     * <pre>
+     * try (var window = BrowserlessUIContext.adhoc(new MyForm())) {
+     *     window.findButton().withCaption("Save").click();
+     * }
+     * </pre>
+     *
+     * Use this when the test doesn't need multiple users, multiple windows,
+     * or a real {@code @Route} view. For anything more involved, the
+     * standard {@code BrowserlessApplicationContext.create(routes)} +
+     * {@code newUser().newWindow()} chain still applies.
+     *
+     * @param component
+     *            the component to show; must not be {@code null}
+     * @return a window with the component attached
+     */
+    public static BrowserlessUIContext adhoc(Component component) {
+        Objects.requireNonNull(component, "component must not be null");
+        BrowserlessApplicationContext app = BrowserlessApplicationContext
+                .create();
+        BrowserlessUIContext window;
+        try {
+            window = app.newUser().newWindow();
+            window.ownedApp = app;
+            window.show(component);
+        } catch (RuntimeException ex) {
+            app.close();
+            throw ex;
+        }
+        return window;
     }
 
     /**
@@ -533,6 +578,13 @@ public class BrowserlessUIContext
             reactivateSurviving(stillActive);
         } else {
             user.clearThreadLocals();
+        }
+        // Cascade-close the bundled application context for windows produced
+        // via the adhoc(...) shorthand.
+        if (ownedApp != null) {
+            BrowserlessApplicationContext toClose = ownedApp;
+            ownedApp = null;
+            toClose.close();
         }
     }
 

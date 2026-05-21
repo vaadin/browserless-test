@@ -33,19 +33,46 @@ import com.vaadin.flow.component.textfield.TextField;
 class AdhocComponentTest {
 
     @Test
-    void show_widget_attachedAndInteractive() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            CounterWidget widget = window.show(new CounterWidget());
-
+    void adhoc_widget_attachedAndInteractive() {
+        CounterWidget widget = new CounterWidget();
+        try (var window = BrowserlessUIContext.adhoc(widget)) {
             Assertions.assertTrue(widget.isAttached(),
-                    "show() should attach the component to the UI");
+                    "adhoc() should attach the component to the UI");
 
             window.findButton().withCaption("Increment").click();
             window.findButton().withCaption("Increment").click();
 
             Assertions.assertEquals(2, widget.getCount());
+        }
+    }
+
+    @Test
+    void adhoc_close_cascadesToOwnedApp() {
+        CounterWidget widget = new CounterWidget();
+        var window = BrowserlessUIContext.adhoc(widget);
+        Assertions.assertTrue(widget.isAttached());
+
+        window.close();
+
+        Assertions.assertFalse(widget.isAttached(),
+                "Closing the adhoc window should tear down the owned app and detach the widget");
+        // The thread-local Vaadin state should be cleared too: no UI on this
+        // thread once the bundled app is gone.
+        Assertions.assertNull(com.vaadin.flow.component.UI.getCurrent(),
+                "Owned app should be closed, clearing thread-locals");
+    }
+
+    @Test
+    void show_widget_attachedAndInteractive_longForm() {
+        try (var app = BrowserlessApplicationContext.create()) {
+            var window = app.newUser().newWindow();
+
+            CounterWidget widget = window.show(new CounterWidget());
+
+            Assertions.assertTrue(widget.isAttached());
+
+            window.findButton().withCaption("Increment").click();
+            Assertions.assertEquals(1, widget.getCount());
         }
     }
 
