@@ -25,7 +25,6 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -242,7 +241,9 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
-        return component.getId().map(ElementConditions::referringLabelText)
+        return component.getId()
+                .map(id -> referringLabelText(
+                        component.getUI().get().getElement(), id))
                 .filter(text -> matches(text, expected, substring)).isPresent();
     }
 
@@ -254,12 +255,8 @@ public final class ElementConditions {
         return substring ? actual.contains(expected) : actual.equals(expected);
     }
 
-    private static String referringLabelText(String id) {
-        UI ui = UI.getCurrent();
-        if (ui == null) {
-            return null;
-        }
-        return ElementTreeWalker.walk(ui.getElement())
+    private static String referringLabelText(Element root, String id) {
+        return ElementTreeWalker.walk(root)
                 .filter(e -> "label".equalsIgnoreCase(e.getTag()))
                 .filter(e -> id.equals(e.getAttribute("for")))
                 .map(Element::getTextRecursively).findFirst().orElse(null);
