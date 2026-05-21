@@ -69,8 +69,8 @@ public class BrowserlessUIContext
     private UI ui;
     private boolean closed;
     /**
-     * When this context was created by {@link #adhoc(Component)}, it owns
-     * (and on close, closes) the surrounding application context. {@code
+     * When this context was created by {@link #adhoc(Component)}, it owns (and
+     * on close, closes) the surrounding application context. {@code
      * null} for windows produced via the standard
      * {@code app.newUser().newWindow()} chain.
      */
@@ -224,19 +224,19 @@ public class BrowserlessUIContext
 
     /**
      * Attaches the given component directly to this window's UI for ad-hoc
-     * component testing — no {@code @Route} view required. Any previously
-     * shown content (including a navigated view) is removed first, so each
+     * component testing — no {@code @Route} view required. Any previously shown
+     * content (including a navigated view) is removed first, so each
      * {@code show()} call gives a clean slate.
      * <p>
-     * The component is attached through the public Vaadin API, so its
-     * attach lifecycle (events, signals, {@code onAttach}, listeners) fires
-     * normally. A {@code roundTrip} is performed after attach so any pending
+     * The component is attached through the public Vaadin API, so its attach
+     * lifecycle (events, signals, {@code onAttach}, listeners) fires normally.
+     * A {@code roundTrip} is performed after attach so any pending
      * before-client-response runnables flush before {@code show()} returns —
      * the component is in a steady state by the time the test continues.
      * <p>
      * For testing flows that depend on Vaadin's router (e.g.
-     * {@code BeforeEnterObserver}, role-based access checks), keep using a
-     * real {@code @Route} view and {@link #navigate(Class)}.
+     * {@code BeforeEnterObserver}, role-based access checks), keep using a real
+     * {@code @Route} view and {@link #navigate(Class)}.
      *
      * @param component
      *            the component to attach; must not be {@code null}
@@ -269,9 +269,9 @@ public class BrowserlessUIContext
      * }
      * </pre>
      *
-     * Use this when the test doesn't need multiple users, multiple windows,
-     * or a real {@code @Route} view. For anything more involved, the
-     * standard {@code BrowserlessApplicationContext.create(routes)} +
+     * Use this when the test doesn't need multiple users, multiple windows, or
+     * a real {@code @Route} view. For anything more involved, the standard
+     * {@code BrowserlessApplicationContext.create(routes)} +
      * {@code newUser().newWindow()} chain still applies.
      *
      * @param component

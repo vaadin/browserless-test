@@ -27,8 +27,8 @@ import com.vaadin.flow.component.textfield.TextField;
  * Exercises the ad-hoc component testing path
  * ({@link BrowserlessApplicationContext#create()} +
  * {@link BrowserlessUIContext#show(com.vaadin.flow.component.Component)}). No
- * {@code @Route} view or {@code Routes} discovery is required — components
- * are attached directly to a fresh UI.
+ * {@code @Route} view or {@code Routes} discovery is required — components are
+ * attached directly to a fresh UI.
  */
 class AdhocComponentTest {
 
@@ -136,8 +136,9 @@ class AdhocComponentTest {
 
             Assertions.assertTrue(field.isAttached());
             // Direct parent is the UI now, not the prior VerticalLayout.
-            Assertions.assertTrue(field.getParent()
-                    .filter(p -> p == window.getUI()).isPresent(),
+            Assertions.assertTrue(
+                    field.getParent().filter(p -> p == window.getUI())
+                            .isPresent(),
                     "field's parent should be the UI after show()");
         }
     }
