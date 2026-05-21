@@ -25,8 +25,8 @@ import com.vaadin.flow.dom.Element;
  * {@link com.vaadin.flow.dom.Element} subtree.
  * <p>
  * Think {@code document.querySelectorAll} at the Flow element level: handy
- * whenever a search needs to look beyond the component graph (e.g. matching
- * by tag, attribute, or any predicate over the raw element tree).
+ * whenever a search needs to look beyond the component graph (e.g. matching by
+ * tag, attribute, or any predicate over the raw element tree).
  */
 public final class ElementTreeWalker {
 

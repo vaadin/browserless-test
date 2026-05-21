@@ -125,9 +125,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Requires the matched component's {@code label} property to be exactly
-     * the given value. Use this for form fields where the end user
-     * identifies a field by its label.
+     * Requires the matched component's {@code label} property to be exactly the
+     * given value. Use this for form fields where the end user identifies a
+     * field by its label.
      */
     public SELF withLabel(String label) {
         resetCache();
@@ -156,8 +156,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Requires the matched component's {@code aria-label} attribute to
-     * contain the given text.
+     * Requires the matched component's {@code aria-label} attribute to contain
+     * the given text.
      */
     public SELF withAriaLabelContaining(String text) {
         resetCache();

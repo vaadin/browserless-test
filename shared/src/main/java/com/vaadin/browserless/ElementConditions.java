@@ -203,16 +203,15 @@ public final class ElementConditions {
      *
      * <ul>
      * <li>its {@code label} property (read by
-     * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the
-     * text, or</li>
+     * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the text,
+     * or</li>
      * <li>some {@code <label for="componentId">} element elsewhere in the UI
      * has that text as its (recursive) content.</li>
      * </ul>
      *
      * The second form covers the HTML pattern where a separate
      * {@link com.vaadin.flow.component.html.NativeLabel} (or any
-     * {@code <label>} element) targets an input via the {@code for}
-     * attribute.
+     * {@code <label>} element) targets an input via the {@code for} attribute.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -225,13 +224,14 @@ public final class ElementConditions {
     /**
      * Checks if the component's label contains the given text. The label is
      * read in the same way as {@link #hasLabel(String)} (component's
-     * {@code label} property or a referring {@code <label for="...">}
-     * element). Comparison is case-sensitive.
+     * {@code label} property or a referring {@code <label for="...">} element).
+     * Comparison is case-sensitive.
      *
      * @param text
      *            substring to find in the label, not {@literal null}
      */
-    public static <T extends Component> Predicate<T> labelContains(String text) {
+    public static <T extends Component> Predicate<T> labelContains(
+            String text) {
         Objects.requireNonNull(text, "text must not be null");
         return component -> matchesLabel(component, text, true);
     }
@@ -242,10 +242,8 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
-        return component.getId()
-                .map(ElementConditions::referringLabelText)
-                .filter(text -> matches(text, expected, substring))
-                .isPresent();
+        return component.getId().map(ElementConditions::referringLabelText)
+                .filter(text -> matches(text, expected, substring)).isPresent();
     }
 
     private static boolean matches(String actual, String expected,
@@ -284,8 +282,8 @@ public final class ElementConditions {
     }
 
     /**
-     * Checks if the component's {@code aria-label} attribute contains the
-     * given text. Comparison is case-sensitive.
+     * Checks if the component's {@code aria-label} attribute contains the given
+     * text. Comparison is case-sensitive.
      *
      * @param text
      *            substring to find in the aria-label, not {@literal null}

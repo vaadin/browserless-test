@@ -21,7 +21,6 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.vaadin.flow.component.html.NativeLabel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +33,7 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldBase;
@@ -635,10 +635,11 @@ class ComponentQueryTest extends BrowserlessTest {
         TestComponent noLabel = new TestComponent();
 
         UI.getCurrent().getElement().appendChild(labelled.getElement(),
-                other.getElement(), noLabel.getElement(), withLabelComponent.getElement(), labelComponent.getElement());
+                other.getElement(), noLabel.getElement(),
+                withLabelComponent.getElement(), labelComponent.getElement());
 
-        Assertions.assertSame(labelled, find(TestComponent.class)
-                .withLabel("Full name").single());
+        Assertions.assertSame(labelled,
+                find(TestComponent.class).withLabel("Full name").single());
         Assertions.assertSame(other,
                 find(TestComponent.class).withLabel("Email").single());
         // A separate <label for="random123"> targets withLabelComponent —
@@ -691,12 +692,12 @@ class ComponentQueryTest extends BrowserlessTest {
         UI.getCurrent().getElement().appendChild(reset.getElement(),
                 other.getElement(), noAria.getElement());
 
-        Assertions.assertSame(reset, find(TestComponent.class)
-                .withAriaLabel("Reset form").single());
+        Assertions.assertSame(reset,
+                find(TestComponent.class).withAriaLabel("Reset form").single());
         Assertions.assertSame(other, find(TestComponent.class)
                 .withAriaLabel("Submit form").single());
-        Assertions.assertTrue(find(TestComponent.class)
-                .withAriaLabel("Missing").all().isEmpty());
+        Assertions.assertTrue(find(TestComponent.class).withAriaLabel("Missing")
+                .all().isEmpty());
     }
 
     @Test

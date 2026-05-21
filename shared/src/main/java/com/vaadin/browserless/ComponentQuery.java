@@ -245,8 +245,8 @@ public class ComponentQuery<T extends Component> {
 
     /**
      * Requires the component's {@code label} property to be exactly the given
-     * value. Use this for form fields (TextField, ComboBox, etc.) where the
-     * end user identifies a field by its label.
+     * value. Use this for form fields (TextField, ComboBox, etc.) where the end
+     * user identifies a field by its label.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -273,9 +273,9 @@ public class ComponentQuery<T extends Component> {
 
     /**
      * Requires the component's {@code aria-label} attribute to be exactly the
-     * given value. Useful for components like {@code Button} that don't carry
-     * a visible label property but identify themselves to assistive
-     * technology via {@code aria-label}.
+     * given value. Useful for components like {@code Button} that don't carry a
+     * visible label property but identify themselves to assistive technology
+     * via {@code aria-label}.
      *
      * @param ariaLabel
      *            the expected aria-label, not {@literal null}
