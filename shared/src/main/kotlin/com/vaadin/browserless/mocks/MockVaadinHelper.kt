@@ -9,18 +9,22 @@
  */
 package com.vaadin.browserless.mocks
 
-import java.io.File
-import jakarta.servlet.ServletContext
+import com.vaadin.browserless.internal.findClass
+import com.vaadin.browserless.internal.findClassOrThrow
+import com.vaadin.flow.component.geolocation.BrowserlessGeolocationClientFactory
+import com.vaadin.flow.component.geolocation.GeolocationClientFactory
 import com.vaadin.flow.di.Lookup
 import com.vaadin.flow.di.LookupInitializer
 import com.vaadin.flow.server.VaadinContext
 import com.vaadin.flow.server.VaadinServlet
 import com.vaadin.flow.server.VaadinServletContext
 import com.vaadin.flow.server.startup.LookupServletContainerInitializer
-import com.vaadin.browserless.internal.findClass
-import com.vaadin.browserless.internal.findClassOrThrow
+import jakarta.servlet.ServletContext
+import jakarta.servlet.annotation.HandlesTypes
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.node.ObjectNode
+import java.io.File
+import kotlin.reflect.KClass
 
 object MockVaadinHelper {
 
@@ -94,14 +98,11 @@ object MockVaadinHelper {
 
     private fun init(ctx: ServletContext, lookupServices: Set<Class<*>> = emptySet()) {
 
-        val loaderInitializer = LookupServletContainerInitializer()
-
-        val loaders = mutableSetOf<Class<*>>(
+        val loaders = mutableSetOf(
                 *lookupServices.toTypedArray(),
                 LookupInitializer::class.java,
                 findClassOrThrow("com.vaadin.flow.di.LookupInitializer${'$'}ResourceProviderImpl")
         )
-
         fun tryLoad(className: String) {
             // sometimes customers don't include entire vaadin-core and exclude stuff like fusion on purpose.
             // load the class only if it exists.
@@ -110,10 +111,54 @@ object MockVaadinHelper {
 
         tryLoad("com.vaadin.flow.component.polymertemplate.rpc.PolymerPublishedEventRpcHandler")
         tryLoad("com.vaadin.fusion.frontend.EndpointGeneratorTaskFactoryImpl")
+
+        val loaderInitializer = setupLookupInitializer(loaders)
+
         loaderInitializer.onStartup(loaders, ctx)
 
         // verify that the Lookup has been set
         verifyHasLookup(ctx)
     }
 
+    private fun setupLookupInitializer(services: MutableSet<Class<*>>) : LookupServletContainerInitializer{
+        val initializer = BrowserlessLookupInitializer()
+        initializer.updateServices(services)
+        return initializer
+    }
+
+    internal open class BrowserlessLookupInitializer() : LookupServletContainerInitializer() {
+
+        // Additional services wired through lookup that the testing environment can hook in,
+        // supplementing ones defined in LookupServletContainerInitializer HandlesTypes annotations.
+        //
+        // Use Object class as a value placeholder for a service without default implementation,
+        // but that can be hooked in by the test class in the services' set
+        // mapOf(Service::class to Object::class)
+        protected open val additionalServices: Map<KClass<*>, KClass<*>> = mapOf(
+                GeolocationClientFactory::class to BrowserlessGeolocationClientFactory::class
+        )
+
+        fun updateServices(services: MutableSet<Class<*>>) {
+            additionalServices
+                // skip if the caller already supplied an implementation of the service interface
+                .filterNot { entry -> services.any { entry.key.java.isAssignableFrom(it) } }
+                // ignore additional services without default implementation
+                .filter { it.value != Object::class }
+                .forEach { services.add(it.value.java) }
+        }
+
+        override fun getServiceTypes(): Collection<Class<*>?> {
+            val annotation = LookupServletContainerInitializer::class.java.getAnnotation(HandlesTypes::class.java)
+            checkNotNull(annotation) {
+                ("Cannot collect service types based on "
+                        + HandlesTypes::class.java.getSimpleName()
+                        + " annotation. The default 'getServiceTypes' method implementation can't be used.")
+            }
+            val allServices = annotation.value + additionalServices.keys
+            return setOf(*allServices.map { it.java }.toTypedArray())
+                .filter { clazz: Class<*>? -> clazz != LookupInitializer::class.java }
+                .toSet()
+
+        }
+    }
 }

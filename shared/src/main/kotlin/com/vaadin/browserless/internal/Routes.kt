@@ -32,6 +32,7 @@ import com.vaadin.flow.server.startup.RouteRegistryInitializer
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ClassInfo
 import io.github.classgraph.ScanResult
+import org.slf4j.LoggerFactory
 
 /**
  * A configuration object of all routes and error routes in the application. Simply use [autoDiscoverViews] to discover everything.
@@ -100,7 +101,7 @@ data class Routes(
 
         cleanupErrorRoutes()
 
-        println("Auto-discovered views: $this")
+        log.debug("Auto-discovered views: {}", this)
     }
 
     fun merge(other: Routes): Routes {
@@ -115,6 +116,10 @@ data class Routes(
     override fun toString(): String =
             "Routes(routes=${routes.joinToString { it.simpleName }}, errorRoutes=${errorRoutes.joinToString { it.simpleName }}, layouts=${layouts.joinToString { it.simpleName }})"
 
+
+    companion object {
+        private val log = LoggerFactory.getLogger(Routes::class.java)
+    }
 
     private fun cleanupErrorRoutes() {
         // https://github.com/mvysny/karibu-testing/issues/50

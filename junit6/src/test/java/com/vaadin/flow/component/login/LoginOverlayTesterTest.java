@@ -49,8 +49,8 @@ public class LoginOverlayTesterTest extends BrowserlessTest {
         login_.openOverlay();
 
         login_.login("user", "pwd");
-        Assertions.assertEquals(1, $(Span.class).from(view).all().size());
-        Span message = $(Span.class).from(view).withId("m1").first();
+        Assertions.assertEquals(1, find(Span.class).from(view).all().size());
+        Span message = find(Span.class).from(view).withId("m1").first();
         Assertions.assertEquals(view.generateLoginMessage("user", "pwd"),
                 message.getText());
     }
@@ -73,8 +73,8 @@ public class LoginOverlayTesterTest extends BrowserlessTest {
         login_.openOverlay();
         login_.forgotPassword();
 
-        Assertions.assertEquals(1, $(Span.class).from(view).all().size());
-        Span message = $(Span.class).from(view).withId("m1").first();
+        Assertions.assertEquals(1, find(Span.class).from(view).all().size());
+        Span message = find(Span.class).from(view).withId("m1").first();
         Assertions.assertEquals("forgot", message.getText());
     }
 

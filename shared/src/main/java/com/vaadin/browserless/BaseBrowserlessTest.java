@@ -39,10 +39,8 @@ import io.github.classgraph.ScanResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.browserless.internal.UtilsKt;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
@@ -51,7 +49,6 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
-import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
@@ -288,24 +285,7 @@ public abstract class BaseBrowserlessTest {
      * @return instantiated view
      */
     public <T extends Component> T navigate(Class<T> navigationTarget) {
-        verifyAndGetUI().navigate(navigationTarget);
-        return validateNavigationTarget(navigationTarget);
-    }
-
-    private <T extends Component> T validateNavigationTarget(
-            Class<T> navigationTarget) {
-        final HasElement currentView = getCurrentView();
-        if (!navigationTarget.isAssignableFrom(currentView.getClass())) {
-            if (currentView instanceof MockInternalSeverError) {
-                System.err.println(
-                        currentView.getElement().getProperty("stackTrace"));
-            }
-            throw new IllegalArgumentException(
-                    "Navigation resulted in unexpected class "
-                            + currentView.getClass().getName() + " instead of "
-                            + navigationTarget.getName());
-        }
-        return navigationTarget.cast(currentView);
+        return BrowserlessDSL.navigate(verifyAndGetUI(), navigationTarget);
     }
 
     /**
@@ -323,8 +303,8 @@ public abstract class BaseBrowserlessTest {
      */
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
             Class<T> navigationTarget, C parameter) {
-        verifyAndGetUI().navigate(navigationTarget, parameter);
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(verifyAndGetUI(), navigationTarget,
+                parameter);
     }
 
     /**
@@ -341,9 +321,8 @@ public abstract class BaseBrowserlessTest {
      */
     public <T extends Component> T navigate(Class<T> navigationTarget,
             Map<String, String> parameters) {
-        verifyAndGetUI().navigate(navigationTarget,
-                new RouteParameters(parameters));
-        return validateNavigationTarget(navigationTarget);
+        return BrowserlessDSL.navigate(verifyAndGetUI(), navigationTarget,
+                parameters);
     }
 
     /**
@@ -360,8 +339,8 @@ public abstract class BaseBrowserlessTest {
      */
     public <T extends Component> T navigate(String location,
             Class<T> expectedTarget) {
-        verifyAndGetUI().navigate(location);
-        return validateNavigationTarget(expectedTarget);
+        return BrowserlessDSL.navigate(verifyAndGetUI(), location,
+                expectedTarget);
     }
 
     /**
@@ -374,15 +353,7 @@ public abstract class BaseBrowserlessTest {
      *            Key modifiers. Can be empty.
      */
     public void fireShortcut(Key key, KeyModifier... modifiers) {
-        UI ui = verifyAndGetUI();
-        // TODO: should this logic be moved to ShortcutsKt.fireShortcut?
-        if (ui.hasModalComponent()) {
-            ShortcutsKt._fireShortcut(
-                    ui.getInternals().getActiveModalComponent(), key,
-                    modifiers);
-        } else {
-            ShortcutsKt.fireShortcut(key, modifiers);
-        }
+        BrowserlessDSL.fireShortcut(verifyAndGetUI(), key, modifiers);
     }
 
     /**
@@ -391,8 +362,7 @@ public abstract class BaseBrowserlessTest {
      * @return current view
      */
     public HasElement getCurrentView() {
-        return verifyAndGetUI().getInternals().getActiveRouterTargetsChain()
-                .get(0);
+        return BrowserlessDSL.getCurrentView(verifyAndGetUI());
     }
 
     // Protected for access by adapter subclass in legacy module
@@ -405,11 +375,6 @@ public abstract class BaseBrowserlessTest {
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Class<T> wrap, Y component) {
         return initialize(wrap, component);
-    }
-
-    protected static <T extends Component> ComponentQuery<T> internalQuery(
-            Class<T> componentType) {
-        return new ComponentQuery<>(componentType);
     }
 
     /**
@@ -469,9 +434,9 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
-        verifyAndGetUI();
-        return internalQuery(componentType);
+    public <T extends Component> ComponentQuery<T> find(
+            Class<T> componentType) {
+        return BrowserlessDSL.find(verifyAndGetUI(), componentType);
     }
 
     /**
@@ -486,10 +451,9 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
-    public <T extends Component> ComponentQuery<T> $(Class<T> componentType,
+    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
             Component fromThis) {
-        verifyAndGetUI();
-        return new ComponentQuery<>(componentType).from(fromThis);
+        return BrowserlessDSL.find(verifyAndGetUI(), componentType, fromThis);
     }
 
     /**
@@ -501,12 +465,62 @@ public abstract class BaseBrowserlessTest {
      *            the type of the component(s) to search for
      * @return a query object for finding components
      */
+    public <T extends Component> ComponentQuery<T> findInView(
+            Class<T> componentType) {
+        return BrowserlessDSL.findView(verifyAndGetUI(), componentType);
+    }
+
+    /**
+     * Gets a query object for finding a component inside the UI.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use {@link #find(Class)}
+     *             instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
+    public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
+        return find(componentType);
+    }
+
+    /**
+     * Gets a query object for finding a component nested inside the given
+     * component.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param fromThis
+     *            component used as starting element for search.
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use
+     *             {@link #find(Class, Component)} instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
+    public <T extends Component> ComponentQuery<T> $(Class<T> componentType,
+            Component fromThis) {
+        return find(componentType, fromThis);
+    }
+
+    /**
+     * Gets a query object for finding a component inside the current view.
+     *
+     * @param componentType
+     *            the type of the component(s) to search for
+     * @param <T>
+     *            the type of the component(s) to search for
+     * @return a query object for finding components
+     * @deprecated since 1.1, for removal in 2.0; use {@link #findInView(Class)}
+     *             instead.
+     */
+    @Deprecated(since = "1.1", forRemoval = true)
     public <T extends Component> ComponentQuery<T> $view(
             Class<T> componentType) {
-        Component viewComponent = getCurrentView().getElement().getComponent()
-                .orElseThrow(() -> new AssertionError(
-                        "Cannot get Component instance for current view"));
-        return new ComponentQuery<>(componentType).from(viewComponent);
+        return findInView(componentType);
     }
 
     /**
@@ -541,11 +555,7 @@ public abstract class BaseBrowserlessTest {
      * Simulates a server round-trip, flushing pending component changes.
      */
     protected static void roundTrip() {
-        UI.getCurrent().getInternals().getStateTree()
-                .collectChanges(nodeChange -> {
-                });
-        UI.getCurrent().getInternals().getStateTree()
-                .runExecutionsBeforeClientResponse();
+        BrowserlessDSL.roundTrip(UI.getCurrent());
     }
 
     /**
@@ -569,7 +579,7 @@ public abstract class BaseBrowserlessTest {
      * @see TestSignalEnvironment#runPendingTasks(long, TimeUnit)
      */
     protected final boolean runPendingSignalsTasks() {
-        return runPendingSignalsTasks(100, TimeUnit.MILLISECONDS);
+        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment);
     }
 
     /**
@@ -601,11 +611,8 @@ public abstract class BaseBrowserlessTest {
      */
     protected final boolean runPendingSignalsTasks(long maxWaitTime,
             TimeUnit unit) {
-        if (this.signalsTestEnvironment != null) {
-            return this.signalsTestEnvironment.runPendingTasks(maxWaitTime,
-                    unit);
-        }
-        return false;
+        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment,
+                maxWaitTime, unit);
     }
 
     /**

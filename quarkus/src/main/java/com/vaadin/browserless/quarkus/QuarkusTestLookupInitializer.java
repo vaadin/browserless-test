@@ -40,20 +40,11 @@ public class QuarkusTestLookupInitializer extends LookupInitializer {
             Map<Class<?>, Collection<Class<?>>> services,
             VaadinApplicationInitializationBootstrap bootstrap)
             throws ServletException {
-        if (securityPresent()) {
+        if (QuarkusSecuritySupport.isPresent()) {
             ensureService(services, MockRequestCustomizer.class,
                     QuarkusSecurityCustomizer.class);
         }
         super.initialize(context, services, bootstrap);
-    }
-
-    private boolean securityPresent() {
-        try {
-            return Thread.currentThread().getContextClassLoader().loadClass(
-                    "io.quarkus.security.identity.SecurityIdentity") != null;
-        } catch (ClassNotFoundException ex) {
-            return false;
-        }
     }
 
 }

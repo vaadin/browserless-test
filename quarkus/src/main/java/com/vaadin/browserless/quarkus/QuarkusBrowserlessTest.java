@@ -95,6 +95,7 @@ public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         MockQuarkusServlet servlet = new MockQuarkusServlet(discoverRoutes(),
                 CDI.current().getBeanManager(), MockedUI::new);
         MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+        initSignalsSupport();
     }
 
     @AfterEach

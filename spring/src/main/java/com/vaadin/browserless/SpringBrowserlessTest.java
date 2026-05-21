@@ -95,6 +95,7 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         MockSpringServlet servlet = new MockSpringServlet(discoverRoutes(),
                 applicationContext, MockedUI::new);
         MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+        initSignalsSupport();
     }
 
     @AfterEach
