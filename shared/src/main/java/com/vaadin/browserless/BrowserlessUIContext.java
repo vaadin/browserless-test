@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockPage;
@@ -212,6 +213,40 @@ public class BrowserlessUIContext
             Class<T> expectedTarget) {
         activate();
         return BrowserlessDSL.navigate(ui, location, expectedTarget);
+    }
+
+    /**
+     * Attaches the given component directly to this window's UI for ad-hoc
+     * component testing — no {@code @Route} view required. Any previously
+     * shown content (including a navigated view) is removed first, so each
+     * {@code show()} call gives a clean slate.
+     * <p>
+     * The component is attached through the public Vaadin API, so its
+     * attach lifecycle (events, signals, {@code onAttach}, listeners) fires
+     * normally. A {@code roundTrip} is performed after attach so any pending
+     * before-client-response runnables flush before {@code show()} returns —
+     * the component is in a steady state by the time the test continues.
+     * <p>
+     * For testing flows that depend on Vaadin's router (e.g.
+     * {@code BeforeEnterObserver}, role-based access checks), keep using a
+     * real {@code @Route} view and {@link #navigate(Class)}.
+     *
+     * @param component
+     *            the component to attach; must not be {@code null}
+     * @param <C>
+     *            the component type
+     * @return the given component, for direct use in assertions
+     */
+    public <C extends Component> C show(C component) {
+        Objects.requireNonNull(component, "component must not be null");
+        activate();
+        if (component.getParent().isPresent()) {
+            component.getElement().removeFromParent();
+        }
+        ui.getElement().removeAllChildren();
+        ui.getElement().appendChild(component.getElement());
+        BaseBrowserlessTest.roundTrip();
+        return component;
     }
 
     /**
