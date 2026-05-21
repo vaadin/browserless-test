@@ -618,6 +618,97 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withLabel_exactMatch_getsCorrectComponent() {
+        TestComponent labelled = new TestComponent();
+        labelled.getElement().setProperty("label", "Full name");
+
+        TestComponent other = new TestComponent();
+        other.getElement().setProperty("label", "Email");
+
+        TestComponent noLabel = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(labelled.getElement(),
+                other.getElement(), noLabel.getElement());
+
+        Assertions.assertSame(labelled, find(TestComponent.class)
+                .withLabel("Full name").single());
+        Assertions.assertSame(other,
+                find(TestComponent.class).withLabel("Email").single());
+        Assertions.assertTrue(
+                find(TestComponent.class).withLabel("Missing").all().isEmpty());
+    }
+
+    @Test
+    void withLabelContaining_substringMatch() {
+        TestComponent fullName = new TestComponent();
+        fullName.getElement().setProperty("label", "Full name");
+
+        TestComponent firstName = new TestComponent();
+        firstName.getElement().setProperty("label", "First name");
+
+        TestComponent noLabel = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(fullName.getElement(),
+                firstName.getElement(), noLabel.getElement());
+
+        Assertions.assertIterableEquals(List.of(fullName, firstName),
+                find(TestComponent.class).withLabelContaining("name").all());
+    }
+
+    @Test
+    void withAriaLabel_exactMatch_getsCorrectComponent() {
+        TestComponent reset = new TestComponent();
+        reset.getElement().setAttribute("aria-label", "Reset form");
+
+        TestComponent other = new TestComponent();
+        other.getElement().setAttribute("aria-label", "Submit form");
+
+        TestComponent noAria = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(reset.getElement(),
+                other.getElement(), noAria.getElement());
+
+        Assertions.assertSame(reset, find(TestComponent.class)
+                .withAriaLabel("Reset form").single());
+        Assertions.assertSame(other, find(TestComponent.class)
+                .withAriaLabel("Submit form").single());
+        Assertions.assertTrue(find(TestComponent.class)
+                .withAriaLabel("Missing").all().isEmpty());
+    }
+
+    @Test
+    void withAriaLabelContaining_substringMatch() {
+        TestComponent reset = new TestComponent();
+        reset.getElement().setAttribute("aria-label", "Reset form");
+
+        TestComponent submit = new TestComponent();
+        submit.getElement().setAttribute("aria-label", "Submit form");
+
+        TestComponent noAria = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(reset.getElement(),
+                submit.getElement(), noAria.getElement());
+
+        Assertions.assertIterableEquals(List.of(reset, submit),
+                find(TestComponent.class).withAriaLabelContaining("form")
+                        .all());
+    }
+
+    @Test
+    void withLabel_null_throws() {
+        ComponentQuery<TestComponent> query = find(TestComponent.class);
+        Assertions.assertThrows(NullPointerException.class,
+                () -> query.withLabel(null));
+    }
+
+    @Test
+    void withAriaLabel_null_throws() {
+        ComponentQuery<TestComponent> query = find(TestComponent.class);
+        Assertions.assertThrows(NullPointerException.class,
+                () -> query.withAriaLabel(null));
+    }
+
+    @Test
     void withText_exactMatch_getsCorrectComponent() {
         TextComponent span1 = new TextComponent("sample text");
         TextComponent span2 = new TextComponent("other text");

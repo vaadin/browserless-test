@@ -244,6 +244,62 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Requires the component's {@code label} property to be exactly the given
+     * value. Use this for form fields (TextField, ComboBox, etc.) where the
+     * end user identifies a field by its label.
+     *
+     * @param label
+     *            the expected label, not {@literal null}
+     * @return this element query instance for chaining
+     * @see com.vaadin.flow.component.HasLabel#getLabel()
+     */
+    public ComponentQuery<T> withLabel(String label) {
+        locatorSpec.predicates.add(ElementConditions.hasLabel(label));
+        return this;
+    }
+
+    /**
+     * Requires the component's {@code label} property to contain the given
+     * text.
+     *
+     * @param text
+     *            substring to find in the label, not {@literal null}
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withLabelContaining(String text) {
+        locatorSpec.predicates.add(ElementConditions.labelContains(text));
+        return this;
+    }
+
+    /**
+     * Requires the component's {@code aria-label} attribute to be exactly the
+     * given value. Useful for components like {@code Button} that don't carry
+     * a visible label property but identify themselves to assistive
+     * technology via {@code aria-label}.
+     *
+     * @param ariaLabel
+     *            the expected aria-label, not {@literal null}
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withAriaLabel(String ariaLabel) {
+        locatorSpec.predicates.add(ElementConditions.hasAriaLabel(ariaLabel));
+        return this;
+    }
+
+    /**
+     * Requires the component's {@code aria-label} attribute to contain the
+     * given text.
+     *
+     * @param text
+     *            substring to find in the aria-label, not {@literal null}
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withAriaLabelContaining(String text) {
+        locatorSpec.predicates.add(ElementConditions.ariaLabelContains(text));
+        return this;
+    }
+
+    /**
      * Requires the text content of the component to be equal to the given text
      *
      * @param text

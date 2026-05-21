@@ -196,6 +196,67 @@ public final class ElementConditions {
                 .equals(component.getElement().getAttribute(attribute), value);
     }
 
+    /**
+     * Checks if the component has its {@code label} property set to exactly
+     * the given value. The {@code label} property is what
+     * {@link com.vaadin.flow.component.HasLabel#getLabel()} reads.
+     *
+     * @param label
+     *            the expected label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> hasLabel(String label) {
+        Objects.requireNonNull(label, "label must not be null");
+        return component -> label
+                .equals(component.getElement().getProperty("label"));
+    }
+
+    /**
+     * Checks if the component's {@code label} property contains the given
+     * text. Comparison is case-sensitive.
+     *
+     * @param text
+     *            substring to find in the label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> labelContains(String text) {
+        Objects.requireNonNull(text, "text must not be null");
+        return component -> {
+            String label = component.getElement().getProperty("label");
+            return label != null && label.contains(text);
+        };
+    }
+
+    /**
+     * Checks if the component has its {@code aria-label} attribute set to
+     * exactly the given value. Useful for components like {@code Button} that
+     * don't expose a {@code label} property but identify themselves to
+     * assistive technology via {@code aria-label}.
+     *
+     * @param ariaLabel
+     *            the expected aria-label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> hasAriaLabel(
+            String ariaLabel) {
+        Objects.requireNonNull(ariaLabel, "ariaLabel must not be null");
+        return component -> ariaLabel
+                .equals(component.getElement().getAttribute("aria-label"));
+    }
+
+    /**
+     * Checks if the component's {@code aria-label} attribute contains the
+     * given text. Comparison is case-sensitive.
+     *
+     * @param text
+     *            substring to find in the aria-label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> ariaLabelContains(
+            String text) {
+        Objects.requireNonNull(text, "text must not be null");
+        return component -> {
+            String label = component.getElement().getAttribute("aria-label");
+            return label != null && label.contains(text);
+        };
+    }
+
     private static class TextContainsPredicate<T extends Component>
             implements Predicate<T> {
 

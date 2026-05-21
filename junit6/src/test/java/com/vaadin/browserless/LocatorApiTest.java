@@ -144,6 +144,49 @@ class LocatorApiTest {
     }
 
     @Test
+    void filterChain_withLabel_selectsField() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // Outer TextField has label "Name"; inner PersonForm has
+            // "Full name" / "Email address" — labels are unique at the top
+            // level so withLabel resolves to exactly one match.
+            window.findTextField().withLabel("Name").setValue("via label");
+            Assertions.assertEquals("via label", window.findTextField()
+                    .withId("name").component().getValue());
+
+            // Substring match against the inner form's label.
+            window.findTextField().withLabelContaining("Full")
+                    .setValue("inner");
+            Assertions.assertEquals("inner", window.findTextField()
+                    .withId("pf-name").component().getValue());
+        }
+    }
+
+    @Test
+    void filterChain_withAriaLabel_selectsButton() {
+        try (var app = BrowserlessApplicationContext.create(routes())) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            window.findTextField().withId("name").setValue("X");
+
+            // The Clear button identifies itself to screen readers via
+            // aria-label="Reset form".
+            window.findButton().withAriaLabel("Reset form").click();
+            Assertions.assertEquals("", window.findTextField().withId("name")
+                    .component().getValue());
+
+            // Substring match against the same attribute.
+            window.findTextField().withId("name").setValue("X");
+            window.findButton().withAriaLabelContaining("Reset").click();
+            Assertions.assertEquals("", window.findTextField().withId("name")
+                    .component().getValue());
+        }
+    }
+
+    @Test
     void filterChain_expandedSurface() {
         try (var app = BrowserlessApplicationContext.create(routes())) {
             var window = app.newUser().newWindow();
