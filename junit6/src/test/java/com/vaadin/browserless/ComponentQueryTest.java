@@ -680,6 +680,24 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withLabel_componentInsideDialog_isFound() {
+        TextField field = new TextField();
+        field.setId("dlg-field");
+        NativeLabel label = new NativeLabel("Inside dialog");
+        label.setFor(field);
+
+        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+        dialog.add(label, field);
+        dialog.open();
+
+        // The <label for="dlg-field"> sits inside the dialog overlay; the
+        // query must walk into the dialog content to resolve the for
+        // relationship.
+        Assertions.assertSame(field,
+                find(TextField.class).withLabel("Inside dialog").single());
+    }
+
+    @Test
     void withAriaLabel_exactMatch_getsCorrectComponent() {
         TestComponent reset = new TestComponent();
         reset.getElement().setAttribute("aria-label", "Reset form");
