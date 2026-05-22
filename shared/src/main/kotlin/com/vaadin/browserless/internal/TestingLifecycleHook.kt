@@ -109,13 +109,10 @@ interface TestingLifecycleHook {
             // which would clash with Grid.Column later on
             component.children.toList()
         }
-        component is Composite<*> -> {
-            // The Composite class overrides getChildren() to return a stream with the wrapped component,
-            // but also getElement() returning the Element of the wrapped component.
-            // The latter causes the virtual child to be fetched as Composite direct child,
-            // thus duplicating any virtual children the child component might have.
-            component.children.toList()
-        }
+        // Composite no longer needs a branch: ComponentUtil.getAllChildren
+        // already short-circuits Composite → parent.getChildren(), and our
+        // union with component.children below collapses to the same result.
+
         // Default: union of the component's own getChildren() stream and
         // ComponentUtil.getAllChildren (regular + virtual via the
         // framework helper). The union is needed because some Vaadin
