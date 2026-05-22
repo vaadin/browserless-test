@@ -216,7 +216,9 @@ public final class ElementConditions {
      *            the expected label, not {@literal null}
      */
     public static <T extends Component> Predicate<T> hasLabel(String label) {
-        Objects.requireNonNull(label, "label must not be null");
+        if (label == null) {
+            throw new IllegalArgumentException("label cannot be null");
+        }
         return component -> matchesLabel(component, label, false);
     }
 
@@ -231,7 +233,9 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> labelContains(
             String text) {
-        Objects.requireNonNull(text, "text must not be null");
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
         return component -> matchesLabel(component, text, true);
     }
 
@@ -275,7 +279,9 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> hasAriaLabel(
             String ariaLabel) {
-        Objects.requireNonNull(ariaLabel, "ariaLabel must not be null");
+        if (ariaLabel == null) {
+            throw new IllegalArgumentException("ariaLabel cannot be null");
+        }
         return component -> ariaLabel
                 .equals(component.getElement().getAttribute("aria-label"));
     }
@@ -289,7 +295,9 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> ariaLabelContains(
             String text) {
-        Objects.requireNonNull(text, "text must not be null");
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
         return component -> {
             String label = component.getElement().getAttribute("aria-label");
             return label != null && label.contains(text);

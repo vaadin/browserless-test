@@ -32,8 +32,10 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldBase;
@@ -627,7 +629,6 @@ class ComponentQueryTest extends BrowserlessTest {
         other.getElement().setProperty("label", "Email");
 
         TestComponent withLabelComponent = new TestComponent();
-        // TODO why don't we set id implicitly, #FFS
         withLabelComponent.setId("random123");
         NativeLabel labelComponent = new NativeLabel("Native");
         labelComponent.setFor(withLabelComponent);
@@ -660,6 +661,10 @@ class ComponentQueryTest extends BrowserlessTest {
 
         TestComponent noLabel = new TestComponent();
 
+        // Non-matching label property — must be excluded from the result.
+        TestComponent unrelatedLabel = new TestComponent();
+        unrelatedLabel.getElement().setProperty("label", "Address");
+
         TextField textFieldWithLabel = new TextField("First name");
 
         // Component labelled via a separate <label for="..."> — substring
@@ -669,10 +674,18 @@ class ComponentQueryTest extends BrowserlessTest {
         NativeLabel forLabel = new NativeLabel("Display name");
         forLabel.setFor(viaForAttr);
 
+        // Non-matching <label for="..."> — must be excluded from the result.
+        TestComponent viaForAttrUnrelated = new TestComponent();
+        viaForAttrUnrelated.setId("via-for-unrelated");
+        NativeLabel forLabelUnrelated = new NativeLabel("Country");
+        forLabelUnrelated.setFor(viaForAttrUnrelated);
+
         UI.getCurrent().getElement().appendChild(fullName.getElement(),
                 firstName.getElement(), noLabel.getElement(),
-                textFieldWithLabel.getElement(), viaForAttr.getElement(),
-                forLabel.getElement());
+                unrelatedLabel.getElement(), textFieldWithLabel.getElement(),
+                viaForAttr.getElement(), forLabel.getElement(),
+                viaForAttrUnrelated.getElement(),
+                forLabelUnrelated.getElement());
 
         Assertions.assertIterableEquals(
                 List.of(fullName, firstName, textFieldWithLabel, viaForAttr),
@@ -686,7 +699,7 @@ class ComponentQueryTest extends BrowserlessTest {
         NativeLabel label = new NativeLabel("Inside dialog");
         label.setFor(field);
 
-        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+        Dialog dialog = new Dialog();
         dialog.add(label, field);
         dialog.open();
 
@@ -704,7 +717,7 @@ class ComponentQueryTest extends BrowserlessTest {
         NativeLabel label = new NativeLabel("MDL label");
         label.setFor(field);
 
-        com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout layout = new com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout();
+        MasterDetailLayout layout = new MasterDetailLayout();
         layout.setMaster(new com.vaadin.flow.component.html.Span("master"));
         layout.setDetail(new Div(label, field));
 
@@ -747,8 +760,13 @@ class ComponentQueryTest extends BrowserlessTest {
 
         TestComponent noAria = new TestComponent();
 
+        // Non-matching aria-label — must be excluded from the result.
+        TestComponent unrelated = new TestComponent();
+        unrelated.getElement().setAttribute("aria-label", "Close dialog");
+
         UI.getCurrent().getElement().appendChild(reset.getElement(),
-                submit.getElement(), noAria.getElement());
+                submit.getElement(), noAria.getElement(),
+                unrelated.getElement());
 
         Assertions.assertIterableEquals(List.of(reset, submit),
                 find(TestComponent.class).withAriaLabelContaining("form")
@@ -758,14 +776,14 @@ class ComponentQueryTest extends BrowserlessTest {
     @Test
     void withLabel_null_throws() {
         ComponentQuery<TestComponent> query = find(TestComponent.class);
-        Assertions.assertThrows(NullPointerException.class,
+        Assertions.assertThrows(IllegalArgumentException.class,
                 () -> query.withLabel(null));
     }
 
     @Test
     void withAriaLabel_null_throws() {
         ComponentQuery<TestComponent> query = find(TestComponent.class);
-        Assertions.assertThrows(NullPointerException.class,
+        Assertions.assertThrows(IllegalArgumentException.class,
                 () -> query.withAriaLabel(null));
     }
 
