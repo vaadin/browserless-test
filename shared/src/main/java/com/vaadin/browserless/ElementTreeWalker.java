@@ -15,10 +15,9 @@
  */
 package com.vaadin.browserless;
 
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-
 import com.vaadin.flow.dom.Element;
+
+import java.util.stream.Stream;
 
 /**
  * Static helpers for walking and selecting nodes in an
@@ -28,7 +27,7 @@ import com.vaadin.flow.dom.Element;
  * whenever a search needs to look beyond the component graph (e.g. matching by
  * tag, attribute, or any predicate over the raw element tree).
  */
-public final class ElementTreeWalker {
+final class ElementTreeWalker {
 
     private ElementTreeWalker() {
         throw new AssertionError("Must not be instantiated");
@@ -37,17 +36,9 @@ public final class ElementTreeWalker {
     /**
      * Depth-first stream containing {@code root} and all of its descendants.
      */
-    public static Stream<Element> walk(Element root) {
+    static Stream<Element> walk(Element root) {
         return Stream.concat(Stream.of(root),
                 root.getChildren().flatMap(ElementTreeWalker::walk));
     }
 
-    /**
-     * Elements in the subtree rooted at {@code root} (including {@code root}
-     * itself) that match the given predicate, in depth-first order.
-     */
-    public static Stream<Element> select(Element root,
-            Predicate<Element> predicate) {
-        return walk(root).filter(predicate);
-    }
 }
