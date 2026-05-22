@@ -22,9 +22,12 @@ import java.util.function.Predicate;
 import org.jsoup.Jsoup;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -241,19 +244,9 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
-        // Migration note: once flow#24408 ships and the missing hasFeature
-        // guard in ComponentUtil.getAllChildren is fixed, this can become
-        //   .map(id -> referringLabelText(component.getUI().orElse(null), id))
-        // with referringLabelText(UI, String) using ComponentUtil
-        //   .streamDescendants(ui)
-        //   .filter(NativeLabel.class::isInstance)
-        //   .map(NativeLabel.class::cast)
-        //   .filter(l -> l.getFor().filter(id::equals).isPresent())
-        //   .map(NativeLabel::getText) ... and ElementTreeWalker can be
-        // deleted entirely.
         return component.getId()
-                .map(id -> referringLabelText(
-                        component.getUI().get().getElement(), id))
+                .map(id -> referringLabelText(component.getUI().orElse(null),
+                        id))
                 .filter(text -> matches(text, expected, substring)).isPresent();
     }
 
@@ -265,13 +258,15 @@ public final class ElementConditions {
         return substring ? actual.contains(expected) : actual.equals(expected);
     }
 
-    private static String referringLabelText(Element root, String id) {
-        return ElementTreeWalker.walk(root)
-                // Element.getTag() throws on text nodes; skip them first.
-                .filter(e -> !e.isTextNode())
-                .filter(e -> "label".equalsIgnoreCase(e.getTag()))
-                .filter(e -> id.equals(e.getAttribute("for")))
-                .map(Element::getTextRecursively).findFirst().orElse(null);
+    private static String referringLabelText(UI ui, String id) {
+        if (ui == null) {
+            return null;
+        }
+        return ComponentUtil.streamDescendants(ui)
+                .filter(NativeLabel.class::isInstance)
+                .map(NativeLabel.class::cast)
+                .filter(label -> label.getFor().filter(id::equals).isPresent())
+                .map(NativeLabel::getText).findFirst().orElse(null);
     }
 
     /**
