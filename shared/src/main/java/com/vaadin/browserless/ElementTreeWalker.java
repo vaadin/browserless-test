@@ -15,9 +15,9 @@
  */
 package com.vaadin.browserless;
 
-import com.vaadin.flow.dom.Element;
-
 import java.util.stream.Stream;
+
+import com.vaadin.flow.dom.Element;
 
 /**
  * Static helpers for walking and selecting nodes in an
