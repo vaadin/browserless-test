@@ -35,8 +35,9 @@ import com.vaadin.flow.internal.nodefeature.VirtualChildrenList;
  * MasterDetailLayout detail slot, etc.) are still reachable.
  * <p>
  * Slated for removal once {@code ComponentUtil.getAllChildren} /
- * {@code streamDescendants} (vaadin/flow#24408) ships in 25.2-SNAPSHOT and the
- * caller can move to the component-level framework helper.
+ * {@code streamDescendants} (vaadin/flow#24408) ships in 25.2-SNAPSHOT and
+ * the missing {@code hasFeature} guard there is fixed — see the migration
+ * note in {@code ElementConditions.referringLabelText}.
  */
 final class ElementTreeWalker {
 
@@ -55,6 +56,10 @@ final class ElementTreeWalker {
     }
 
     private static Stream<Element> virtualChildren(Element element) {
+        // Without this hasFeature guard, getFeatureIfInitialized throws on
+        // nodes that were never assigned a virtual-children list. The current
+        // ComponentUtil.getAllChildren in flow PR #24408 is missing this
+        // guard, which is why we still rely on this local walker.
         if (!element.getNode().hasFeature(VirtualChildrenList.class)) {
             return Stream.empty();
         }

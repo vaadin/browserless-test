@@ -241,6 +241,16 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
+        // Migration note: once flow#24408 ships and the missing hasFeature
+        // guard in ComponentUtil.getAllChildren is fixed, this can become
+        //   .map(id -> referringLabelText(component.getUI().orElse(null), id))
+        // with referringLabelText(UI, String) using ComponentUtil
+        //   .streamDescendants(ui)
+        //   .filter(NativeLabel.class::isInstance)
+        //   .map(NativeLabel.class::cast)
+        //   .filter(l -> l.getFor().filter(id::equals).isPresent())
+        //   .map(NativeLabel::getText) ... and ElementTreeWalker can be
+        // deleted entirely.
         return component.getId()
                 .map(id -> referringLabelText(
                         component.getUI().get().getElement(), id))
