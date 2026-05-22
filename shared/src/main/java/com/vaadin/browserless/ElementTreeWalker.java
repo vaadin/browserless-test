@@ -33,6 +33,10 @@ import com.vaadin.flow.internal.nodefeature.VirtualChildrenList;
  * Traversal includes both regular and virtual children, so components that
  * attach content via {@code Element.appendVirtualChild(...)} (Dialog overlay,
  * MasterDetailLayout detail slot, etc.) are still reachable.
+ * <p>
+ * Slated for removal once {@code ComponentUtil.getAllChildren} /
+ * {@code streamDescendants} (vaadin/flow#24408) ships in 25.2-SNAPSHOT and the
+ * caller can move to the component-level framework helper.
  */
 final class ElementTreeWalker {
 
@@ -56,9 +60,10 @@ final class ElementTreeWalker {
         }
         return element.getNode()
                 .getFeatureIfInitialized(VirtualChildrenList.class)
-                .map(list -> StreamSupport.stream(
-                        ((Iterable<StateNode>) list::iterator).spliterator(),
-                        false).map(Element::get))
+                .map(list -> StreamSupport
+                        .stream(((Iterable<StateNode>) list::iterator)
+                                .spliterator(), false)
+                        .map(Element::get))
                 .orElseGet(Stream::empty);
     }
 }
