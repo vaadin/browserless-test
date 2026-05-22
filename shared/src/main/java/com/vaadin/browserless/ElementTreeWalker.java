@@ -16,8 +16,11 @@
 package com.vaadin.browserless;
 
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.internal.StateNode;
+import com.vaadin.flow.internal.nodefeature.VirtualChildrenList;
 
 /**
  * Static helpers for walking and selecting nodes in an
@@ -26,6 +29,10 @@ import com.vaadin.flow.dom.Element;
  * Think {@code document.querySelectorAll} at the Flow element level: handy
  * whenever a search needs to look beyond the component graph (e.g. matching by
  * tag, attribute, or any predicate over the raw element tree).
+ * <p>
+ * Traversal includes both regular and virtual children, so components that
+ * attach content via {@code Element.appendVirtualChild(...)} (Dialog overlay,
+ * MasterDetailLayout detail slot, etc.) are still reachable.
  */
 final class ElementTreeWalker {
 
@@ -34,11 +41,25 @@ final class ElementTreeWalker {
     }
 
     /**
-     * Depth-first stream containing {@code root} and all of its descendants.
+     * Depth-first stream containing {@code root} and all of its descendants,
+     * including elements attached as virtual children.
      */
     static Stream<Element> walk(Element root) {
         return Stream.concat(Stream.of(root),
-                root.getChildren().flatMap(ElementTreeWalker::walk));
+                Stream.concat(root.getChildren(), virtualChildren(root))
+                        .flatMap(ElementTreeWalker::walk));
     }
 
+    private static Stream<Element> virtualChildren(Element element) {
+        if (!element.getNode().hasFeature(VirtualChildrenList.class)) {
+            return Stream.empty();
+        }
+        return element.getNode()
+                .getFeatureIfInitialized(VirtualChildrenList.class)
+                .map(list -> StreamSupport
+                        .stream(((Iterable<StateNode>) list::iterator)
+                                .spliterator(), false)
+                        .map(Element::get))
+                .orElseGet(Stream::empty);
+    }
 }

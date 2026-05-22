@@ -257,6 +257,8 @@ public final class ElementConditions {
 
     private static String referringLabelText(Element root, String id) {
         return ElementTreeWalker.walk(root)
+                // Element.getTag() throws on text nodes; skip them first.
+                .filter(e -> !e.isTextNode())
                 .filter(e -> "label".equalsIgnoreCase(e.getTag()))
                 .filter(e -> id.equals(e.getAttribute("for")))
                 .map(Element::getTextRecursively).findFirst().orElse(null);

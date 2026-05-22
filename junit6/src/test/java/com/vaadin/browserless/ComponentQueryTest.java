@@ -698,6 +698,26 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withLabel_componentInsideMasterDetailLayout_isFound() {
+        TextField field = new TextField();
+        field.setId("mdl-field");
+        NativeLabel label = new NativeLabel("MDL label");
+        label.setFor(field);
+
+        com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout layout =
+                new com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout();
+        layout.setMaster(new com.vaadin.flow.component.html.Span("master"));
+        layout.setDetail(new Div(label, field));
+
+        UI.getCurrent().getElement().appendChild(layout.getElement());
+
+        // MasterDetailLayout attaches its detail content via virtual children;
+        // the walker has to traverse those to find the referring <label>.
+        Assertions.assertSame(field,
+                find(TextField.class).withLabel("MDL label").single());
+    }
+
+    @Test
     void withAriaLabel_exactMatch_getsCorrectComponent() {
         TestComponent reset = new TestComponent();
         reset.getElement().setAttribute("aria-label", "Reset form");
