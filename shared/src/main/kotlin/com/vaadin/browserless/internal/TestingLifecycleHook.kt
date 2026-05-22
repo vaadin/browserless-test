@@ -11,6 +11,7 @@ package com.vaadin.browserless.internal
 
 import java.lang.reflect.Method
 import com.vaadin.flow.component.Component
+import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.contextmenu.MenuItemBase
@@ -115,9 +116,17 @@ interface TestingLifecycleHook {
             // thus duplicating any virtual children the child component might have.
             component.children.toList()
         }
-        // Also include virtual children.
+        // Default: union of the component's own getChildren() stream and
+        // ComponentUtil.getAllChildren (regular + virtual via the
+        // framework helper). The union is needed because some Vaadin
+        // components override getChildren() to return logical children
+        // that live outside the element tree (ContextMenu returns
+        // MenuManager items; getAllChildren walks elements only and
+        // misses those). distinct() collapses the overlap for plain
+        // components where the two paths agree.
         // Issue: https://github.com/mvysny/karibu-testing/issues/85
-        else -> (component.children.toList() + component._getVirtualChildren()).distinct()
+        else -> (component.children.toList()
+                + ComponentUtil.getAllChildren(component).toList()).distinct()
     }
 
 
