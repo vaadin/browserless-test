@@ -704,8 +704,7 @@ class ComponentQueryTest extends BrowserlessTest {
         NativeLabel label = new NativeLabel("MDL label");
         label.setFor(field);
 
-        com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout layout =
-                new com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout();
+        com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout layout = new com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout();
         layout.setMaster(new com.vaadin.flow.component.html.Span("master"));
         layout.setDetail(new Div(label, field));
 

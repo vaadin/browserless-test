@@ -56,10 +56,9 @@ final class ElementTreeWalker {
         }
         return element.getNode()
                 .getFeatureIfInitialized(VirtualChildrenList.class)
-                .map(list -> StreamSupport
-                        .stream(((Iterable<StateNode>) list::iterator)
-                                .spliterator(), false)
-                        .map(Element::get))
+                .map(list -> StreamSupport.stream(
+                        ((Iterable<StateNode>) list::iterator).spliterator(),
+                        false).map(Element::get))
                 .orElseGet(Stream::empty);
     }
 }
