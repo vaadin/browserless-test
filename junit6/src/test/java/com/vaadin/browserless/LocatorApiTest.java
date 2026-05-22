@@ -24,7 +24,6 @@ import com.example.locator.PersonFormLocator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -46,14 +45,13 @@ import com.vaadin.flow.component.html.Span;
  */
 class LocatorApiTest {
 
-    private static Routes routes() {
-        return new Routes()
-                .autoDiscoverViews(LocatorDemoView.class.getPackageName());
+    private static BrowserlessApplicationContext createApplicationContext() {
+        return BrowserlessApplicationContext.create(LocatorDemoView.class);
     }
 
     @Test
     void buttonByCaption_click_firesListener() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -70,7 +68,7 @@ class LocatorApiTest {
 
     @Test
     void buttonByCaption_multipleButtons_filterPicksRightOne() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -84,7 +82,7 @@ class LocatorApiTest {
 
     @Test
     void textField_setValue_thenRead_roundTrips() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -96,7 +94,7 @@ class LocatorApiTest {
 
     @Test
     void grid_typedRowAccessor() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -109,7 +107,7 @@ class LocatorApiTest {
 
     @Test
     void singleLocator_reusedAfterUiChange_reresolves() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -130,7 +128,7 @@ class LocatorApiTest {
 
     @Test
     void customLocator_viaGetSupplier_composesBuiltins() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -145,7 +143,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_expandedSurface() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -164,7 +162,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_escapeHatch_unaryOperator() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -182,7 +180,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_escapeHatch_returnsDifferentQuery() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -205,7 +203,7 @@ class LocatorApiTest {
 
     @Test
     void exists_truePathAndFalsePath() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -220,7 +218,7 @@ class LocatorApiTest {
 
     @Test
     void components_returnsAllMatchesAndKeepsLocatorReusable() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -237,7 +235,7 @@ class LocatorApiTest {
 
     @Test
     void inside_componentOverload_scopesToDescendants() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -255,7 +253,7 @@ class LocatorApiTest {
 
     @Test
     void inside_locatorOverload_evaluatesParentLazily() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -294,7 +292,7 @@ class LocatorApiTest {
 
     @Test
     void inside_locatorOverload_rejectsSelfReference() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -306,7 +304,7 @@ class LocatorApiTest {
 
     @Test
     void use_seedsLocatorWithComponent_actionWorks() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -327,7 +325,7 @@ class LocatorApiTest {
 
     @Test
     void use_componentAndExistsReturnSeededInstance() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -346,7 +344,7 @@ class LocatorApiTest {
 
     @Test
     void use_additionalFilterCanExcludeSeededComponent() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -366,7 +364,7 @@ class LocatorApiTest {
 
     @Test
     void use_genericTarget_carriesTypeArg() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -381,7 +379,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_escapeHatch_nullReturnThrows() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -398,7 +396,7 @@ class LocatorApiTest {
 
     @Test
     void atIndex_picksNthMatch() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -414,7 +412,7 @@ class LocatorApiTest {
 
     @Test
     void atIndex_stickyAcrossFilterSteps_butClearedByInvalidate() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -462,7 +460,7 @@ class LocatorApiTest {
 
     @Test
     void findSupplier_nullReturnThrows() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -477,7 +475,7 @@ class LocatorApiTest {
 
     @Test
     void multiUser_locatorsRespectActiveWindow() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var alice = app.newUser().newWindow();
             var bob = app.newUser().newWindow();
             alice.navigate(LocatorDemoView.class);
