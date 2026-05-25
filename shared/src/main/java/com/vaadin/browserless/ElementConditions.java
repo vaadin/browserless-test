@@ -196,6 +196,114 @@ public final class ElementConditions {
                 .equals(component.getElement().getAttribute(attribute), value);
     }
 
+    /**
+     * Checks if the component is labelled by exactly the given text. A
+     * component is considered labelled by a text when either:
+     *
+     * <ul>
+     * <li>its {@code label} property (read by
+     * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the text,
+     * or</li>
+     * <li>some {@code <label for="componentId">} element elsewhere in the UI
+     * has that text as its (recursive) content.</li>
+     * </ul>
+     *
+     * The second form covers the HTML pattern where a separate
+     * {@link com.vaadin.flow.component.html.NativeLabel} (or any
+     * {@code <label>} element) targets an input via the {@code for} attribute.
+     *
+     * @param label
+     *            the expected label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> hasLabel(String label) {
+        if (label == null) {
+            throw new IllegalArgumentException("label cannot be null");
+        }
+        return component -> matchesLabel(component, label, false);
+    }
+
+    /**
+     * Checks if the component's label contains the given text. The label is
+     * read in the same way as {@link #hasLabel(String)} (component's
+     * {@code label} property or a referring {@code <label for="...">} element).
+     * Comparison is case-sensitive.
+     *
+     * @param text
+     *            substring to find in the label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> labelContains(
+            String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
+        return component -> matchesLabel(component, text, true);
+    }
+
+    private static boolean matchesLabel(Component component, String expected,
+            boolean substring) {
+        String own = component.getElement().getProperty("label");
+        if (matches(own, expected, substring)) {
+            return true;
+        }
+        return component.getId()
+                .map(id -> referringLabelText(
+                        component.getUI().get().getElement(), id))
+                .filter(text -> matches(text, expected, substring)).isPresent();
+    }
+
+    private static boolean matches(String actual, String expected,
+            boolean substring) {
+        if (actual == null) {
+            return false;
+        }
+        return substring ? actual.contains(expected) : actual.equals(expected);
+    }
+
+    private static String referringLabelText(Element root, String id) {
+        return ElementTreeWalker.walk(root)
+                // Element.getTag() throws on text nodes; skip them first.
+                .filter(e -> !e.isTextNode())
+                .filter(e -> "label".equalsIgnoreCase(e.getTag()))
+                .filter(e -> id.equals(e.getAttribute("for")))
+                .map(Element::getTextRecursively).findFirst().orElse(null);
+    }
+
+    /**
+     * Checks if the component has its {@code aria-label} attribute set to
+     * exactly the given value. Useful for components like {@code Button} that
+     * don't expose a {@code label} property but identify themselves to
+     * assistive technology via {@code aria-label}.
+     *
+     * @param ariaLabel
+     *            the expected aria-label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> hasAriaLabel(
+            String ariaLabel) {
+        if (ariaLabel == null) {
+            throw new IllegalArgumentException("ariaLabel cannot be null");
+        }
+        return component -> ariaLabel
+                .equals(component.getElement().getAttribute("aria-label"));
+    }
+
+    /**
+     * Checks if the component's {@code aria-label} attribute contains the given
+     * text. Comparison is case-sensitive.
+     *
+     * @param text
+     *            substring to find in the aria-label, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> ariaLabelContains(
+            String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
+        return component -> {
+            String label = component.getElement().getAttribute("aria-label");
+            return label != null && label.contains(text);
+        };
+    }
+
     private static class TextContainsPredicate<T extends Component>
             implements Predicate<T> {
 

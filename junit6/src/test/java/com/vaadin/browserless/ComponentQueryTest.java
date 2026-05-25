@@ -32,7 +32,10 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldBase;
@@ -615,6 +618,173 @@ class ComponentQueryTest extends BrowserlessTest {
         ComponentQuery<TestComponent> query = find(TestComponent.class);
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> query.withCaptionContaining(null));
+    }
+
+    @Test
+    void withLabel_exactMatch_getsCorrectComponent() {
+        TestComponent labelled = new TestComponent();
+        labelled.getElement().setProperty("label", "Full name");
+
+        TestComponent other = new TestComponent();
+        other.getElement().setProperty("label", "Email");
+
+        TestComponent withLabelComponent = new TestComponent();
+        withLabelComponent.setId("random123");
+        NativeLabel labelComponent = new NativeLabel("Native");
+        labelComponent.setFor(withLabelComponent);
+
+        TestComponent noLabel = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(labelled.getElement(),
+                other.getElement(), noLabel.getElement(),
+                withLabelComponent.getElement(), labelComponent.getElement());
+
+        Assertions.assertSame(labelled,
+                find(TestComponent.class).withLabel("Full name").single());
+        Assertions.assertSame(other,
+                find(TestComponent.class).withLabel("Email").single());
+        // A separate <label for="random123"> targets withLabelComponent —
+        // withLabel resolves the relationship via the for attribute.
+        Assertions.assertSame(withLabelComponent,
+                find(TestComponent.class).withLabel("Native").single());
+        Assertions.assertTrue(
+                find(TestComponent.class).withLabel("Missing").all().isEmpty());
+    }
+
+    @Test
+    void withLabelContaining_substringMatch() {
+        TestComponent fullName = new TestComponent();
+        fullName.getElement().setProperty("label", "Full name");
+
+        TestComponent firstName = new TestComponent();
+        firstName.getElement().setProperty("label", "First name");
+
+        TestComponent noLabel = new TestComponent();
+
+        // Non-matching label property — must be excluded from the result.
+        TestComponent unrelatedLabel = new TestComponent();
+        unrelatedLabel.getElement().setProperty("label", "Address");
+
+        TextField textFieldWithLabel = new TextField("First name");
+
+        // Component labelled via a separate <label for="..."> — substring
+        // match must traverse the same path as exact match.
+        TestComponent viaForAttr = new TestComponent();
+        viaForAttr.setId("via-for");
+        NativeLabel forLabel = new NativeLabel("Display name");
+        forLabel.setFor(viaForAttr);
+
+        // Non-matching <label for="..."> — must be excluded from the result.
+        TestComponent viaForAttrUnrelated = new TestComponent();
+        viaForAttrUnrelated.setId("via-for-unrelated");
+        NativeLabel forLabelUnrelated = new NativeLabel("Country");
+        forLabelUnrelated.setFor(viaForAttrUnrelated);
+
+        UI.getCurrent().getElement().appendChild(fullName.getElement(),
+                firstName.getElement(), noLabel.getElement(),
+                unrelatedLabel.getElement(), textFieldWithLabel.getElement(),
+                viaForAttr.getElement(), forLabel.getElement(),
+                viaForAttrUnrelated.getElement(),
+                forLabelUnrelated.getElement());
+
+        Assertions.assertIterableEquals(
+                List.of(fullName, firstName, textFieldWithLabel, viaForAttr),
+                find(Component.class).withLabelContaining("name").all());
+    }
+
+    @Test
+    void withLabel_componentInsideDialog_isFound() {
+        TextField field = new TextField();
+        field.setId("dlg-field");
+        NativeLabel label = new NativeLabel("Inside dialog");
+        label.setFor(field);
+
+        Dialog dialog = new Dialog();
+        dialog.add(label, field);
+        dialog.open();
+
+        // The <label for="dlg-field"> sits inside the dialog overlay; the
+        // query must walk into the dialog content to resolve the for
+        // relationship.
+        Assertions.assertSame(field,
+                find(TextField.class).withLabel("Inside dialog").single());
+    }
+
+    @Test
+    void withLabel_componentInsideMasterDetailLayout_isFound() {
+        TextField field = new TextField();
+        field.setId("mdl-field");
+        NativeLabel label = new NativeLabel("MDL label");
+        label.setFor(field);
+
+        MasterDetailLayout layout = new MasterDetailLayout();
+        layout.setMaster(new com.vaadin.flow.component.html.Span("master"));
+        layout.setDetail(new Div(label, field));
+
+        UI.getCurrent().getElement().appendChild(layout.getElement());
+
+        // MasterDetailLayout attaches its detail content via virtual children;
+        // the walker has to traverse those to find the referring <label>.
+        Assertions.assertSame(field,
+                find(TextField.class).withLabel("MDL label").single());
+    }
+
+    @Test
+    void withAriaLabel_exactMatch_getsCorrectComponent() {
+        TestComponent reset = new TestComponent();
+        reset.getElement().setAttribute("aria-label", "Reset form");
+
+        TestComponent other = new TestComponent();
+        other.getElement().setAttribute("aria-label", "Submit form");
+
+        TestComponent noAria = new TestComponent();
+
+        UI.getCurrent().getElement().appendChild(reset.getElement(),
+                other.getElement(), noAria.getElement());
+
+        Assertions.assertSame(reset,
+                find(TestComponent.class).withAriaLabel("Reset form").single());
+        Assertions.assertSame(other, find(TestComponent.class)
+                .withAriaLabel("Submit form").single());
+        Assertions.assertTrue(find(TestComponent.class).withAriaLabel("Missing")
+                .all().isEmpty());
+    }
+
+    @Test
+    void withAriaLabelContaining_substringMatch() {
+        TestComponent reset = new TestComponent();
+        reset.getElement().setAttribute("aria-label", "Reset form");
+
+        TestComponent submit = new TestComponent();
+        submit.getElement().setAttribute("aria-label", "Submit form");
+
+        TestComponent noAria = new TestComponent();
+
+        // Non-matching aria-label — must be excluded from the result.
+        TestComponent unrelated = new TestComponent();
+        unrelated.getElement().setAttribute("aria-label", "Close dialog");
+
+        UI.getCurrent().getElement().appendChild(reset.getElement(),
+                submit.getElement(), noAria.getElement(),
+                unrelated.getElement());
+
+        Assertions.assertIterableEquals(List.of(reset, submit),
+                find(TestComponent.class).withAriaLabelContaining("form")
+                        .all());
+    }
+
+    @Test
+    void withLabel_null_throws() {
+        ComponentQuery<TestComponent> query = find(TestComponent.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withLabel(null));
+    }
+
+    @Test
+    void withAriaLabel_null_throws() {
+        ComponentQuery<TestComponent> query = find(TestComponent.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withAriaLabel(null));
     }
 
     @Test
