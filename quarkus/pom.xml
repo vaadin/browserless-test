@@ -21,6 +21,9 @@
     <profiles>
         <profile>
             <id>release</id>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
