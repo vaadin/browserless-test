@@ -143,7 +143,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_withLabel_selectsField() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
@@ -164,7 +164,7 @@ class LocatorApiTest {
 
     @Test
     void filterChain_withAriaLabel_selectsButton() {
-        try (var app = BrowserlessApplicationContext.create(routes())) {
+        try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
