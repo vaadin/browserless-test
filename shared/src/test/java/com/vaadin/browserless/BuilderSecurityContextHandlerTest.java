@@ -39,14 +39,14 @@ class BuilderSecurityContextHandlerTest {
 
     @Test
     void withSecurityContextHandler_rejectsNull() {
-        var builder = BrowserlessApplicationContext.builder(emptyRoutes());
+        var builder = new BrowserlessApplicationContext.Builder(emptyRoutes());
         Assertions.assertThrows(NullPointerException.class,
                 () -> builder.withSecurityContextHandler(null));
     }
 
     @Test
     void securedBuilder_withSecurityContextHandler_rejectsNull() {
-        var secured = BrowserlessApplicationContext.builder(emptyRoutes())
+        var secured = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withSecurityContextHandler(new MinimalHandler());
         Assertions.assertThrows(NullPointerException.class,
                 () -> secured.withSecurityContextHandler(null));
@@ -54,7 +54,7 @@ class BuilderSecurityContextHandlerTest {
 
     @Test
     void newUserByUsernameAndRoles_throwsUOE_whenHandlerDoesNotOverrideCreateCredentials() {
-        try (var app = BrowserlessApplicationContext.builder(emptyRoutes())
+        try (var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withSecurityContextHandler(new MinimalHandler()).build()) {
             var ex = Assertions.assertThrows(
                     UnsupportedOperationException.class,

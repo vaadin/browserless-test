@@ -15,32 +15,17 @@
  */
 package com.vaadin.browserless;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.googlecode.gentyref.GenericTypeReflector;
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.browserless.internal.UtilsKt;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -66,81 +51,7 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public abstract class BaseBrowserlessTest {
 
-    private static final Logger LOGGER = LoggerFactory
-            .getLogger(BaseBrowserlessTest.class.getPackageName());
-    private static final ConcurrentHashMap<String, Routes> routesCache = new ConcurrentHashMap<>();
-
-    protected static final Map<Class<?>, Class<? extends ComponentTester>> testers = new HashMap<>();
-    protected static final Set<String> scanned = new HashSet<>();
-
     private TestSignalEnvironment signalsTestEnvironment;
-
-    static {
-        testers.putAll(scanForTesters("com.vaadin.flow.component"));
-    }
-
-    // Protected for access by adapter subclass in legacy module
-    protected static Map<Class<?>, Class<? extends ComponentTester>> scanForTesters(
-            String... packages) {
-        try (ScanResult scan = new ClassGraph().enableClassInfo()
-                .enableAnnotationInfo().acceptPackages(packages).scan(2)) {
-            ClassInfoList testerList = scan
-                    .getClassesWithAnnotation(Tests.class.getName());
-            Map<Class<?>, Class<? extends ComponentTester>> testerMap = new HashMap<>();
-            testerList
-                    .filter(classInfo -> classInfo
-                            .extendsSuperclass(ComponentTester.class))
-                    .forEach(classInfo -> {
-                        try {
-                            final Class<?> tester = UtilsKt
-                                    .findClassOrThrow(classInfo.getName());
-                            final Class<? extends Component>[] annotation = tester
-                                    .getAnnotation(Tests.class).value();
-                            for (Class<? extends Component> component : annotation) {
-                                testerMap.put(component,
-                                        (Class<? extends ComponentTester>) tester);
-                            }
-                            // -- Enable annotation with fqn for components with
-                            // generics
-                            final String[] classes = tester
-                                    .getAnnotation(Tests.class).fqn();
-
-                            Arrays.stream(classes).map(clazz -> {
-                                try {
-                                    return UtilsKt.findClassOrThrow(clazz);
-                                } catch (ClassNotFoundException e) {
-                                    logTypeLoadingIssue(e,
-                                            "Tester '{}' cannot be loaded because of missing component class '{}' on classpath",
-                                            classInfo.getName(), clazz);
-                                }
-                                return null;
-                            }).filter(Objects::nonNull)
-                                    .forEach(clazz -> testerMap.put(clazz,
-                                            (Class<? extends ComponentTester>) tester));
-
-                        } catch (TypeNotPresentException e) {
-                            logTypeLoadingIssue(e,
-                                    "Tester '{}' cannot be loaded because of missing class '{}' on classpath",
-                                    classInfo.getName(), e.typeName());
-                        } catch (ClassNotFoundException
-                                | NoClassDefFoundError e) {
-                            logTypeLoadingIssue(e,
-                                    "Tester '{}' cannot be loaded because of missing class on classpath: {}",
-                                    classInfo.getName(), e.getMessage());
-                        }
-                    });
-            return Collections.unmodifiableMap(testerMap);
-        }
-    }
-
-    private static void logTypeLoadingIssue(Throwable ex, String message,
-            Object... args) {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(message, args, ex);
-        } else {
-            LOGGER.warn(message, args);
-        }
-    }
 
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
@@ -152,16 +63,9 @@ public abstract class BaseBrowserlessTest {
      * @see #initVaadinEnvironment()
      * @return Routes
      */
-    protected static synchronized Routes discoverRoutes(
-            Set<String> packageNames) {
-        packageNames = packageNames == null || packageNames.isEmpty()
-                ? Set.of("")
-                : packageNames;
-
-        return packageNames.stream()
-                .map(pkg -> routesCache.computeIfAbsent(pkg,
-                        p -> new Routes().autoDiscoverViews(p)))
-                .reduce(new Routes(), Routes::merge);
+    // Protected for access by adapter subclass in legacy module
+    protected static Routes discoverRoutes(Set<String> packageNames) {
+        return RouteDiscovery.discover(packageNames);
     }
 
     /**
@@ -186,13 +90,8 @@ public abstract class BaseBrowserlessTest {
      */
     protected void scanTesters() {
         if (getClass().isAnnotationPresent(ComponentTesterPackages.class)) {
-            final List<String> packages = Arrays.asList(getClass()
+            TesterRegistry.registerPackages(getClass()
                     .getAnnotation(ComponentTesterPackages.class).value());
-            if (!scanned.containsAll((packages))) {
-                scanned.addAll(packages);
-                testers.putAll(scanForTesters(getClass()
-                        .getAnnotation(ComponentTesterPackages.class).value()));
-            }
         }
     }
 
@@ -332,15 +231,14 @@ public abstract class BaseBrowserlessTest {
     }
 
     // Protected for access by adapter subclass in legacy module
-    @SuppressWarnings("unchecked")
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Y component) {
-        return (T) initialize(getTester(component.getClass()), component);
+        return TesterRegistry.wrap(component);
     }
 
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Class<T> wrap, Y component) {
-        return initialize(wrap, component);
+        return TesterRegistry.instantiate(wrap, component);
     }
 
     /**
@@ -376,19 +274,7 @@ public abstract class BaseBrowserlessTest {
     public <T extends ComponentTester<Y>, Y extends Component> T test(
             Class<T> tester, Y component) {
         verifyAndGetUI();
-        return (T) initialize(tester, component);
-    }
-
-    private static <Y extends Component> Class<? extends ComponentTester> getTester(
-            Class<Y> component) {
-        Class<?> latest = component;
-        do {
-            if (testers.containsKey(latest)) {
-                return testers.get(latest);
-            }
-            latest = latest.getSuperclass();
-        } while (!Component.class.equals(latest));
-        return ComponentTester.class;
+        return TesterRegistry.instantiate(tester, component);
     }
 
     /**
@@ -490,34 +376,6 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
-     * Private initializer for tester classes.
-     *
-     * @param clazz
-     *            tester class to initialize
-     * @param component
-     *            component used with tester class
-     * @param <T>
-     *            component tester type
-     * @param <Y>
-     *            component type
-     * @return tester with component set
-     */
-    private static <T extends ComponentTester<Y>, Y extends Component> T initialize(
-            Class<T> clazz, Y component) {
-        try {
-            // Get the generic class for given wrapper. Component should be an
-            // instance of this.
-            final Class<?> aClass = detectComponentType(clazz);
-            return clazz.getConstructor(aClass).newInstance(component);
-        } catch (InstantiationException | IllegalAccessException
-                | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException("Could not instantiate "
-                    + clazz.getSimpleName() + " for component "
-                    + component.getClass().getSimpleName());
-        }
-    }
-
-    /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     protected static void roundTrip() {
@@ -579,59 +437,6 @@ public abstract class BaseBrowserlessTest {
             TimeUnit unit) {
         return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment,
                 maxWaitTime, unit);
-    }
-
-    /**
-     * Detects the component type for the given tester from generic declaration,
-     * by inspecting class hierarchy to resolve the concrete type for
-     * {@link ComponentTester} defined type variable.
-     *
-     * @param testerType
-     *            the tester type
-     * @return the component type the tester defines
-     */
-    @SuppressWarnings("rawtypes")
-    static Class<?> detectComponentType(
-            Class<? extends ComponentTester> testerType) {
-        if (testerType == ComponentTester.class) {
-            return Component.class;
-        }
-        Map<Type, Type> typeMap = new HashMap<>();
-        Class<?> clazz = testerType;
-        while (!clazz.equals(ComponentTester.class)) {
-            extractTypeArguments(typeMap, clazz);
-            clazz = clazz.getSuperclass();
-        }
-        return GenericTypeReflector.erase(
-                typeMap.get(ComponentTester.class.getTypeParameters()[0]));
-    }
-
-    /**
-     * Collects actual type for type variables declared by the generic
-     * declaration of given clazz.
-     *
-     * @param typeMap
-     *            map associating type variables to actual type
-     * @param clazz
-     *            the class to inspect for generic types
-     */
-    private static void extractTypeArguments(Map<Type, Type> typeMap,
-            Class<?> clazz) {
-        Type genericSuperclass = clazz.getGenericSuperclass();
-        if (!(genericSuperclass instanceof ParameterizedType)) {
-            return;
-        }
-
-        ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
-        Type[] typeParameter = ((Class<?>) parameterizedType.getRawType())
-                .getTypeParameters();
-        Type[] actualTypeArgument = parameterizedType.getActualTypeArguments();
-        for (int i = 0; i < typeParameter.length; i++) {
-            if (typeMap.containsKey(actualTypeArgument[i])) {
-                actualTypeArgument[i] = typeMap.get(actualTypeArgument[i]);
-            }
-            typeMap.put(typeParameter[i], actualTypeArgument[i]);
-        }
     }
 
     /*

@@ -28,8 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vaadin.browserless.internal.Routes;
-
 /**
  * Tests that the Spring security context snapshot is a defensive copy, not a
  * mutable reference. Mutating the live SecurityContext on the thread after
@@ -46,9 +44,8 @@ class SpringSecuritySnapshotTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = SpringBrowserlessApplicationContext.createSecured(routes,
-                applicationContext);
+        app = SpringBrowserlessApplicationContext
+                .createSecured(applicationContext, "com.testapp.security");
     }
 
     @AfterEach

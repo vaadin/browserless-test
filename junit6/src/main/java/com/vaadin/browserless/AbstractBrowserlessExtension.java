@@ -69,6 +69,11 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
         componentTesterPackages.addAll(Arrays.asList(packages));
     }
 
+    protected void addComponentTesterPackages(Class<?>... classes) {
+        Stream.of(classes).map(Class::getPackageName)
+                .forEach(componentTesterPackages::add);
+    }
+
     // --- Lifecycle callbacks ---
 
     protected void doInit(Object testInstance, ExtensionContext ctx) {
@@ -104,11 +109,8 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
         if (testerAnnotation != null) {
             testerPkgs.addAll(Arrays.asList(testerAnnotation.value()));
         }
-        for (String pkg : testerPkgs) {
-            if (BaseBrowserlessTest.scanned.add(pkg)) {
-                BaseBrowserlessTest.testers
-                        .putAll(BaseBrowserlessTest.scanForTesters(pkg));
-            }
+        if (!testerPkgs.isEmpty()) {
+            TesterRegistry.registerPackages(testerPkgs.toArray(String[]::new));
         }
 
         // Resolve view packages from annotation and programmatic config
@@ -125,7 +127,7 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
         }
         packages.removeIf(Objects::isNull);
 
-        Routes routes = BaseBrowserlessTest.discoverRoutes(packages);
+        Routes routes = RouteDiscovery.discover(packages);
         MockVaadin.setup(routes, MockedUI::new, services);
         signalsTestEnvironment = TestSignalEnvironment.register();
     }

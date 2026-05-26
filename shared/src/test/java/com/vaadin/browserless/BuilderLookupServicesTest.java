@@ -40,7 +40,7 @@ class BuilderLookupServicesTest {
     private BrowserlessApplicationContext.Builder newBuilder() {
         Routes routes = new Routes(new HashSet<>(), new HashSet<>(),
                 new HashSet<>(), true);
-        return BrowserlessApplicationContext.builder(routes);
+        return new BrowserlessApplicationContext.Builder(routes);
     }
 
     @Test

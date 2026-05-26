@@ -40,7 +40,7 @@ class BuilderCloseHookTest {
     @Test
     void hooksRunInRegistrationOrderOnClose() {
         List<String> log = new ArrayList<>();
-        var app = BrowserlessApplicationContext.<Void> builder(emptyRoutes())
+        var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withCloseHook(() -> log.add("a"))
                 .withCloseHook(() -> log.add("b"))
                 .withCloseHook(() -> log.add("c")).build();
@@ -54,7 +54,7 @@ class BuilderCloseHookTest {
     @Test
     void hooksFireExactlyOnceAcrossRedundantCloseCalls() {
         AtomicInteger calls = new AtomicInteger();
-        var app = BrowserlessApplicationContext.<Void> builder(emptyRoutes())
+        var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withCloseHook(calls::incrementAndGet).build();
 
         app.close();
@@ -68,7 +68,7 @@ class BuilderCloseHookTest {
     @Test
     void allHooksRunEvenIfSomeThrow() {
         List<String> log = new ArrayList<>();
-        var app = BrowserlessApplicationContext.<Void> builder(emptyRoutes())
+        var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withCloseHook(() -> log.add("a")).withCloseHook(() -> {
                     log.add("b-throws");
                     throw new IllegalStateException("boom-b");
@@ -96,7 +96,7 @@ class BuilderCloseHookTest {
     @Test
     void singleThrowingHookSurfacesAsAggregateWithOneSuppressed() {
         var cause = new IllegalStateException("solo-boom");
-        var app = BrowserlessApplicationContext.<Void> builder(emptyRoutes())
+        var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withCloseHook(() -> {
                     throw cause;
                 }).build();
@@ -110,16 +110,15 @@ class BuilderCloseHookTest {
 
     @Test
     void closeWithoutHooksDoesNotThrow() {
-        try (var app = BrowserlessApplicationContext
-                .<Void> builder(emptyRoutes()).build()) {
+        try (var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
+                .build()) {
             // try-with-resources triggers close(); just asserting no throw
         }
     }
 
     @Test
     void withCloseHook_nullThrows() {
-        var builder = BrowserlessApplicationContext
-                .<Void> builder(emptyRoutes());
+        var builder = new BrowserlessApplicationContext.Builder(emptyRoutes());
         Assertions.assertThrows(NullPointerException.class,
                 () -> builder.withCloseHook(null));
     }

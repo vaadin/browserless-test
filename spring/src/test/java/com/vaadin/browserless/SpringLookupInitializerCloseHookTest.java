@@ -15,13 +15,13 @@
  */
 package com.vaadin.browserless;
 
+import java.util.function.UnaryOperator;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
-import com.vaadin.browserless.internal.Routes;
 
 /**
  * Asserts that {@link SpringBrowserlessApplicationContext} releases the lookup
@@ -48,8 +48,8 @@ class SpringLookupInitializerCloseHookTest {
         try (var springCtx = new AnnotationConfigApplicationContext()) {
             springCtx.refresh();
 
-            var app = SpringBrowserlessApplicationContext.create(new Routes(),
-                    springCtx);
+            var app = SpringBrowserlessApplicationContext.create(springCtx,
+                    UnaryOperator.identity());
             Assertions.assertSame(springCtx,
                     BrowserlessTestSpringLookupInitializer
                             .getApplicationContext(),
@@ -72,8 +72,8 @@ class SpringLookupInitializerCloseHookTest {
         try (var springCtx = new AnnotationConfigApplicationContext()) {
             springCtx.refresh();
 
-            var app = SpringBrowserlessApplicationContext.create(new Routes(),
-                    springCtx);
+            var app = SpringBrowserlessApplicationContext.create(springCtx,
+                    UnaryOperator.identity());
             app.close();
             Assertions.assertDoesNotThrow(app::close,
                     "Second close() must be a no-op even with hooks"

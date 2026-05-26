@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
@@ -56,7 +59,7 @@ import com.vaadin.flow.server.VaadinServletService;
  * (Spring, Quarkus) provide convenience factory methods for both paths.
  *
  * <pre>
- * var app = BrowserlessApplicationContext.create(routes);
+ * var app = BrowserlessApplicationContext.create(MyView.class);
  * var user1 = app.newUser();
  * var window1 = user1.newWindow();
  * window1.navigate(MyView.class);
@@ -89,30 +92,70 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     }
 
     /**
-     * Creates a plain Java application context with default settings.
-     * <p>
-     * The returned context has no {@link SecurityContextHandler} configured;
-     * use {@link #builder(Routes)} and
-     * {@link Builder#withSecurityContextHandler(SecurityContextHandler)} to
-     * enable framework-specific security integration.
+     * Creates a plain Java application context, scanning the given packages for
+     * {@code @Route}-annotated views.
      *
-     * @param routes
-     *            the discovered routes
+     * @param viewPackages
+     *            package names to scan for views; an empty array falls back to
+     *            a full classpath scan
      * @return a new application context
      */
-    public static BrowserlessApplicationContext create(Routes routes) {
-        return builder(routes).build();
+    public static BrowserlessApplicationContext create(String... viewPackages) {
+        return new Builder().withViewPackages(viewPackages).build();
     }
 
     /**
-     * Creates a builder for customizing the application context.
+     * Creates a plain Java application context, scanning the packages of the
+     * given classes for {@code @Route}-annotated views.
      *
-     * @param routes
-     *            the discovered routes
-     * @return a new builder
+     * @param viewPackageClasses
+     *            classes whose packages should be scanned for views
+     * @return a new application context
      */
-    public static Builder builder(Routes routes) {
-        return new Builder(routes);
+    public static BrowserlessApplicationContext create(
+            Class<?>... viewPackageClasses) {
+        return new Builder().withViewPackages(viewPackageClasses).build();
+    }
+
+    /**
+     * Creates a plain Java application context, applying the given configurer
+     * to a fresh builder before {@link Builder#build() building} it. The
+     * configurer cannot be {@code null}; pass {@link UnaryOperator#identity()}
+     * to accept all defaults.
+     *
+     * @param configurer
+     *            builder configurer
+     * @return a new application context
+     */
+    public static BrowserlessApplicationContext create(
+            UnaryOperator<Builder> configurer) {
+        Objects.requireNonNull(configurer, "configurer must not be null");
+        return configurer.apply(new Builder()).build();
+    }
+
+    /**
+     * Creates a credential-typed application context. The configurer must call
+     * {@link Builder#withSecurityContextHandler(SecurityContextHandler)} on the
+     * supplied builder so that it returns a
+     * {@link SecuredBrowserlessApplicationContext.Builder} carrying the
+     * required handler.
+     * <p>
+     * Using a separate method name rather than an overload of
+     * {@link #create(UnaryOperator)} is intentional: Java overload resolution
+     * cannot disambiguate two lambdas whose parameter types share the
+     * {@link Function} erasure.
+     *
+     * @param <C>
+     *            the credentials type
+     * @param configurer
+     *            builder configurer that installs a security handler and
+     *            returns the resulting secured builder
+     * @return a new credential-aware application context
+     */
+    public static <C> SecuredBrowserlessApplicationContext<C> createSecured(
+            Function<Builder, SecuredBrowserlessApplicationContext.Builder<C>> configurer) {
+        Objects.requireNonNull(configurer, "configurer must not be null");
+        return configurer.apply(new Builder()).build();
     }
 
     /**
@@ -222,10 +265,104 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
         private Set<Class<?>> lookupServices = Collections.emptySet();
+        private final Set<String> viewPackages = new LinkedHashSet<>();
+        private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
 
+        /**
+         * Creates a builder with no pre-seeded routes. Routes are derived from
+         * the view packages configured on this builder (or from a full
+         * classpath scan when none are configured) at {@link #build()} time.
+         */
+        public Builder() {
+            this(null);
+        }
+
         Builder(Routes routes) {
-            this.routes = Objects.requireNonNull(routes);
+            this.routes = routes;
+        }
+
+        /**
+         * Adds packages to scan for {@code @Route}-annotated views. Successive
+         * calls accumulate. Ignored when this builder was created with an
+         * explicit {@link Routes} instance.
+         *
+         * @param packages
+         *            package names to scan
+         * @return this builder
+         * @throws NullPointerException
+         *             if {@code packages} or any element is {@code null}
+         */
+        public Builder withViewPackages(String... packages) {
+            Objects.requireNonNull(packages, "packages must not be null");
+            for (String pkg : packages) {
+                viewPackages.add(Objects.requireNonNull(pkg,
+                        "package name must not be null"));
+            }
+            return this;
+        }
+
+        /**
+         * Adds the packages of the given classes to the set of packages to scan
+         * for {@code @Route}-annotated views. Successive calls accumulate.
+         * Ignored when this builder was created with an explicit {@link Routes}
+         * instance.
+         *
+         * @param classes
+         *            classes whose packages should be scanned
+         * @return this builder
+         * @throws NullPointerException
+         *             if {@code classes} or any element is {@code null}
+         */
+        public Builder withViewPackages(Class<?>... classes) {
+            Objects.requireNonNull(classes, "classes must not be null");
+            Stream.of(classes)
+                    .map(c -> Objects
+                            .requireNonNull(c, "class must not be null")
+                            .getPackageName())
+                    .forEach(viewPackages::add);
+            return this;
+        }
+
+        /**
+         * Adds packages to scan for {@link ComponentTester} implementations
+         * annotated with {@link Tests}. Successive calls accumulate. Each
+         * package is scanned at most once per JVM (see {@link TesterRegistry}).
+         *
+         * @param packages
+         *            package names to scan for testers
+         * @return this builder
+         * @throws NullPointerException
+         *             if {@code packages} or any element is {@code null}
+         */
+        public Builder withComponentTesterPackages(String... packages) {
+            Objects.requireNonNull(packages, "packages must not be null");
+            for (String pkg : packages) {
+                componentTesterPackages.add(Objects.requireNonNull(pkg,
+                        "package name must not be null"));
+            }
+            return this;
+        }
+
+        /**
+         * Adds the packages of the given classes to the set of packages to scan
+         * for {@link ComponentTester} implementations annotated with
+         * {@link Tests}. Successive calls accumulate.
+         *
+         * @param classes
+         *            classes whose packages should be scanned for testers
+         * @return this builder
+         * @throws NullPointerException
+         *             if {@code classes} or any element is {@code null}
+         */
+        public Builder withComponentTesterPackages(Class<?>... classes) {
+            Objects.requireNonNull(classes, "classes must not be null");
+            Stream.of(classes)
+                    .map(c -> Objects
+                            .requireNonNull(c, "class must not be null")
+                            .getPackageName())
+                    .forEach(componentTesterPackages::add);
+            return this;
         }
 
         /**
@@ -354,9 +491,15 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
 
         VaadinServletService buildService() {
+            if (!componentTesterPackages.isEmpty()) {
+                TesterRegistry.registerPackages(
+                        componentTesterPackages.toArray(String[]::new));
+            }
+            Routes resolvedRoutes = routes != null ? routes
+                    : RouteDiscovery.discover(viewPackages);
             VaadinServlet servlet = servletFactory != null
-                    ? servletFactory.apply(routes, uiFactory)
-                    : new MockVaadinServlet(routes, uiFactory);
+                    ? servletFactory.apply(resolvedRoutes, uiFactory)
+                    : new MockVaadinServlet(resolvedRoutes, uiFactory);
             return MockVaadin.setupServlet(servlet, lookupServices);
         }
 

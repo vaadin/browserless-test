@@ -194,11 +194,11 @@ For tests that need to drive multiple users — or multiple browser windows for
 the same user — against a single application, Browserless Test exposes a
 layered context API that mirrors the Vaadin hierarchy:
 
-| Context                            | Maps to                          | Created via                                                                          |
-|------------------------------------|----------------------------------|--------------------------------------------------------------------------------------|
-| `BrowserlessApplicationContext<C>` | shared `VaadinServletService`    | `BrowserlessApplicationContext.create(routes)` (or a framework factory, see below)   |
-| `BrowserlessUserContext`           | one `VaadinSession` (one user)   | `app.newUser()` / `app.newUser(credentials)` / `app.newUser(username, roles...)`     |
-| `BrowserlessUIContext`             | one `UI` (one browser window)    | `user.newWindow()`                                                                   |
+| Context                            | Maps to                          | Created via                                                                                |
+|------------------------------------|----------------------------------|--------------------------------------------------------------------------------------------|
+| `BrowserlessApplicationContext<C>` | shared `VaadinServletService`    | `BrowserlessApplicationContext.create(viewPackagesOrClasses)` (or a framework factory)     |
+| `BrowserlessUserContext`           | one `VaadinSession` (one user)   | `app.newUser()` / `app.newUser(credentials)` / `app.newUser(username, roles...)`           |
+| `BrowserlessUIContext`             | one `UI` (one browser window)    | `user.newWindow()`                                                                         |
 
 `BrowserlessUIContext` exposes the same DSL as `BrowserlessTest` (`navigate`,
 `find`, `findInView`, `test`, `roundTrip`). Every DSL call automatically activates the
@@ -216,7 +216,6 @@ fires destroy listeners, and clears Vaadin and security thread-locals.
 
 ```java
 import com.vaadin.browserless.BrowserlessApplicationContext;
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.Test;
@@ -226,9 +225,8 @@ class SharedCounterTest {
 
     @Test
     void twoUsersShareApplicationState() {
-        Routes routes = new Routes()
-                .autoDiscoverViews(SharedCounterView.class.getPackageName());
-        try (var app = BrowserlessApplicationContext.create(routes)) {
+        try (var app = BrowserlessApplicationContext
+                .create(SharedCounterView.class)) {
             var w1 = app.newUser().newWindow();
             var w2 = app.newUser().newWindow();
 
@@ -250,10 +248,10 @@ class SharedCounterTest {
 
 ### Spring
 
-`SpringBrowserlessApplicationContext.create(routes, springCtx)` wires the
-application context to the Spring `ApplicationContext` and (when Spring
-Security is on the classpath) installs a `SecurityContextHandler` so per-user
-authentication is automatically isolated across windows. The
+`SpringBrowserlessApplicationContext.create(springCtx, viewPackagesOrClasses)`
+wires the application context to the Spring `ApplicationContext` and (when
+Spring Security is on the classpath) installs a `SecurityContextHandler` so
+per-user authentication is automatically isolated across windows. The
 `newUser(username, roles...)` shorthand mirrors `@WithMockUser`.
 
 ```java
@@ -261,7 +259,6 @@ import com.testapp.security.LoginView;
 import com.testapp.security.ProtectedView;
 import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
 import com.vaadin.browserless.SpringBrowserlessApplicationContext;
-import com.vaadin.browserless.internal.Routes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -280,10 +277,9 @@ class MultiUserSecurityTest {
 
     @Test
     void securityContextIsIsolatedPerUser() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
         try (SecuredBrowserlessApplicationContext<Authentication> app =
-                SpringBrowserlessApplicationContext.createSecured(routes,
-                        springCtx)) {
+                SpringBrowserlessApplicationContext.createSecured(
+                        springCtx, "com.testapp.security")) {
 
             var adminWindow = app.newUser("john", "USER").newWindow();
             var anonWindow = app.newUser().newWindow();
@@ -309,8 +305,8 @@ hand-built `Authentication` token.
 
 ### Quarkus
 
-`QuarkusBrowserlessApplicationContext.create(routes)` resolves Quarkus beans
-through CDI and installs a `SecurityContextHandler` backed by
+`QuarkusBrowserlessApplicationContext.create(viewPackagesOrClasses)` resolves
+Quarkus beans through CDI and installs a `SecurityContextHandler` backed by
 `CurrentIdentityAssociation`. The `newUser(username, roles...)` shorthand
 builds a matching `QuarkusSecurityIdentity`.
 
@@ -318,7 +314,6 @@ builds a matching `QuarkusSecurityIdentity`.
 import com.testapp.security.LoginView;
 import com.testapp.security.ProtectedView;
 import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.quarkus.QuarkusBrowserlessApplicationContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.test.junit.QuarkusTest;
@@ -330,9 +325,9 @@ class MultiUserSecurityTest {
 
     @Test
     void securityContextIsIsolatedPerUser() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
         try (SecuredBrowserlessApplicationContext<SecurityIdentity> app =
-                QuarkusBrowserlessApplicationContext.createSecured(routes)) {
+                QuarkusBrowserlessApplicationContext
+                        .createSecured("com.testapp.security")) {
 
             var adminWindow = app.newUser("john", "USER").newWindow();
             var anonWindow = app.newUser().newWindow();

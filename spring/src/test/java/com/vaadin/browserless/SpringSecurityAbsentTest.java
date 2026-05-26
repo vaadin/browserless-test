@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import java.util.function.UnaryOperator;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vaadin.browserless.internal.MockRequestCustomizer;
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
 import com.vaadin.flow.di.Lookup;
 
@@ -67,9 +68,8 @@ class SpringSecurityAbsentTest {
     void create_withoutSpringSecurity_doesNotInstallSecurityHandler() {
         SpringSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.create(routes,
-                applicationContext)) {
+        try (var app = SpringBrowserlessApplicationContext
+                .create(applicationContext, UnaryOperator.identity())) {
             Assertions.assertNull(app.getSecurityContextHandler(),
                     "SpringSecurityContextHandler must not be installed when"
                             + " Spring Security is absent from the classpath");
@@ -80,9 +80,8 @@ class SpringSecurityAbsentTest {
     void create_withoutSpringSecurity_doesNotRegisterRequestCustomizerBean() {
         SpringSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.create(routes,
-                applicationContext)) {
+        try (var app = SpringBrowserlessApplicationContext
+                .create(applicationContext, UnaryOperator.identity())) {
             Assertions.assertFalse(
                     applicationContext.containsBean(
                             SpringSecurityRequestCustomizer.class.getName()),
@@ -95,9 +94,8 @@ class SpringSecurityAbsentTest {
     void create_withoutSpringSecurity_doesNotInstallRequestCustomizerLookup() {
         SpringSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.create(routes,
-                applicationContext)) {
+        try (var app = SpringBrowserlessApplicationContext
+                .create(applicationContext, UnaryOperator.identity())) {
             Lookup lookup = app.getService().getContext()
                     .getAttribute(Lookup.class);
             MockRequestCustomizer customizer = lookup
@@ -114,9 +112,8 @@ class SpringSecurityAbsentTest {
     void newUser_withoutSpringSecurity_doesNotThrow() {
         SpringSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.create(routes,
-                applicationContext)) {
+        try (var app = SpringBrowserlessApplicationContext
+                .create(applicationContext, UnaryOperator.identity())) {
             Assertions.assertDoesNotThrow(() -> {
                 var user = app.newUser();
                 user.newWindow();
@@ -128,9 +125,8 @@ class SpringSecurityAbsentTest {
     void createSecured_withSpringSecurity_installsHandlerAndCustomizer() {
         // Default detector: actual classpath probe (Spring Security IS present
         // in the spring module's test classpath)
-        Routes routes = new Routes();
-        try (var app = SpringBrowserlessApplicationContext.createSecured(routes,
-                applicationContext)) {
+        try (var app = SpringBrowserlessApplicationContext
+                .createSecured(applicationContext, UnaryOperator.identity())) {
             Assertions.assertInstanceOf(SpringSecurityContextHandler.class,
                     app.getSecurityContextHandler(),
                     "Handler must be installed when Spring Security is present");
@@ -152,10 +148,9 @@ class SpringSecurityAbsentTest {
     void createSecured_withoutSpringSecurity_throws() {
         SpringSecuritySupport.overrideDetector(() -> false);
 
-        Routes routes = new Routes();
         var ex = Assertions.assertThrows(IllegalStateException.class,
-                () -> SpringBrowserlessApplicationContext.createSecured(routes,
-                        applicationContext),
+                () -> SpringBrowserlessApplicationContext.createSecured(
+                        applicationContext, UnaryOperator.identity()),
                 "createSecured(...) must reject calls when Spring Security is"
                         + " absent from the classpath");
         Assertions.assertTrue(ex.getMessage().contains("Spring Security"),

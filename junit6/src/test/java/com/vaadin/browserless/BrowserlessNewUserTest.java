@@ -19,10 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.multiuser.SimpleView;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import com.vaadin.browserless.internal.Routes;
 
 /**
  * Tests construction-time semantics of {@link BrowserlessUserContext}: order of
@@ -30,19 +27,12 @@ import com.vaadin.browserless.internal.Routes;
  */
 class BrowserlessNewUserTest {
 
-    private Routes routes;
-
-    @BeforeEach
-    void setUp() {
-        routes = new Routes()
-                .autoDiscoverViews(SimpleView.class.getPackageName());
-    }
-
     @Test
     void newUser_sessionInitListenerSeesThisUsersSecurity() {
         var handler = new CapturingSecurityHandler();
-        try (var app = BrowserlessApplicationContext.builder(routes)
-                .withSecurityContextHandler(handler).build()) {
+        try (var app = BrowserlessApplicationContext
+                .createSecured(b -> b.withViewPackages(SimpleView.class)
+                        .withSecurityContextHandler(handler))) {
 
             var observed = new AtomicReference<String>();
             app.getService().addSessionInitListener(

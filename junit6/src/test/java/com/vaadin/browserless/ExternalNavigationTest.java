@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.internal.Routes;
 import com.vaadin.flow.component.button.Button;
 
 /**
@@ -37,9 +36,8 @@ class ExternalNavigationTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews(
-                ExternalNavigationView.class.getPackageName());
-        app = BrowserlessApplicationContext.create(routes);
+        app = BrowserlessApplicationContext
+                .create(ExternalNavigationView.class);
     }
 
     @AfterEach

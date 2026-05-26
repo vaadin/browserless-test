@@ -111,6 +111,20 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
         return this;
     }
 
+    /**
+     * Adds the packages of the given classes to the set of packages to scan for
+     * {@link ComponentTester} implementations.
+     *
+     * @param classes
+     *            classes whose packages should be scanned for testers
+     * @return this extension instance
+     */
+    public BrowserlessExtension withComponentTesterPackages(
+            Class<?>... classes) {
+        addComponentTesterPackages(classes);
+        return this;
+    }
+
     @Override
     public void beforeEach(ExtensionContext ctx) {
         doInit(ctx.getTestInstance().orElse(null), ctx);

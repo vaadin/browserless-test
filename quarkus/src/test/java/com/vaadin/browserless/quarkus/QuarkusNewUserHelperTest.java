@@ -31,7 +31,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
-import com.vaadin.browserless.internal.Routes;
 
 /**
  * Tests the {@code newUser(username, roles...)} helper in
@@ -47,8 +46,8 @@ class QuarkusNewUserHelperTest {
 
     @BeforeEach
     void setUp() {
-        Routes routes = new Routes().autoDiscoverViews("com.testapp.security");
-        app = QuarkusBrowserlessApplicationContext.createSecured(routes);
+        app = QuarkusBrowserlessApplicationContext
+                .createSecured("com.testapp.security");
     }
 
     @AfterEach

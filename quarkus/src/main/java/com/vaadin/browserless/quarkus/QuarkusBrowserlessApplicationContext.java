@@ -17,12 +17,13 @@ package com.vaadin.browserless.quarkus;
 
 import jakarta.enterprise.inject.spi.CDI;
 
+import java.util.Objects;
+import java.util.function.UnaryOperator;
+
 import io.quarkus.security.identity.SecurityIdentity;
 
 import com.vaadin.browserless.BrowserlessApplicationContext;
 import com.vaadin.browserless.SecuredBrowserlessApplicationContext;
-import com.vaadin.browserless.internal.Routes;
-import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
 
@@ -33,18 +34,19 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * Wires a Quarkus-aware servlet and the {@link QuarkusTestLookupInitializer}.
  * Three entry points are provided:
  * <ul>
- * <li>{@link #create(Routes)} — returns the unsecured
- * {@link BrowserlessApplicationContext}.</li>
- * <li>{@link #createSecured(Routes)} — returns the credential-typed
- * {@link SecuredBrowserlessApplicationContext}; requires Quarkus Security on
- * the classpath.</li>
- * <li>{@link #builder(Routes)} — returns a pre-wired
- * {@link BrowserlessApplicationContext.Builder} for full customization (e.g.
- * plugging in a different security handler).</li>
+ * <li>{@link #create(UnaryOperator)} (and the view-package shortcuts) — returns
+ * the unsecured {@link BrowserlessApplicationContext}.</li>
+ * <li>{@link #createSecured(UnaryOperator)} (and the view-package shortcuts) —
+ * returns the credential-typed {@link SecuredBrowserlessApplicationContext};
+ * requires Quarkus Security on the classpath.</li>
+ * <li>{@link #builder()} — returns a pre-wired
+ * {@link BrowserlessApplicationContext.Builder} for full customization (e.g. a
+ * custom {@code UIFactory} or a different security handler).</li>
  * </ul>
  *
  * <pre>
- * var app = QuarkusBrowserlessApplicationContext.createSecured(routes);
+ * var app = QuarkusBrowserlessApplicationContext
+ *         .createSecured(ProtectedView.class);
  * var admin = app.newUser(securityIdentity);
  * var window = admin.newWindow();
  * window.navigate(ProtectedView.class);
@@ -62,97 +64,114 @@ public final class QuarkusBrowserlessApplicationContext {
     /**
      * Creates a Quarkus-pre-wired builder. The builder has the Quarkus servlet
      * and the lookup initializer configured; callers can chain additional
-     * customizations before calling
+     * customizations (including a custom {@code UIFactory}) before calling
      * {@link BrowserlessApplicationContext.Builder#build()}.
      *
-     * @param routes
-     *            the discovered routes
      * @return a pre-wired builder
      */
-    public static BrowserlessApplicationContext.Builder builder(Routes routes) {
-        return builder(routes, () -> new MockedUI());
-    }
-
-    /**
-     * Creates a Quarkus-pre-wired builder with a custom UI factory.
-     *
-     * @param routes
-     *            the discovered routes
-     * @param uiFactory
-     *            the UI factory
-     * @return a pre-wired builder
-     */
-    public static BrowserlessApplicationContext.Builder builder(Routes routes,
-            UIFactory uiFactory) {
-        return BrowserlessApplicationContext.builder(routes)
+    public static BrowserlessApplicationContext.Builder builder() {
+        return new BrowserlessApplicationContext.Builder()
                 .withServletFactory((r, uif) -> new MockQuarkusServlet(r,
                         CDI.current().getBeanManager(), uif))
-                .withUIFactory(uiFactory)
+                .withUIFactory(() -> new MockedUI())
                 .withLookupServices(QuarkusTestLookupInitializer.class);
     }
 
     /**
-     * Creates an unsecured Quarkus-integrated application context.
+     * Creates an unsecured Quarkus-integrated application context that scans
+     * the given packages for {@code @Route}-annotated views.
      *
-     * @param routes
-     *            the discovered routes
+     * @param viewPackages
+     *            package names to scan for views; an empty array falls back to
+     *            a full classpath scan
      * @return a new unsecured application context configured for Quarkus
      */
-    public static BrowserlessApplicationContext create(Routes routes) {
-        return builder(routes).build();
+    public static BrowserlessApplicationContext create(String... viewPackages) {
+        return create(b -> b.withViewPackages(viewPackages));
     }
 
     /**
-     * Creates an unsecured Quarkus-integrated application context with a custom
-     * UI factory.
+     * Creates an unsecured Quarkus-integrated application context that scans
+     * the packages of the given classes for {@code @Route}-annotated views.
      *
-     * @param routes
-     *            the discovered routes
-     * @param uiFactory
-     *            the UI factory
+     * @param viewPackageClasses
+     *            classes whose packages should be scanned for views
      * @return a new unsecured application context configured for Quarkus
      */
-    public static BrowserlessApplicationContext create(Routes routes,
-            UIFactory uiFactory) {
-        return builder(routes, uiFactory).build();
+    public static BrowserlessApplicationContext create(
+            Class<?>... viewPackageClasses) {
+        return create(b -> b.withViewPackages(viewPackageClasses));
+    }
+
+    /**
+     * Creates an unsecured Quarkus-integrated application context, applying the
+     * given configurer to the pre-wired builder before building it.
+     *
+     * @param configurer
+     *            builder configurer; e.g. {@code b -> b.withViewPackages(...)}.
+     *            Pass {@link UnaryOperator#identity()} to keep defaults.
+     * @return a new unsecured application context configured for Quarkus
+     */
+    public static BrowserlessApplicationContext create(
+            UnaryOperator<BrowserlessApplicationContext.Builder> configurer) {
+        Objects.requireNonNull(configurer, "configurer must not be null");
+        return configurer.apply(builder()).build();
     }
 
     /**
      * Creates a Quarkus-integrated application context with Quarkus Security
-     * wiring. Requires Quarkus Security on the classpath; throws otherwise.
+     * wiring that scans the given packages for {@code @Route}-annotated views.
+     * Requires Quarkus Security on the classpath; throws otherwise.
      *
-     * @param routes
-     *            the discovered routes
+     * @param viewPackages
+     *            package names to scan for views
      * @return a new secured application context configured for Quarkus Security
      * @throws IllegalStateException
      *             if Quarkus Security is not on the classpath
      */
     public static SecuredBrowserlessApplicationContext<SecurityIdentity> createSecured(
-            Routes routes) {
-        return createSecured(routes, () -> new MockedUI());
+            String... viewPackages) {
+        return createSecured(b -> b.withViewPackages(viewPackages));
     }
 
     /**
-     * Creates a secured Quarkus-integrated application context with a custom UI
-     * factory. Requires Quarkus Security on the classpath; throws otherwise.
+     * Creates a Quarkus-integrated application context with Quarkus Security
+     * wiring that scans the packages of the given classes for
+     * {@code @Route}-annotated views. Requires Quarkus Security on the
+     * classpath; throws otherwise.
      *
-     * @param routes
-     *            the discovered routes
-     * @param uiFactory
-     *            the UI factory
+     * @param viewPackageClasses
+     *            classes whose packages should be scanned for views
      * @return a new secured application context configured for Quarkus Security
      * @throws IllegalStateException
      *             if Quarkus Security is not on the classpath
      */
     public static SecuredBrowserlessApplicationContext<SecurityIdentity> createSecured(
-            Routes routes, UIFactory uiFactory) {
+            Class<?>... viewPackageClasses) {
+        return createSecured(b -> b.withViewPackages(viewPackageClasses));
+    }
+
+    /**
+     * Creates a Quarkus-integrated application context with Quarkus Security
+     * wiring, applying the given configurer to the pre-wired builder. Requires
+     * Quarkus Security on the classpath; throws otherwise.
+     *
+     * @param configurer
+     *            builder configurer
+     * @return a new secured application context configured for Quarkus Security
+     * @throws IllegalStateException
+     *             if Quarkus Security is not on the classpath
+     */
+    public static SecuredBrowserlessApplicationContext<SecurityIdentity> createSecured(
+            UnaryOperator<BrowserlessApplicationContext.Builder> configurer) {
+        Objects.requireNonNull(configurer, "configurer must not be null");
         if (!QuarkusSecuritySupport.isPresent()) {
             throw new IllegalStateException(
                     "QuarkusBrowserlessApplicationContext.createSecured(...)"
                             + " requires Quarkus Security on the classpath."
                             + " Use create(...) for unsecured contexts.");
         }
-        return builder(routes, uiFactory)
+        return configurer.apply(builder())
                 .withSecurityContextHandler(new QuarkusSecurityContextHandler())
                 .build();
     }
