@@ -43,6 +43,7 @@ public class LocatorDemoView extends VerticalLayout {
         save.setId("save");
 
         Button clear = new Button("Clear", e -> name.setValue(""));
+        clear.setAriaLabel("Reset form");
 
         Grid<Person> people = new Grid<>(Person.class);
         people.setItems(List.of(new Person("Alice", 30), new Person("Bob", 25),
@@ -62,8 +63,8 @@ public class LocatorDemoView extends VerticalLayout {
      */
     public static class PersonForm extends Composite<VerticalLayout> {
 
-        public final TextField nameField = new TextField("Name");
-        public final TextField emailField = new TextField("Email");
+        public final TextField nameField = new TextField("Full name");
+        public final TextField emailField = new TextField("Email address");
         public final Button submit;
 
         public PersonForm(Span echo) {
