@@ -76,7 +76,7 @@ public final class Renderers {
             if (renderer instanceof ComponentRenderer) {
                 ComponentRenderer<?, T> componentRenderer = (ComponentRenderer<?, T>) renderer;
                 Component component = componentRenderer.createComponent(rowObject);
-                return PrettyPrintTreeKt.toPrettyString(component);
+                return PrettyPrintTree.toPrettyString(component);
             }
             if (renderer.getClass().getSimpleName().equals("LitRenderer")) {
                 // LitRenderer re-declares private members

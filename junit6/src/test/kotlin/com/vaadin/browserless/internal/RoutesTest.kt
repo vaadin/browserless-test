@@ -113,11 +113,13 @@ fun DynaNodeGroup.routesTestBatch() {
     }
 
     test("merge routes") {
-        val routes1 = Routes(mutableSetOf(HelloWorldView::class.java, WelcomeView::class.java,
-                ViewPackagesTestView::class.java, SignalsView::class.java, packagePrivateViewClass),
-                mutableSetOf(ErrorView::class.java))
-        val routes2 = Routes(mutableSetOf(ParametrizedView::class.java, ChildView::class.java, NavigationPostponeView::class.java),
-                mutableSetOf(MockRouteNotFoundError::class.java, MockInternalSeverError::class.java))
+        val routes1 = Routes(
+                mutableSetOf<Class<out Component>>(HelloWorldView::class.java, WelcomeView::class.java,
+                        ViewPackagesTestView::class.java, SignalsView::class.java, packagePrivateViewClass),
+                mutableSetOf<Class<out HasErrorParameter<*>>>(ErrorView::class.java))
+        val routes2 = Routes(
+                mutableSetOf<Class<out Component>>(ParametrizedView::class.java, ChildView::class.java, NavigationPostponeView::class.java),
+                mutableSetOf<Class<out HasErrorParameter<*>>>(MockRouteNotFoundError::class.java, MockInternalSeverError::class.java))
         val merged = routes1.merge(routes2);
         expect(allViews) { merged.routes.toSet() }
         expect(allErrorRoutes) { merged.errorRoutes.toSet() }

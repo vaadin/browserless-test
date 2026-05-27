@@ -56,7 +56,6 @@ import com.vaadin.browserless.internal.Renderers.template
 import com.vaadin.browserless.internal.Utils.findClassOrThrow
 import com.vaadin.browserless.internal.filterNotBlank
 import com.vaadin.browserless.internal.size
-import com.vaadin.browserless.internal.toPrettyString
 import java.lang.reflect.Method
 import java.lang.reflect.Field
 import java.util.stream.Stream
@@ -267,7 +266,7 @@ public fun Grid<*>._size(): Int {
  * @throws AssertionError if no such column exists.
  */
 public fun <T> Grid<T>._getColumnByKey(columnKey: String): Grid.Column<T> = getColumnByKey(columnKey)
-        ?: throw AssertionError("${toPrettyString()}: No such column with key '$columnKey'; available columns: ${columns.mapNotNull { it.key }}")
+        ?: throw AssertionError("${PrettyPrintTree.toPrettyString(this)}: No such column with key '$columnKey'; available columns: ${columns.mapNotNull { it.key }}")
 
 /**
  * Performs a click on a [ClickableRenderer] in given [Grid] cell. Only supports the following scenarios:
@@ -317,10 +316,10 @@ public fun <T : Any> Grid<T>._getCellComponent(
     val column: Grid.Column<T> = _getColumnByKey(columnKey)
     val renderer: Renderer<T>? = column.renderer
     if (renderer !is ComponentRenderer<*, *>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses renderer $renderer but we expect a ComponentRenderer here")
+        throw java.lang.IllegalArgumentException("${PrettyPrintTree.toPrettyString(this)} column $columnKey uses renderer $renderer but we expect a ComponentRenderer here")
     }
     if (renderer is NativeButtonRenderer<*>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses NativeButtonRenderer which is not supported by this function")
+        throw java.lang.IllegalArgumentException("${PrettyPrintTree.toPrettyString(this)} column $columnKey uses NativeButtonRenderer which is not supported by this function")
     }
     val item: T = _get(rowIndex)
     val component: Component = (renderer as ComponentRenderer<*, T>).createComponent(item)
@@ -461,7 +460,7 @@ public fun <T : Any> Grid<T>._dump(rows: IntRange = 0..9): String = buildString 
 public fun Grid<*>.expectRows(count: Int) {
     val actual = _size()
     if (actual != count) {
-        throw AssertionError("${this.toPrettyString()}: expected $count rows but got $actual\n${_dump()}")
+        throw AssertionError("${PrettyPrintTree.toPrettyString(this)}: expected $count rows but got $actual\n${_dump()}")
     }
 }
 
@@ -473,7 +472,7 @@ public fun Grid<*>.expectRow(rowIndex: Int, vararg row: String) {
     val expected: List<String> = row.toList()
     val actual: List<String> = _getFormattedRow(rowIndex)
     if (expected != actual) {
-        throw AssertionError("${this.toPrettyString()} at $rowIndex: expected $expected but got $actual\n${_dump()}")
+        throw AssertionError("${PrettyPrintTree.toPrettyString(this)} at $rowIndex: expected $expected but got $actual\n${_dump()}")
     }
 }
 

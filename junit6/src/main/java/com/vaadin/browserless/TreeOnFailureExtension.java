@@ -35,7 +35,7 @@ public class TreeOnFailureExtension implements AfterTestExecutionCallback {
         boolean testFailed = extensionContext.getExecutionException()
                 .isPresent();
         if (testFailed) {
-            final String prettyPrintTree = PrettyPrintTree.Companion
+            final String prettyPrintTree = PrettyPrintTree
                     .ofVaadin(UI.getCurrent()).print();
             extensionContext.publishReportEntry("Test "
                     + extensionContext.getTestClass().get().getSimpleName()

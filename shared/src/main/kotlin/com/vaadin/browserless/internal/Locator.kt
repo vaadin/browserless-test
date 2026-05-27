@@ -191,7 +191,7 @@ fun <T: Component> Component._find(clazz: Class<T>, block: SearchSpec<T>.()->Uni
             result.size < spec.count.first -> "/$loc: Too few (${result.size}) visible ${clazz.simpleName}s"
             else -> "/$loc: Too many visible ${clazz.simpleName}s (${result.size})"
         }
-        message = "$message in ${toPrettyString()} matching $spec: [${result.joinToString { it.toPrettyString() }}]. Component tree:\n${toPrettyTree()}"
+        message = "$message in ${PrettyPrintTree.toPrettyString(this)} matching $spec: [${result.joinToString { PrettyPrintTree.toPrettyString(it) }}]. Component tree:\n${PrettyPrintTree.toPrettyTree(this)}"
 
         // if there's a PolymerTemplate, warn that Browserless Testing can't really locate components in there:
         // https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#polymer-templates
@@ -235,7 +235,7 @@ private fun Component.find(predicate: (Component)->Boolean): List<Component> {
     TestingLifecycleHooks.current.awaitAfterLookup()
     val error: InternalServerError? = descendants.filterIsInstance<InternalServerError>().firstOrNull()
     if (error != null) {
-        throw AssertionError("An internal server error occurred; please check log for the actual stack-trace. Error text: ${errorMessage(error)}\n${currentUI().toPrettyTree()}")
+        throw AssertionError("An internal server error occurred; please check log for the actual stack-trace. Error text: ${errorMessage(error)}\n${PrettyPrintTree.toPrettyTree(currentUI())}")
     }
     return descendants.filter { isEffectivelyVisible(it) && predicate(it) }
 }
@@ -410,10 +410,10 @@ fun _expectInternalServerError(expectedErrorMessage: String = "") {
     TestingLifecycleHooks.current.awaitAfterLookup()
     val error: InternalServerError? = descendants.filterIsInstance<InternalServerError>().firstOrNull()
     if (error == null) {
-        throw AssertionError("Expected an internal server error but none happened. Component tree:\n${currentUI().toPrettyTree()}")
+        throw AssertionError("Expected an internal server error but none happened. Component tree:\n${PrettyPrintTree.toPrettyTree(currentUI())}")
     }
     if (!errorMessage(error).contains(expectedErrorMessage)) {
-        throw AssertionError("Expected InternalServerError with message '$expectedErrorMessage' but was '${errorMessage(error)}'. Component tree:\n${currentUI().toPrettyTree()}")
+        throw AssertionError("Expected InternalServerError with message '$expectedErrorMessage' but was '${errorMessage(error)}'. Component tree:\n${PrettyPrintTree.toPrettyTree(currentUI())}")
     }
 }
 

@@ -34,9 +34,13 @@ import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.router.*
 import com.vaadin.flow.server.VaadinService
 import org.intellij.lang.annotations.Language
+import com.vaadin.flow.component.Component
 import kotlin.test.assertContains
 import kotlin.test.expect
 import kotlin.test.fail
+
+private fun Component.toPrettyString(): String = PrettyPrintTree.toPrettyString(this)
+private fun Component.toPrettyTree(): String = PrettyPrintTree.toPrettyTree(this)
 
 @DynaTestDsl
 internal fun DynaNodeGroup.prettyPrintTreeTest() {

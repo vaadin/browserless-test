@@ -21,7 +21,7 @@ import java.util.stream.IntStream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
@@ -325,7 +325,7 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
         if (!menuItem.isEnabled() || !menuItem.isVisible()) {
             throw new IllegalStateException(
                     "Menu item " + fullPath + " is not usable. "
-                            + PrettyPrintTreeKt.toPrettyTree(menuItem));
+                            + PrettyPrintTree.toPrettyTree(menuItem));
         }
     }
 
