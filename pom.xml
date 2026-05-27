@@ -135,6 +135,27 @@
                     <groupId>org.jetbrains.dokka</groupId>
                     <artifactId>dokka-maven-plugin</artifactId>
                     <version>${dokka.version}</version>
+                    <!-- Javadoc generation for mixed Java/Kotlin modules.
+                         Gated by maven.javadoc.skip (true by default); the
+                         javadocs and release profiles flip it to false. Only
+                         runs in modules that reference this plugin. -->
+                    <configuration>
+                        <skip>${maven.javadoc.skip}</skip>
+                        <jdkVersion>${maven.compiler.source}</jdkVersion>
+                        <sourceDirectories>
+                            <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+                            <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+                        </sourceDirectories>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>javadocJar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -155,6 +176,22 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>${maven.javadoc.plugin.version}</version>
+                    <!-- Javadoc generation for pure-Java modules. Natively
+                         honors maven.javadoc.skip (true by default); the
+                         javadocs and release profiles flip it to false. Only
+                         runs in modules that reference this plugin. -->
+                    <configuration>
+                        <quiet>true</quiet>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -183,6 +220,10 @@
         </plugins>
     </build>
     <profiles>
+        <!-- Activated during CI validation via -Djavadocs. Enables the
+             Javadoc executions declared in pluginManagement; the tool used
+             (Dokka vs maven-javadoc) is selected per module by which plugin
+             that module references. -->
         <profile>
             <id>javadocs</id>
             <activation>
@@ -193,25 +234,40 @@
             <properties>
                 <maven.javadoc.skip>false</maven.javadoc.skip>
             </properties>
+        </profile>
+        <!-- Activated during release via -Prelease. Enables the same Javadoc
+             executions and adds the shared jar manifest entries. Composes with
+             the release profile inherited from vaadin-parent (sign/deploy). -->
+        <profile>
+            <id>release</id>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+            </properties>
             <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <configuration>
-                            <quiet>true</quiet>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-jar-plugin</artifactId>
+                            <configuration>
+                                <archive>
+                                    <index>true</index>
+                                    <manifest>
+                                        <addClasspath>true</addClasspath>
+                                        <!-- Implementation-Title and Implementation-Version
+                                            come from the POM by default -->
+                                        <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                    </manifest>
+                                    <manifestEntries>
+                                        <!-- Package format version - do not
+                                            change -->
+                                        <Vaadin-Package-Version>1</Vaadin-Package-Version>
+                                    </manifestEntries>
+                                </archive>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
             </build>
         </profile>
     </profiles>

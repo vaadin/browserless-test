@@ -27,33 +27,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <pre>
  * {@code
- * &#64;ViewPackages(classes = {CartView.class, CheckoutView.class})
+ * &#64;ViewPackages(classes = { CartView.class, CheckoutView.class })
  * class CartViewTest extends BrowserlessTest {
  * }
  *
- * &#64;ViewPackages(packages = {"com.example.shop.cart", "com.example.security"})
+ * &#64;ViewPackages(packages = { "com.example.shop.cart", "com.example.security" })
  * class CartViewTest extends BrowserlessTest {
  * }
  *
- * &#64;ViewPackages(
- *    classes = {CartView.class, CheckoutView.class},
- *    packages = {"com.example.security"}
- * )
+ * &#64;ViewPackages(classes = { CartView.class, CheckoutView.class }, packages = {
+ *         "com.example.security" })
  * class CartViewTest extends BrowserlessTest {
+ * }
  * }
  * </pre>
  *
- * The Vaadin environment lifecycle is managed by {@link
- * BrowserlessTestExtension}, which calls {@link #initVaadinEnvironment()}
- * before each test and {@link #cleanVaadinEnvironment()} after each test via
- * virtual dispatch. When the test class is annotated with
+ * The Vaadin environment lifecycle is managed by
+ * {@link BrowserlessTestExtension}, which calls
+ * {@link #initVaadinEnvironment()} before each test and
+ * {@link #cleanVaadinEnvironment()} after each test via virtual dispatch. When
+ * the test class is annotated with
  * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}, the environment is
  * shared across all tests in the class (initialized once in {@code @BeforeAll},
  * torn down in {@code @AfterAll}).
  *
  * <p>
- * To provide custom Flow service implementations via the {@link
- * com.vaadin.flow.di.Lookup} SPI, override {@link #lookupServices()}:
+ * To provide custom Flow service implementations via the
+ * {@link com.vaadin.flow.di.Lookup} SPI, override {@link #lookupServices()}:
  *
  * <pre>
  * {@code
