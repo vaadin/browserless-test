@@ -25,10 +25,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import kotlin.Unit;
 import kotlin.ranges.IntRange;
 
-import com.vaadin.browserless.internal.LocatorKt;
+import com.vaadin.browserless.internal.Locator;
 import com.vaadin.browserless.internal.SearchSpec;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
@@ -641,10 +640,10 @@ public class ComponentQuery<T extends Component> {
      */
     public List<T> all() {
         if (context != null) {
-            return LocatorKt._find(context, componentType,
+            return Locator._find(context, componentType,
                     locatorSpec::populate);
         }
-        return LocatorKt._find(componentType, locatorSpec::populate);
+        return Locator._find(componentType, locatorSpec::populate);
     }
 
     /**
@@ -666,10 +665,10 @@ public class ComponentQuery<T extends Component> {
         locatorSpec.count = new IntRange(1, 1);
         try {
             if (context != null) {
-                return LocatorKt._get(context, componentType,
+                return Locator._get(context, componentType,
                         locatorSpec::populate);
             }
-            return LocatorKt._get(componentType, locatorSpec::populate);
+            return Locator._get(componentType, locatorSpec::populate);
         } catch (AssertionError e) {
             // Happens when found component(s) are not of the expected type
             throw new NoSuchElementException(e.getMessage());
@@ -698,7 +697,7 @@ public class ComponentQuery<T extends Component> {
         String withoutThemes;
         List<Predicate<T>> predicates = new ArrayList<>(0);
 
-        public Unit populate(SearchSpec<T> spec) {
+        public void populate(SearchSpec<T> spec) {
             if (id != null)
                 spec.setId(id);
             if (caption != null && captionExactMatch)
@@ -723,8 +722,6 @@ public class ComponentQuery<T extends Component> {
                 spec.setWithoutThemes(withoutThemes);
             spec.setCount(count);
             spec.getPredicates().addAll(predicates);
-
-            return Unit.INSTANCE;
         }
 
     }

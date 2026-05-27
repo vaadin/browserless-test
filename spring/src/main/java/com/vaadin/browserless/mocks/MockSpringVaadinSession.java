@@ -15,12 +15,10 @@
  */
 package com.vaadin.browserless.mocks;
 
-import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 
@@ -40,13 +38,6 @@ import com.vaadin.flow.server.VaadinSession;
 public class MockSpringVaadinSession extends VaadinSession {
     @NotNull
     private final UIFactory uiFactory;
-
-    @Deprecated(forRemoval = true)
-    public MockSpringVaadinSession(@NotNull VaadinService service,
-            @NotNull Function0<UI> uiFactory) {
-        super(service);
-        this.uiFactory = uiFactory::invoke;
-    }
 
     public MockSpringVaadinSession(@NotNull VaadinService service,
             @NotNull UIFactory uiFactory) {

@@ -37,117 +37,117 @@ internal fun DynaNodeGroup.searchSpecTest() {
 
     test("clazz") {
         val spec = SearchSpec(Button::class.java)
-        expect(true) { spec.toPredicate()(Button()) }
-        expect(false) { spec.toPredicate()(Span()) }
+        expect(true) { spec.toPredicate().test(Button()) }
+        expect(false) { spec.toPredicate().test(Span()) }
     }
 
     test("id") {
-        val spec = SearchSpec(Component::class.java, id = "25")
-        expect(true) { spec.toPredicate()(Button().apply { setId("25") }) }
-        expect(false) { spec.toPredicate()(Button().apply { setId("42") }) }
-        expect(false) { spec.toPredicate()(Button()) }
+        val spec = SearchSpec(Component::class.java).apply { id = "25" }
+        expect(true) { spec.toPredicate().test(Button().apply { setId("25") }) }
+        expect(false) { spec.toPredicate().test(Button().apply { setId("42") }) }
+        expect(false) { spec.toPredicate().test(Button()) }
     }
 
     test("caption") {
-        val spec = SearchSpec(Component::class.java, caption = "foo")
-        expect(true) { spec.toPredicate()(Button("foo")) }
-        expect(false) { spec.toPredicate()(Button("bar")) }
-        expect(false) { spec.toPredicate()(Button()) }
-        expect(true) { spec.toPredicate()(Checkbox("foo")) }
-        expect(false) { spec.toPredicate()(Checkbox("bar")) }
-        expect(false) { spec.toPredicate()(Checkbox()) }
+        val spec = SearchSpec(Component::class.java).apply { caption = "foo" }
+        expect(true) { spec.toPredicate().test(Button("foo")) }
+        expect(false) { spec.toPredicate().test(Button("bar")) }
+        expect(false) { spec.toPredicate().test(Button()) }
+        expect(true) { spec.toPredicate().test(Checkbox("foo")) }
+        expect(false) { spec.toPredicate().test(Checkbox("bar")) }
+        expect(false) { spec.toPredicate().test(Checkbox()) }
         expect(true) {
-            spec.toPredicate()(CheckboxGroup<Int>().apply {
+            spec.toPredicate().test(CheckboxGroup<Int>().apply {
                 label = "foo"
             })
         }
         expect(false) {
-            spec.toPredicate()(CheckboxGroup<Int>().apply {
+            spec.toPredicate().test(CheckboxGroup<Int>().apply {
                 label = "bar"
             })
         }
-        expect(false) { spec.toPredicate()(CheckboxGroup<Int>()) }
+        expect(false) { spec.toPredicate().test(CheckboxGroup<Int>()) }
         expect(true) {
-            spec.toPredicate()(Select<Int>().apply {
+            spec.toPredicate().test(Select<Int>().apply {
                 label = "foo"
             })
         }
         expect(false) {
-            spec.toPredicate()(Select<Int>().apply {
+            spec.toPredicate().test(Select<Int>().apply {
                 label = "bar"
             })
         }
-        expect(false) { spec.toPredicate()(Select<Int>()) }
+        expect(false) { spec.toPredicate().test(Select<Int>()) }
         expect(true) {
-            spec.toPredicate()(ListBox<Int>().also {
+            spec.toPredicate().test(ListBox<Int>().also {
                 ComponentUtils.label(it, "foo")
             })
         }
         expect(false) {
-            spec.toPredicate()(ListBox<Int>().also {
+            spec.toPredicate().test(ListBox<Int>().also {
                 ComponentUtils.label(it, "bar")
             })
         }
-        expect(false) { spec.toPredicate()(ListBox<Int>()) }
+        expect(false) { spec.toPredicate().test(ListBox<Int>()) }
         expect(true) {
-            spec.toPredicate()(RadioButtonGroup<Int>().apply {
+            spec.toPredicate().test(RadioButtonGroup<Int>().apply {
                 label = "foo"
             })
         }
         expect(false) {
-            spec.toPredicate()(RadioButtonGroup<Int>().apply {
+            spec.toPredicate().test(RadioButtonGroup<Int>().apply {
                 label = "bar"
             })
         }
-        expect(false) { spec.toPredicate()(RadioButtonGroup<Int>()) }
+        expect(false) { spec.toPredicate().test(RadioButtonGroup<Int>()) }
         // tests CustomField
         expect(true) {
-            spec.toPredicate()(DateRangePopup().apply {
+            spec.toPredicate().test(DateRangePopup().apply {
                 label = "foo"
             })
         }
         expect(false) {
-            spec.toPredicate()(DateRangePopup().apply {
+            spec.toPredicate().test(DateRangePopup().apply {
                 label = "bar"
             })
         }
-        expect(false) { spec.toPredicate()(DateRangePopup()) }
+        expect(false) { spec.toPredicate().test(DateRangePopup()) }
 
-        expect(true) { spec.toPredicate()(Input().also { ComponentUtils.label(it, "foo") }) }
-        expect(false) { spec.toPredicate()(Input().also { ComponentUtils.label(it, "bar") }) }
-        expect(false) { spec.toPredicate()(Input()) }
-        expect(true) { spec.toPredicate()(TextField("foo")) }
-        expect(false) { spec.toPredicate()(TextField("bar")) }
-        expect(false) { spec.toPredicate()(TextField()) }
-        expect(true) { spec.toPredicate()(TextArea("foo")) }
-        expect(false) { spec.toPredicate()(TextArea("bar")) }
-        expect(false) { spec.toPredicate()(TextArea()) }
-        expect(true) { spec.toPredicate()(TimePicker("foo")) }
-        expect(false) { spec.toPredicate()(TimePicker("bar")) }
-        expect(false) { spec.toPredicate()(TimePicker()) }
-        expect(true) { spec.toPredicate()(DatePicker("foo")) }
-        expect(false) { spec.toPredicate()(DatePicker("bar")) }
-        expect(false) { spec.toPredicate()(DatePicker()) }
-        expect(true) { spec.toPredicate()(ComboBox<Int>("foo")) }
-        expect(false) { spec.toPredicate()(ComboBox<Int>("bar")) }
-        expect(false) { spec.toPredicate()(ComboBox<Int>()) }
+        expect(true) { spec.toPredicate().test(Input().also { ComponentUtils.label(it, "foo") }) }
+        expect(false) { spec.toPredicate().test(Input().also { ComponentUtils.label(it, "bar") }) }
+        expect(false) { spec.toPredicate().test(Input()) }
+        expect(true) { spec.toPredicate().test(TextField("foo")) }
+        expect(false) { spec.toPredicate().test(TextField("bar")) }
+        expect(false) { spec.toPredicate().test(TextField()) }
+        expect(true) { spec.toPredicate().test(TextArea("foo")) }
+        expect(false) { spec.toPredicate().test(TextArea("bar")) }
+        expect(false) { spec.toPredicate().test(TextArea()) }
+        expect(true) { spec.toPredicate().test(TimePicker("foo")) }
+        expect(false) { spec.toPredicate().test(TimePicker("bar")) }
+        expect(false) { spec.toPredicate().test(TimePicker()) }
+        expect(true) { spec.toPredicate().test(DatePicker("foo")) }
+        expect(false) { spec.toPredicate().test(DatePicker("bar")) }
+        expect(false) { spec.toPredicate().test(DatePicker()) }
+        expect(true) { spec.toPredicate().test(ComboBox<Int>("foo")) }
+        expect(false) { spec.toPredicate().test(ComboBox<Int>("bar")) }
+        expect(false) { spec.toPredicate().test(ComboBox<Int>()) }
     }
 
     test("text") {
-        val spec = SearchSpec(Component::class.java, text = "foo")
-        expect(true) { spec.toPredicate()(Button("foo")) }
-        expect(false) { spec.toPredicate()(Button("bar")) }
-        expect(false) { spec.toPredicate()(Button()) }
-        expect(true) { spec.toPredicate()(Text("foo")) }
-        expect(false) { spec.toPredicate()(Text("bar")) }
-        expect(false) { spec.toPredicate()(Text("")) }
+        val spec = SearchSpec(Component::class.java).apply { text = "foo" }
+        expect(true) { spec.toPredicate().test(Button("foo")) }
+        expect(false) { spec.toPredicate().test(Button("bar")) }
+        expect(false) { spec.toPredicate().test(Button()) }
+        expect(true) { spec.toPredicate().test(Text("foo")) }
+        expect(false) { spec.toPredicate().test(Text("bar")) }
+        expect(false) { spec.toPredicate().test(Text("")) }
     }
 
     test("predicates") {
         var spec = SearchSpec(Component::class.java).apply {
             predicates.add(Predicate { it is Button })
         }
-        expect(true) { spec.toPredicate()(Button()) }
-        expect(false) { spec.toPredicate()(Span()) }
+        expect(true) { spec.toPredicate().test(Button()) }
+        expect(false) { spec.toPredicate().test(Span()) }
     }
 }

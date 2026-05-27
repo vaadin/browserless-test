@@ -15,12 +15,10 @@
  */
 package com.vaadin.browserless.mocks;
 
-import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationContext;
 
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.di.Instantiator;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.VaadinRequest;
@@ -44,14 +42,6 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
 public class MockSpringServletService extends SpringVaadinServletService {
     @NotNull
     private final UIFactory uiFactory;
-
-    @Deprecated(forRemoval = true)
-    public MockSpringServletService(@NotNull MockSpringServlet servlet,
-            @NotNull DeploymentConfiguration deploymentConfiguration,
-            @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
-        super(servlet, deploymentConfiguration, ctx);
-        this.uiFactory = uiFactory::invoke;
-    }
 
     public MockSpringServletService(@NotNull MockSpringServlet servlet,
             @NotNull DeploymentConfiguration deploymentConfiguration,
