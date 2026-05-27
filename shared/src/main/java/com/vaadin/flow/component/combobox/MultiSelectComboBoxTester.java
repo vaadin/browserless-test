@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.browserless.internal.BasicUtils;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
@@ -141,7 +141,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
             final Method fetchFromProvider = getMethod(DataCommunicator.class,
                     "fetchFromProvider", int.class, int.class);
             List<Y> result = ((Stream<Y>) fetchFromProvider.invoke(
-                    dataCommunicator, 0, BasicUtilsKt.get_saneFetchLimit()))
+                    dataCommunicator, 0, BasicUtils._saneFetchLimit()))
                     .collect(Collectors.toList());
             return result;
         } catch (IllegalAccessException | InvocationTargetException e) {

@@ -79,13 +79,13 @@ internal fun DynaNodeGroup.searchSpecTest() {
         }
         expect(false) { spec.toPredicate()(Select<Int>()) }
         expect(true) {
-            spec.toPredicate()(ListBox<Int>().apply {
-                label = "foo"
+            spec.toPredicate()(ListBox<Int>().also {
+                ComponentUtils.label(it, "foo")
             })
         }
         expect(false) {
-            spec.toPredicate()(ListBox<Int>().apply {
-                label = "bar"
+            spec.toPredicate()(ListBox<Int>().also {
+                ComponentUtils.label(it, "bar")
             })
         }
         expect(false) { spec.toPredicate()(ListBox<Int>()) }
@@ -113,8 +113,8 @@ internal fun DynaNodeGroup.searchSpecTest() {
         }
         expect(false) { spec.toPredicate()(DateRangePopup()) }
 
-        expect(true) { spec.toPredicate()(Input().apply { label = "foo" }) }
-        expect(false) { spec.toPredicate()(Input().apply { label = "bar" }) }
+        expect(true) { spec.toPredicate()(Input().also { ComponentUtils.label(it, "foo") }) }
+        expect(false) { spec.toPredicate()(Input().also { ComponentUtils.label(it, "bar") }) }
         expect(false) { spec.toPredicate()(Input()) }
         expect(true) { spec.toPredicate()(TextField("foo")) }
         expect(false) { spec.toPredicate()(TextField("bar")) }

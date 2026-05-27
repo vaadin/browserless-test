@@ -12,7 +12,7 @@ package com.vaadin.browserless.mocks;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.vaadin.browserless.internal.ComponentUtilsKt;
+import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ModalityMode;
 import com.vaadin.flow.component.UI;
@@ -49,7 +49,7 @@ public class MockedUI extends UI {
     public void addToModalComponent(Component component) {
         super.addToModalComponent(component);
         if (component != null) {
-            ComponentUtilsKt.simulateClosedEvent(component);
+            ComponentUtils.simulateClosedEvent(component);
         }
     }
 

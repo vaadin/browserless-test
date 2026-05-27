@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
-import com.vaadin.browserless.internal.ShortcutsKt;
+import com.vaadin.browserless.internal.Shortcuts;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -103,11 +103,11 @@ final class BrowserlessDSL {
 
     static void fireShortcut(UI ui, Key key, KeyModifier... modifiers) {
         if (ui.hasModalComponent()) {
-            ShortcutsKt._fireShortcut(
+            Shortcuts._fireShortcut(
                     ui.getInternals().getActiveModalComponent(), key,
                     modifiers);
         } else {
-            ShortcutsKt.fireShortcut(key, modifiers);
+            Shortcuts.fireShortcut(key, modifiers);
         }
     }
 

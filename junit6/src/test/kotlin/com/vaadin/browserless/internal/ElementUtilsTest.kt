@@ -10,6 +10,15 @@
 package com.vaadin.browserless.internal
 
 import com.github.mvysny.dynatest.DynaNodeGroup
+import com.vaadin.browserless.expectList
+import com.vaadin.browserless.internal.ElementUtils._fireDomEvent
+import com.vaadin.browserless.internal.ElementUtils.clearSlot
+import com.vaadin.browserless.internal.ElementUtils.getChildrenInSlot
+import com.vaadin.browserless.internal.ElementUtils.getVirtualChildren
+import com.vaadin.browserless.internal.ElementUtils.insertBefore
+import com.vaadin.browserless.internal.ElementUtils.setOrRemoveAttribute
+import com.vaadin.browserless.internal.ElementUtils.textRecursively2
+import com.vaadin.browserless.internal.ElementUtils.toggle
 import com.vaadin.flow.component.Text
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.button.Button
@@ -20,7 +29,6 @@ import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.dom.DomEvent
 import com.vaadin.flow.dom.Element
 import com.vaadin.flow.internal.JacksonUtils
-import com.vaadin.browserless.expectList
 import kotlin.test.expect
 
 fun DynaNodeGroup.elementUtilsTests() {
@@ -30,22 +38,22 @@ fun DynaNodeGroup.elementUtilsTests() {
     test("setOrRemoveAttribute") {
         val t = Div().element
         expect(null) { t.getAttribute("foo") }
-        t.setOrRemoveAttribute("foo", "bar")
+        setOrRemoveAttribute(t, "foo", "bar")
         expect("bar") { t.getAttribute("foo") }
-        t.setOrRemoveAttribute("foo", null)
+        setOrRemoveAttribute(t, "foo", null)
         expect(null) { t.getAttribute("foo") }
     }
 
     group("toggle class name") {
         test("add") {
             val t = Div()
-            t.classNames.toggle("test")
+            toggle(t.classNames, "test")
             expect(setOf("test")) { t.classNames }
         }
         test("remove") {
             val t = Div()
             t.classNames.add("test")
-            t.classNames.toggle("test")
+            toggle(t.classNames, "test")
             expect(setOf<String>()) { t.classNames }
         }
     }
@@ -55,57 +63,57 @@ fun DynaNodeGroup.elementUtilsTests() {
         val first: Element = Span("first").element
         l.appendChild(first)
         val second: Element = Span("second").element
-        l.insertBefore(second, first)
+        insertBefore(l, second, first)
         expect("second, first") { l.children.toList().joinToString { it.text } }
-        l.insertBefore(Span("third").element, first)
+        insertBefore(l, Span("third").element, first)
         expect("second, third, first") { l.children.toList().joinToString { it.text } }
     }
 
     test("textRecursively2") {
-        expect("foo") { Span("foo").element.textRecursively2 }
+        expect("foo") { textRecursively2(Span("foo").element) }
         expect("foobarbaz") {
             val div = Div()
             div.add(Span("foo"), Text("bar"), Paragraph("baz"))
-            div.element.textRecursively2
+            textRecursively2(div.element)
         }
-        expect("foo") { Element("div").apply { setProperty("innerHTML", "foo") }.textRecursively2 }
+        expect("foo") { textRecursively2(Element("div").apply { setProperty("innerHTML", "foo") }) }
     }
 
     group("getVirtualChildren()") {
         test("initially empty") {
-            expectList() { Div().element.getVirtualChildren() }
-            expectList() { Span().element.getVirtualChildren() }
-            expectList() {
+            expectList<Element>() { getVirtualChildren(Div().element) }
+            expectList<Element>() { getVirtualChildren(Span().element) }
+            expectList<Element>() {
                 val b = Button()
                 UI.getCurrent().add(b)
-                b.element.getVirtualChildren()
+                getVirtualChildren(b.element)
             }
         }
         test("add virtual child") {
             val span = Span().element
             val parent = Div()
             parent.element.appendVirtualChild(span)
-            expectList(span) { parent.element.getVirtualChildren() }
+            expectList(span) { getVirtualChildren(parent.element) }
         }
     }
 
     test("getChildrenInSlot") {
-        expectList() { TextField().element.getChildrenInSlot("prefix") }
+        expectList<Element>() { getChildrenInSlot(TextField().element, "prefix") }
         val div = Div()
-        expectList(div.element) { TextField().apply { prefixComponent = div } .element.getChildrenInSlot("prefix") }
+        expectList(div.element) { getChildrenInSlot(TextField().apply { prefixComponent = div }.element, "prefix") }
     }
 
     test("clearSlot") {
         val tf = TextField()
         tf.prefixComponent = Div()
-        tf.element.clearSlot("prefix")
-        expectList() { tf.element.getChildrenInSlot("prefix") }
+        clearSlot(tf.element, "prefix")
+        expectList<Element>() { getChildrenInSlot(tf.element, "prefix") }
         expect(null) { tf.prefixComponent }
     }
 
     test("fireDomEvent() smoke") {
         val element = Div().element
-        element._fireDomEvent(DomEvent(element, "click", JacksonUtils.createObjectNode()))
+        _fireDomEvent(element, DomEvent(element, "click", JacksonUtils.createObjectNode()))
     }
 
 }

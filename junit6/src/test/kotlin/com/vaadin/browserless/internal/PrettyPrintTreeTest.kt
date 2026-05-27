@@ -10,6 +10,7 @@
 package com.vaadin.browserless.internal
 
 import com.example.base.HelloWorldView
+import com.vaadin.browserless.internal.BasicUtils.id_
 import com.github.mvysny.dynatest.DynaNodeGroup
 import com.github.mvysny.dynatest.DynaTestDsl
 import com.github.mvysny.karibudsl.v10.contextMenu
@@ -73,9 +74,9 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
     }
     test("toPrettyStringTextField()") {
-        assertContains(TextField().apply { id_ = "25" }.toPrettyString(),"TextField\\[#25, value=''.*]".toRegex())
+        assertContains(TextField().also { id_(it, "25") }.toPrettyString(),"TextField\\[#25, value=''.*]".toRegex())
         assertContains(TextArea("label").apply { value = "some text" }.toPrettyString(),"TextArea\\[label='label', value='some text'.*]".toRegex())
-        assertContains(TextField().apply { id_ = "25"; errorMessage = "failed validation" }.toPrettyString(),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
+        assertContains(TextField().also { id_(it, "25"); it.errorMessage = "failed validation" }.toPrettyString(),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
         assertContains(TextField("foobar").toPrettyString(), "TextField\\[label='foobar', value=''.*]".toRegex() )
     }
     test("toPrettyStringButton()") {

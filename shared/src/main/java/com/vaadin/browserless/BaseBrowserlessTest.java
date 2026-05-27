@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -92,7 +92,7 @@ public abstract class BaseBrowserlessTest {
                             .extendsSuperclass(ComponentTester.class))
                     .forEach(classInfo -> {
                         try {
-                            final Class<?> tester = UtilsKt
+                            final Class<?> tester = Utils
                                     .findClassOrThrow(classInfo.getName());
                             final Class<? extends Component>[] annotation = tester
                                     .getAnnotation(Tests.class).value();
@@ -107,7 +107,7 @@ public abstract class BaseBrowserlessTest {
 
                             Arrays.stream(classes).map(clazz -> {
                                 try {
-                                    return UtilsKt.findClassOrThrow(clazz);
+                                    return Utils.findClassOrThrow(clazz);
                                 } catch (ClassNotFoundException e) {
                                     logTypeLoadingIssue(e,
                                             "Tester '{}' cannot be loaded because of missing component class '{}' on classpath",

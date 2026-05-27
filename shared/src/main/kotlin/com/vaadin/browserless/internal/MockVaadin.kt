@@ -37,6 +37,10 @@ import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
+import com.vaadin.browserless.internal.BasicUtils._close
+import com.vaadin.browserless.internal.TestingLifecycleHooks.cleanupDialogs
+import com.vaadin.browserless.internal.Utils.isInitialized
+import com.vaadin.browserless.internal.Utils.mock
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -138,7 +142,7 @@ object MockVaadin {
     fun setupServlet(servlet: VaadinServlet,
                      lookupServices: Set<Class<*>> = emptySet()
     ): VaadinServletService {
-        if (!servlet.isInitialized) {
+        if (!isInitialized(servlet)) {
             val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
             val config = MockServletConfig(ctx)
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
@@ -158,7 +162,7 @@ object MockVaadin {
         val ui: UI = UI.getCurrent() ?: return
         lastNavigation.set(ui.internals.activeViewLocation)
         if (ui.isClosing && ui.internals.session != null) {
-            ui._close()
+            _close(ui)
         }
         if (fireUIDetach) {
             ComponentUtil.onComponentDetach(ui)
@@ -452,7 +456,7 @@ object MockVaadin {
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
-            val mockSession: MockHttpSession = session.mock
+            val mockSession: MockHttpSession = mock(session)
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)

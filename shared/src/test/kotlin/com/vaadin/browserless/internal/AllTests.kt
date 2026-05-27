@@ -28,9 +28,9 @@ class AllTests : DynaTest({
 
 
     test("Component.isTemplate") {
-        expect(false) { Button("foo").isTemplate }
-        expect(true) { MyLitTemplate().isTemplate }
-        expect(true) { MyPolymerTemplate().isTemplate }
+        expect(false) { TestingLifecycleHook.isTemplate(Button("foo")) }
+        expect(true) { TestingLifecycleHook.isTemplate(MyLitTemplate()) }
+        expect(true) { TestingLifecycleHook.isTemplate(MyPolymerTemplate()) }
     }
 
 })

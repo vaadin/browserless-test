@@ -12,6 +12,8 @@ package com.vaadin.browserless.internal
 import java.util.function.Predicate
 import kotlin.streams.asSequence
 import kotlin.test.expect
+import com.vaadin.browserless.internal.BasicUtils.id_
+import com.vaadin.browserless.internal.Utils.currentUI
 import com.vaadin.flow.component.Text
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.button.Button
@@ -60,7 +62,7 @@ internal fun DynaNodeGroup.locatorTest2() {
         test("component lookup fails on navigation error") {
             // Vaadin shows InternalServerError when an exception occurs during the navigation phase.
             // the _expect*() functions should detect this and fail fast.
-            currentUI.addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
+            currentUI().addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
             UI.getCurrent().navigate("")
             expectThrows<AssertionError>("An internal server error occurred; please check log for the actual stack-trace. Error text: There was an exception while trying to navigate to") {
                 _expectOne<UI>()
@@ -74,12 +76,12 @@ internal fun DynaNodeGroup.locatorTest2() {
                 ) { _expectInternalServerError() }
             }
             test("succeeds on error") {
-                currentUI.addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
+                currentUI().addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
                 UI.getCurrent().navigate("")
                 _expectInternalServerError()
             }
             test("matches error message correctly") {
-                currentUI.addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
+                currentUI().addBeforeEnterListener { event -> event.rerouteToError(RuntimeException("Simulated"), "Simulated") }
                 UI.getCurrent().navigate("")
                 _expectInternalServerError("Simulated")
             }
@@ -91,8 +93,8 @@ internal fun DynaNodeGroup.locatorTest2() {
 internal fun DynaNodeGroup.locatorTest() {
 
     beforeEach { MockVaadin.setup() }
-    beforeEach { testingLifecycleHook = MyLifecycleHook() }
-    afterEach { testingLifecycleHook = TestingLifecycleHook.default }
+    beforeEach { TestingLifecycleHooks.current = MyLifecycleHook() }
+    afterEach { TestingLifecycleHooks.current = TestingLifecycleHook.DEFAULT }
     afterEach { MockVaadin.tearDown() }
 
     group("_get") {
@@ -133,7 +135,7 @@ internal fun DynaNodeGroup.locatorTest() {
 
     group("_find") {
         test("findMatchingId") {
-            val button = Button().apply { id_ = "foo" }
+            val button = Button().also { id_(it, "foo") }
             expectList(button) { VerticalLayout(button, Button())._find<Button> { id = "foo" } }
             expectAfterLookupCalled()
         }
@@ -214,10 +216,10 @@ internal fun DynaNodeGroup.locatorTest() {
         test("id") {
             expect(true) { Button().matches { } }
             expect(false) { Button().matches { id = "a" } }
-            expect(true) { Button().apply { id_ = "a" } .matches { } }
-            expect(true) { Button().apply { id_ = "a" } .matches { id = "a" } }
-            expect(false) { Button().apply { id_ = "a b" } .matches { id = "a" } }
-            expect(false) { Button().apply { id_ = "a" } .matches { id = "a b" } }
+            expect(true) { Button().also { id_(it, "a") } .matches { } }
+            expect(true) { Button().also { id_(it, "a") } .matches { id = "a" } }
+            expect(false) { Button().also { id_(it, "a b") } .matches { id = "a" } }
+            expect(false) { Button().also { id_(it, "a") } .matches { id = "a b" } }
         }
         test("caption") {
             expect(true) { Button("click me").matches { caption = "click me" } }
@@ -293,7 +295,7 @@ internal fun DynaNodeGroup.locatorTest() {
     }
 
     group("unmocked env") {
-        beforeEach { MockVaadin.tearDown(); testingLifecycleHook = TestingLifecycleHook.default }
+        beforeEach { MockVaadin.tearDown(); TestingLifecycleHooks.current = TestingLifecycleHook.DEFAULT }
         test("lookup functions should work in unmocked environment") {
             Button()._get(Button::class.java)
             expectThrows(AssertionError::class) {
@@ -417,6 +419,6 @@ data class MyLifecycleHook(var isBeforeLookupCalled: Boolean = false, var isAfte
 }
 
 fun expectAfterLookupCalled() {
-    expect(MyLifecycleHook(true, true)) { testingLifecycleHook }
-    testingLifecycleHook = MyLifecycleHook()
+    expect(MyLifecycleHook(true, true)) { TestingLifecycleHooks.current }
+    TestingLifecycleHooks.current = MyLifecycleHook()
 }

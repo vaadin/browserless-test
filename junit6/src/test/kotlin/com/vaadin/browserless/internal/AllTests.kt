@@ -77,7 +77,7 @@ class AllTests : DynaTest({
     }
 
     test("Component.isTemplate does not fail without polymer templates dependency") {
-        expect(false) { Button("foo").isTemplate }
+        expect(false) { TestingLifecycleHook.isTemplate(Button("foo")) }
     }
 
 

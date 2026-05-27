@@ -21,7 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.geolocation.BrowserlessGeolocationClientFactory;
 import com.vaadin.flow.component.geolocation.GeolocationClientFactory;
 import com.vaadin.flow.di.Lookup;
@@ -98,8 +98,8 @@ public final class MockVaadinHelper {
         Object acf;
         Class<?> dacfClass;
         try {
-            acf = lookup(ctx, UtilsKt.findClassOrThrow("com.vaadin.flow.server.startup.ApplicationConfigurationFactory"));
-            dacfClass = UtilsKt.findClassOrThrow("com.vaadin.flow.server.startup.DefaultApplicationConfigurationFactory");
+            acf = lookup(ctx, Utils.findClassOrThrow("com.vaadin.flow.server.startup.ApplicationConfigurationFactory"));
+            dacfClass = Utils.findClassOrThrow("com.vaadin.flow.server.startup.DefaultApplicationConfigurationFactory");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -154,7 +154,7 @@ public final class MockVaadinHelper {
         loaders.addAll(lookupServices);
         loaders.add(LookupInitializer.class);
         try {
-            loaders.add(UtilsKt.findClassOrThrow("com.vaadin.flow.di.LookupInitializer$ResourceProviderImpl"));
+            loaders.add(Utils.findClassOrThrow("com.vaadin.flow.di.LookupInitializer$ResourceProviderImpl"));
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -177,7 +177,7 @@ public final class MockVaadinHelper {
     private static void tryLoad(Set<Class<?>> loaders, String className) {
         // sometimes customers don't include entire vaadin-core and exclude stuff like fusion on purpose.
         // load the class only if it exists.
-        Class<?> clazz = UtilsKt.findClass(className);
+        Class<?> clazz = Utils.findClass(className);
         if (clazz != null) {
             loaders.add(clazz);
         }

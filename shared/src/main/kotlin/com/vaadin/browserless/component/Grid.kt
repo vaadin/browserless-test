@@ -48,13 +48,14 @@ import com.vaadin.flow.function.ValueProvider
 import com.vaadin.browserless.internal.DepthFirstTreeIterator
 import com.vaadin.browserless.internal.MockVaadin
 import com.vaadin.browserless.internal.PrettyPrintTree
-import com.vaadin.browserless.internal._fireEvent
-import com.vaadin.browserless.internal._getPresentationValue
-import com.vaadin.browserless.internal._saneFetchLimit
-import com.vaadin.browserless.internal.checkEditableByUser
+import com.vaadin.browserless.internal.BasicUtils._fireEvent
+import com.vaadin.browserless.internal.BasicUtils._saneFetchLimit
+import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
+import com.vaadin.browserless.internal.Renderers._getPresentationValue
+import com.vaadin.browserless.internal.Renderers.template
+import com.vaadin.browserless.internal.Utils.findClassOrThrow
 import com.vaadin.browserless.internal.filterNotBlank
 import com.vaadin.browserless.internal.size
-import com.vaadin.browserless.internal.template
 import com.vaadin.browserless.internal.toPrettyString
 import java.lang.reflect.Method
 import java.lang.reflect.Field
@@ -62,7 +63,6 @@ import java.util.stream.Stream
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.streams.toList
-import com.vaadin.browserless.internal.findClassOrThrow
 
 /**
  * Returns the item on given row. Fails if the row index is invalid. The data provider is
@@ -178,7 +178,7 @@ private val _DataCommunicator_setPagingEnabled: Method? =
  * This is an internal stuff, most probably you wish to call [_fetch].
  */
 public fun <T> DataCommunicator<T>.fetch(offset: Int, limit: Int): List<T> {
-    require(limit <= _saneFetchLimit) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is $_saneFetchLimit but you asked for $limit" }
+    require(limit <= _saneFetchLimit()) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is ${_saneFetchLimit()} but you asked for $limit" }
 
     // make sure the DataCommunicator is not in paged mode: https://github.com/mvysny/karibu-testing/issues/99
     _DataCommunicator_setPagingEnabled?.invoke(this, false)
@@ -194,7 +194,7 @@ public fun <T> DataCommunicator<T>.fetch(offset: Int, limit: Int): List<T> {
  *
  * This is an internal stuff, most probably you wish to call [_fetch].
  */
-public fun <T> DataCommunicator<T>.fetchAll(): List<T> = fetch(0, _saneFetchLimit)
+public fun <T> DataCommunicator<T>.fetchAll(): List<T> = fetch(0, _saneFetchLimit())
 
 /**
  * Returns all items in given data provider. Uses current Grid sorting.
@@ -206,7 +206,7 @@ public fun <T> DataCommunicator<T>.fetchAll(): List<T> = fetch(0, _saneFetchLimi
  *
  * @return the list of items.
  */
-public fun <T> Grid<T>._findAll(): List<T> = _fetch(0, _saneFetchLimit)
+public fun <T> Grid<T>._findAll(): List<T> = _fetch(0, _saneFetchLimit())
 
 /**
  * Returns the number of items in this data provider.
@@ -390,7 +390,7 @@ public fun <T : Any> Grid.Column<T>.getPresentationValue(rowObject: T): Any? {
         val value: Any? = valueProvider.apply(rowObject)
         return value.toString()
     }
-    return renderer._getPresentationValue(rowObject)
+    return _getPresentationValue(renderer, rowObject)
 }
 
 private fun <T> Grid<T>.getSortIndicator(column: Grid.Column<T>): String {
@@ -598,7 +598,7 @@ public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, button: Int = 0, ctrlKey:
 @JvmOverloads
 public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, column: Grid.Column<*>?, button: Int = 1, ctrlKey: Boolean = false,
                            shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    checkEditableByUser()
+    checkEditableByUser(this)
     // fire SelectionEvent if need be: https://github.com/mvysny/karibu-testing/issues/96
     val item: T = _get(rowIndex)
     if (selectionModel is GridSingleSelectionModel) {
@@ -615,7 +615,7 @@ public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, column: Grid.Column<*>?, 
     val itemKey: String = dataCommunicator.keyMapper.key(item)
     val internalColumnId = column?._internalId
     val event = ItemClickEvent<T>(this, true, itemKey, internalColumnId, -1, -1, -1, -1, 1, button, ctrlKey, shiftKey, altKey, metaKey)
-    _fireEvent(event)
+    _fireEvent(this, event)
 }
 
 /**
@@ -646,10 +646,10 @@ public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, columnKey: String, button
 @JvmOverloads
 public fun <T : Any> Grid<T>._doubleClickItem(rowIndex: Int, button: Int = 1, ctrlKey: Boolean = false,
                                         shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    checkEditableByUser()
+    checkEditableByUser(this)
     val itemKey: String = dataCommunicator.keyMapper.key(_get(rowIndex))
     val event = ItemDoubleClickEvent<T>(this, true, itemKey, null, -1, -1, -1, -1, 2, button, ctrlKey, shiftKey, altKey, metaKey)
-    _fireEvent(event)
+    _fireEvent(this, event)
 }
 
 /**
@@ -799,7 +799,7 @@ private val _Column_getInternalId: Method by lazy(LazyThreadSafetyMode.PUBLICATI
  * In single select clears the selection and select only given [item], for multiselect add to selection.
  */
 public fun <T: Any> Grid<T>._select(item: T) {
-    checkEditableByUser()
+    checkEditableByUser(this)
     if(selectionModel is GridSingleSelectionModel) {
         deselectAll()
     }
@@ -812,7 +812,7 @@ public fun <T: Any> Grid<T>._select(item: T) {
  * Fails if the grid is not multi-select or the "select all" checkbox is hidden.
  */
 public fun <T> Grid<T>._selectAll() {
-    checkEditableByUser()
+    checkEditableByUser(this)
     if(selectionModel !is GridMultiSelectionModel) {
         throw IllegalStateException("Select all requires multi selection mode")
     }

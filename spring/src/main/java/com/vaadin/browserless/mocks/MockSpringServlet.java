@@ -34,7 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.ServiceException;
@@ -165,13 +165,13 @@ public class MockSpringServlet extends SpringServlet {
         }
 
         private static boolean hasSpringSecurity() {
-            return UtilsKt.findClass(
+            return Utils.findClass(
                     "org.springframework.security.core.context.SecurityContextHolder") != null;
         }
 
         private static UnaryOperator<HttpServletRequest> springSecurityRequestWrapper() {
             try {
-                Constructor<?> constructor = UtilsKt.findClassOrThrow(
+                Constructor<?> constructor = Utils.findClassOrThrow(
                         "org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper")
                         .getConstructor(HttpServletRequest.class, String.class);
                 return req -> {

@@ -22,7 +22,14 @@ import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.html.Anchor
 import com.vaadin.flow.component.icon.Icon
+import com.vaadin.browserless.internal.BasicUtils._isVisible
+import com.vaadin.browserless.internal.BasicUtils._text
+import com.vaadin.browserless.internal.ComponentUtils.caption
+import com.vaadin.browserless.internal.ComponentUtils.dataProvider
+import com.vaadin.browserless.internal.ComponentUtils.label
 import com.vaadin.browserless.internal.PrettyPrintTree.Companion.ofVaadin
+import com.vaadin.browserless.internal.Utils.ellipsize
+import com.vaadin.browserless.internal.Utils.hasCustomToString
 
 
 /**
@@ -63,7 +70,7 @@ class PrettyPrintTree(val name: String, val children: MutableList<PrettyPrintTre
 
         fun ofVaadin(root: Component): PrettyPrintTree {
             val result = PrettyPrintTree(root.toPrettyString(), mutableListOf())
-            for (child: Component in testingLifecycleHook.getAllChildren(root)) {
+            for (child: Component in TestingLifecycleHooks.current.getAllChildren(root)) {
                 result.children.add(ofVaadin(child))
             }
             return result
@@ -89,7 +96,7 @@ fun Component.toPrettyString(): String {
     if (id.isPresent) {
         list.add("#${id.get()}")
     }
-    if (!_isVisible) {
+    if (!_isVisible(this)) {
         list.add("INVIS")
     }
     if (this is HasValue<*, *> && (this as HasValue<HasValue.ValueChangeEvent<Any?>, Any?>).isReadOnly) {
@@ -98,14 +105,17 @@ fun Component.toPrettyString(): String {
     if (!element.isEnabled) {
         list.add("DISABLED")
     }
-    if (label.isNotBlank()) {
-        list.add("label='$label'")
+    val labelText = label(this)
+    if (labelText.isNotBlank()) {
+        list.add("label='$labelText'")
     }
-    if (label != caption && caption.isNotBlank()) {
-        list.add("caption='$caption'")
+    val captionText = caption(this)
+    if (labelText != captionText && captionText.isNotBlank()) {
+        list.add("caption='$captionText'")
     }
-    if (!_text.isNullOrBlank() && _text != caption) {
-        list.add("text='$_text'")
+    val textValue = _text(this)
+    if (!textValue.isNullOrBlank() && textValue != captionText) {
+        list.add("text='$textValue'")
     }
     if (this is HasValue<*, *>) {
         list.add("value='${(this as HasValue<HasValue.ValueChangeEvent<Any?>, Any?>).value}'")
@@ -158,13 +168,14 @@ fun Component.toPrettyString(): String {
     }
     if (this is Html) {
         val outerHtml: String = this.element.outerHTML.trim().replace(Regex("\\s+"), " ")
-        list.add(outerHtml.ellipsize(100))
+        list.add(ellipsize(outerHtml, 100))
     }
     if (this is Grid<*> && this.beanType != null) {
         list.add("<${this.beanType.simpleName}>")
     }
-    if (this.dataProvider != null) {
-        list.add("dataprovider='${this.dataProvider}'")
+    val dp = dataProvider(this)
+    if (dp != null) {
+        list.add("dataprovider='$dp'")
     }
     element.attributeNames
         .filter { !dontDumpAttributes.contains(it) }
@@ -180,7 +191,7 @@ fun Component.toPrettyString(): String {
             element.getProperty("innerHTML").trim().replace(Regex("\\s+"), " ")
         list.add("innerHTML='$innerHTML'")
     }
-    if (this.javaClass.hasCustomToString()) {
+    if (hasCustomToString(this.javaClass)) {
         // by default Vaadin components do not introduce toString() at all;
         // toString() therefore defaults to Object's toString() which is useless. However,
         // if a component does introduce a toString() then use it - it could provide

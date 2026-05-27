@@ -59,8 +59,9 @@ data class Routes(
     @Suppress("UNCHECKED_CAST")
     fun register(sc: VaadinContext) {
         val classSet: Set<Class<*>> = routes.toSet<Class<*>>() + layouts
-        RouteRegistryInitializer().onStartup(classSet, sc.context)
-        checkNotNull(sc.context.getAttribute("com.vaadin.flow.server.startup.ApplicationRouteRegistry${'$'}ApplicationRouteRegistryWrapper")) {
+        val servletContext = Utils.getContext(sc)
+        RouteRegistryInitializer().onStartup(classSet, servletContext)
+        checkNotNull(servletContext.getAttribute("com.vaadin.flow.server.startup.ApplicationRouteRegistry${'$'}ApplicationRouteRegistryWrapper")) {
             "RouteRegistryInitializer did not register the ApplicationRouteRegistry!"
         }
         val registry: ApplicationRouteRegistry = ApplicationRouteRegistry.getInstance(sc)
@@ -124,7 +125,7 @@ data class Routes(
     private fun cleanupErrorRoutes() {
         // https://github.com/mvysny/karibu-testing/issues/50
         // if the app defines its own NotFoundException handler, remove MockRouteNotFoundError
-        if (errorRoutes.any { it != MockRouteNotFoundError::class.java && it.isRouteNotFound }) {
+        if (errorRoutes.any { it != MockRouteNotFoundError::class.java && Utils.isRouteNotFound(it) }) {
             errorRoutes.remove(MockRouteNotFoundError::class.java)
         }
 
