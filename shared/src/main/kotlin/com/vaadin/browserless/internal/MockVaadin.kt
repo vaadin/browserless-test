@@ -44,11 +44,6 @@ import com.vaadin.browserless.mocks.MockServletConfig
 import com.vaadin.browserless.mocks.MockVaadinHelper
 import com.vaadin.browserless.mocks.MockVaadinServlet
 import com.vaadin.browserless.mocks.MockedUI
-import com.vaadin.browserless.mocks.WebBrowser
-import com.vaadin.browserless.mocks._createVaadinSession
-import com.vaadin.browserless.mocks.createVaadinServletRequest
-import com.vaadin.browserless.mocks.createVaadinServletResponse
-import com.vaadin.browserless.mocks.serviceSafe
 
 /**
  * Holds the objects created during session initialization, before they are
@@ -149,7 +144,7 @@ object MockVaadin {
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)
         }
-        val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
+        val service: VaadinServletService = checkNotNull(MockVaadinServlet.serviceSafe(servlet))
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
         return service
     }
@@ -266,21 +261,21 @@ object MockVaadin {
         mockRequest.headers["User-Agent"] = listOf(userAgent)
         service.context.getAttribute(Lookup::class.java)
                 .lookup(MockRequestCustomizer::class.java)?.apply(mockRequest)
-        val request = createVaadinServletRequest(mockRequest, service)
+        val request = MockVaadinServlet.createVaadinServletRequest(mockRequest, service)
 
         // init Session.
-        val session: VaadinSession = service._createVaadinSession(request)
+        val session: VaadinSession = MockVaadinServlet.createVaadinSession(service, request)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)
         check(session.lockInstance != null) { "$session created from $service has null lock. See the MockSession class on how to mock locks properly" }
         check((session.lockInstance as ReentrantLock).isLocked) { "$session created from $service: lock must be locked!" }
 
-        session.browser = WebBrowser(request)
+        session.browser = MockVaadinServlet.createWebBrowser(request)
         checkNotNull(session.browser.browserApplication) { "The WebBrowser has not been mocked properly" }
 
         // init Vaadin Response
-        val response = createVaadinServletResponse(MockResponse(), service)
+        val response = MockVaadinServlet.createVaadinServletResponse(MockResponse(), service)
 
         return SessionObjects(session, request, response, httpSession)
     }

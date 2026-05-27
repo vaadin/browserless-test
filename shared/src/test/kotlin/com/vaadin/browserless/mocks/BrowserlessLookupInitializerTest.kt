@@ -12,14 +12,13 @@ package com.vaadin.browserless.mocks
 import com.github.mvysny.dynatest.DynaTest
 import com.vaadin.flow.di.InstantiatorFactory
 import com.vaadin.flow.di.LookupInitializer
-import kotlin.reflect.KClass
 import kotlin.test.expect
 
 class BrowserlessLookupInitializerTest : DynaTest({
 
     test("updateServices adds default impl when interface is absent") {
         val initializer = TestInitializer(
-                mapOf(FakeService::class to FakeServiceImpl::class))
+                mapOf(FakeService::class.java to FakeServiceImpl::class.java))
         val services = mutableSetOf<Class<*>>()
 
         initializer.updateServices(services)
@@ -29,7 +28,7 @@ class BrowserlessLookupInitializerTest : DynaTest({
 
     test("updateServices skips entry when caller already supplied an implementation") {
         val initializer = TestInitializer(
-                mapOf(FakeService::class to FakeServiceImpl::class))
+                mapOf(FakeService::class.java to FakeServiceImpl::class.java))
         val services = mutableSetOf<Class<*>>(OtherFakeServiceImpl::class.java)
 
         initializer.updateServices(services)
@@ -40,7 +39,7 @@ class BrowserlessLookupInitializerTest : DynaTest({
 
     test("updateServices skips entries whose default is the Object placeholder") {
         val initializer = TestInitializer(
-                mapOf(NoDefaultService::class to Object::class))
+                mapOf(NoDefaultService::class.java to Object::class.java))
         val services = mutableSetOf<Class<*>>()
 
         initializer.updateServices(services)
@@ -50,7 +49,7 @@ class BrowserlessLookupInitializerTest : DynaTest({
 
     test("getServiceTypes extends parent service types with additionalServices keys") {
         val initializer = TestInitializer(
-                mapOf(FakeService::class to FakeServiceImpl::class))
+                mapOf(FakeService::class.java to FakeServiceImpl::class.java))
 
         val types = initializer.serviceTypes
 
@@ -60,7 +59,7 @@ class BrowserlessLookupInitializerTest : DynaTest({
 
     test("getServiceTypes excludes LookupInitializer even when added as an additional service") {
         val initializer = TestInitializer(
-                mapOf(LookupInitializer::class to FakeServiceImpl::class))
+                mapOf(LookupInitializer::class.java to FakeServiceImpl::class.java))
 
         val types = initializer.serviceTypes
 
@@ -74,7 +73,10 @@ private class OtherFakeServiceImpl : FakeService
 private interface NoDefaultService
 
 private class TestInitializer(
-        override val additionalServices: Map<KClass<*>, KClass<*>>
+        services: Map<Class<*>, Class<*>>
 ) : MockVaadinHelper.BrowserlessLookupInitializer() {
+    init {
+        this.additionalServices = services
+    }
     public override fun getServiceTypes(): Collection<Class<*>?> = super.getServiceTypes()
 }

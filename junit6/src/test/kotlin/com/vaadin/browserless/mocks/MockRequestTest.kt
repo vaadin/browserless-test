@@ -91,7 +91,7 @@ class MockRequestTest : DynaTest({
         expect(false) { request.isUserInRole("foo") }
         request.userPrincipalInt = MockPrincipal("foo", listOf("foo"))
         expect(false) { request.isUserInRole("foo") }
-        request.isUserInRole = { p, r -> (p as MockPrincipal).isUserInRole(r) }
+        request.isUserInRole = java.util.function.BiPredicate { p, r -> (p as MockPrincipal).isUserInRole(r) }
         expect(true) { request.isUserInRole("foo") }
     }
 })
