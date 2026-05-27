@@ -21,8 +21,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.ItemLabelGenerator;
@@ -90,7 +88,6 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
         return getComponent().getValue();
     }
 
-    @NotNull
     private Stream<RadioButton> getRadioButtons(Predicate<RadioButton> filter) {
         return getComponent().getChildren()
                 .filter(RadioButton.class::isInstance)

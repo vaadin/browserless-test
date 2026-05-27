@@ -18,7 +18,6 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.HasValue;
 
-import kotlin.ranges.IntRange;
 
 /**
  * A criterion for matching components. The component must match all of non-null fields.
@@ -58,7 +57,7 @@ public class SearchSpec<T extends Component> {
     /**
      * Expected count of matching components, defaults to {@code 0..Int.MAX_VALUE}.
      */
-    public IntRange count = new IntRange(0, Integer.MAX_VALUE);
+    public CountRange count = new CountRange(0, Integer.MAX_VALUE);
 
     /**
      * Expected [com.vaadin.flow.component.HasValue.getValue]; if {@code null}, no particular value is matched.
@@ -133,11 +132,11 @@ public class SearchSpec<T extends Component> {
         this.text = text;
     }
 
-    public IntRange getCount() {
+    public CountRange getCount() {
         return count;
     }
 
-    public void setCount(IntRange count) {
+    public void setCount(CountRange count) {
         this.count = count;
     }
 
@@ -227,8 +226,8 @@ public class SearchSpec<T extends Component> {
         if (value != null) {
             list.add("value=" + value);
         }
-        IntRange any = new IntRange(0, Integer.MAX_VALUE);
-        IntRange one = new IntRange(1, 1);
+        CountRange any = new CountRange(0, Integer.MAX_VALUE);
+        CountRange one = new CountRange(1, 1);
         if (!count.equals(any) && !count.equals(one)) {
             list.add("count=" + count);
         }

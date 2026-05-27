@@ -22,8 +22,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.router.InternalServerError;
 import com.vaadin.flow.router.Location;
 
-import kotlin.ranges.IntRange;
-
 /**
  * Java port of the original Kotlin {@code Locator.kt}. Java callers should
  * invoke these static methods directly; Kotlin callers may continue to use the
@@ -53,7 +51,7 @@ public final class Locator {
      * @throws AssertionError if no component matched, or if more than one component matches.
      */
     public static <T extends Component> T _get(Component container, Class<T> clazz, Consumer<SearchSpec<T>> block) {
-        final IntRange one = new IntRange(1, 1);
+        final CountRange one = new CountRange(1, 1);
         List<T> result = _find(container, clazz, spec -> {
             spec.count = one;
             block.accept(spec);
@@ -100,7 +98,7 @@ public final class Locator {
         SearchSpec<T> spec = new SearchSpec<>(clazz);
         block.accept(spec);
         List<Component> result = find(container, spec.toPredicate());
-        IntRange count = spec.count;
+        CountRange count = spec.count;
         int size = result.size();
         if (size < count.getStart() || size > count.getEndInclusive()) {
             String loc = currentPath();
@@ -227,7 +225,7 @@ public final class Locator {
      * @throws AssertionError if one or more components matched.
      */
     public static <T extends Component> void _expectNone(Component container, Class<T> clazz, Consumer<SearchSpec<T>> block) {
-        final IntRange zero = new IntRange(0, 0);
+        final CountRange zero = new CountRange(0, 0);
         List<T> result = _find(container, clazz, spec -> {
             spec.count = zero;
             block.accept(spec);
@@ -294,7 +292,7 @@ public final class Locator {
         // technically _expect is the same as _find, but the semantics differ - with _find() we're "just" doing a lookup (and asserting on
         // the components later). _expect() explicitly declares in the test sources that we want to check that there are exactly x components that match given spec.
         _find(container, clazz, spec -> {
-            spec.count = new IntRange(count, count);
+            spec.count = new CountRange(count, count);
             block.accept(spec);
         });
     }

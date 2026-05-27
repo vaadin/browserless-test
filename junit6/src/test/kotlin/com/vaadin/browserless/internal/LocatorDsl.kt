@@ -16,11 +16,8 @@ import com.vaadin.flow.component.Component
 
 /**
  * Kotlin DSL conveniences over the Java [Locator] engine. Preserves the
- * `_get<Reified> { id = "foo" }` syntax for Kotlin callers (mostly tests).
- * Lives in shared/src/main/kotlin/ because it's API-surface convenience;
- * if/when kotlin-stdlib is dropped from shared in a later phase, this file's
- * contents may move to test scope or be inlined into the few remaining
- * Kotlin call sites.
+ * `_get<Reified> { id = "foo" }` syntax for Kotlin callers. These helpers
+ * live in test scope only — production code calls [Locator] directly.
  */
 
 /**
@@ -29,18 +26,6 @@ import com.vaadin.flow.component.Component
  */
 public fun Component.matches(spec: SearchSpec<Component>.() -> Unit): Boolean =
     SearchSpec(Component::class.java).apply(spec).toPredicate().test(this)
-
-/**
- * Size of the [IntRange], used by the `Grid._dump()` implementation.
- */
-public val IntRange.size: Int get() = (endInclusive + 1 - start).coerceAtLeast(0)
-
-/**
- * Removes nulls and blank strings from this iterable. Used by the Grid pretty-tree
- * dumper; mirrors the helper that used to live in `Locator.kt`.
- */
-public fun Iterable<String?>.filterNotBlank(): List<String> =
-    filterNotNull().filter { it.isNotBlank() }
 
 // ---------------------------------------------------------------------------
 // Inline reified + DSL block conveniences over the Java [Locator] engine.

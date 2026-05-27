@@ -25,8 +25,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import kotlin.ranges.IntRange;
-
+import com.vaadin.browserless.internal.CountRange;
 import com.vaadin.browserless.internal.Locator;
 import com.vaadin.browserless.internal.SearchSpec;
 import com.vaadin.flow.component.Component;
@@ -111,7 +110,7 @@ public class ComponentQuery<T extends Component> {
     public ComponentQuery<T> withId(String id) {
         locatorSpec.id = id;
         // At most one element with given id is expected
-        locatorSpec.count = new IntRange(0, 1);
+        locatorSpec.count = new CountRange(0, 1);
         return this;
     }
 
@@ -345,7 +344,7 @@ public class ComponentQuery<T extends Component> {
                     "count must be greater or equal than zero, but was "
                             + count);
         }
-        locatorSpec.count = new IntRange(count, count);
+        locatorSpec.count = new CountRange(count, count);
         return this;
     }
 
@@ -376,7 +375,7 @@ public class ComponentQuery<T extends Component> {
                     "max must be greater or equal than min, but was min=" + min
                             + ", max=" + max + "");
         }
-        locatorSpec.count = new IntRange(min, max);
+        locatorSpec.count = new CountRange(min, max);
         return this;
     }
 
@@ -617,7 +616,7 @@ public class ComponentQuery<T extends Component> {
         Objects.requireNonNull(id, "id must not be null");
         withId(id);
         // Exactly one element with given id is expected
-        locatorSpec.count = new IntRange(1, 1);
+        locatorSpec.count = new CountRange(1, 1);
         return find();
     }
 
@@ -662,7 +661,7 @@ public class ComponentQuery<T extends Component> {
     }
 
     protected T find() {
-        locatorSpec.count = new IntRange(1, 1);
+        locatorSpec.count = new CountRange(1, 1);
         try {
             if (context != null) {
                 return Locator._get(context, componentType,
@@ -689,7 +688,7 @@ public class ComponentQuery<T extends Component> {
         String placeholder;
         String text;
         boolean textExactMatch = true;
-        IntRange count = new IntRange(0, Integer.MAX_VALUE);
+        CountRange count = new CountRange(0, Integer.MAX_VALUE);
         Object value;
         final Set<String> classes = new HashSet<>();
         final Set<String> withoutClasses = new HashSet<>();

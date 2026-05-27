@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.accordion;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
@@ -99,7 +97,6 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
         return false;
     }
 
-    @Nullable
     private AccordionPanel getPanelBySummary(String summary) {
         final AccordionPanel childPanel = getComponent().getChildren()
                 .filter(child -> child instanceof AccordionPanel)
