@@ -934,6 +934,26 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void single_doesNotLeakResultsSizeConstraint() {
+        Div div1 = new Div();
+        Div div2 = new Div();
+        UI.getCurrent().getElement().appendChild(div1.getElement(),
+                div2.getElement());
+
+        ComponentQuery<Div> query = find(Div.class)
+                .withCondition(d -> d == div1);
+        Assertions.assertSame(div1, query.single());
+
+        // After single(), the spec's count must be back to whatever
+        // it was before (default (0, MAX) here). Narrowing to zero
+        // matches and calling all() must not trip the count
+        // assertion.
+        query.withCondition(d -> false);
+        Assertions.assertTrue(query.all().isEmpty(),
+                "single() must not leak (1, 1) into the query spec");
+    }
+
+    @Test
     void withMaxResults_resultsSizeWithinUpperBound_getsComponents() {
         Div div1 = new Div();
         Div div2 = new Div();

@@ -481,6 +481,70 @@ class LocatorApiTest {
     }
 
     @Test
+    void invalidate_clearsAtIndexPick_soNextComponentCallExpectsSingleMatch() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var btn = window.findButton().atIndex(1);
+            Assertions.assertTrue(btn.exists());
+            Assertions.assertNotNull(btn.component());
+
+            btn.invalidate();
+
+            // The filter chain itself is intact, so exists() still
+            // sees the three buttons. But component() now falls back
+            // to single() because invalidate() rewound the atIndex
+            // pick — that is the documented "single match expected"
+            // contract until the caller re-applies atIndex(int).
+            Assertions.assertTrue(btn.exists());
+            Assertions.assertThrows(NoSuchElementException.class,
+                    btn::component);
+        }
+    }
+
+    @Test
+    void invalidate_preservesFilterSetResultsSize() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var btn = window.findButton().with(q -> q.withResultsSize(1));
+            Assertions.assertThrows(AssertionError.class, btn::exists,
+                    "count=(1,1) on 3 matches must fail");
+
+            btn.invalidate();
+
+            // invalidate() rewinds resolution state but not the
+            // filter chain. A user-set results-size constraint is
+            // part of the chain and must survive.
+            Assertions.assertThrows(AssertionError.class, btn::exists,
+                    "invalidate() must preserve user-set results-size");
+        }
+    }
+
+    @Test
+    void singleResolutionDoesNotLeakCountConstraint() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // withId narrows to (0, 1). component() routes through
+            // single() → find(); the (1, 1) it forces internally
+            // must not leak into the persistent query spec.
+            var loc = window.findTextField().withId("name");
+            Assertions.assertNotNull(loc.component());
+
+            // Narrow the chain to zero matches. With (0, 1)
+            // preserved, exists() simply returns false. With a
+            // leaked (1, 1), the count check throws.
+            loc.withCaption("definitely-no-such-caption-12345");
+            Assertions.assertFalse(loc.exists(),
+                    "find() must not leak (1, 1) into the filter chain");
+        }
+    }
+
+    @Test
     void atIndex_zeroOrNegativeThrows() {
         // No app context needed — the validation runs on the locator itself
         // before any resolution attempt.
