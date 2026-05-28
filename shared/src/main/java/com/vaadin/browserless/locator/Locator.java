@@ -314,15 +314,14 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
-     * Package-private hook for mixin interfaces in the same package
-     * (e.g. {@link HasLabelFilter}, {@link HasTextFilter}). Resets the
-     * resolution cache, applies the given operation to the underlying
+     * Package-private hook for mixin interfaces in the same package (e.g.
+     * {@link HasLabelFilter}, {@link HasTextFilter}). Resets the resolution
+     * cache, applies the given operation to the underlying
      * {@link ComponentQuery}, and returns {@code self()} for fluent chaining.
      * <p>
      * Mixin defaults call this from a {@code default} method bound to a
-     * specific Vaadin {@code Has*} interface, which gates the filter at
-     * compile time to component types where the filter is actually
-     * meaningful.
+     * specific Vaadin {@code Has*} interface, which gates the filter at compile
+     * time to component types where the filter is actually meaningful.
      */
     SELF applyFilter(Consumer<ComponentQuery<C>> op) {
         resetCache();

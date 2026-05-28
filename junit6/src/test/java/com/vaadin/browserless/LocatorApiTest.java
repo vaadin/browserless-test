@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -89,6 +91,55 @@ class LocatorApiTest {
             window.findTextField().withId("name").setValue("hello");
             Assertions.assertEquals("hello", window.findTextField()
                     .withId("name").component().getValue());
+        }
+    }
+
+    @Test
+    void withValue_typedAgainstComponentValueType() {
+        // HasValueFilter threads V from the component's HasValue<?, V>, so
+        // withValue is bound to the component's exact value type — String
+        // for TextField, BigDecimal for BigDecimalField, LocalDate for
+        // DatePicker, Boolean for Checkbox. Wrong types
+        // (e.g. findTextField().withValue(42),
+        // findDatePicker().withValue("2026-05-28"))
+        // would not compile here.
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // Reuse a fresh locator across the exists() assertions so each
+            // typed-value block reads cleanly. Actions (setValue, click) use
+            // a separate chain — calling them on the stored locator would
+            // narrow its query's count via component()→single() and make a
+            // follow-up withValue(...) that matches nothing throw instead of
+            // returning false.
+
+            window.findTextField().withId("name").setValue("typed");
+            var name = window.findTextField().withId("name");
+            Assertions.assertTrue(name.withValue("typed").exists());
+            Assertions.assertFalse(name.withValue("other").exists());
+
+            BigDecimal priceValue = new BigDecimal("19.95");
+            window.findBigDecimalField().withId("price").setValue(priceValue);
+            var price = window.findBigDecimalField().withId("price");
+            Assertions.assertTrue(price.withValue(priceValue).exists());
+            Assertions.assertFalse(
+                    price.withValue(new BigDecimal("0.00")).exists());
+
+            LocalDate dateValue = LocalDate.of(2026, 5, 28);
+            window.findDatePicker().withId("date").setValue(dateValue);
+            var date = window.findDatePicker().withId("date");
+            Assertions.assertTrue(date.withValue(dateValue).exists());
+            Assertions.assertFalse(
+                    date.withValue(LocalDate.of(1999, 12, 31)).exists());
+
+            var accept = window.findCheckbox().withId("accept");
+            Assertions.assertTrue(accept.withValue(false).exists());
+            Assertions.assertFalse(accept.withValue(true).exists());
+
+            window.findCheckbox().withId("accept").click();
+            Assertions.assertTrue(accept.withValue(true).exists());
+            Assertions.assertFalse(accept.withValue(false).exists());
         }
     }
 

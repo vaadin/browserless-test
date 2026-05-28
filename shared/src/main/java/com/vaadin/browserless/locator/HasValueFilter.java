@@ -24,16 +24,22 @@ import com.vaadin.flow.component.HasValue;
  * be meaningless on components without a value, turning an inapplicable call
  * into a compile error rather than a silent no-op.
  * <p>
- * The {@code HasValue<?, ?>} bound keeps this mixin signature simple: the
- * underlying {@link com.vaadin.browserless.ComponentQuery#withValue} takes a
- * raw {@code V}, so threading the value type through here buys nothing.
+ * The value type {@code V} is threaded through the mixin header so the compiler
+ * enforces it against the component's actual value type: e.g.
+ * {@code findTextField().withValue(42)} fails to compile because
+ * {@code TextField} is {@code HasValue<?, String>}, not
+ * {@code HasValue<?, Integer>}.
  *
  * @param <C>
- *            the component type, bound to {@link HasValue}
+ *            the component type, bound to {@link HasValue} with value type
+ *            {@code V}
+ * @param <V>
+ *            the value type exposed by the component's {@link HasValue}
+ *            parameterization
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
  */
-public interface HasValueFilter<C extends Component & HasValue<?, ?>, SELF extends Locator<C, SELF>> {
+public interface HasValueFilter<C extends Component & HasValue<?, V>, V, SELF extends Locator<C, SELF>> {
 
     /**
      * Requires the matched component to implement {@code HasValue} and to have
@@ -41,7 +47,7 @@ public interface HasValueFilter<C extends Component & HasValue<?, ?>, SELF exten
      * {@code null}.
      */
     @SuppressWarnings("unchecked")
-    default <V> SELF withValue(V expectedValue) {
+    default SELF withValue(V expectedValue) {
         return ((Locator<C, SELF>) this)
                 .applyFilter(q -> q.withValue(expectedValue));
     }

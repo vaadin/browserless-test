@@ -22,9 +22,9 @@ import com.vaadin.flow.component.HasLabel;
  * Mixin for {@link Locator}s whose target component implements
  * {@link HasLabel}. Exposes label-based filter methods that would be
  * meaningless on components without a label, turning a call like
- * {@code findButton().withLabel("Save")} (Button is {@link
- * com.vaadin.flow.component.HasText}, not {@code HasLabel}) into a compile
- * error rather than a silent no-op.
+ * {@code findButton().withLabel("Save")} (Button is
+ * {@link com.vaadin.flow.component.HasText}, not {@code HasLabel}) into a
+ * compile error rather than a silent no-op.
  *
  * @param <C>
  *            the component type, bound to {@link HasLabel}
@@ -40,8 +40,7 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
      */
     @SuppressWarnings("unchecked")
     default SELF withLabel(String label) {
-        return ((Locator<C, SELF>) this)
-                .applyFilter(q -> q.withLabel(label));
+        return ((Locator<C, SELF>) this).applyFilter(q -> q.withLabel(label));
     }
 
     /**

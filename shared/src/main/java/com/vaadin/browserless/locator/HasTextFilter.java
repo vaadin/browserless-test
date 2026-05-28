@@ -19,13 +19,12 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 
 /**
- * Mixin for {@link Locator}s whose target component implements
- * {@link HasText}. Exposes text-based filter methods that would be
- * meaningless on components without textual content, turning a call like
+ * Mixin for {@link Locator}s whose target component implements {@link HasText}.
+ * Exposes text-based filter methods that would be meaningless on components
+ * without textual content, turning a call like
  * {@code findTextField().withText("foo")} ({@code TextField} is
- * {@link com.vaadin.flow.component.HasValue}/{@link
- * com.vaadin.flow.component.HasLabel}, not {@code HasText}) into a compile
- * error rather than a silent no-op.
+ * {@link com.vaadin.flow.component.HasValue}/{@link com.vaadin.flow.component.HasLabel},
+ * not {@code HasText}) into a compile error rather than a silent no-op.
  *
  * @param <C>
  *            the component type, bound to {@link HasText}
@@ -37,8 +36,7 @@ public interface HasTextFilter<C extends Component & HasText, SELF extends Locat
     /** Requires the text content of the component to equal the given text. */
     @SuppressWarnings("unchecked")
     default SELF withText(String text) {
-        return ((Locator<C, SELF>) this)
-                .applyFilter(q -> q.withText(text));
+        return ((Locator<C, SELF>) this).applyFilter(q -> q.withText(text));
     }
 
     /** Requires the text content of the component to contain the given text. */

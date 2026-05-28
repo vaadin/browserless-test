@@ -21,8 +21,8 @@ import com.vaadin.flow.component.HasTheme;
 /**
  * Mixin for {@link Locator}s whose target component implements
  * {@link HasTheme}. Exposes theme-based filter methods that would be
- * meaningless on components without theme support, turning an inapplicable
- * call into a compile error rather than a silent no-op.
+ * meaningless on components without theme support, turning an inapplicable call
+ * into a compile error rather than a silent no-op.
  *
  * @param <C>
  *            the component type, bound to {@link HasTheme}
@@ -34,8 +34,7 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
     /** Requires the matched component to have the given theme set. */
     @SuppressWarnings("unchecked")
     default SELF withTheme(String theme) {
-        return ((Locator<C, SELF>) this)
-                .applyFilter(q -> q.withTheme(theme));
+        return ((Locator<C, SELF>) this).applyFilter(q -> q.withTheme(theme));
     }
 
     /** Requires the matched component to not have the given theme set. */

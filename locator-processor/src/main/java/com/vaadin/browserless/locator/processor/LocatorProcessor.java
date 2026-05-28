@@ -83,25 +83,59 @@ public class LocatorProcessor extends AbstractProcessor {
 
     /**
      * Mapping from Vaadin {@code Has*} interface FQN to the locator-side
-     * filter-mixin FQN. The processor walks each target's supertype chain
-     * and adds the matching mixin to the generated locator's
+     * filter-mixin descriptor. The processor walks each target's supertype
+     * chain and adds the matching mixin to the generated locator's
      * {@code implements} clause, so e.g. {@code dialogLocator.findButton()
-     * .withLabel("Save")} (Button is HasText, not HasLabel) is a compile
-     * error rather than a silent no-op. Iteration order is deterministic so
-     * generated source is stable across builds.
+     * .withLabel("Save")} (Button is HasText, not HasLabel) is a compile error
+     * rather than a silent no-op. Iteration order is deterministic so generated
+     * source is stable across builds.
+     *
+     * <p>
+     * Two descriptor shapes are supported: {@link Simple} for parameterless
+     * mixins that just need {@code <C, SELF>}, and {@link Typed} for mixins
+     * that need an extra type argument extracted from the matched Vaadin
+     * interface (e.g. {@code HasValue<E, V>}'s {@code V} threaded into
+     * {@code HasValueFilter<C, V, SELF>}).
      */
-    private static final LinkedHashMap<String, String> FILTER_MIXINS = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, FilterMixinHandler> FILTER_MIXINS = new LinkedHashMap<>();
     static {
         FILTER_MIXINS.put("com.vaadin.flow.component.HasLabel",
-                "com.vaadin.browserless.locator.HasLabelFilter");
+                new Simple("com.vaadin.browserless.locator.HasLabelFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasText",
-                "com.vaadin.browserless.locator.HasTextFilter");
-        FILTER_MIXINS.put("com.vaadin.flow.component.HasAriaLabel",
-                "com.vaadin.browserless.locator.HasAriaLabelFilter");
+                new Simple("com.vaadin.browserless.locator.HasTextFilter"));
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasAriaLabel", new Simple(
+                "com.vaadin.browserless.locator.HasAriaLabelFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasValue",
-                "com.vaadin.browserless.locator.HasValueFilter");
+                new Typed("com.vaadin.browserless.locator.HasValueFilter", 1));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasTheme",
-                "com.vaadin.browserless.locator.HasThemeFilter");
+                new Simple("com.vaadin.browserless.locator.HasThemeFilter"));
+    }
+
+    /**
+     * Descriptor for a filter mixin entry in {@link #FILTER_MIXINS}. See
+     * {@link Simple} for the common parameterless case and {@link Typed} for
+     * mixins that thread an extra type argument extracted from the matched
+     * Vaadin interface.
+     */
+    private sealed interface FilterMixinHandler permits Simple, Typed {
+        String mixinFqn();
+    }
+
+    /**
+     * A parameterless mixin: the generated locator emits
+     * {@code Mixin<C, SELF>}.
+     */
+    private record Simple(String mixinFqn) implements FilterMixinHandler {
+    }
+
+    /**
+     * A mixin that needs the {@code typeArgIndex}-th type argument of the
+     * matched Vaadin interface inserted between {@code C} and {@code SELF}. For
+     * {@code HasValue<E extends ValueChangeEvent<V>, V>} the index is {@code 1}
+     * (the {@code V}), producing {@code Mixin<C, V, SELF>}.
+     */
+    private record Typed(String mixinFqn,
+            int typeArgIndex) implements FilterMixinHandler {
     }
 
     private static final String OPT_COMMERCIAL_PACKAGES = "locator.commercial.packages";
@@ -335,7 +369,7 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.println("@javax.annotation.processing.Generated(\""
                         + LocatorProcessor.class.getName() + "\")");
                 String filterMixinsImpl = renderFilterMixinImplements(target,
-                        componentTypeExpr, selfType);
+                        componentTypeExpr, selfType, freeExtras);
                 out.println("public class " + locatorSimple
                         + locatorTypeParamDecl + " extends " + LOCATOR_FQN + "<"
                         + componentTypeExpr + ", " + selfType + "> implements "
@@ -481,60 +515,171 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Walks the target's supertype chain looking for {@code interfaceFqn} in
-     * the transitive interface set. Returns {@code true} on first hit. Stops
-     * at the top of the chain naturally because
-     * {@link Types#directSupertypes(TypeMirror)} returns the empty list for
-     * {@code java.lang.Object}.
-     */
-    private boolean implementsInterface(TypeElement target,
-            String interfaceFqn) {
-        TypeElement itf = processingEnv.getElementUtils()
-                .getTypeElement(interfaceFqn);
-        if (itf == null) {
-            // The interface isn't on the classpath of the compiled module
-            // (e.g. a tester module that doesn't ship flow-server). Skip
-            // the mixin rather than failing the build.
-            return false;
-        }
-        TypeMirror erasure = processingEnv.getTypeUtils()
-                .erasure(itf.asType());
-        return containsErasure(target.asType(), erasure);
-    }
-
-    private boolean containsErasure(TypeMirror tm, TypeMirror erasure) {
-        if (tm == null || tm.getKind() != TypeKind.DECLARED) {
-            return false;
-        }
-        Types types = processingEnv.getTypeUtils();
-        if (types.isSameType(types.erasure(tm), erasure)) {
-            return true;
-        }
-        for (TypeMirror sup : types.directSupertypes(tm)) {
-            if (containsErasure(sup, erasure)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Build the comma-prefixed implements-clause fragment for the filter
-     * mixins that apply to {@code target}. The returned string starts with
+     * Build the comma-prefixed implements-clause fragment for the filter mixins
+     * that apply to {@code target}. The returned string starts with
      * {@code ", "} when non-empty, so it appends cleanly after the existing
      * {@code Clickable<...>} implements entry; empty when none apply.
      */
     private String renderFilterMixinImplements(TypeElement target,
-            String componentTypeExpr, String selfType) {
+            String componentTypeExpr, String selfType,
+            List<TypeParameterElement> freeExtras) {
+        Map<String, TypeMirror> supertypes = indexSupertypes(target);
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : FILTER_MIXINS.entrySet()) {
-            if (implementsInterface(target, e.getKey())) {
-                sb.append(", ").append(e.getValue()).append('<')
-                        .append(componentTypeExpr).append(", ").append(selfType)
-                        .append('>');
+        for (Map.Entry<String, FilterMixinHandler> e : FILTER_MIXINS
+                .entrySet()) {
+            TypeMirror match = supertypes.get(e.getKey());
+            if (match == null) {
+                continue;
+            }
+            switch (e.getValue()) {
+            case Simple s -> sb.append(", ").append(s.mixinFqn()).append('<')
+                    .append(componentTypeExpr).append(", ").append(selfType)
+                    .append('>');
+            case Typed t -> {
+                String extracted = extractTypeArg(match, t.typeArgIndex(),
+                        target, freeExtras);
+                if (extracted == null) {
+                    note(Diagnostic.Kind.NOTE,
+                            "Skipping " + t.mixinFqn() + " for "
+                                    + target.getQualifiedName()
+                                    + ": cannot resolve type-arg index "
+                                    + t.typeArgIndex() + " of " + e.getKey()
+                                    + " (raw, wildcard, or unmapped type"
+                                    + " variable).");
+                } else {
+                    sb.append(", ").append(t.mixinFqn()).append('<')
+                            .append(componentTypeExpr).append(", ")
+                            .append(extracted).append(", ").append(selfType)
+                            .append('>');
+                }
+            }
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Walk the target's supertype graph once and index every declared supertype
+     * by its erased FQN, keyed to the parameterized form. The
+     * {@link Map#putIfAbsent} guard both breaks diamond cycles and makes the
+     * traversal O(unique supertypes) regardless of how many filter mixins query
+     * it afterwards.
+     */
+    private Map<String, TypeMirror> indexSupertypes(TypeElement target) {
+        Map<String, TypeMirror> idx = new HashMap<>();
+        collectSupertypes(target.asType(), idx);
+        return idx;
+    }
+
+    private void collectSupertypes(TypeMirror tm, Map<String, TypeMirror> idx) {
+        if (tm == null || tm.getKind() != TypeKind.DECLARED) {
+            return;
+        }
+        Types types = processingEnv.getTypeUtils();
+        String erasedFqn = types.erasure(tm).toString();
+        if (idx.putIfAbsent(erasedFqn, tm) != null) {
+            return;
+        }
+        for (TypeMirror sup : types.directSupertypes(tm)) {
+            collectSupertypes(sup, idx);
+        }
+    }
+
+    /**
+     * Extract type-argument {@code idx} from {@code parameterizedMatch} (the
+     * target's parameterization of a matched Vaadin interface) and render it as
+     * a Java type expression, substituting the target's type-parameter names
+     * with the locator's free-extra names so the result is valid in the
+     * locator's class header.
+     * <p>
+     * Returns {@code null} to signal "unresolvable" in three defense-in-depth
+     * cases — raw interface use, top-level wildcard, or a type variable that
+     * isn't in the substitution map. None of the current Vaadin components hit
+     * these; callers should emit a {@link Diagnostic.Kind#NOTE} so a future
+     * component that does is visible.
+     */
+    private String extractTypeArg(TypeMirror parameterizedMatch, int idx,
+            TypeElement target, List<TypeParameterElement> freeExtras) {
+        if (parameterizedMatch == null
+                || parameterizedMatch.getKind() != TypeKind.DECLARED) {
+            return null;
+        }
+        List<? extends TypeMirror> args = ((DeclaredType) parameterizedMatch)
+                .getTypeArguments();
+        if (args.size() <= idx) {
+            return null;
+        }
+        TypeMirror arg = args.get(idx);
+        if (arg.getKind() == TypeKind.WILDCARD) {
+            // Top-level wildcards are illegal as a class-header type argument
+            // — e.g. `implements HasValueFilter<C, ?, SELF>` does not compile.
+            return null;
+        }
+        Map<String, String> subst = buildTargetSubst(target, freeExtras);
+        String rendered = new SubstitutingTypeRenderer(subst).visit(arg);
+        // A target type variable substituted to "?" (no matching free extra)
+        // would render as a top-level wildcard, which is illegal in a class
+        // header — guard the rendered form too, not just the kind of `arg`.
+        if (rendered.equals("?") || rendered.startsWith("? extends ")
+                || rendered.startsWith("? super ")) {
+            return null;
+        }
+        // If the rendered form still references a type variable that wasn't in
+        // the substitution map, it would emit an unbound name in the locator
+        // header. SubstitutingTypeRenderer falls back to the variable's own
+        // simple name, so we detect by re-checking the rendered form against
+        // the target's type parameters that don't have a substitution.
+        for (TypeParameterElement tp : target.getTypeParameters()) {
+            String name = tp.getSimpleName().toString();
+            if (!subst.containsKey(name) && containsName(rendered, name)) {
+                return null;
+            }
+        }
+        return rendered;
+    }
+
+    /**
+     * Build the positional {@code target-TP-name → freeExtra-name} map used to
+     * rename type-variable references from the target's namespace into the
+     * locator's namespace. Mirrors {@link #renderTargetTypeExpr}'s positional
+     * substitution and {@code ?} fallback when there's no matching free extra.
+     */
+    private Map<String, String> buildTargetSubst(TypeElement target,
+            List<TypeParameterElement> freeExtras) {
+        Map<String, String> subst = new HashMap<>();
+        List<? extends TypeParameterElement> targetTps = target
+                .getTypeParameters();
+        for (int i = 0; i < targetTps.size(); i++) {
+            String name = targetTps.get(i).getSimpleName().toString();
+            if (i < freeExtras.size()) {
+                subst.put(name, freeExtras.get(i).getSimpleName().toString());
+            } else {
+                subst.put(name, "?");
+            }
+        }
+        return subst;
+    }
+
+    private static boolean containsName(String s, String name) {
+        // Whole-word match so "T" doesn't match inside "TextField".
+        int len = s.length();
+        int nlen = name.length();
+        int from = 0;
+        while (from <= len - nlen) {
+            int hit = s.indexOf(name, from);
+            if (hit < 0) {
+                return false;
+            }
+            boolean leftOk = hit == 0
+                    || !Character.isJavaIdentifierPart(s.charAt(hit - 1));
+            boolean rightOk = hit + nlen == len
+                    || !Character.isJavaIdentifierPart(s.charAt(hit + nlen));
+            if (leftOk && rightOk) {
+                return true;
+            }
+            from = hit + 1;
+        }
+        return false;
     }
 
     private TypeMirror findInstanceOf(TypeMirror tm, TypeMirror targetErasure) {
