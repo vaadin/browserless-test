@@ -117,6 +117,25 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Requires the component to have the given {@code data-testid} attribute,
+     * as set by {@link com.vaadin.flow.component.Component#setTestId(String)}.
+     * <p>
+     * Test ids are expected to be unique within the UI, so a match always
+     * resolves to at most one component (just like {@link #withId(String)}).
+     *
+     * @param testId
+     *            the test id to look up
+     * @return this element query instance for chaining
+     * @see com.vaadin.flow.component.Component#setTestId(String)
+     */
+    public ComponentQuery<T> withTestId(String testId) {
+        locatorSpec.testId = testId;
+        // At most one element with given test-id is expected
+        locatorSpec.count = new IntRange(0, 1);
+        return this;
+    }
+
+    /**
      * Requires the components to satisfy the given condition.
      *
      * @param condition
@@ -685,6 +704,7 @@ public class ComponentQuery<T extends Component> {
     private static class LocatorSpec<T extends Component> {
 
         String id;
+        String testId;
         String caption;
         boolean captionExactMatch = false;
         String placeholder;
@@ -701,6 +721,8 @@ public class ComponentQuery<T extends Component> {
         public Unit populate(SearchSpec<T> spec) {
             if (id != null)
                 spec.setId(id);
+            if (testId != null)
+                spec.setTestId(testId);
             if (caption != null && captionExactMatch)
                 spec.setCaption(caption);
             else if (caption != null)

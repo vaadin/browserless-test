@@ -236,6 +236,22 @@ class LocatorApiTest {
     }
 
     @Test
+    void filterChain_withTestId_selectsButton() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            window.findTextField().withId("name").setValue("Ada");
+
+            // The Save button is tagged with data-testid="save-button" via
+            // Component#setTestId.
+            window.findButton().withTestId("save-button").click();
+            Assertions.assertEquals("Saved: Ada",
+                    window.findSpan().withId("echo").component().getText());
+        }
+    }
+
+    @Test
     void filterChain_expandedSurface() {
         try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
