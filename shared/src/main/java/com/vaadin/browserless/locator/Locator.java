@@ -17,6 +17,7 @@ package com.vaadin.browserless.locator;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
@@ -105,80 +106,6 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /**
-     * Requires the matched component to have a caption equal to the given text.
-     */
-    public SELF withCaption(String caption) {
-        resetCache();
-        query.withCaption(caption);
-        return self();
-    }
-
-    /**
-     * Requires the matched component to have a caption containing the given
-     * text.
-     */
-    public SELF withCaptionContaining(String text) {
-        resetCache();
-        query.withCaptionContaining(text);
-        return self();
-    }
-
-    /**
-     * Requires the matched component's {@code label} property to be exactly the
-     * given value. Use this for form fields where the end user identifies a
-     * field by its label.
-     */
-    public SELF withLabel(String label) {
-        resetCache();
-        query.withLabel(label);
-        return self();
-    }
-
-    /**
-     * Requires the matched component's {@code label} property to contain the
-     * given text.
-     */
-    public SELF withLabelContaining(String text) {
-        resetCache();
-        query.withLabelContaining(text);
-        return self();
-    }
-
-    /**
-     * Requires the matched component's {@code aria-label} attribute to be
-     * exactly the given value.
-     */
-    public SELF withAriaLabel(String ariaLabel) {
-        resetCache();
-        query.withAriaLabel(ariaLabel);
-        return self();
-    }
-
-    /**
-     * Requires the matched component's {@code aria-label} attribute to contain
-     * the given text.
-     */
-    public SELF withAriaLabelContaining(String text) {
-        resetCache();
-        query.withAriaLabelContaining(text);
-        return self();
-    }
-
-    /** Requires the text content of the component to equal the given text. */
-    public SELF withText(String text) {
-        resetCache();
-        query.withText(text);
-        return self();
-    }
-
-    /** Requires the text content of the component to contain the given text. */
-    public SELF withTextContaining(String text) {
-        resetCache();
-        query.withTextContaining(text);
-        return self();
-    }
-
     /** Requires the matched component to have all the given CSS class names. */
     public SELF withClassName(String... className) {
         resetCache();
@@ -192,20 +119,6 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     public SELF withoutClassName(String... className) {
         resetCache();
         query.withoutClassName(className);
-        return self();
-    }
-
-    /** Requires the matched component to have the given theme set. */
-    public SELF withTheme(String theme) {
-        resetCache();
-        query.withTheme(theme);
-        return self();
-    }
-
-    /** Requires the matched component to not have the given theme set. */
-    public SELF withoutTheme(String theme) {
-        resetCache();
-        query.withoutTheme(theme);
         return self();
     }
 
@@ -240,17 +153,6 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     public SELF withoutAttribute(String attribute, String value) {
         resetCache();
         query.withoutAttribute(attribute, value);
-        return self();
-    }
-
-    /**
-     * Requires the matched component to implement {@code HasValue} and to have
-     * the given value. Has no effect when {@code expectedValue} is
-     * {@code null}.
-     */
-    public <V> SELF withValue(V expectedValue) {
-        resetCache();
-        query.withValue(expectedValue);
         return self();
     }
 
@@ -408,6 +310,23 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     public SELF invalidate() {
         resetCache();
         pickIndex = 0;
+        return self();
+    }
+
+    /**
+     * Package-private hook for mixin interfaces in the same package
+     * (e.g. {@link HasLabelFilter}, {@link HasTextFilter}). Resets the
+     * resolution cache, applies the given operation to the underlying
+     * {@link ComponentQuery}, and returns {@code self()} for fluent chaining.
+     * <p>
+     * Mixin defaults call this from a {@code default} method bound to a
+     * specific Vaadin {@code Has*} interface, which gates the filter at
+     * compile time to component types where the filter is actually
+     * meaningful.
+     */
+    SELF applyFilter(Consumer<ComponentQuery<C>> op) {
+        resetCache();
+        op.accept(query);
         return self();
     }
 

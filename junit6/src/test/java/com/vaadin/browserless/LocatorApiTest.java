@@ -56,7 +56,7 @@ class LocatorApiTest {
             window.navigate(LocatorDemoView.class);
 
             window.findTextField().withId("name").setValue("World");
-            window.findButton().withCaption("Save").click();
+            window.findButton().withText("Save").click();
 
             // getText() is inherited via SpanTester -> HtmlClickContainer ->
             // HtmlContainerTester. The processor walks the supertype chain, so
@@ -73,7 +73,7 @@ class LocatorApiTest {
             window.navigate(LocatorDemoView.class);
 
             window.findTextField().withId("name").setValue("X");
-            window.findButton().withCaption("Clear").click();
+            window.findButton().withText("Clear").click();
 
             Assertions.assertEquals("", window.findTextField().withId("name")
                     .component().getValue());
@@ -111,7 +111,7 @@ class LocatorApiTest {
             var window = app.newUser().newWindow();
             window.navigate(LocatorDemoView.class);
 
-            var save = window.findButton().withCaption("Save");
+            var save = window.findButton().withText("Save");
             window.findTextField().withId("name").setValue("first");
             save.click();
 
@@ -467,7 +467,7 @@ class LocatorApiTest {
             // atIndex is part of the filter chain — narrowing further
             // does NOT drop the pick. Once the chain is narrowed to a
             // single match, atIndex(2) on a single-match query throws.
-            btn.withCaption("Clear");
+            btn.withText("Clear");
             Assertions.assertThrows(IndexOutOfBoundsException.class,
                     btn::component,
                     "pickIndex stays sticky across filter steps");

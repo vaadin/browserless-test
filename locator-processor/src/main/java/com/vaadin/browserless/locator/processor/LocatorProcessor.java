@@ -80,6 +80,30 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
+
+    /**
+     * Mapping from Vaadin {@code Has*} interface FQN to the locator-side
+     * filter-mixin FQN. The processor walks each target's supertype chain
+     * and adds the matching mixin to the generated locator's
+     * {@code implements} clause, so e.g. {@code dialogLocator.findButton()
+     * .withLabel("Save")} (Button is HasText, not HasLabel) is a compile
+     * error rather than a silent no-op. Iteration order is deterministic so
+     * generated source is stable across builds.
+     */
+    private static final LinkedHashMap<String, String> FILTER_MIXINS = new LinkedHashMap<>();
+    static {
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasLabel",
+                "com.vaadin.browserless.locator.HasLabelFilter");
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasText",
+                "com.vaadin.browserless.locator.HasTextFilter");
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasAriaLabel",
+                "com.vaadin.browserless.locator.HasAriaLabelFilter");
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasValue",
+                "com.vaadin.browserless.locator.HasValueFilter");
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasTheme",
+                "com.vaadin.browserless.locator.HasThemeFilter");
+    }
+
     private static final String OPT_COMMERCIAL_PACKAGES = "locator.commercial.packages";
     private static final String OPT_ENTRYPOINT_FQN = "locator.entrypoint.fqn";
     private static final String OPT_COMMERCIAL_ENTRYPOINT_FQN = "locator.commercial.entrypoint.fqn";
@@ -310,10 +334,13 @@ public class LocatorProcessor extends AbstractProcessor {
                 out.print(renderClassJavadoc(target, tester));
                 out.println("@javax.annotation.processing.Generated(\""
                         + LocatorProcessor.class.getName() + "\")");
+                String filterMixinsImpl = renderFilterMixinImplements(target,
+                        componentTypeExpr, selfType);
                 out.println("public class " + locatorSimple
                         + locatorTypeParamDecl + " extends " + LOCATOR_FQN + "<"
                         + componentTypeExpr + ", " + selfType + "> implements "
-                        + CLICKABLE_FQN + "<" + componentTypeExpr + "> {");
+                        + CLICKABLE_FQN + "<" + componentTypeExpr + ">"
+                        + filterMixinsImpl + " {");
                 out.println();
                 out.println(ctor);
                 out.println(useCtor);
@@ -451,6 +478,63 @@ public class LocatorProcessor extends AbstractProcessor {
             }
         }
         return pinned;
+    }
+
+    /**
+     * Walks the target's supertype chain looking for {@code interfaceFqn} in
+     * the transitive interface set. Returns {@code true} on first hit. Stops
+     * at the top of the chain naturally because
+     * {@link Types#directSupertypes(TypeMirror)} returns the empty list for
+     * {@code java.lang.Object}.
+     */
+    private boolean implementsInterface(TypeElement target,
+            String interfaceFqn) {
+        TypeElement itf = processingEnv.getElementUtils()
+                .getTypeElement(interfaceFqn);
+        if (itf == null) {
+            // The interface isn't on the classpath of the compiled module
+            // (e.g. a tester module that doesn't ship flow-server). Skip
+            // the mixin rather than failing the build.
+            return false;
+        }
+        TypeMirror erasure = processingEnv.getTypeUtils()
+                .erasure(itf.asType());
+        return containsErasure(target.asType(), erasure);
+    }
+
+    private boolean containsErasure(TypeMirror tm, TypeMirror erasure) {
+        if (tm == null || tm.getKind() != TypeKind.DECLARED) {
+            return false;
+        }
+        Types types = processingEnv.getTypeUtils();
+        if (types.isSameType(types.erasure(tm), erasure)) {
+            return true;
+        }
+        for (TypeMirror sup : types.directSupertypes(tm)) {
+            if (containsErasure(sup, erasure)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Build the comma-prefixed implements-clause fragment for the filter
+     * mixins that apply to {@code target}. The returned string starts with
+     * {@code ", "} when non-empty, so it appends cleanly after the existing
+     * {@code Clickable<...>} implements entry; empty when none apply.
+     */
+    private String renderFilterMixinImplements(TypeElement target,
+            String componentTypeExpr, String selfType) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> e : FILTER_MIXINS.entrySet()) {
+            if (implementsInterface(target, e.getKey())) {
+                sb.append(", ").append(e.getValue()).append('<')
+                        .append(componentTypeExpr).append(", ").append(selfType)
+                        .append('>');
+            }
+        }
+        return sb.toString();
     }
 
     private TypeMirror findInstanceOf(TypeMirror tm, TypeMirror targetErasure) {
