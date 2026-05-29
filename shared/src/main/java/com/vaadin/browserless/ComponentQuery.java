@@ -636,8 +636,6 @@ public class ComponentQuery<T extends Component> {
     public T id(String id) {
         Objects.requireNonNull(id, "id must not be null");
         withId(id);
-        // Exactly one element with given id is expected
-        locatorSpec.count = new IntRange(1, 1);
         return find();
     }
 
@@ -682,6 +680,10 @@ public class ComponentQuery<T extends Component> {
     }
 
     protected T find() {
+        // Snapshot and restore so resolution's "expect exactly one"
+        // constraint doesn't leak into the persistent spec and
+        // pollute later chain steps.
+        IntRange savedCount = locatorSpec.count;
         locatorSpec.count = new IntRange(1, 1);
         try {
             if (context != null) {
@@ -692,6 +694,8 @@ public class ComponentQuery<T extends Component> {
         } catch (AssertionError e) {
             // Happens when found component(s) are not of the expected type
             throw new NoSuchElementException(e.getMessage());
+        } finally {
+            locatorSpec.count = savedCount;
         }
     }
 
