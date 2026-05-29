@@ -605,7 +605,7 @@ class LocatorApiTest {
             // Narrow the chain to zero matches. With (0, 1)
             // preserved, exists() simply returns false. With a
             // leaked (1, 1), the count check throws.
-            loc.withCaption("definitely-no-such-caption-12345");
+            loc.withLabel("definitely-no-such-caption-12345");
             Assertions.assertFalse(loc.exists(),
                     "find() must not leak (1, 1) into the filter chain");
         }
