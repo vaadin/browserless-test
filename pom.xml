@@ -215,6 +215,11 @@
                             <file>${maven.multiModuleProjectDirectory}/eclipse/apache2-license-header.txt</file>
                         </licenseHeader>
                     </java>
+                    <kotlin>
+                        <licenseHeader>
+                            <file>${maven.multiModuleProjectDirectory}/eclipse/apache2-license-header.txt</file>
+                        </licenseHeader>
+                    </kotlin>
                 </configuration>
             </plugin>
         </plugins>
