@@ -19,9 +19,12 @@ import java.util.List;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
@@ -51,10 +54,23 @@ public class LocatorDemoView extends VerticalLayout {
         people.addItemClickListener(
                 event -> echo.setText("Clicked: " + event.getItem().name()));
 
+        // Typed-value fields exercised by withValue_* tests: each component
+        // has a distinct HasValue<?, V> V (String, BigDecimal, LocalDate,
+        // Boolean), so the generated locator binds withValue to that exact
+        // type via HasValueFilter.
+        BigDecimalField price = new BigDecimalField("Price");
+        price.setId("price");
+
+        DatePicker date = new DatePicker("Date");
+        date.setId("date");
+
+        Checkbox accept = new Checkbox("Accept");
+        accept.setId("accept");
+
         PersonForm personForm = new PersonForm(echo);
         personForm.setId("person-form");
 
-        add(name, save, clear, echo, people, personForm);
+        add(name, save, clear, echo, people, price, date, accept, personForm);
     }
 
     /**
