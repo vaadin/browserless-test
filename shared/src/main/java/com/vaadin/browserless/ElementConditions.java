@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import org.jsoup.Jsoup;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
@@ -246,8 +247,7 @@ public final class ElementConditions {
             return true;
         }
         return component.getId()
-                .map(id -> referringLabelText(
-                        component.getUI().get().getElement(), id))
+                .map(id -> referringLabelText(component.getUI().get(), id))
                 .filter(text -> matches(text, expected, substring)).isPresent();
     }
 
@@ -259,8 +259,8 @@ public final class ElementConditions {
         return substring ? actual.contains(expected) : actual.equals(expected);
     }
 
-    private static String referringLabelText(Element root, String id) {
-        return ElementTreeWalker.walk(root)
+    private static String referringLabelText(Component root, String id) {
+        return ComponentUtil.streamDescendants(root).map(Component::getElement)
                 // Element.getTag() throws on text nodes; skip them first.
                 .filter(e -> !e.isTextNode())
                 .filter(e -> "label".equalsIgnoreCase(e.getTag()))
