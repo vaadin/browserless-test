@@ -44,6 +44,7 @@ public class LocatorDemoView extends VerticalLayout {
         Button save = new Button("Save",
                 e -> echo.setText("Saved: " + name.getValue()));
         save.setId("save");
+        save.setTestId("save-button");
 
         Button clear = new Button("Clear", e -> name.setValue(""));
         clear.setAriaLabel("Reset form");

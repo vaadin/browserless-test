@@ -106,6 +106,17 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
+    /**
+     * Requires the matched component to have the given {@code data-testid}
+     * attribute, as set by
+     * {@link com.vaadin.flow.component.Component#setTestId(String)}.
+     */
+    public SELF withTestId(String testId) {
+        resetCache();
+        query.withTestId(testId);
+        return self();
+    }
+
     /** Requires the matched component to have all the given CSS class names. */
     public SELF withClassName(String... className) {
         resetCache();

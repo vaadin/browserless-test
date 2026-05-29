@@ -428,6 +428,64 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withTestId_matchingComponent_getsComponent() {
+        Element rootElement = getCurrentView().getElement();
+        List<TextField> textFields = IntStream.rangeClosed(1, 5)
+                .mapToObj(idx -> {
+                    TextField field = new TextField();
+                    field.setTestId("test-field-" + idx);
+                    return field;
+                }).peek(field -> rootElement.appendChild(field.getElement()))
+                .toList();
+
+        for (TextField expected : textFields) {
+            List<TextField> result = findInView(TextField.class)
+                    .withTestId(expected.getTestId()).all();
+            Assertions.assertIterableEquals(Collections.singleton(expected),
+                    result);
+        }
+    }
+
+    @Test
+    void withTestId_noMatchingComponent_emptyList() {
+        Element rootElement = getCurrentView().getElement();
+        rootElement.appendChild(new TextField().getElement());
+        TextField textField = new TextField();
+        textField.setTestId("known-test-id");
+        rootElement.appendChild(textField.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        Assertions.assertTrue(query.withTestId("missing-id").all().isEmpty());
+    }
+
+    @Test
+    void withTestId_matchingDifferentComponentType_emptyList() {
+        Element rootElement = getCurrentView().getElement();
+        rootElement.appendChild(new TextField().getElement());
+        Button button = new Button();
+        button.setTestId("shared-id");
+        rootElement.appendChild(button.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        Assertions.assertTrue(query.withTestId("shared-id").all().isEmpty());
+    }
+
+    @Test
+    void withTestId_duplicateTestId_failsCountAssertion() {
+        Element rootElement = getCurrentView().getElement();
+        TextField first = new TextField();
+        first.setTestId("duplicate");
+        TextField second = new TextField();
+        second.setTestId("duplicate");
+        rootElement.appendChild(first.getElement(), second.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class)
+                .withTestId("duplicate");
+        // withTestId caps the expected count at 0..1, just like withId.
+        Assertions.assertThrows(AssertionError.class, query::all);
+    }
+
+    @Test
     void withPropertyValue_matchingValue_findsComponent() {
         Element rootElement = getCurrentView().getElement();
         TextField textField = new TextField();

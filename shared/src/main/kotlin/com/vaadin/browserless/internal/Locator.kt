@@ -27,6 +27,7 @@ import com.vaadin.flow.router.InternalServerError
  * for more details.
  * @property clazz the class of the component we are searching for.
  * @property id the required [Component.getId]; if null, no particular id is matched.
+ * @property testId the required [Component.getTestId] (i.e. the `data-testid` attribute); if null, no particular test id is matched.
  * @property caption the required [Component.caption]; if null, no particular caption is matched.
  * @property placeholder the required [Component.placeholder]; if null, no particular placeholder is matched.
  * @property text the [com.vaadin.flow.dom.Element.getText]
@@ -41,6 +42,7 @@ import com.vaadin.flow.router.InternalServerError
 class SearchSpec<T : Component>(
         val clazz: Class<T>,
         var id: String? = null,
+        var testId: String? = null,
         var caption: String? = null,
         var placeholder: String? = null,
         var text: String? = null,
@@ -56,6 +58,7 @@ class SearchSpec<T : Component>(
     override fun toString(): String {
         val list = mutableListOf<String>(if (clazz.simpleName.isBlank()) clazz.name else clazz.simpleName)
         if (id != null) list.add("id='$id'")
+        if (testId != null) list.add("testId='$testId'")
         if (caption != null) list.add("caption='$caption'")
         if (placeholder != null) list.add("placeholder='$placeholder'")
         if (text != null) list.add("text='$text'")
@@ -85,6 +88,7 @@ class SearchSpec<T : Component>(
         val p = mutableListOf<(Component)->Boolean>()
         p.add { component -> clazz.isInstance(component)}
         if (id != null) p.add { component -> component.id_ == id }
+        if (testId != null) p.add { component -> component.testId == testId }
         if (caption != null) p.add { component -> component.caption == caption }
         if (placeholder != null) p.add { component -> component.placeholder == placeholder }
         if (!classes.isNullOrBlank()) p.add { component -> component.hasAllClasses(classes!!) }
