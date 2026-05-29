@@ -15,131 +15,98 @@
  */
 package com.vaadin.browserless;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.example.adhoc.CounterWidget;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.UI;
 
 /**
  * Exercises the ad-hoc component testing path
- * ({@link BrowserlessApplicationContext#create()} +
- * {@link BrowserlessUIContext#show(com.vaadin.flow.component.Component)}). No
- * {@code @Route} view or {@code Routes} discovery is required — components are
- * attached directly to a fresh UI.
+ * ({@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)}
+ * and its
+ * {@link BrowserlessUIContext#forComponent(com.vaadin.flow.component.Component)}
+ * shorthand). No {@code @Route} view or {@code Routes} discovery is required —
+ * the component is attached directly to a fresh UI.
  */
 class AdhocComponentTest {
 
     @Test
-    void adhoc_widget_attachedAndInteractive() {
+    void forComponent_window_attachedAndInteractive() {
         CounterWidget widget = new CounterWidget();
-        try (var window = BrowserlessUIContext.adhoc(widget)) {
+        try (var window = BrowserlessUIContext.forComponent(widget)) {
             Assertions.assertTrue(widget.isAttached(),
-                    "adhoc() should attach the component to the UI");
+                    "forComponent() should attach the component to the UI");
 
-            window.findButton().withCaption("Increment").click();
-            window.findButton().withCaption("Increment").click();
+            window.findButton().withText("Increment").click();
+            window.findButton().withText("Increment").click();
 
             Assertions.assertEquals(2, widget.getCount());
         }
     }
 
     @Test
-    void adhoc_close_cascadesToOwnedApp() {
+    void forComponent_longForm_attachesComponent() {
         CounterWidget widget = new CounterWidget();
-        var window = BrowserlessUIContext.adhoc(widget);
+        try (var app = BrowserlessApplicationContext
+                .forComponent(() -> widget)) {
+            var window = app.newUser().newWindow();
+            Assertions.assertTrue(widget.isAttached(),
+                    "forComponent() should attach the component to the window's UI");
+
+            window.findButton().withText("Increment").click();
+            window.findButton().withText("Increment").click();
+
+            Assertions.assertEquals(2, widget.getCount());
+        }
+    }
+
+    @Test
+    void forComponent_freshFactory_attachesNewInstancePerWindow() {
+        try (var app = BrowserlessApplicationContext
+                .forComponent(CounterWidget::new)) {
+            var window1 = app.newUser().newWindow();
+            var window2 = app.newUser().newWindow();
+
+            CounterWidget first = window1.find(CounterWidget.class).first();
+            CounterWidget second = window2.find(CounterWidget.class).first();
+
+            Assertions.assertNotSame(first, second,
+                    "Each window should get its own component instance");
+            Assertions.assertTrue(first.isAttached());
+            Assertions.assertTrue(second.isAttached());
+        }
+    }
+
+    @Test
+    void forComponent_supplier_constructsWithUiThreadLocalPresent() {
+        AtomicReference<UI> uiDuringConstruction = new AtomicReference<>();
+        try (var window = BrowserlessUIContext.forComponent(() -> {
+            uiDuringConstruction.set(UI.getCurrent());
+            return new CounterWidget();
+        })) {
+            Assertions.assertNotNull(uiDuringConstruction.get(),
+                    "UI.getCurrent() should be set while the factory builds the component");
+            Assertions.assertSame(window.getUI(), uiDuringConstruction.get(),
+                    "The component should be built against this window's UI");
+        }
+    }
+
+    @Test
+    void forComponent_close_cascadesToBundledApp() {
+        CounterWidget widget = new CounterWidget();
+        var window = BrowserlessUIContext.forComponent(widget);
         Assertions.assertTrue(widget.isAttached());
 
         window.close();
 
         Assertions.assertFalse(widget.isAttached(),
-                "Closing the adhoc window should tear down the owned app and detach the widget");
+                "Closing the forComponent window should tear down the bundled app and detach the widget");
         // The thread-local Vaadin state should be cleared too: no UI on this
         // thread once the bundled app is gone.
-        Assertions.assertNull(com.vaadin.flow.component.UI.getCurrent(),
-                "Owned app should be closed, clearing thread-locals");
-    }
-
-    @Test
-    void show_widget_attachedAndInteractive_longForm() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            CounterWidget widget = window.show(new CounterWidget());
-
-            Assertions.assertTrue(widget.isAttached());
-
-            window.findButton().withCaption("Increment").click();
-            Assertions.assertEquals(1, widget.getCount());
-        }
-    }
-
-    @Test
-    void show_returnsSameInstance() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            CounterWidget widget = new CounterWidget();
-            CounterWidget returned = window.show(widget);
-
-            Assertions.assertSame(widget, returned);
-        }
-    }
-
-    @Test
-    void show_secondCall_replacesPriorContent() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            CounterWidget first = window.show(new CounterWidget());
-            CounterWidget second = window.show(new CounterWidget());
-
-            Assertions.assertFalse(first.isAttached(),
-                    "Prior content should be detached on a fresh show()");
-            Assertions.assertTrue(second.isAttached());
-
-            // Only the second counter is visible — the increment in this test
-            // affects only the still-attached widget.
-            window.findButton().withCaption("Increment").click();
-            Assertions.assertEquals(0, first.getCount());
-            Assertions.assertEquals(1, second.getCount());
-        }
-    }
-
-    @Test
-    void show_wrappedInLayout_componentsInsideAreFindable() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            TextField field = new TextField("Name");
-            field.setId("name");
-            HorizontalLayout row = new HorizontalLayout(field);
-            window.show(new VerticalLayout(row));
-
-            window.findTextField().withId("name").setValue("Ada");
-            Assertions.assertEquals("Ada", field.getValue());
-        }
-    }
-
-    @Test
-    void show_reattachesComponentFromAnotherParent() {
-        try (var app = BrowserlessApplicationContext.create()) {
-            var window = app.newUser().newWindow();
-
-            TextField field = new TextField("Name");
-            new VerticalLayout(field); // detached parent; field has parent now
-            Assertions.assertTrue(field.getParent().isPresent());
-
-            window.show(field);
-
-            Assertions.assertTrue(field.isAttached());
-            // Direct parent is the UI now, not the prior VerticalLayout.
-            Assertions.assertTrue(
-                    field.getParent().filter(p -> p == window.getUI())
-                            .isPresent(),
-                    "field's parent should be the UI after show()");
-        }
+        Assertions.assertNull(UI.getCurrent(),
+                "Bundled app should be closed, clearing thread-locals");
     }
 }
