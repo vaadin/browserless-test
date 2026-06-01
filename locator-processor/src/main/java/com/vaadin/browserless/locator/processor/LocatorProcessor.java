@@ -206,7 +206,7 @@ public class LocatorProcessor extends AbstractProcessor {
      * (value or fqn). For each target, the locator's tester type variables
      * (past the first) are pinned to concrete types when the target's supertype
      * parameterization fixes them — this turns e.g.
-     * {@code getTextField(Class<V>)} into a clean {@code getTextField()} for
+     * {@code findTextField(Class<V>)} into a clean {@code findTextField()} for
      * {@code TextField} (V=String) while still requiring a witness for
      * {@code Grid} (V free per use).
      */

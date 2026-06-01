@@ -20,6 +20,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   and template parameters
 - **Component queries** — find components by type from the current view or any
   parent layout
+- **Typed locators** — fluent, compile-time-safe `findButton()` /
+  `findTextField()` entry points that combine query filters with tester
+  actions
 - **Keyboard shortcut simulation** — fire shortcuts with modifier keys
 - **Signals / reactive state** — process pending signal tasks in tests
 - **Round-trip simulation** — flush pending server-side changes
@@ -187,6 +190,156 @@ class CartViewTest extends BrowserlessTest {
     }
 }
 ```
+
+## Locators API
+
+The Locators API is a typed, fluent layer over `find(Class)` /
+`ComponentQuery`. Every built-in component tester has a matching `findXxx()`
+entry point that returns a *locator* — an object that exposes both the query
+filters *and* that component's tester actions, so you can find and act on a
+component in a single chain. Resolution is deferred to the first action and
+cached, so a locator can be reused (for example across a `roundTrip()`).
+
+```java
+window.findTextField().withId("name").setValue("World");
+window.findButton().withText("Save").click();
+assertEquals("Saved: World", window.findSpan().withId("echo").getText());
+```
+
+### Availability
+
+The typed `findXxx()` / `use(...)` entry points are available out of the box on
+every `BrowserlessUIContext` window (`app.newUser().newWindow()`), as used in
+the examples here.
+
+The single-user `BrowserlessTest` base class exposes the lower-level
+`find(Class)` query API. To get the same typed locators in a plain
+`BrowserlessTest`, have your test (or a shared base class) implement
+`com.vaadin.browserless.locator.Locators`:
+
+```java
+import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.locator.Locators;
+
+class CartViewTest extends BrowserlessTest implements Locators {
+
+    @Test
+    void addItemToCart() {
+        navigate(CartView.class);
+        findButton().withText("Add to cart").click();
+        assertEquals("1", findSpan().withId("cart-count").getText());
+    }
+}
+```
+
+### Filters
+
+Locators carry the common filters directly: `withId`, `withTestId`,
+`withClassName` / `withoutClassName`, `withAttribute` (with or without an
+expected value), `withoutAttribute`, and `withCondition` for an arbitrary
+typed predicate.
+
+Filters that depend on a component capability are mixed in only where the
+component actually supports them, so misuse is a compile error rather than a
+runtime surprise:
+
+| Filter                                | Available when the component is |
+|---------------------------------------|---------------------------------|
+| `withText` / `withTextContaining`     | `HasText`                       |
+| `withLabel` / `withLabelContaining`   | `HasLabel`                      |
+| `withAriaLabel` / `withAriaLabelContaining` | `HasAriaLabel`            |
+| `withValue`                           | `HasValue` (typed to its value) |
+| `withTheme` / `withoutTheme`          | `HasTheme`                      |
+
+```java
+// Button is HasText — compiles
+window.findButton().withText("Save").click();
+
+// TextField is HasLabel + HasValue, but not HasText
+window.findTextField().withLabel("Name").setValue("Ada");
+window.findTextField().withValue("Ada");   // value type is checked: String here
+
+// window.findTextField().withText("Name");  // does NOT compile
+```
+
+For filters not surfaced on the locator (for example `withPropertyValue` or
+`withResultsSize`), use the `with(q -> ...)` escape hatch to reach the
+underlying `ComponentQuery`:
+
+```java
+window.findButton().with(q -> q.withPropertyValue(Button::getText, "Save"))
+        .click();
+```
+
+### Selecting and scoping
+
+When a filter chain matches more than one component, pick one with `atIndex(n)`
+(1-based). Scope the search to a subtree with `inside(component)` or
+`inside(otherLocator)` — the latter resolves its parent lazily, at the moment
+the child is resolved:
+
+```java
+// pick the second button in the view
+window.findButton().atIndex(2).click();
+
+// only look inside a resolved parent
+window.findButton().inside(window.findButton().withId("toolbar")).click();
+```
+
+Beyond the action methods, locators expose `component()` (the single match,
+cached), `components()` (all matches), `exists()` (true if anything matches),
+and `invalidate()` (drop the cached resolution and the `atIndex` pick so the
+next action re-resolves — useful after a UI change replaces the component).
+
+### Seeding with `use(...)`
+
+When the test already holds a component reference, `use(component)` seeds a
+locator with it directly instead of running a query:
+
+```java
+window.use(form.nameField).setValue("Ada");
+window.use(form.submit).click();
+```
+
+### Custom locators
+
+For composite components, subclass `Locator<C, SELF>` and compose the built-in
+locators, scoping them to the composite's subtree with `inside(this)`:
+
+```java
+import com.vaadin.browserless.locator.Locator;
+import com.vaadin.flow.component.button.ButtonLocator;
+import com.vaadin.flow.component.textfield.TextFieldLocator;
+
+public class PersonFormLocator extends Locator<PersonForm, PersonFormLocator> {
+
+    public PersonFormLocator() {
+        super(PersonForm.class);
+    }
+
+    public PersonFormLocator fillIn(String name, String email) {
+        new TextFieldLocator().withId("pf-name").inside(this).setValue(name);
+        new TextFieldLocator().withId("pf-email").inside(this).setValue(email);
+        return this;
+    }
+
+    public void submit() {
+        new ButtonLocator().withId("pf-submit").inside(this).click();
+    }
+}
+```
+
+Invoke a custom locator through the generic `find(Supplier)` entry point:
+
+```java
+window.find(PersonFormLocator::new).fillIn("Ada", "ada@example.com").submit();
+```
+
+### Relationship to `ComponentQuery`
+
+Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
+remain available for ad-hoc, lower-level queries and for filters not surfaced
+on locators. Use whichever fits — they search the same component tree.
 
 ## Multi-user and multi-window testing
 
