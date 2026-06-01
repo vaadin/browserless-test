@@ -1240,6 +1240,38 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withTheme_themeVariantOverload_matchesByVariantName() {
+        Button target = new Button();
+        target.addThemeVariants(
+                com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        UI.getCurrent().getElement().appendChild(new Button().getElement(),
+                target.getElement(), new Button().getElement());
+
+        Assertions.assertEquals(target,
+                find(Button.class).withTheme(
+                        com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY)
+                        .single());
+    }
+
+    @Test
+    void withoutTheme_themeVariantOverload_excludesByVariantName() {
+        Button target = new Button();
+        Button noisy1 = new Button();
+        noisy1.addThemeVariants(
+                com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        Button noisy2 = new Button();
+        noisy2.addThemeVariants(
+                com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        UI.getCurrent().getElement().appendChild(noisy1.getElement(),
+                target.getElement(), noisy2.getElement());
+
+        Assertions.assertEquals(target,
+                find(Button.class).withoutTheme(
+                        com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY)
+                        .single());
+    }
+
+    @Test
     void withThemeMultipleThemes_getsCorrectComponent() {
         Span target = new Span();
         target.getElement().getThemeList().add("my-theme");

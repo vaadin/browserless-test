@@ -31,6 +31,7 @@ import kotlin.ranges.IntRange;
 import com.vaadin.browserless.internal.LocatorKt;
 import com.vaadin.browserless.internal.SearchSpec;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.shared.ThemeVariant;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -191,13 +192,40 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Add a theme variant that should be set on the target component. Prefer
+     * this over the raw-string {@link #withTheme(String)} so the IDE can
+     * autocomplete the variant and a typo becomes a compile error.
+     *
+     * <pre>
+     * ui.find(Button.class).withTheme(ButtonVariant.LUMO_PRIMARY).all();
+     * </pre>
+     *
+     * @param variant
+     *            the variant to require on the component
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withTheme(ThemeVariant variant) {
+        return withThemeName(variant.getVariantName());
+    }
+
+    /**
      * Add theme that should be set on the target component.
      *
      * @param theme
      *            theme that should exist on the component.
      * @return this element query instance for chaining
+     * @deprecated use {@link #withTheme(ThemeVariant)} with the component's
+     *             typed variant enum where possible — it autocompletes in the
+     *             IDE and turns typos into compile errors. This raw-string
+     *             overload remains for callers that need to filter on a theme
+     *             not surfaced through a {@code ThemeVariant} enum.
      */
+    @Deprecated
     public ComponentQuery<T> withTheme(String theme) {
+        return withThemeName(theme);
+    }
+
+    private ComponentQuery<T> withThemeName(String theme) {
         if (locatorSpec.themes == null || locatorSpec.themes.isEmpty()) {
             locatorSpec.themes = theme;
         } else {
@@ -207,13 +235,33 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Add a theme variant that should not be set on the target component.
+     * Prefer this over the raw-string {@link #withoutTheme(String)} for the
+     * same reasons as {@link #withTheme(ThemeVariant)}.
+     *
+     * @param variant
+     *            the variant that should not be present on the component
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withoutTheme(ThemeVariant variant) {
+        return withoutThemeName(variant.getVariantName());
+    }
+
+    /**
      * Add theme that should not be available on the target component.
      *
      * @param theme
      *            theme that should not exist on the component.
      * @return this element query instance for chaining
+     * @deprecated use {@link #withoutTheme(ThemeVariant)} with the component's
+     *             typed variant enum where possible.
      */
+    @Deprecated
     public ComponentQuery<T> withoutTheme(String theme) {
+        return withoutThemeName(theme);
+    }
+
+    private ComponentQuery<T> withoutThemeName(String theme) {
         if (locatorSpec.withoutThemes == null
                 || locatorSpec.withoutThemes.isEmpty()) {
             locatorSpec.withoutThemes = theme;
