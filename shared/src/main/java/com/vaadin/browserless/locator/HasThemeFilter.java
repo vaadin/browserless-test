@@ -34,8 +34,8 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
 
     /**
      * Requires the matched component to have the given theme variant set.
-     * Prefer this over the raw-string {@link #withTheme(String)} so the IDE
-     * can autocomplete the variant and a typo becomes a compile error.
+     * Prefer this over the raw-string {@link #withTheme(String)} so the IDE can
+     * autocomplete the variant and a typo becomes a compile error.
      *
      * <pre>
      * ui.findButton().withTheme(ButtonVariant.LUMO_PRIMARY).click();
@@ -43,8 +43,7 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
      */
     @SuppressWarnings("unchecked")
     default SELF withTheme(ThemeVariant variant) {
-        return ((Locator<C, SELF>) this)
-                .applyFilter(q -> q.withTheme(variant));
+        return ((Locator<C, SELF>) this).applyFilter(q -> q.withTheme(variant));
     }
 
     /**
