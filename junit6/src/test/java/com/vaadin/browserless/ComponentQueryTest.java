@@ -1250,6 +1250,19 @@ class ComponentQueryTest extends BrowserlessTest {
         Assertions.assertEquals(target, find(Button.class).withTheme(
                 com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY)
                 .single());
+
+        // Adding a second themed button — the same typed filter now matches
+        // both, exercising the variant→theme-name resolution across multiple
+        // hits.
+        Button secondTarget = new Button();
+        secondTarget.addThemeVariants(
+                com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY);
+        UI.getCurrent().getElement().appendChild(secondTarget.getElement());
+
+        Assertions.assertEquals(asList(target, secondTarget),
+                find(Button.class).withTheme(
+                        com.vaadin.flow.component.button.ButtonVariant.LUMO_PRIMARY)
+                        .all());
     }
 
     @Test

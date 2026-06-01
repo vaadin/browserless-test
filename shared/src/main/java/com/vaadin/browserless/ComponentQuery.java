@@ -196,9 +196,9 @@ public class ComponentQuery<T extends Component> {
      * this over the raw-string {@link #withTheme(String)} so the IDE can
      * autocomplete the variant and a typo becomes a compile error.
      *
-     * <pre>
+     * <pre>{@code
      * ui.find(Button.class).withTheme(ButtonVariant.LUMO_PRIMARY).all();
-     * </pre>
+     * }</pre>
      *
      * @param variant
      *            the variant to require on the component

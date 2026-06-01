@@ -37,9 +37,9 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
      * Prefer this over the raw-string {@link #withTheme(String)} so the IDE can
      * autocomplete the variant and a typo becomes a compile error.
      *
-     * <pre>
+     * <pre>{@code
      * ui.findButton().withTheme(ButtonVariant.LUMO_PRIMARY).click();
-     * </pre>
+     * }</pre>
      */
     @SuppressWarnings("unchecked")
     default SELF withTheme(ThemeVariant variant) {
