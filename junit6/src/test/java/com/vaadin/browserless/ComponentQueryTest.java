@@ -428,6 +428,56 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void testId_matchingComponent_getsComponent() {
+        Element rootElement = getCurrentView().getElement();
+        List<TextField> textFields = IntStream.rangeClosed(1, 5)
+                .mapToObj(idx -> {
+                    TextField field = new TextField();
+                    field.setTestId("test-field-" + idx);
+                    return field;
+                }).peek(field -> rootElement.appendChild(field.getElement()))
+                .toList();
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+
+        textFields.forEach(field -> Assertions.assertSame(field,
+                query.testId(field.getTestId())));
+    }
+
+    @Test
+    void testId_noMatchingComponent_throws() {
+        Element rootElement = getCurrentView().getElement();
+        rootElement.appendChild(new TextField().getElement());
+        TextField textField = new TextField();
+        textField.setTestId("known-test-id");
+        rootElement.appendChild(textField.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        Assertions.assertThrows(NoSuchElementException.class,
+                () -> query.testId("missing-id"));
+    }
+
+    @Test
+    void testId_matchingDifferentComponentType_throws() {
+        Element rootElement = getCurrentView().getElement();
+        rootElement.appendChild(new TextField().getElement());
+        Button button = new Button();
+        button.setTestId("shared-id");
+        rootElement.appendChild(button.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        Assertions.assertThrows(NoSuchElementException.class,
+                () -> query.testId("shared-id"));
+    }
+
+    @Test
+    void testId_nullTestId_throws() {
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        Assertions.assertThrows(NullPointerException.class,
+                () -> query.testId(null));
+    }
+
+    @Test
     void withTestId_matchingComponent_getsComponent() {
         Element rootElement = getCurrentView().getElement();
         List<TextField> textFields = IntStream.rangeClosed(1, 5)

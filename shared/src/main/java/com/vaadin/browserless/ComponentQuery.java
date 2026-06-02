@@ -640,6 +640,25 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Executes a search for a component with the given {@code data-testid}
+     * attribute, as set by
+     * {@link com.vaadin.flow.component.Component#setTestId(String)}.
+     *
+     * @param testId
+     *            the test id to look up
+     * @return the component with the given test id
+     *
+     * @throws NoSuchElementException
+     *             if no component is found
+     * @see com.vaadin.flow.component.Component#setTestId(String)
+     */
+    public T testId(String testId) {
+        Objects.requireNonNull(testId, "testId must not be null");
+        withTestId(testId);
+        return find();
+    }
+
+    /**
      * Checks if this {@link ComponentQuery} describes existing components.
      *
      * @return {@literal true} if components are found, otherwise
