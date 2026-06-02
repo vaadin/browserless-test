@@ -24,9 +24,9 @@ import com.vaadin.flow.component.card.Card;
 /**
  * Reproduces a locator-traversal bug: components placed in a {@link Card}'s
  * slots (header, header-suffix, header-prefix, footer, title, media) are not
- * found by {@code find(...)} or {@code ui.findButton()} even though they
- * render in the browser. The locator engine only walks the regular Flow
- * component tree and misses content attached via the Card's slot setters.
+ * found by {@code find(...)} or {@code ui.findButton()} even though they render
+ * in the browser. The locator engine only walks the regular Flow component tree
+ * and misses content attached via the Card's slot setters.
  * <p>
  * Reduced from the standalone repro in {@code tmp/card-locator-repro}.
  */
@@ -50,24 +50,24 @@ class CardSlotTraversalTest extends BrowserlessTest {
         getCurrentView().getElement().appendChild(card.getElement());
 
         // Control: a button in the card content slot (regular getChildren()).
-        Assertions.assertTrue(find(Button.class)
-                .withText("Content button").exists(),
+        Assertions.assertTrue(
+                find(Button.class).withText("Content button").exists(),
                 "button in card content slot must be locatable");
 
         // The bug — each of the slotted buttons must be locatable too, but
         // currently isn't because the locator engine only walks the regular
         // Flow tree and misses content attached via Card's slot setters.
-        Assertions.assertTrue(find(Button.class)
-                .withText("Header-suffix button").exists(),
+        Assertions.assertTrue(
+                find(Button.class).withText("Header-suffix button").exists(),
                 "button in card header-suffix slot must be locatable");
-        Assertions.assertTrue(find(Button.class)
-                .withText("Header-prefix button").exists(),
+        Assertions.assertTrue(
+                find(Button.class).withText("Header-prefix button").exists(),
                 "button in card header-prefix slot must be locatable");
-        Assertions.assertTrue(find(Button.class)
-                .withText("Header button").exists(),
+        Assertions.assertTrue(
+                find(Button.class).withText("Header button").exists(),
                 "button in card header slot must be locatable");
-        Assertions.assertTrue(find(Button.class)
-                .withText("Footer button").exists(),
+        Assertions.assertTrue(
+                find(Button.class).withText("Footer button").exists(),
                 "button in card footer slot must be locatable");
     }
 }
