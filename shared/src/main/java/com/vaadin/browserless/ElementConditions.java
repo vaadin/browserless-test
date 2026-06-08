@@ -270,11 +270,11 @@ public final class ElementConditions {
     }
 
     /**
-     * Checks if the component identifies itself to assistive technology via
-     * the given {@code aria-label}. Useful for components like {@code Button}
-     * that don't expose a {@code label} property and for field components
-     * (e.g. {@code TextField}, {@code TextArea}) that surface their accessible
-     * name via {@link HasAriaLabel#setAriaLabel(String)}.
+     * Checks if the component identifies itself to assistive technology via the
+     * given {@code aria-label}. Useful for components like {@code Button} that
+     * don't expose a {@code label} property and for field components (e.g.
+     * {@code TextField}, {@code TextArea}) that surface their accessible name
+     * via {@link HasAriaLabel#setAriaLabel(String)}.
      * <p>
      * Resolution prefers {@link HasAriaLabel#getAriaLabel()} when the component
      * implements it, because field components back the accessible name with a
@@ -296,8 +296,9 @@ public final class ElementConditions {
     /**
      * Checks if the component's aria-label contains the given text. Comparison
      * is case-sensitive. Resolution follows the same rules as
-     * {@link #hasAriaLabel(String)} — prefer {@link HasAriaLabel#getAriaLabel()}
-     * over the raw element attribute so that field components are matched.
+     * {@link #hasAriaLabel(String)} — prefer
+     * {@link HasAriaLabel#getAriaLabel()} over the raw element attribute so
+     * that field components are matched.
      *
      * @param text
      *            substring to find in the aria-label, not {@literal null}

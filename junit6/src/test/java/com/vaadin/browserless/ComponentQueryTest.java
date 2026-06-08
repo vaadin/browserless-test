@@ -904,12 +904,10 @@ class ComponentQueryTest extends BrowserlessTest {
                 "TextField.setAriaLabel should not surface as an"
                         + " aria-label element attribute server-side");
 
-        Assertions.assertSame(description,
-                find(TextField.class).withAriaLabel("Task description")
-                        .single());
-        Assertions.assertSame(description,
-                find(TextField.class).withAriaLabelContaining("description")
-                        .single());
+        Assertions.assertSame(description, find(TextField.class)
+                .withAriaLabel("Task description").single());
+        Assertions.assertSame(description, find(TextField.class)
+                .withAriaLabelContaining("description").single());
         Assertions.assertTrue(
                 find(TextField.class).withAriaLabel("not set").all().isEmpty());
     }
