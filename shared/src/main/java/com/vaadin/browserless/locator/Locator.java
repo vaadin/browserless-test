@@ -25,7 +25,7 @@ import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.flow.component.Component;
 
 /**
- * Prototype base class for the {@code get*} tester API. A locator is a fluent
+ * Base class for the {@code find*} tester API. A locator is a fluent
  * combination of a {@link ComponentQuery} filter chain and a tester: the
  * subclass exposes both the filter methods inherited from this class and the
  * action methods specific to the component type.
