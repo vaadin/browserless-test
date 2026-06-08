@@ -17,7 +17,9 @@ package com.vaadin.browserless;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
@@ -212,6 +214,78 @@ public class BrowserlessUIContext
             Class<T> expectedTarget) {
         activate();
         return BrowserlessDSL.navigate(ui, location, expectedTarget);
+    }
+
+    /**
+     * Shorthand for ad-hoc component testing of a single component — no
+     * {@code @Route} view required. Builds a self-contained, route-free
+     * application context via
+     * {@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)},
+     * opens one user and one window, and attaches the given component to that
+     * window's UI. The returned window owns its bundled
+     * {@link BrowserlessApplicationContext}, which is torn down when the
+     * window's UI detaches, so a single try-with-resources is enough:
+     *
+     * <pre>
+     * try (var window = BrowserlessUIContext.forComponent(new MyForm())) {
+     *     window.findButton().withCaption("Save").click();
+     * }
+     * </pre>
+     *
+     * This is a <strong>single-window</strong> shorthand: it captures the given
+     * instance, so opening further windows on the underlying context would
+     * re-parent the same component. It also constructs the component
+     * <em>before</em> any UI exists — if the component's constructor needs
+     * {@code UI.getCurrent()} or the session, use
+     * {@link #forComponent(Supplier)} instead. For multi-window, multi-user, or
+     * routed tests use
+     * {@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)}
+     * with a fresh-instance factory, or the standard
+     * {@code BrowserlessApplicationContext.create(...)} +
+     * {@code newUser().newWindow()} chain.
+     *
+     * @param component
+     *            the component to attach; must not be {@code null}
+     * @return a window with the component attached
+     */
+    public static BrowserlessUIContext forComponent(Component component) {
+        Objects.requireNonNull(component, "component must not be null");
+        return forComponent(() -> component);
+    }
+
+    /**
+     * Shorthand for ad-hoc component testing of a single component, taking a
+     * factory rather than a ready instance — no {@code @Route} view required.
+     * Builds a self-contained, route-free application context via
+     * {@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)},
+     * opens one user and one window, and attaches the produced component to
+     * that window's UI:
+     *
+     * <pre>
+     * try (var window = BrowserlessUIContext.forComponent(MyForm::new)) {
+     *     window.findButton().withCaption("Save").click();
+     * }
+     * </pre>
+     *
+     * The factory runs from {@code UI.init()}, after the Vaadin thread-locals
+     * ({@link UI}, session, security context) are installed, so a component
+     * whose constructor reads {@code UI.getCurrent()} observes the live
+     * environment — unlike {@link #forComponent(Component)}, which receives an
+     * already-constructed instance. The returned window owns its bundled
+     * {@link BrowserlessApplicationContext}, which is torn down when the
+     * window's UI detaches.
+     *
+     * @param componentFactory
+     *            supplies the component to attach; must not be {@code null}
+     * @return a window with the produced component attached
+     */
+    public static BrowserlessUIContext forComponent(
+            Supplier<Component> componentFactory) {
+        Objects.requireNonNull(componentFactory,
+                "componentFactory must not be null");
+        // noinspection resource
+        return BrowserlessApplicationContext.forComponent(componentFactory)
+                .newUser().newWindow();
     }
 
     /**
@@ -478,6 +552,10 @@ public class BrowserlessUIContext
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.
             user.applyUIThreadLocals(ui);
+            // Detaching the UI fires its detach listeners. For an ad-hoc
+            // context (see BrowserlessApplicationContext.forComponent) this
+            // cascades back into app.close() -> user.close() -> this.close();
+            // re-entry is safe because the closed flag was already set above.
             MockVaadin.closeCurrentUI(true);
             // closeCurrentUI() records the closing UI's active view location
             // into MockVaadin's lastNavigation ThreadLocal so the single-user

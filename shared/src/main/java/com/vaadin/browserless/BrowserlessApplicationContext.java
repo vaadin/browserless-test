@@ -21,8 +21,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -31,6 +33,8 @@ import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletService;
@@ -159,6 +163,64 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     }
 
     /**
+     * Creates a self-contained application context for ad-hoc testing of a
+     * single component, without requiring a {@code @Route} view. No route
+     * discovery is performed (see {@link Builder#withoutRoutes()}), so creation
+     * skips the classpath scan and the component is the sole content of each
+     * window's UI.
+     * <p>
+     * The given factory is invoked <strong>once per window</strong>: each
+     * {@code newUser().newWindow()} call attaches a freshly produced component
+     * to that window's UI. The factory runs from {@code UI.init()}, after the
+     * Vaadin thread-locals ({@link com.vaadin.flow.component.UI}, session,
+     * security context) are installed, so a component whose constructor reads
+     * {@code UI.getCurrent()} observes the live environment. Supply a factory
+     * that returns a new instance per call if you intend to open more than one
+     * window; reusing a single instance across windows re-parents it and leaves
+     * the earlier window empty.
+     * <p>
+     * The returned context closes itself when its window's UI is detached, so a
+     * single try-with-resources — on the returned context, or on the window via
+     * {@link BrowserlessUIContext#forComponent(Component)} — tears everything
+     * down.
+     *
+     * @param componentFactory
+     *            supplies the component to attach to each window; must not be
+     *            {@code null}
+     * @return a new self-closing application context with no routes
+     * @throws NullPointerException
+     *             if {@code componentFactory} is {@code null}
+     */
+    public static BrowserlessApplicationContext forComponent(
+            Supplier<Component> componentFactory) {
+        Objects.requireNonNull(componentFactory,
+                "componentFactory must not be null");
+        // Self-reference: the detach listener must close the app, but the app
+        // does not exist until create(...) returns — hold it in a one-slot ref.
+        AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
+        ownerApp.set(create(b -> b.withoutRoutes().withUIFactory(() -> {
+            // Build the component from UI.init() rather than an attach
+            // listener: init() runs from UI.doInit() after the current
+            // UI/session are set, so a component whose constructor reads
+            // UI.getCurrent() observes the live instance. withoutRoutes()
+            // guarantees no initial navigate("") will later replace it.
+            MockedUI ui = new MockedUI() {
+                @Override
+                protected void init(VaadinRequest request) {
+                    add(componentFactory.get());
+                }
+            };
+            // Closing the UI tears down the bundled app. Safe against
+            // re-entrancy: BrowserlessUIContext.close() sets its closed flag
+            // before detaching the UI, so the cascade back through close()
+            // short-circuits.
+            ui.addDetachListener(event -> ownerApp.get().close());
+            return ui;
+        })));
+        return ownerApp.get();
+    }
+
+    /**
      * Creates a new user context representing an anonymous user session.
      * <p>
      * When a {@link SecurityContextHandler} is configured (on a
@@ -261,7 +323,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     public static class Builder {
 
-        private final Routes routes;
+        private Routes routes;
         private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
         private Set<Class<?>> lookupServices = Collections.emptySet();
@@ -280,6 +342,21 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
         Builder(Routes routes) {
             this.routes = routes;
+        }
+
+        /**
+         * Disables {@code @Route} discovery for this builder by seeding an
+         * empty {@link Routes} instance. {@link #build()} then skips the
+         * classpath scan entirely, which is the desired behaviour for ad-hoc
+         * component testing where no routed views are needed. Any view packages
+         * configured via {@link #withViewPackages} are ignored once this is set
+         * (an explicit {@link Routes} instance always wins).
+         *
+         * @return this builder
+         */
+        public Builder withoutRoutes() {
+            this.routes = new Routes();
+            return this;
         }
 
         /**
