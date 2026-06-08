@@ -23,6 +23,7 @@ import org.jsoup.Jsoup;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.HasAriaLabel;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
@@ -269,10 +270,17 @@ public final class ElementConditions {
     }
 
     /**
-     * Checks if the component has its {@code aria-label} attribute set to
-     * exactly the given value. Useful for components like {@code Button} that
-     * don't expose a {@code label} property but identify themselves to
-     * assistive technology via {@code aria-label}.
+     * Checks if the component identifies itself to assistive technology via the
+     * given {@code aria-label}. Useful for components like {@code Button} that
+     * don't expose a {@code label} property and for field components (e.g.
+     * {@code TextField}, {@code TextArea}) that surface their accessible name
+     * via {@link HasAriaLabel#setAriaLabel(String)}.
+     * <p>
+     * Resolution prefers {@link HasAriaLabel#getAriaLabel()} when the component
+     * implements it, because field components back the accessible name with a
+     * property (the web component reflects it to the inner input's
+     * {@code aria-label} on the client). Otherwise falls back to reading the
+     * server-side element's {@code aria-label} attribute.
      *
      * @param ariaLabel
      *            the expected aria-label, not {@literal null}
@@ -282,13 +290,15 @@ public final class ElementConditions {
         if (ariaLabel == null) {
             throw new IllegalArgumentException("ariaLabel cannot be null");
         }
-        return component -> ariaLabel
-                .equals(component.getElement().getAttribute("aria-label"));
+        return component -> ariaLabel.equals(resolveAriaLabel(component));
     }
 
     /**
-     * Checks if the component's {@code aria-label} attribute contains the given
-     * text. Comparison is case-sensitive.
+     * Checks if the component's aria-label contains the given text. Comparison
+     * is case-sensitive. Resolution follows the same rules as
+     * {@link #hasAriaLabel(String)} — prefer
+     * {@link HasAriaLabel#getAriaLabel()} over the raw element attribute so
+     * that field components are matched.
      *
      * @param text
      *            substring to find in the aria-label, not {@literal null}
@@ -299,9 +309,16 @@ public final class ElementConditions {
             throw new IllegalArgumentException("text cannot be null");
         }
         return component -> {
-            String label = component.getElement().getAttribute("aria-label");
+            String label = resolveAriaLabel(component);
             return label != null && label.contains(text);
         };
+    }
+
+    private static String resolveAriaLabel(Component component) {
+        if (component instanceof HasAriaLabel hal) {
+            return hal.getAriaLabel().orElse(null);
+        }
+        return component.getElement().getAttribute("aria-label");
     }
 
     private static class TextContainsPredicate<T extends Component>

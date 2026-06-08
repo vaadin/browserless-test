@@ -882,6 +882,37 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withAriaLabel_fieldComponent_matchesViaHasAriaLabel() {
+        // Field components like TextField override HasAriaLabel to back the
+        // accessible name with a property (accessibleName / inner input's
+        // aria-label), not with an element attribute. The matcher must
+        // resolve aria-label via HasAriaLabel.getAriaLabel() so these are
+        // findable. Repro for #90.
+        TextField description = new TextField();
+        description.setAriaLabel("Task description");
+        TextField unrelated = new TextField();
+        unrelated.setAriaLabel("Search");
+        TextField noAria = new TextField();
+
+        UI.getCurrent().getElement().appendChild(description.getElement(),
+                unrelated.getElement(), noAria.getElement());
+
+        // Sanity-check the asymmetry the bug report describes: the value is
+        // NOT on the server-side element as an aria-label attribute.
+        Assertions.assertNull(
+                description.getElement().getAttribute("aria-label"),
+                "TextField.setAriaLabel should not surface as an"
+                        + " aria-label element attribute server-side");
+
+        Assertions.assertSame(description, find(TextField.class)
+                .withAriaLabel("Task description").single());
+        Assertions.assertSame(description, find(TextField.class)
+                .withAriaLabelContaining("description").single());
+        Assertions.assertTrue(
+                find(TextField.class).withAriaLabel("not set").all().isEmpty());
+    }
+
+    @Test
     void withLabel_null_throws() {
         ComponentQuery<TestComponent> query = find(TestComponent.class);
         Assertions.assertThrows(IllegalArgumentException.class,
