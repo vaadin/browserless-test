@@ -264,6 +264,30 @@ public final class ElementConditions {
         return substring ? actual.contains(expected) : actual.equals(expected);
     }
 
+    /**
+     * Checks if the component's {@code placeholder} contains the given text.
+     * Resolution prefers
+     * {@link com.vaadin.flow.component.HasPlaceholder#getPlaceholder()} —
+     * components that don't implement {@code HasPlaceholder} are never matched
+     * (they have no placeholder to test against). Comparison is case-sensitive.
+     *
+     * @param text
+     *            substring to find in the placeholder, not {@literal null}
+     */
+    public static <T extends Component> Predicate<T> placeholderContains(
+            String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
+        return component -> {
+            if (component instanceof com.vaadin.flow.component.HasPlaceholder hp) {
+                String placeholder = hp.getPlaceholder();
+                return placeholder != null && placeholder.contains(text);
+            }
+            return false;
+        };
+    }
+
     private static String referringLabelText(Component root, String id) {
         return ComponentUtil.streamDescendants(root).map(Component::getElement)
                 // Element.getTag() throws on text nodes; skip them first.
