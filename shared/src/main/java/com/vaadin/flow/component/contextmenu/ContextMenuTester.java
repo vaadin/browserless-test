@@ -302,6 +302,97 @@ public class ContextMenuTester<T extends ContextMenu>
     }
 
     /**
+     * Gets the tooltip text of the menu item matching the given text.
+     *
+     * For a nested menu item, provide the text of each menu item in the
+     * hierarchy.
+     *
+     * The path to the menu item must reflect what is seen in the browser,
+     * meaning that hidden items are ignored.
+     *
+     * <pre>
+     * {@code
+     *
+     * menu.addItem("Preview", event -> {
+     * }).setTooltipText("Preview the document");
+     * var subMenu = menu.addItem("Share").getSubMenu();
+     * subMenu.addItem("Email", event -> {
+     * }).setTooltipText("Send as email");
+     *
+     * tester.getItemTooltipText("Preview");
+     *
+     * tester.getItemTooltipText("Share", "Email");
+     * }
+     * </pre>
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}.
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @return the tooltip text of the menu item at given path, or
+     *         {@literal null} if the item has no tooltip set.
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the item at given path is not usable.
+     */
+    public String getItemTooltipText(String topLevelText,
+            String... nestedItemsText) {
+        ensureComponentIsUsable();
+        MenuItem menuItem = findMenuItemByPath(topLevelText, nestedItemsText);
+        return menuItem.getElement().getProperty("tooltip");
+    }
+
+    /**
+     * Gets the tooltip text of the menu item at the given position in the menu.
+     *
+     * For a nested menu item, provide the position of each sub menu that should
+     * be navigated to reach the requested item.
+     *
+     * The position reflects what is seen in the browser, so hidden items are
+     * ignored.
+     *
+     * <pre>
+     * {@code
+     *
+     * menu.addItem("Preview", event -> {
+     * }).setTooltipText("Preview the document");
+     * var subMenu = menu.addItem("Share").getSubMenu();
+     * subMenu.addItem("Email", event -> {
+     * }).setTooltipText("Send as email");
+     *
+     * // gets the tooltip of the top level "Preview" item at position 0
+     * tester.getItemTooltipText(0);
+     *
+     * // gets the tooltip of the nested "Email" item at position 0 through
+     * // the item "Share" at position 1
+     * tester.getItemTooltipText(1, 0);
+     * }
+     * </pre>
+     *
+     * @param topLevelPosition
+     *            the zero-based position of the item in the menu, as it will be
+     *            seen in the browser.
+     * @param nestedItemsPositions
+     *            the zero-based position of the nested items, relative to the
+     *            parent menu
+     * @return the tooltip text of the menu item at given position, or
+     *         {@literal null} if the item has no tooltip set.
+     * @throws IllegalArgumentException
+     *             if the provided position does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the item at given position is not usable.
+     */
+    public String getItemTooltipText(int topLevelPosition,
+            int... nestedItemsPositions) {
+        ensureComponentIsUsable();
+        MenuItem menuItem = findMenuItemByPath(topLevelPosition,
+                nestedItemsPositions);
+        return menuItem.getElement().getProperty("tooltip");
+    }
+
+    /**
      * {@inheritDoc}
      * <p>
      * Can be used to find components in the context menu. Returned components

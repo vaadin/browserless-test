@@ -262,4 +262,27 @@ class TabSheetTesterTest extends BrowserlessTest {
                 () -> tabs_.getTabContent("Payment"));
     }
 
+    @Test
+    void moveTabToOtherTabSheet_contentMovesToNewInstance() {
+        TabSheet otherTabSheet = new TabSheet();
+        view.add(otherTabSheet);
+
+        otherTabSheet.add(view.details, view.detailsContent);
+        roundTrip();
+
+        TabSheetTester<TabSheet> otherTabs_ = test(otherTabSheet);
+        Assertions.assertSame(view.details, otherTabs_.getTab("Details"));
+        Assertions.assertSame(view.detailsContent,
+                otherTabs_.getTabContent("Details"));
+        Assertions.assertSame(otherTabSheet,
+                view.detailsContent.getParent().orElse(null),
+                "Tab content should be attached to the new TabSheet instance");
+        Assertions.assertTrue(
+                view.tabs.getChildren().noneMatch(view.detailsContent::equals),
+                "Tab content should not be left behind in the old TabSheet");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tabs_.getTab("Details"),
+                "Moved tab should no longer be found in the old TabSheet");
+    }
+
 }

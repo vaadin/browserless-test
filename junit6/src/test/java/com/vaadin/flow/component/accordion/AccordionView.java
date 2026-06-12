@@ -15,6 +15,9 @@
  */
 package com.vaadin.flow.component.accordion;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Tag;
@@ -32,9 +35,12 @@ public class AccordionView extends Component implements HasComponents {
     Div redDiv, greenDiv;
     AccordionPanel redPanel, greenPanel, disabledPanel;
 
+    final List<Accordion.OpenedChangeEvent> openedChangeEvents = new ArrayList<>();
+
     public AccordionView() {
 
         accordion = new Accordion();
+        accordion.addOpenedChangeListener(openedChangeEvents::add);
 
         redDiv = new Div();
 

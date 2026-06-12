@@ -178,6 +178,71 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void upload_acceptedFileExtensions_disallowedExtensionRejected() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedFileExtensions(".txt");
+
+        single_.upload("image.png", "image/png",
+                "not a text file".getBytes(StandardCharsets.UTF_8));
+
+        listener.assertNotStarted();
+        Assertions.assertTrue(listener.uploadedData.isEmpty(),
+                "Rejected file should not have been received by the handler");
+    }
+
+    @Test
+    void upload_acceptedFileExtensions_allowedExtensionAccepted() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedFileExtensions(".txt");
+
+        single_.upload(file1);
+
+        listener.assertStarted();
+        listener.assertCompleted();
+        UploadedData uploadedData = listener.assertFileReceived();
+        Assertions.assertEquals(file1.getName(),
+                uploadedData.metadata().fileName());
+        Assertions.assertEquals(FIRST_FILE_CONTENTS,
+                uploadedDataToString(uploadedData));
+    }
+
+    @Test
+    void upload_acceptedMimeTypes_disallowedTypeRejected() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedMimeTypes("image/*");
+
+        // text/plain detected from the file name does not match image/*
+        single_.upload(file1);
+
+        listener.assertNotStarted();
+        Assertions.assertTrue(listener.uploadedData.isEmpty(),
+                "Rejected file should not have been received by the handler");
+    }
+
+    @Test
+    void upload_acceptedMimeTypes_allowedTypeAccepted() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedMimeTypes("image/*");
+
+        single_.upload("photo.png", "image/png",
+                "fake image data".getBytes(StandardCharsets.UTF_8));
+
+        listener.assertStarted();
+        listener.assertCompleted();
+        UploadedData uploadedData = listener.assertFileReceived();
+        Assertions.assertEquals("photo.png",
+                uploadedData.metadata().fileName());
+    }
+
+    @Test
     void upload_fileCountExceeded_throws() {
         view.uploadMulti.setMaxFiles(2);
         Assertions.assertThrows(IllegalStateException.class,
