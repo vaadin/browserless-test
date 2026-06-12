@@ -124,6 +124,42 @@ public class MessageListTester<T extends MessageList>
     }
 
     /**
+     * Get the attachments of the message in given index. index is 0 based.
+     *
+     * @param index
+     *            item index
+     * @return attachments of the message in index, empty list if the message
+     *         has no attachments
+     * @throws IndexOutOfBoundsException
+     *             – if the index is out of range (index < 0 || index >= size())
+     */
+    public List<MessageListItem.Attachment> getAttachments(int index) {
+        ensureComponentIsUsable();
+        return getComponent().getItems().get(index).getAttachments();
+    }
+
+    /**
+     * Get the attachment with the given name from the message in given index.
+     * index is 0 based.
+     *
+     * @param index
+     *            item index
+     * @param name
+     *            attachment name to look for, not {@code null}
+     * @return attachment with the given name, or {@code null} if the message
+     *         has no attachment with the given name
+     * @throws IndexOutOfBoundsException
+     *             – if the index is out of range (index < 0 || index >= size())
+     */
+    public MessageListItem.Attachment getAttachmentByName(int index,
+            String name) {
+        ensureComponentIsUsable();
+        return getAttachments(index).stream()
+                .filter(attachment -> name.equals(attachment.name()))
+                .findFirst().orElse(null);
+    }
+
+    /**
      * Get all messages for a given userName.
      *
      * @param userName
