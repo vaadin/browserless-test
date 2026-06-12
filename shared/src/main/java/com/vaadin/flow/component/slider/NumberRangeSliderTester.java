@@ -21,6 +21,12 @@ import com.vaadin.browserless.ComponentTester;
 
 /**
  * Base tester for {@link NumberRangeSlider} components.
+ * <p>
+ * Simulates the user dragging the start and end thumbs in the browser: setting
+ * the whole range or either endpoint, or incrementing/decrementing an endpoint
+ * by steps, with validation that the component is usable (visible, enabled and
+ * not read-only), the values stay within the min/max bounds and the start never
+ * exceeds the end.
  *
  * @param <T>
  *            component type

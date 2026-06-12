@@ -19,6 +19,15 @@ import com.vaadin.browserless.Tests;
 
 /**
  * Tester for DecimalRangeSlider components.
+ * <p>
+ * Simulates the user dragging the start and end thumbs in the browser: setting
+ * the whole range or either endpoint, or incrementing/decrementing an endpoint
+ * by steps, with validation that the component is usable, the values stay
+ * within the min/max bounds and the start never exceeds the end.
+ * <p>
+ * Before Vaadin 25.2 this class was named {@code RangeSliderTester}. It was
+ * renamed without a deprecation cycle because the Slider component is
+ * experimental and behind a feature flag.
  *
  * @param <T>
  *            component type
