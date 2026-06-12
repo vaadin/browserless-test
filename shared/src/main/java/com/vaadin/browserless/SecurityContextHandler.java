@@ -27,6 +27,7 @@ package com.vaadin.browserless;
  * state they manage.
  *
  * @see BrowserlessApplicationContext.Builder#withSecurityContextHandler(SecurityContextHandler)
+ * @since 1.1
  */
 public interface SecurityContextHandler<C> {
 

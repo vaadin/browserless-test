@@ -42,6 +42,7 @@ import com.vaadin.flow.server.VaadinServletService;
  *            defined by the configured {@link SecurityContextHandler}
  * @see BrowserlessApplicationContext
  * @see SecurityContextHandler
+ * @since 1.1
  */
 public class SecuredBrowserlessApplicationContext<C>
         extends BrowserlessApplicationContext {

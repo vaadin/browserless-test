@@ -26,6 +26,8 @@ package com.vaadin.browserless.locator;
  * Most entries come from {@link GeneratedCommercialLocators}, which is emitted
  * by the locator annotation processor. Mix this into your own context subclass
  * or test class when you depend on commercial Vaadin components.
+ *
+ * @since 1.1
  */
 public interface CommercialLocators
         extends Locators, GeneratedCommercialLocators {

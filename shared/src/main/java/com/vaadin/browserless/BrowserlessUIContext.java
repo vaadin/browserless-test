@@ -60,6 +60,7 @@ import com.vaadin.flow.server.VaadinSession;
  *
  * @see BrowserlessUserContext#newWindow()
  * @see BrowserlessApplicationContext
+ * @since 1.1
  */
 public class BrowserlessUIContext
         implements TesterWrappers, Locators, AutoCloseable {

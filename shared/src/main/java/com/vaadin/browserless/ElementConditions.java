@@ -216,6 +216,8 @@ public final class ElementConditions {
      *
      * @param label
      *            the expected label, not {@literal null}
+     *
+     * @since 1.1
      */
     public static <T extends Component> Predicate<T> hasLabel(String label) {
         if (label == null) {
@@ -232,6 +234,8 @@ public final class ElementConditions {
      *
      * @param text
      *            substring to find in the label, not {@literal null}
+     *
+     * @since 1.1
      */
     public static <T extends Component> Predicate<T> labelContains(
             String text) {
@@ -284,6 +288,8 @@ public final class ElementConditions {
      *
      * @param ariaLabel
      *            the expected aria-label, not {@literal null}
+     *
+     * @since 1.1
      */
     public static <T extends Component> Predicate<T> hasAriaLabel(
             String ariaLabel) {
@@ -302,6 +308,8 @@ public final class ElementConditions {
      *
      * @param text
      *            substring to find in the aria-label, not {@literal null}
+     *
+     * @since 1.1
      */
     public static <T extends Component> Predicate<T> ariaLabelContains(
             String text) {

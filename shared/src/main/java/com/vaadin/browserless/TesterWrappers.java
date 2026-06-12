@@ -315,23 +315,55 @@ public interface TesterWrappers {
         return BaseBrowserlessTest.internalWrap(SideNavTester.class, sideNav);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param rangeSlider
+     *            the component to wrap
+     * @return a tester for the given component
+     * @since 1.1
+     */
     default DecimalRangeSliderTester<DecimalRangeSlider> test(
             DecimalRangeSlider rangeSlider) {
         return BaseBrowserlessTest.internalWrap(DecimalRangeSliderTester.class,
                 rangeSlider);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param integerRangeSlider
+     *            the component to wrap
+     * @return a tester for the given component
+     * @since 1.1
+     */
     default IntegerRangeSliderTester<IntegerRangeSlider> test(
             IntegerRangeSlider integerRangeSlider) {
         return BaseBrowserlessTest.internalWrap(IntegerRangeSliderTester.class,
                 integerRangeSlider);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param slider
+     *            the component to wrap
+     * @return a tester for the given component
+     * @since 1.1
+     */
     default DecimalSliderTester<DecimalSlider> test(DecimalSlider slider) {
         return BaseBrowserlessTest.internalWrap(DecimalSliderTester.class,
                 slider);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param integerSlider
+     *            the component to wrap
+     * @return a tester for the given component
+     * @since 1.1
+     */
     default IntegerSliderTester<IntegerSlider> test(
             IntegerSlider integerSlider) {
         return BaseBrowserlessTest.internalWrap(IntegerSliderTester.class,
