@@ -122,10 +122,24 @@ class RangeInputTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getValue_returnsInitialValue() {
+        Assertions.assertEquals(component.getValue(), tester.getValue());
+        Assertions.assertEquals(0.0, tester.getValue());
+    }
+
+    @Test
+    void getValue_afterSetValue_returnsSetValue() {
+        double newValue = 12.0;
+        tester.setValue(newValue);
+        Assertions.assertEquals(newValue, tester.getValue());
+    }
+
+    @Test
     void getValue_unusable_getsValue() {
         double newValue = 12.4;
         component.setValue(newValue);
-        Assertions.assertEquals(newValue, component.getValue());
+        component.setEnabled(false);
+        Assertions.assertEquals(newValue, tester.getValue());
     }
 
     @Test
