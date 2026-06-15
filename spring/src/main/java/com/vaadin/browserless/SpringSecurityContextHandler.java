@@ -41,6 +41,7 @@ import org.springframework.security.core.userdetails.User;
  *
  * @see SecurityContextHandler
  * @see SpringBrowserlessApplicationContext
+ * @since 1.1
  */
 public class SpringSecurityContextHandler
         implements SecurityContextHandler<Authentication> {

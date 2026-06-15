@@ -25,6 +25,8 @@ import java.util.function.Supplier;
  * generic {@link #find(Supplier)} for user-defined locators and the
  * {@link #activateLocatorContext()} hook that context-bound implementations
  * (e.g. {@code BrowserlessUIContext}) override.
+ *
+ * @since 1.1
  */
 public interface Locators extends GeneratedLocators {
 

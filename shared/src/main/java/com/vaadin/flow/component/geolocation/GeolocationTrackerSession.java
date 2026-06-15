@@ -22,6 +22,8 @@ import com.vaadin.flow.component.Component;
 /**
  * View into a tracker session managed by the simulator. Returned by
  * {@link GeolocationSimulator#activeTrackers()}.
+ *
+ * @since 1.1
  */
 public interface GeolocationTrackerSession {
 

@@ -28,6 +28,8 @@ import com.vaadin.flow.component.HasAriaLabel;
  *            the component type, bound to {@link HasAriaLabel}
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public interface HasAriaLabelFilter<C extends Component & HasAriaLabel, SELF extends Locator<C, SELF>> {
 

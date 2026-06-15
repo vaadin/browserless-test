@@ -22,6 +22,8 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ *
+ * @since 1.1
  */
 @Tests(IntegerSlider.class)
 public class IntegerSliderTester<T extends IntegerSlider>

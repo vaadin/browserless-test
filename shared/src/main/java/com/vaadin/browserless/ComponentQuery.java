@@ -128,6 +128,7 @@ public class ComponentQuery<T extends Component> {
      *            the test id to look up
      * @return this element query instance for chaining
      * @see com.vaadin.flow.component.Component#setTestId(String)
+     * @since 1.1
      */
     public ComponentQuery<T> withTestId(String testId) {
         locatorSpec.testId = testId;
@@ -203,6 +204,7 @@ public class ComponentQuery<T extends Component> {
      * @param variant
      *            the variant to require on the component
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withTheme(ThemeVariant variant) {
         return withThemeName(variant.getVariantName());
@@ -242,6 +244,7 @@ public class ComponentQuery<T extends Component> {
      * @param variant
      *            the variant that should not be present on the component
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withoutTheme(ThemeVariant variant) {
         return withoutThemeName(variant.getVariantName());
@@ -319,6 +322,7 @@ public class ComponentQuery<T extends Component> {
      *            the expected label, not {@literal null}
      * @return this element query instance for chaining
      * @see com.vaadin.flow.component.HasLabel#getLabel()
+     * @since 1.1
      */
     public ComponentQuery<T> withLabel(String label) {
         locatorSpec.predicates.add(ElementConditions.hasLabel(label));
@@ -332,6 +336,7 @@ public class ComponentQuery<T extends Component> {
      * @param text
      *            substring to find in the label, not {@literal null}
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withLabelContaining(String text) {
         locatorSpec.predicates.add(ElementConditions.labelContains(text));
@@ -347,6 +352,7 @@ public class ComponentQuery<T extends Component> {
      * @param ariaLabel
      *            the expected aria-label, not {@literal null}
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withAriaLabel(String ariaLabel) {
         locatorSpec.predicates.add(ElementConditions.hasAriaLabel(ariaLabel));
@@ -360,6 +366,7 @@ public class ComponentQuery<T extends Component> {
      * @param text
      *            substring to find in the aria-label, not {@literal null}
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withAriaLabelContaining(String text) {
         locatorSpec.predicates.add(ElementConditions.ariaLabelContains(text));
@@ -699,6 +706,7 @@ public class ComponentQuery<T extends Component> {
      * @throws NoSuchElementException
      *             if no component is found
      * @see com.vaadin.flow.component.Component#setTestId(String)
+     * @since 1.1
      */
     public T testId(String testId) {
         Objects.requireNonNull(testId, "testId must not be null");

@@ -85,6 +85,8 @@ public class BrowserlessTestSpringLookupInitializer
      *
      * @param appCtx
      *            the Spring application context
+     *
+     * @since 1.1
      */
     public static void setApplicationContext(ApplicationContext appCtx) {
         applicationContext.set(appCtx);
@@ -98,6 +100,8 @@ public class BrowserlessTestSpringLookupInitializer
      * {@code SpringBrowserlessApplicationContext} to release the ThreadLocal
      * when an application context is closed outside the
      * {@link TestExecutionListener} lifecycle.
+     *
+     * @since 1.1
      */
     public static void clearApplicationContext() {
         applicationContext.remove();
@@ -108,6 +112,7 @@ public class BrowserlessTestSpringLookupInitializer
      * {@code null} if none is set.
      *
      * @return the registered application context, or {@code null}
+     * @since 1.1
      */
     public static ApplicationContext getApplicationContext() {
         return applicationContext.get();

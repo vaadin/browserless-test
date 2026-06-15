@@ -56,6 +56,7 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  * @see BrowserlessApplicationContext
  * @see SecuredBrowserlessApplicationContext
  * @see SpringSecurityContextHandler
+ * @since 1.1
  */
 public final class SpringBrowserlessApplicationContext {
 
