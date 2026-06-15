@@ -47,6 +47,12 @@ public interface Locators extends GeneratedLocators {
      * window.find(CheckoutFormLocator::new).withId("checkout").submit();
      * </pre>
      *
+     * @param factory
+     *            supplier that creates a fresh locator instance, typically a
+     *            constructor reference
+     * @param <L>
+     *            the locator type created by the factory
+     * @return the locator created by the factory, ready for chaining
      * @throws IllegalStateException
      *             if the factory returns {@code null} instead of a fresh
      *             locator instance.
