@@ -42,7 +42,7 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
      */
     public Double getValue() {
         ensureVisible();
-        return null;
+        return getComponent().getValue();
     }
 
     /**
