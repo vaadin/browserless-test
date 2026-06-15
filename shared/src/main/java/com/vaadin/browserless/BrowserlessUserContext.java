@@ -57,6 +57,7 @@ import com.vaadin.flow.server.VaadinSession;
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
+ * @since 1.1
  */
 public class BrowserlessUserContext implements AutoCloseable {
 

@@ -24,6 +24,8 @@ import com.vaadin.flow.component.UI;
  * into Flow's {@link com.vaadin.flow.di.Lookup Lookup} by
  * {@code MockVaadinHelper.BrowserlessLookupInitializer}, scoping registration
  * to the browserless mocking lifecycle instead of leaking through SPI.
+ *
+ * @since 1.1
  */
 public final class BrowserlessGeolocationClientFactory
         implements GeolocationClientFactory {

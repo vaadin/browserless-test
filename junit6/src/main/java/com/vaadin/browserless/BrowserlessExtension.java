@@ -50,6 +50,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * @see BrowserlessClassExtension
  * @see BrowserlessTest
  * @see ViewPackages
+ * @since 1.1
  */
 public class BrowserlessExtension extends AbstractBrowserlessExtension
         implements BeforeEachCallback, AfterEachCallback {

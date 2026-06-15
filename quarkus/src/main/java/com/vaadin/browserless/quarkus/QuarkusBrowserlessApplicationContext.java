@@ -55,6 +55,7 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * @see BrowserlessApplicationContext
  * @see SecuredBrowserlessApplicationContext
  * @see QuarkusSecurityContextHandler
+ * @since 1.1
  */
 public final class QuarkusBrowserlessApplicationContext {
 

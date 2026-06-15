@@ -38,6 +38,8 @@ import com.vaadin.flow.component.HasValue;
  *            parameterization
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public interface HasValueFilter<C extends Component & HasValue<?, V>, V, SELF extends Locator<C, SELF>> {
 

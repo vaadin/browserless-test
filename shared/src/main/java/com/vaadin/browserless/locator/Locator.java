@@ -62,6 +62,8 @@ import com.vaadin.flow.component.Component;
  *            the component type
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>> {
 

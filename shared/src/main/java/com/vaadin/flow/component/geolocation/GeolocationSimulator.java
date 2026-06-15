@@ -67,6 +67,8 @@ import com.vaadin.flow.component.UI;
  * <p>
  * Obtain via {@link #current()} or {@link #forUI(UI)}: idempotent, both create
  * the simulator on the first call and return the same instance afterward.
+ *
+ * @since 1.1
  */
 public final class GeolocationSimulator implements Serializable {
 

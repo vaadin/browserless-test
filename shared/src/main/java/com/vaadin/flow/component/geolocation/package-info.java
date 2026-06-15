@@ -23,6 +23,8 @@
  * for multi-user scenarios) and describe the user's permission and the sensor's
  * reading; the application observes that state through the {@code Geolocation}
  * facade without any real browser.
+ *
+ * @since 1.1
  */
 @NullMarked
 package com.vaadin.flow.component.geolocation;

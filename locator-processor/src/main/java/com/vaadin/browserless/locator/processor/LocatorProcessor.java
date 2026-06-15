@@ -69,6 +69,8 @@ import java.util.stream.Collectors;
  * consumed only by other modules in this repository. The processor options are
  * an internal contract — break them freely if a refactor benefits, no
  * deprecation cycle is owed to end users.
+ *
+ * @since 1.1
  */
 @SupportedAnnotationTypes("com.vaadin.browserless.Tests")
 @SupportedOptions({ "locator.commercial.packages", "locator.entrypoint.fqn",

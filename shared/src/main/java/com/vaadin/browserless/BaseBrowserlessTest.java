@@ -285,6 +285,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
+     * @since 1.1
      */
     public <T extends Component> ComponentQuery<T> find(
             Class<T> componentType) {
@@ -302,6 +303,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
+     * @since 1.1
      */
     public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
             Component fromThis) {
@@ -316,6 +318,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
+     * @since 1.1
      */
     public <T extends Component> ComponentQuery<T> findInView(
             Class<T> componentType) {
