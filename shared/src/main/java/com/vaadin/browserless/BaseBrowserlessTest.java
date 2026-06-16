@@ -236,8 +236,20 @@ public abstract class BaseBrowserlessTest {
         return TesterRegistry.wrap(component);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Class<T> wrap, Y component) {
+        // The generated typed overloads in TesterWrappers pass the built-in
+        // tester for the declared parameter type. Prefer a more specific tester
+        // registered via @Tests when one is available, so that a custom tester
+        // for a component subclass is returned instead of the built-in base
+        // tester. Fall back to the requested type when no compatible tester is
+        // registered.
+        Class<? extends ComponentTester> resolved = TesterRegistry
+                .resolve(component.getClass());
+        if (wrap.isAssignableFrom(resolved)) {
+            return (T) TesterRegistry.instantiate(resolved, component);
+        }
         return TesterRegistry.instantiate(wrap, component);
     }
 
