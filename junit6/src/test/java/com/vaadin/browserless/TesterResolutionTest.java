@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.dialog.DialogTester;
 
 @ComponentTesterPackages("com.vaadin.browserless")
 @ViewPackages(packages = "com.vaadin.browserless")
@@ -51,6 +52,39 @@ public class TesterResolutionTest extends BrowserlessTest {
         TestComponentForConcreteTester component = new TestComponentForConcreteTester();
         Assertions.assertEquals(test(component).getClass(),
                 NonGenericTestTester.class);
+    }
+
+    @Test
+    public void wrapDialogSubclass_typedOverload_returnsCustomTester() {
+        // Reproduces issue #100: a custom tester extending the concrete
+        // DialogTester and wrapping a Dialog subclass. The typed test(Dialog)
+        // overload must return the registered custom tester, which is still a
+        // DialogTester so the historical cast keeps working.
+        CustomDialog dialog = new CustomDialog();
+
+        DialogTester tester = test(dialog);
+        Assertions.assertInstanceOf(CustomDialogTester.class, tester);
+    }
+
+    @Test
+    public void wrapDialogSubclass_explicitTesterClass_returnsCustomTester() {
+        // Reproduces issue #100: instantiating a custom tester explicitly must
+        // not fail with NoSuchMethodException even though the tester's
+        // constructor declares the Dialog subclass rather than Dialog.
+        CustomDialog dialog = new CustomDialog();
+
+        CustomDialogTester tester = test(CustomDialogTester.class, dialog);
+        Assertions.assertNotNull(tester);
+    }
+
+    @Test
+    public void wrapDialogSubclass_asComponent_returnsCustomTester() {
+        // The registry-based resolution must also instantiate the custom tester
+        // when the component is wrapped through the generic test(Component)
+        // path.
+        Component dialog = new CustomDialog();
+
+        Assertions.assertInstanceOf(CustomDialogTester.class, test(dialog));
     }
 
     @Test
