@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 
 @Tests(Breadcrumbs.class)
@@ -109,7 +110,7 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
     }
 
     private Stream<BreadcrumbsItem> items() {
-        return getComponent().getChildren()
+        return getComponent().getChildren().filter(Component::isVisible)
                 .filter(BreadcrumbsItem.class::isInstance)
                 .map(BreadcrumbsItem.class::cast);
     }

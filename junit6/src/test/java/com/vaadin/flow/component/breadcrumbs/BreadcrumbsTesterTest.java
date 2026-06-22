@@ -71,6 +71,20 @@ class BreadcrumbsTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getItemTexts_skipsHiddenItems() {
+        hideItem("Docs");
+        Assertions.assertEquals(List.of("Home", "Current"),
+                test(view.breadcrumbs).getItemTexts());
+    }
+
+    @Test
+    void clickItem_byIndex_skipsHiddenItems() {
+        hideItem("Home");
+        test(view.breadcrumbs).clickItem(0);
+        Assertions.assertEquals("breadcrumbs-target", currentPath());
+    }
+
+    @Test
     void clickItem_currentItemWithoutPath_throws() {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.breadcrumbs).clickItem("Current"));
@@ -94,6 +108,13 @@ class BreadcrumbsTesterTest extends BrowserlessTest {
         view.breadcrumbs.removeFromParent();
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.breadcrumbs).getItemTexts());
+    }
+
+    private void hideItem(String text) {
+        view.breadcrumbs.getChildren()
+                .filter(child -> child instanceof BreadcrumbsItem item
+                        && text.equals(item.getText()))
+                .forEach(child -> child.setVisible(false));
     }
 
     private static String currentPath() {
