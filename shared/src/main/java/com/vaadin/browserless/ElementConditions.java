@@ -24,6 +24,7 @@ import org.jsoup.Jsoup;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasAriaLabel;
+import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
@@ -266,13 +267,13 @@ public final class ElementConditions {
 
     /**
      * Checks if the component's {@code placeholder} contains the given text.
-     * Resolution prefers
-     * {@link com.vaadin.flow.component.HasPlaceholder#getPlaceholder()} —
-     * components that don't implement {@code HasPlaceholder} are never matched
-     * (they have no placeholder to test against). Comparison is case-sensitive.
+     * Resolution prefers {@link HasPlaceholder#getPlaceholder()} — components
+     * that don't implement {@code HasPlaceholder} are never matched (they have
+     * no placeholder to test against). Comparison is case-sensitive.
      *
      * @param text
      *            substring to find in the placeholder, not {@literal null}
+     * @since 1.1
      */
     public static <T extends Component> Predicate<T> placeholderContains(
             String text) {
@@ -280,7 +281,7 @@ public final class ElementConditions {
             throw new IllegalArgumentException("text cannot be null");
         }
         return component -> {
-            if (component instanceof com.vaadin.flow.component.HasPlaceholder hp) {
+            if (component instanceof HasPlaceholder hp) {
                 String placeholder = hp.getPlaceholder();
                 return placeholder != null && placeholder.contains(text);
             }
