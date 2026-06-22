@@ -353,6 +353,7 @@ public class ComponentQuery<T extends Component> {
      *            the expected placeholder, not {@literal null}
      * @return this element query instance for chaining
      * @see com.vaadin.flow.component.HasPlaceholder#getPlaceholder()
+     * @since 1.1
      */
     public ComponentQuery<T> withPlaceholder(String placeholder) {
         if (placeholder == null) {
@@ -370,6 +371,7 @@ public class ComponentQuery<T extends Component> {
      * @param text
      *            substring to find in the placeholder, not {@literal null}
      * @return this element query instance for chaining
+     * @since 1.1
      */
     public ComponentQuery<T> withPlaceholderContaining(String text) {
         locatorSpec.predicates.add(ElementConditions.placeholderContains(text));
