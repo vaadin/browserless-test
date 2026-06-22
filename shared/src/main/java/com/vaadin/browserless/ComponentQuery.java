@@ -344,6 +344,41 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Requires the component's {@code placeholder} to be exactly the given
+     * value. Useful for toolbar / search fields that intentionally omit a
+     * stacked label and identify themselves to the user via placeholder text
+     * instead.
+     *
+     * @param placeholder
+     *            the expected placeholder, not {@literal null}
+     * @return this element query instance for chaining
+     * @see com.vaadin.flow.component.HasPlaceholder#getPlaceholder()
+     * @since 1.1
+     */
+    public ComponentQuery<T> withPlaceholder(String placeholder) {
+        if (placeholder == null) {
+            throw new IllegalArgumentException("placeholder must not be null");
+        }
+        locatorSpec.placeholder = placeholder;
+        return this;
+    }
+
+    /**
+     * Requires the component's {@code placeholder} to contain the given text.
+     * Comparison is case-sensitive. Read in the same way as
+     * {@link #withPlaceholder(String)}.
+     *
+     * @param text
+     *            substring to find in the placeholder, not {@literal null}
+     * @return this element query instance for chaining
+     * @since 1.1
+     */
+    public ComponentQuery<T> withPlaceholderContaining(String text) {
+        locatorSpec.predicates.add(ElementConditions.placeholderContains(text));
+        return this;
+    }
+
+    /**
      * Requires the component's {@code aria-label} attribute to be exactly the
      * given value. Useful for components like {@code Button} that don't carry a
      * visible label property but identify themselves to assistive technology
