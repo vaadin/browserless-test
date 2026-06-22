@@ -36,6 +36,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
+import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldBase;
@@ -924,6 +925,69 @@ class ComponentQueryTest extends BrowserlessTest {
         ComponentQuery<TestComponent> query = find(TestComponent.class);
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> query.withAriaLabel(null));
+    }
+
+    @Test
+    void withPlaceholder_exactMatch_getsCorrectComponent() {
+        // Wiring test for #92 — the search engine already supported filtering
+        // by placeholder via LocatorSpec.placeholder; expose it through a
+        // public withPlaceholder(String) entry point. Two different
+        // HasPlaceholder component types (TextField + EmailField) are used so
+        // the test also asserts the filter works across the HasPlaceholder
+        // hierarchy, not just on TextField.
+        TextField search = new TextField();
+        search.setPlaceholder("Search…");
+        EmailField email = new EmailField();
+        email.setPlaceholder("name@example.com");
+        TextField noPlaceholder = new TextField();
+
+        UI.getCurrent().getElement().appendChild(search.getElement(),
+                email.getElement(), noPlaceholder.getElement());
+
+        Assertions.assertSame(search,
+                find(TextField.class).withPlaceholder("Search…").single());
+        Assertions.assertSame(email, find(EmailField.class)
+                .withPlaceholder("name@example.com").single());
+        Assertions.assertTrue(
+                find(TextField.class).withPlaceholder("nope").all().isEmpty());
+    }
+
+    @Test
+    void withPlaceholder_null_throws() {
+        ComponentQuery<TextField> query = find(TextField.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withPlaceholder(null));
+    }
+
+    @Test
+    void withPlaceholderContaining_substringMatch() {
+        TextField search = new TextField();
+        search.setPlaceholder("Search for orders…");
+        EmailField email = new EmailField();
+        email.setPlaceholder("you@example.com");
+        TextField unrelated = new TextField();
+        unrelated.setPlaceholder("Full name");
+        TextField noPlaceholder = new TextField();
+
+        UI.getCurrent().getElement().appendChild(search.getElement(),
+                email.getElement(), unrelated.getElement(),
+                noPlaceholder.getElement());
+
+        Assertions.assertSame(search, find(TextField.class)
+                .withPlaceholderContaining("orders").single());
+        Assertions.assertSame(email, find(EmailField.class)
+                .withPlaceholderContaining("example.com").single());
+        Assertions.assertIterableEquals(List.of(search, unrelated),
+                find(TextField.class).withPlaceholderContaining(" ").all());
+        Assertions.assertTrue(find(TextField.class)
+                .withPlaceholderContaining("nope").all().isEmpty());
+    }
+
+    @Test
+    void withPlaceholderContaining_null_throws() {
+        ComponentQuery<TextField> query = find(TextField.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withPlaceholderContaining(null));
     }
 
     @Test

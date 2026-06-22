@@ -107,6 +107,9 @@ public class LocatorProcessor extends AbstractProcessor {
                 new Simple("com.vaadin.browserless.locator.HasTextFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasAriaLabel", new Simple(
                 "com.vaadin.browserless.locator.HasAriaLabelFilter"));
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasPlaceholder",
+                new Simple(
+                        "com.vaadin.browserless.locator.HasPlaceholderFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasValue",
                 new Typed("com.vaadin.browserless.locator.HasValueFilter", 1));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasTheme",
