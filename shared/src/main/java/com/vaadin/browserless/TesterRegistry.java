@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -215,8 +216,7 @@ final class TesterRegistry {
     static <T extends ComponentTester<Y>, Y extends Component> T instantiate(
             Class<T> testerClass, Y component) {
         try {
-            final Class<?> componentType = detectComponentType(testerClass);
-            return testerClass.getConstructor(componentType)
+            return findConstructor(testerClass, component.getClass())
                     .newInstance(component);
         } catch (InstantiationException | IllegalAccessException
                 | InvocationTargetException | NoSuchMethodException e) {
@@ -224,6 +224,56 @@ final class TesterRegistry {
                     + testerClass.getSimpleName() + " for component "
                     + component.getClass().getSimpleName(), e);
         }
+    }
+
+    /**
+     * Finds the single-argument constructor of the given tester that best
+     * accepts the supplied component type.
+     * <p>
+     * A custom tester may declare its constructor with a narrower parameter
+     * type than the one resolved from the generic {@code ComponentTester<T>}
+     * declaration. For example a tester extending {@code DialogTester} (which
+     * binds {@code T} to {@code Dialog}) can wrap a {@code Dialog} subclass and
+     * declare a constructor taking that subclass. Looking the constructor up
+     * solely by the generic type would fail with a
+     * {@link NoSuchMethodException} because {@link Class#getConstructor}
+     * matches parameter types exactly.
+     * <p>
+     * This method instead selects the most specific public constructor whose
+     * sole parameter is assignable from the component's runtime type, falling
+     * back to the generic component type so the original error is reported when
+     * no compatible constructor exists.
+     *
+     * @param testerClass
+     *            the tester class to instantiate
+     * @param componentClass
+     *            the runtime type of the component to wrap
+     * @return a matching constructor
+     * @throws NoSuchMethodException
+     *             if no compatible constructor is found
+     */
+    @SuppressWarnings("unchecked")
+    private static <T extends ComponentTester<?>> Constructor<T> findConstructor(
+            Class<T> testerClass, Class<?> componentClass)
+            throws NoSuchMethodException {
+        Constructor<?> bestMatch = null;
+        for (Constructor<?> candidate : testerClass.getConstructors()) {
+            if (candidate.getParameterCount() != 1) {
+                continue;
+            }
+            Class<?> parameterType = candidate.getParameterTypes()[0];
+            if (!parameterType.isAssignableFrom(componentClass)) {
+                continue;
+            }
+            if (bestMatch == null || bestMatch.getParameterTypes()[0]
+                    .isAssignableFrom(parameterType)) {
+                bestMatch = candidate;
+            }
+        }
+        if (bestMatch != null) {
+            return (Constructor<T>) bestMatch;
+        }
+        return testerClass.getConstructor(detectComponentType(testerClass));
     }
 
     /**
