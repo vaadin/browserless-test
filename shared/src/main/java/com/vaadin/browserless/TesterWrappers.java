@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
+import com.vaadin.flow.component.breadcrumbs.Breadcrumbs;
+import com.vaadin.flow.component.breadcrumbs.BreadcrumbsTester;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonTester;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -151,6 +153,11 @@ public interface TesterWrappers {
     default AccordionTester<Accordion> test(Accordion accordion) {
         return BaseBrowserlessTest.internalWrap(AccordionTester.class,
                 accordion);
+    }
+
+    default BreadcrumbsTester<Breadcrumbs> test(Breadcrumbs breadcrumbs) {
+        return BaseBrowserlessTest.internalWrap(BreadcrumbsTester.class,
+                breadcrumbs);
     }
 
     default ButtonTester<Button> test(Button button) {
