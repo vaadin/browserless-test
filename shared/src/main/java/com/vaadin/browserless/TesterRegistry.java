@@ -235,8 +235,9 @@ final class TesterRegistry {
      * declaration. For example a tester extending {@code DialogTester} (which
      * binds {@code T} to {@code Dialog}) can wrap a {@code Dialog} subclass and
      * declare a constructor taking that subclass. Looking the constructor up
-     * solely by the generic type would fail with a {@link NoSuchMethodException}
-     * because {@link Class#getConstructor} matches parameter types exactly.
+     * solely by the generic type would fail with a
+     * {@link NoSuchMethodException} because {@link Class#getConstructor}
+     * matches parameter types exactly.
      * <p>
      * This method instead selects the most specific public constructor whose
      * sole parameter is assignable from the component's runtime type, falling
