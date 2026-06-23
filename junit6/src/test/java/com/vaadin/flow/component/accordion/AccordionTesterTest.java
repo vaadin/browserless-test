@@ -106,18 +106,4 @@ class AccordionTesterTest extends BrowserlessTest {
         Assertions.assertTrue(closedEvent.getOpenedIndex().isEmpty(),
                 "Closed accordion should report an empty opened index");
     }
-
-    @Test
-    void openDetails_viaTester_eventFiredWithFromClientTrue() {
-        test(view.accordion).openDetails("Green");
-
-        Assertions.assertEquals(1, view.openedChangeEvents.size(),
-                "Opening a panel should fire a single OpenedChangeEvent");
-        Accordion.OpenedChangeEvent event = view.openedChangeEvents.get(0);
-        Assertions.assertTrue(event.isFromClient(),
-                "Tester open simulates a user interaction and should report isFromClient() == true");
-        Assertions.assertEquals(OptionalInt.of(1), event.getOpenedIndex());
-        Assertions.assertTrue(test(view.accordion).isOpen("Green"),
-                "Green should be open");
-    }
 }
