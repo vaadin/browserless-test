@@ -387,8 +387,7 @@ class ContextMenuTesterTest extends BrowserlessTest {
 
         String tooltip = "Toggles the state";
         view.checkableItem.setTooltipText(tooltip);
-        Assertions.assertEquals(tooltip,
-                menu_.getItemTooltipText("Checkable"));
+        Assertions.assertEquals(tooltip, menu_.getItemTooltipText("Checkable"));
         Assertions.assertEquals(tooltip, menu_.getItemTooltipText(6));
 
         view.checkableItem.setTooltipText(null);
