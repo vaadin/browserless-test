@@ -19,8 +19,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +38,17 @@ import com.vaadin.flow.router.RouteConfiguration;
 class MessageListTesterTest extends BrowserlessTest {
 
     MessagesView view;
+
+    @BeforeAll
+    static void enableAttachmentsFeatureFlag() {
+        System.setProperty("vaadin.experimental.messageListAttachments",
+                "true");
+    }
+
+    @AfterAll
+    static void clearAttachmentsFeatureFlag() {
+        System.clearProperty("vaadin.experimental.messageListAttachments");
+    }
 
     @BeforeEach
     void init() {
@@ -115,6 +129,65 @@ class MessageListTesterTest extends BrowserlessTest {
 
         Assertions.assertIterableEquals(Arrays.asList(nullUser),
                 list_.getMessages(null));
+    }
+
+    @Test
+    void getAttachments_messageWithAttachments_attachmentsReturned() {
+        final MessageListItem.Attachment report = new MessageListItem.Attachment(
+                "report.pdf", "/files/report.pdf", "application/pdf");
+        final MessageListItem.Attachment image = new MessageListItem.Attachment(
+                "photo.png", "/files/photo.png", "image/png");
+        view.one.setAttachments(Arrays.asList(report, image));
+
+        Assertions.assertIterableEquals(Arrays.asList(report, image),
+                test(view.list).getAttachments(0));
+    }
+
+    @Test
+    void getAttachments_messageWithoutAttachments_emptyListReturned() {
+        Assertions.assertTrue(test(view.list).getAttachments(1).isEmpty(),
+                "Message without attachments should return an empty list");
+    }
+
+    @Test
+    void getAttachments_indexOutOfBounds_throws() {
+        Assertions.assertThrows(IndexOutOfBoundsException.class,
+                () -> test(view.list).getAttachments(3));
+        Assertions.assertThrows(IndexOutOfBoundsException.class,
+                () -> test(view.list).getAttachments(-1));
+    }
+
+    @Test
+    void getAttachmentByName_matchingAttachmentReturned() {
+        final MessageListItem.Attachment report = new MessageListItem.Attachment(
+                "report.pdf", "/files/report.pdf", "application/pdf");
+        final MessageListItem.Attachment image = new MessageListItem.Attachment(
+                "photo.png", "/files/photo.png", "image/png");
+        view.two.setAttachments(Arrays.asList(report, image));
+
+        final MessageListTester<MessageList> list_ = test(view.list);
+        Assertions.assertEquals(report,
+                list_.getAttachmentByName(1, "report.pdf"));
+        Assertions.assertEquals(image,
+                list_.getAttachmentByName(1, "photo.png"));
+    }
+
+    @Test
+    void getAttachmentByName_noMatchingName_nullReturned() {
+        view.one.setAttachments(List.of(new MessageListItem.Attachment(
+                "report.pdf", "/files/report.pdf", "application/pdf")));
+
+        final MessageListTester<MessageList> list_ = test(view.list);
+        Assertions.assertNull(list_.getAttachmentByName(0, "missing.pdf"),
+                "Unknown attachment name should return null");
+        Assertions.assertNull(list_.getAttachmentByName(1, "report.pdf"),
+                "Message without attachments should return null");
+    }
+
+    @Test
+    void getAttachmentByName_indexOutOfBounds_throws() {
+        Assertions.assertThrows(IndexOutOfBoundsException.class,
+                () -> test(view.list).getAttachmentByName(3, "report.pdf"));
     }
 
     /**
