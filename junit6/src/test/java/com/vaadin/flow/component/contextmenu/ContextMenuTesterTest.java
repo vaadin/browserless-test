@@ -359,10 +359,11 @@ class ContextMenuTesterTest extends BrowserlessTest {
 
     @Test
     void isItemChecked_menuNotOpened_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.menu).isItemChecked("Checkable"));
+                () -> menu_.isItemChecked("Checkable"));
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.menu).isItemChecked(5));
+                () -> menu_.isItemChecked(5));
     }
 
     @Test
@@ -384,11 +385,11 @@ class ContextMenuTesterTest extends BrowserlessTest {
         Assertions.assertNull(menu_.getItemTooltipText("Checkable"),
                 "Item without tooltip should report null tooltip text");
 
-        view.checkableItem.setTooltipText("Toggles the state");
-        Assertions.assertEquals("Toggles the state",
+        String tooltip = "Toggles the state";
+        view.checkableItem.setTooltipText(tooltip);
+        Assertions.assertEquals(tooltip,
                 menu_.getItemTooltipText("Checkable"));
-        Assertions.assertEquals("Toggles the state",
-                menu_.getItemTooltipText(6));
+        Assertions.assertEquals(tooltip, menu_.getItemTooltipText(6));
 
         view.checkableItem.setTooltipText(null);
         Assertions.assertNull(menu_.getItemTooltipText("Checkable"),
@@ -409,8 +410,9 @@ class ContextMenuTesterTest extends BrowserlessTest {
 
     @Test
     void getItemTooltipText_menuNotOpened_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.menu).getItemTooltipText("Checkable"));
+                () -> menu_.getItemTooltipText("Checkable"));
     }
 
     @Test
