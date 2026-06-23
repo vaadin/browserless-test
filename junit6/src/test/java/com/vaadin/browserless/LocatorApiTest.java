@@ -665,4 +665,35 @@ class LocatorApiTest {
                     bob.findTextField().withId("name").component().getValue());
         }
     }
+
+    @Test
+    void textFieldByPlaceholder_resolvesViaLocatorMixin() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            // HasPlaceholderFilter#withPlaceholder is wired onto the generated
+            // TextFieldLocator and picks the label-less search field out of the
+            // several text fields on the view.
+            var search = window.findTextField().withPlaceholder("Search people")
+                    .component();
+            Assertions.assertEquals("search", search.getId().orElseThrow());
+
+            search.setValue("Alice");
+            Assertions.assertEquals("Alice", window.findTextField()
+                    .withPlaceholder("Search people").component().getValue());
+        }
+    }
+
+    @Test
+    void textFieldByPlaceholderContaining_resolvesViaLocatorMixin() {
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var search = window.findTextField()
+                    .withPlaceholderContaining("people").component();
+            Assertions.assertEquals("search", search.getId().orElseThrow());
+        }
+    }
 }
