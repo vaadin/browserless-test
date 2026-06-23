@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.accordion;
 
+import java.util.OptionalInt;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,5 +73,37 @@ class AccordionTesterTest extends BrowserlessTest {
                 "Green panel should exist");
         Assertions.assertFalse(wrap.hasPanel("Orange"),
                 "No Orange panel is added");
+    }
+
+    @Test
+    void attach_noInitialOpenedChangeEventFired() {
+        Assertions.assertTrue(view.openedChangeEvents.isEmpty(),
+                "No OpenedChangeEvent should be fired on initial attach, but got "
+                        + view.openedChangeEvents.size());
+    }
+
+    @Test
+    void openAndClose_serverSide_eventsFiredWithFromClientFalse() {
+        view.accordion.open(view.greenPanel);
+
+        Assertions.assertEquals(1, view.openedChangeEvents.size(),
+                "Opening a panel should fire a single OpenedChangeEvent");
+        Accordion.OpenedChangeEvent openedEvent = view.openedChangeEvents
+                .get(0);
+        Assertions.assertFalse(openedEvent.isFromClient(),
+                "Server-side open should report isFromClient() == false");
+        Assertions.assertEquals(OptionalInt.of(1),
+                openedEvent.getOpenedIndex());
+
+        view.accordion.close();
+
+        Assertions.assertEquals(2, view.openedChangeEvents.size(),
+                "Closing the accordion should fire an OpenedChangeEvent");
+        Accordion.OpenedChangeEvent closedEvent = view.openedChangeEvents
+                .get(1);
+        Assertions.assertFalse(closedEvent.isFromClient(),
+                "Server-side close should report isFromClient() == false");
+        Assertions.assertTrue(closedEvent.getOpenedIndex().isEmpty(),
+                "Closed accordion should report an empty opened index");
     }
 }

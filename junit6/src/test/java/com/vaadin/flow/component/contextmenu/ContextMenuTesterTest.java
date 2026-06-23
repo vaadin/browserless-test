@@ -359,10 +359,11 @@ class ContextMenuTesterTest extends BrowserlessTest {
 
     @Test
     void isItemChecked_menuNotOpened_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.menu).isItemChecked("Checkable"));
+                () -> menu_.isItemChecked("Checkable"));
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.menu).isItemChecked(5));
+                () -> menu_.isItemChecked(5));
     }
 
     @Test
@@ -374,6 +375,54 @@ class ContextMenuTesterTest extends BrowserlessTest {
                 () -> menu_.isItemChecked("XYZ"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> menu_.isItemChecked(22));
+    }
+
+    @Test
+    void getItemTooltipText_tooltipSetAndCleared_returnsCurrentText() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        Assertions.assertNull(menu_.getItemTooltipText("Checkable"),
+                "Item without tooltip should report null tooltip text");
+
+        String tooltip = "Toggles the state";
+        view.checkableItem.setTooltipText(tooltip);
+        Assertions.assertEquals(tooltip, menu_.getItemTooltipText("Checkable"));
+        Assertions.assertEquals(tooltip, menu_.getItemTooltipText(6));
+
+        view.checkableItem.setTooltipText(null);
+        Assertions.assertNull(menu_.getItemTooltipText("Checkable"),
+                "Cleared tooltip should report null tooltip text");
+    }
+
+    @Test
+    void getItemTooltipText_nestedItem_returnsText() {
+        view.nestedCheckableItem.setTooltipText("Nested tooltip");
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        Assertions.assertEquals("Nested tooltip",
+                menu_.getItemTooltipText("Hierarchical", "Nested Checkable"));
+        Assertions.assertEquals("Nested tooltip",
+                menu_.getItemTooltipText(8, 2));
+    }
+
+    @Test
+    void getItemTooltipText_menuNotOpened_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> menu_.getItemTooltipText("Checkable"));
+    }
+
+    @Test
+    void getItemTooltipText_notExisting_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> menu_.getItemTooltipText("XYZ"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> menu_.getItemTooltipText(22));
     }
 
     @Test

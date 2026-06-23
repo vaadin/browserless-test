@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -262,6 +263,47 @@ class MenuBarTesterTest extends BrowserlessTest {
                 () -> menu_.isItemChecked("XYZ"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> menu_.isItemChecked(22));
+    }
+
+    @Test
+    void getItemTooltipText_tooltipSetAndCleared_returnsCurrentText() {
+        Assertions.assertNull(menu_.getItemTooltipText("Foo"),
+                "Item without tooltip should report null tooltip text");
+
+        MenuItem fooItem = view.menu.getItems().get(0);
+        fooItem.setTooltipText("Foo tooltip");
+        Assertions.assertEquals("Foo tooltip", menu_.getItemTooltipText("Foo"));
+        Assertions.assertEquals("Foo tooltip", menu_.getItemTooltipText(0));
+
+        fooItem.setTooltipText(null);
+        Assertions.assertNull(menu_.getItemTooltipText("Foo"),
+                "Cleared tooltip should report null tooltip text");
+    }
+
+    @Test
+    void getItemTooltipText_itemAddedWithTooltip_returnsText() {
+        view.menu.addItem("WithTooltip", "Added with tooltip");
+
+        Assertions.assertEquals("Added with tooltip",
+                menu_.getItemTooltipText("WithTooltip"));
+    }
+
+    @Test
+    void getItemTooltipText_nestedItem_returnsText() {
+        view.checkableItem.setTooltipText("Nested tooltip");
+
+        Assertions.assertEquals("Nested tooltip",
+                menu_.getItemTooltipText("Checkables", "Checkable"));
+        Assertions.assertEquals("Nested tooltip",
+                menu_.getItemTooltipText(5, 0));
+    }
+
+    @Test
+    void getItemTooltipText_notExisting_throws() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> menu_.getItemTooltipText("XYZ"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> menu_.getItemTooltipText(22));
     }
 
 }

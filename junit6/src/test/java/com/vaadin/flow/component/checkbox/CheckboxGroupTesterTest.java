@@ -23,9 +23,11 @@ import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.shared.SelectionPreservationMode;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -168,6 +170,33 @@ class CheckboxGroupTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void refreshAll_preserveAll_presentationStaysInSyncWithSelection() {
+        view.checkboxGroup.setSelectionPreservationMode(
+                SelectionPreservationMode.PRESERVE_ALL);
+        test(view.checkboxGroup).selectItem("test-bar");
+
+        view.checkboxGroup.getListDataView().refreshAll();
+
+        assertContainsExactlyInAnyOrder(Set.of(view.items.get("bar")),
+                test(view.checkboxGroup).getSelected());
+        Assertions.assertEquals(Set.of(checkboxItemKey("test-bar")),
+                presentationValueKeys(),
+                "Presentation value should reference the keys of the rebuilt checkboxes");
+    }
+
+    @Test
+    void refreshAll_discard_selectionAndPresentationCleared() {
+        test(view.checkboxGroup).selectItem("test-bar");
+
+        view.checkboxGroup.getListDataView().refreshAll();
+
+        Assertions.assertTrue(test(view.checkboxGroup).getSelected().isEmpty(),
+                "Selection should be discarded on data change by default");
+        Assertions.assertTrue(presentationValueKeys().isEmpty(),
+                "Presentation value should be cleared when the selection is discarded");
+    }
+
+    @Test
     void readOnly_isNotUsable() {
         view.checkboxGroup.setReadOnly(true);
 
@@ -180,6 +209,28 @@ class CheckboxGroupTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.checkboxGroup).deselectAll());
 
+    }
+
+    private String checkboxItemKey(String label) {
+        return view.checkboxGroup.getChildren()
+                .filter(Checkbox.class::isInstance).map(Checkbox.class::cast)
+                .filter(checkbox -> label.equals(checkbox.getLabel()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No checkbox with label " + label))
+                .getElement().getProperty("value");
+    }
+
+    private Set<String> presentationValueKeys() {
+        ArrayNode presentation = (ArrayNode) view.checkboxGroup.getElement()
+                .getPropertyRaw("value");
+        Set<String> keys = new HashSet<>();
+        if (presentation != null) {
+            for (int i = 0; i < presentation.size(); i++) {
+                keys.add(presentation.get(i).asString());
+            }
+        }
+        return keys;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
