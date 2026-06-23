@@ -232,6 +232,34 @@ class CartViewTest extends BrowserlessTest implements Locators {
 }
 ```
 
+The JUnit 5 extensions (`BrowserlessExtension` / `BrowserlessClassExtension`)
+also expose the typed `findXxx()` locator API directly, so you get it for free
+when you register the extension explicitly instead of extending the base class:
+
+```java
+@ViewPackages(classes = CartView.class)
+class CartViewTest {
+
+    @RegisterExtension
+    BrowserlessExtension ext = new BrowserlessExtension();
+
+    @Test
+    void addItemToCart() {
+        ext.navigate(CartView.class);
+
+        ext.findTextField().withId("quantity").setValue("3");
+        ext.findButton().withId("add").click();
+
+        assertEquals("3", ext.findSpan().withId("cart-count").getText());
+    }
+}
+```
+
+Use `BrowserlessClassExtension` instead for a shared Vaadin environment
+across all tests in the class. Tests that depend on commercial Vaadin
+components (Charts, etc.) can mix in `CommercialLocators` on their own
+subclass to get the additional `find<Component>()` entries.
+
 ### Filters
 
 Locators carry the common filters directly: `withId`, `withTestId`,

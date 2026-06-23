@@ -13,27 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.flow.component.geolocation;
-
-import org.jspecify.annotations.Nullable;
+package com.vaadin.flow.component.breadcrumbs;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.router.Route;
 
-/**
- * View into a tracker session managed by the simulator. Returned by
- * {@link GeolocationSimulator#activeTrackers()}.
- *
- * @since 1.1
- */
-public interface GeolocationTrackerSession {
-
-    /** The component that owns this tracker session. */
-    Component owner();
-
-    /** Options the tracker was started with, or {@code null}. */
-    @Nullable
-    GeolocationOptions options();
-
-    /** Whether the tracker is currently receiving updates. */
-    boolean isActive();
+@Tag("div")
+@Route(value = "breadcrumbs-target", registerAtStartup = false)
+public class TargetView extends Component {
 }

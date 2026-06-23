@@ -37,6 +37,7 @@ import com.vaadin.browserless.SecurityContextHandler;
  *
  * @see SecurityContextHandler
  * @see QuarkusBrowserlessApplicationContext
+ * @since 1.1
  */
 public class QuarkusSecurityContextHandler
         implements SecurityContextHandler<SecurityIdentity> {

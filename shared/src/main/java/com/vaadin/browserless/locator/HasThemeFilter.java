@@ -29,6 +29,8 @@ import com.vaadin.flow.component.shared.ThemeVariant;
  *            the component type, bound to {@link HasTheme}
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Locator<C, SELF>> {
 

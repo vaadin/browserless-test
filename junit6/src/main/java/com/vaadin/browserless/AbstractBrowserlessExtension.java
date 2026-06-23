@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
+import com.vaadin.browserless.locator.Locators;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -39,7 +40,8 @@ import com.vaadin.flow.router.HasUrlParameter;
  * Abstract base for browserless JUnit 5 extensions. Holds all shared state and
  * logic; concrete subclasses implement only the lifecycle callbacks they need.
  */
-abstract class AbstractBrowserlessExtension implements TesterWrappers {
+abstract class AbstractBrowserlessExtension
+        implements TesterWrappers, Locators {
 
     // Programmatic config (builder-style)
     private final Set<String> viewPackages = new HashSet<>();
@@ -291,6 +293,11 @@ abstract class AbstractBrowserlessExtension implements TesterWrappers {
      */
     public void fireShortcut(Key key, KeyModifier... modifiers) {
         BrowserlessDSL.fireShortcut(getUI(), key, modifiers);
+    }
+
+    @Override
+    public void activateLocatorContext() {
+        getUI();
     }
 
     private UI getUI() {

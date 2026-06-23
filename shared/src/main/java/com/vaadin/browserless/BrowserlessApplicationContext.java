@@ -74,6 +74,7 @@ import com.vaadin.flow.server.VaadinServletService;
  * @see BrowserlessUserContext
  * @see BrowserlessUIContext
  * @see SecuredBrowserlessApplicationContext
+ * @since 1.1
  */
 public class BrowserlessApplicationContext implements AutoCloseable {
 

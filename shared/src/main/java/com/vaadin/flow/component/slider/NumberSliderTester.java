@@ -21,6 +21,11 @@ import com.vaadin.browserless.ComponentTester;
 
 /**
  * Base tester for {@link NumberSlider} components.
+ * <p>
+ * Simulates the user moving the slider handle in the browser: setting the value
+ * directly or incrementing/decrementing it by steps, with validation that the
+ * component is usable (visible, enabled and not read-only) and the value stays
+ * within the min/max bounds and step alignment.
  *
  * @param <T>
  *            component type

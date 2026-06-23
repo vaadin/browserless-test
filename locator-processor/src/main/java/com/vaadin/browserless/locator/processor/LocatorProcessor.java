@@ -69,6 +69,8 @@ import java.util.stream.Collectors;
  * consumed only by other modules in this repository. The processor options are
  * an internal contract — break them freely if a refactor benefits, no
  * deprecation cycle is owed to end users.
+ *
+ * @since 1.1
  */
 @SupportedAnnotationTypes("com.vaadin.browserless.Tests")
 @SupportedOptions({ "locator.commercial.packages", "locator.entrypoint.fqn",
@@ -105,6 +107,9 @@ public class LocatorProcessor extends AbstractProcessor {
                 new Simple("com.vaadin.browserless.locator.HasTextFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasAriaLabel", new Simple(
                 "com.vaadin.browserless.locator.HasAriaLabelFilter"));
+        FILTER_MIXINS.put("com.vaadin.flow.component.HasPlaceholder",
+                new Simple(
+                        "com.vaadin.browserless.locator.HasPlaceholderFilter"));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasValue",
                 new Typed("com.vaadin.browserless.locator.HasValueFilter", 1));
         FILTER_MIXINS.put("com.vaadin.flow.component.HasTheme",

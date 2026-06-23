@@ -23,6 +23,8 @@ import org.jspecify.annotations.Nullable;
  * with, and resolve the request manually via
  * {@link #respondWith(GeolocationPosition)} or
  * {@link #respondWith(GeolocationError)}.
+ *
+ * @since 1.1
  */
 public interface GeolocationRequest {
 

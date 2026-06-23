@@ -19,9 +19,20 @@ import com.vaadin.browserless.Tests;
 
 /**
  * Tester for DecimalSlider components.
+ * <p>
+ * Simulates the user moving the slider handle in the browser: setting the value
+ * directly or incrementing/decrementing it by steps, with validation that the
+ * component is usable and the value stays within the min/max bounds and step
+ * alignment.
+ * <p>
+ * Before Vaadin 25.2 this class was named {@code SliderTester}. It was renamed
+ * without a deprecation cycle because the Slider component is experimental and
+ * behind a feature flag.
  *
  * @param <T>
  *            component type
+ *
+ * @since 1.1
  */
 @Tests(DecimalSlider.class)
 public class DecimalSliderTester<T extends DecimalSlider>

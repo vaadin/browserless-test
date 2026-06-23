@@ -30,6 +30,8 @@ import com.vaadin.flow.component.HasLabel;
  *            the component type, bound to {@link HasLabel}
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Locator<C, SELF>> {
 

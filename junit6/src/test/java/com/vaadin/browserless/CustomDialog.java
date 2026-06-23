@@ -13,27 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.flow.component.geolocation;
+package com.vaadin.browserless;
 
-import org.jspecify.annotations.Nullable;
-
-import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.dialog.Dialog;
 
 /**
- * View into a tracker session managed by the simulator. Returned by
- * {@link GeolocationSimulator#activeTrackers()}.
- *
- * @since 1.1
+ * A {@link Dialog} subclass used to verify that a custom tester extending a
+ * concrete built-in tester can wrap a component subtype.
  */
-public interface GeolocationTrackerSession {
-
-    /** The component that owns this tracker session. */
-    Component owner();
-
-    /** Options the tracker was started with, or {@code null}. */
-    @Nullable
-    GeolocationOptions options();
-
-    /** Whether the tracker is currently receiving updates. */
-    boolean isActive();
+public class CustomDialog extends Dialog {
 }

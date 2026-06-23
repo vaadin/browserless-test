@@ -30,6 +30,8 @@ import com.vaadin.flow.component.HasText;
  *            the component type, bound to {@link HasText}
  * @param <SELF>
  *            the concrete locator subtype, used for fluent chaining
+ *
+ * @since 1.1
  */
 public interface HasTextFilter<C extends Component & HasText, SELF extends Locator<C, SELF>> {
 
