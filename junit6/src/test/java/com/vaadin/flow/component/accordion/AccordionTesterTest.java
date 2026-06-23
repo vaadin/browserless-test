@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.accordion;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.OptionalInt;
 
 import org.junit.jupiter.api.Assertions;
@@ -73,6 +75,23 @@ class AccordionTesterTest extends BrowserlessTest {
                 "Green panel should exist");
         Assertions.assertFalse(wrap.hasPanel("Orange"),
                 "No Orange panel is added");
+    }
+
+    @Test
+    void openDetails_viaTester_eventFiredWithFromClientTrue() {
+        final List<Accordion.OpenedChangeEvent> events = new ArrayList<>();
+        view.accordion.addOpenedChangeListener(events::add);
+
+        test(view.accordion).openDetails("Green");
+
+        Assertions.assertEquals(1, events.size(),
+                "Opening a panel should fire a single OpenedChangeEvent");
+        Accordion.OpenedChangeEvent event = events.get(0);
+        Assertions.assertTrue(event.isFromClient(),
+                "Tester open simulates a user interaction and should report isFromClient() == true");
+        Assertions.assertEquals(OptionalInt.of(1), event.getOpenedIndex());
+        Assertions.assertTrue(test(view.accordion).isOpen("Green"),
+                "Green should be open");
     }
 
     @Test

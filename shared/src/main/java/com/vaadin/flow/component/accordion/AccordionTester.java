@@ -19,6 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.internal.nodefeature.ElementPropertyMap;
+import com.vaadin.flow.internal.nodefeature.PropertyChangeDeniedException;
 
 @Tests(Accordion.class)
 public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
@@ -47,7 +49,21 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
             throw new IllegalArgumentException(
                     "No dropdown found for '" + summary + "'");
         }
-        getComponent().open(childPanel);
+        // Simulate a user opening the panel so that the resulting
+        // OpenedChangeEvent reports isFromClient() == true, consistent with the
+        // other interaction testers.
+        int index = getComponent().getElement()
+                .indexOfChild(childPanel.getElement());
+        try {
+            getComponent().getElement().getNode()
+                    .getFeature(ElementPropertyMap.class)
+                    .deferredUpdateFromClient("opened", (double) index).run();
+        } catch (PropertyChangeDeniedException e) {
+            throw new IllegalStateException(
+                    "Unable to simulate opening the accordion panel '" + summary
+                            + "'",
+                    e);
+        }
         roundTrip();
     }
 
