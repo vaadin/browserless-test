@@ -16,32 +16,60 @@
 package com.vaadin.browserless;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 
+/**
+ * Verifies that {@link SpringBrowserlessTest} combined with
+ * {@code @TestInstance(PER_CLASS)} creates the Vaadin environment once and
+ * reuses the same {@link VaadinService}, {@link VaadinSession} and {@link UI}
+ * across all test methods in the class.
+ */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ContextConfiguration(classes = SpringBrowserlessPerClassLifecycleTest.TestConfig.class)
 class SpringBrowserlessPerClassLifecycleTest extends SpringBrowserlessTest {
 
-    @Test
-    void perClassLifecycle_firstTest_vaadinEnvironmentIsSetup() {
-        Assertions.assertNotNull(VaadinService.getCurrent(),
-                "VaadinService should be available with PER_CLASS lifecycle");
-        Assertions.assertNotNull(VaadinSession.getCurrent(),
-                "VaadinSession should be available with PER_CLASS lifecycle");
+    private VaadinService sharedService;
+    private VaadinSession sharedSession;
+    private UI sharedUI;
+
+    @BeforeAll
+    void captureVaadinEnvironment() {
+        sharedService = VaadinService.getCurrent();
+        sharedSession = VaadinSession.getCurrent();
+        sharedUI = UI.getCurrent();
+        Assertions.assertNotNull(sharedService,
+                "VaadinService should be available after PER_CLASS init");
+        Assertions.assertNotNull(sharedSession,
+                "VaadinSession should be available after PER_CLASS init");
+        Assertions.assertNotNull(sharedUI,
+                "UI should be available after PER_CLASS init");
     }
 
     @Test
-    void perClassLifecycle_secondTest_vaadinEnvironmentIsSetup() {
-        Assertions.assertNotNull(VaadinService.getCurrent(),
-                "VaadinService should be available with PER_CLASS lifecycle");
-        Assertions.assertNotNull(VaadinSession.getCurrent(),
-                "VaadinSession should be available with PER_CLASS lifecycle");
+    void firstTest_sameVaadinEnvironment() {
+        assertSameEnvironment();
+    }
+
+    @Test
+    void secondTest_sameVaadinEnvironment() {
+        assertSameEnvironment();
+    }
+
+    private void assertSameEnvironment() {
+        Assertions.assertSame(sharedService, VaadinService.getCurrent(),
+                "PER_CLASS lifecycle must reuse the same VaadinService across tests");
+        Assertions.assertSame(sharedSession, VaadinSession.getCurrent(),
+                "PER_CLASS lifecycle must reuse the same VaadinSession across tests");
+        Assertions.assertSame(sharedUI, UI.getCurrent(),
+                "PER_CLASS lifecycle must reuse the same UI across tests");
     }
 
     @Configuration

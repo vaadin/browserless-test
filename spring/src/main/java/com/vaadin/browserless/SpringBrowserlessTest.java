@@ -17,8 +17,6 @@ package com.vaadin.browserless;
 
 import java.util.Set;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -62,7 +60,7 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  * }
  * </pre>
  */
-@ExtendWith({ SpringExtension.class })
+@ExtendWith({ SpringExtension.class, BrowserlessTestExtension.class })
 @TestExecutionListeners(listeners = BrowserlessTestSpringLookupInitializer.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
 public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
@@ -82,13 +80,19 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
     }
 
     /**
-     * Sets up the mock Vaadin Spring environment before each test. Runs as a
-     * {@code @BeforeEach} method so that it fires <em>after</em> all JUnit 5
-     * extension {@code beforeEach} callbacks — in particular after
-     * {@code SpringExtension.beforeEach()}, which populates the Spring Security
-     * context for annotations such as {@code @WithMockUser}.
+     * Sets up the mock Vaadin Spring environment.
+     * <p>
+     * The lifecycle is driven by {@link BrowserlessTestExtension}: for the
+     * default per-method lifecycle it is invoked from the extension's
+     * {@code beforeEach} callback, and for {@code @TestInstance(PER_CLASS)}
+     * from {@code beforeAll}, so the environment is created once and reused
+     * across the test methods.
+     * <p>
+     * {@link BrowserlessTestExtension} is declared <em>after</em>
+     * {@link SpringExtension} in {@code @ExtendWith} so that this init fires
+     * after {@code SpringExtension.beforeEach()}, which populates the Spring
+     * Security context for annotations such as {@code @WithMockUser}.
      */
-    @BeforeEach
     @Override
     protected void initVaadinEnvironment() {
         scanTesters();
@@ -98,7 +102,16 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         initSignalsSupport();
     }
 
-    @AfterEach
+    /**
+     * Tears down the mock Vaadin Spring environment.
+     * <p>
+     * The lifecycle is driven by {@link BrowserlessTestExtension}: for the
+     * default per-method lifecycle it is invoked from the extension's
+     * {@code afterEach} callback, and for {@code @TestInstance(PER_CLASS)} from
+     * {@code afterAll}, so the environment created in
+     * {@link #initVaadinEnvironment()} is torn down once after all test
+     * methods.
+     */
     @Override
     protected void cleanVaadinEnvironment() {
         super.cleanVaadinEnvironment();
