@@ -17,6 +17,7 @@ package com.vaadin.flow.component.button;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Activatable;
 
 /**
  *
@@ -35,5 +36,18 @@ public class ButtonTester<T extends Button> extends ComponentTester<T> {
      */
     public ButtonTester(T component) {
         super(component);
+    }
+
+    /**
+     * Activate the button through the shared {@link Activatable} capability
+     * instead of firing a ClickEvent directly. The round-trip is supplied by
+     * the registry's interceptor. Only the no-arg click is routed; metakey/
+     * button variants on the {@code Clickable} mixin stay on the legacy path
+     * (out of spike scope).
+     */
+    @Override
+    public void click() {
+        ensureComponentIsUsable();
+        automation().of(getComponent()).as(Activatable.class).activate();
     }
 }
