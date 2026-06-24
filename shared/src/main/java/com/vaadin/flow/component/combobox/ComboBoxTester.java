@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
@@ -106,17 +107,8 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
             setValueAsUser(null);
             return;
         }
-        final List<Y> suggestionItems = getSuggestionItems();
-        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
-                .getItemLabelGenerator();
-        final List<Y> filtered = suggestionItems.stream().filter(
-                item -> selection.equals(itemLabelGenerator.apply(item)))
-                .collect(Collectors.toList());
-        if (filtered.size() != 1) {
-            throw new IllegalArgumentException(
-                    "No item found for '" + selection + "'");
-        }
-        setValueAsUser(filtered.get(0));
+        automation().of(getComponent()).as(Selectable.class)
+                .selectByContent(selection);
     }
 
     /**

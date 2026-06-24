@@ -1,0 +1,56 @@
+/*
+ * Copyright 2000-2026 Vaadin Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.vaadin.flow.component.combobox;
+
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.router.RouteConfiguration;
+
+@ViewPackages
+public class ComboBoxTesterAutomationTest extends BrowserlessTest {
+
+    private ComboBoxView view;
+
+    @BeforeEach
+    public void registerView() {
+        RouteConfiguration.forApplicationScope()
+                .setAnnotatedRoute(ComboBoxView.class);
+        view = navigate(ComboBoxView.class);
+    }
+
+    @Test
+    public void selectItem_selectsByContent() {
+        ComboBoxTester tester = test(ComboBoxTester.class, view.combo);
+        List<String> suggestions = tester.getSuggestions();
+        Assertions.assertFalse(suggestions.isEmpty(),
+                "fixture must offer suggestions");
+        String label = suggestions.get(0);
+
+        tester.selectItem(label);
+
+        Assertions.assertNotNull(view.combo.getValue(),
+                "an item should be selected");
+        Assertions.assertEquals(label,
+                view.combo.getItemLabelGenerator().apply(view.combo.getValue()),
+                "selected item's label must match the requested content (A/B parity)");
+    }
+}
