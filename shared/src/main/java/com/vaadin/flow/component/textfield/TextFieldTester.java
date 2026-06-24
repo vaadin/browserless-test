@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 import com.vaadin.flow.component.shared.HasClearButton;
 
 /**
@@ -61,7 +62,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
                     "Field doesn't allow null values");
         }
 
-        setValueAsUser(value);
+        automation().of(getComponent()).as(Settable.class).set(value);
     }
 
     /**
