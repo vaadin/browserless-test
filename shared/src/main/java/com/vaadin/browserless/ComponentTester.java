@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.flow.automation.Automation;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -72,6 +73,16 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public T getComponent() {
         return component;
+    }
+
+    /**
+     * The shared automation tool context for driving this tester's component
+     * through typed capabilities. The browserless round-trip is supplied by an
+     * interceptor on the underlying registry — callers must not call
+     * {@code roundTrip()} themselves.
+     */
+    protected Automation automation() {
+        return BrowserlessAutomation.forDriving(getComponent());
     }
 
     /**
