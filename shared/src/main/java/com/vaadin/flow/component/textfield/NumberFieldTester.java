@@ -19,6 +19,7 @@ import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 
 /**
  * Tester for NumberField components.
@@ -58,7 +59,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
             throw new IllegalArgumentException(
                     "Given value '" + value + "' is not valid");
         }
-        setValueAsUser(value);
+        automation().of(getComponent()).as(Settable.class).set(value);
     }
 
     private boolean isValid(V value) {
