@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.NotUsableException;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 
 /**
@@ -66,9 +68,17 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
 
         ensureComponentIsUsable();
 
-        var items = getItemsForSelection(selection);
-        items.addAll(getSelected());
-        setValueAsUser(items);
+        try {
+            Selectable selectable = automation().of(getComponent())
+                    .as(Selectable.class);
+            for (String item : selection) {
+                selectable.selectByContent(item);
+            }
+        } catch (NotUsableException e) {
+            // a disabled option is rejected by the capability layer; preserve
+            // this tester's not-usable contract (IllegalStateException)
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -106,7 +116,7 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      * Clear all selected items from the component.
      */
     public void clearSelection() {
-        getComponent().clear();
+        automation().of(getComponent()).as(Selectable.class).deselectAll();
     }
 
     /**

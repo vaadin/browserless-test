@@ -18,7 +18,6 @@ package com.vaadin.flow.component.combobox;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +26,7 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
@@ -82,18 +82,11 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
             getComponent().deselectAll();
             return;
         }
-        List<String> toBeSelected = Arrays.asList(selection);
-        final List<Y> suggestionItems = getSuggestionItems();
-        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
-                .getItemLabelGenerator();
-        final List<Y> filtered = suggestionItems.stream().filter(
-                item -> toBeSelected.contains(itemLabelGenerator.apply(item)))
-                .collect(Collectors.toList());
-        if (filtered.size() < 1) {
-            throw new IllegalArgumentException(
-                    "No item found for '" + selection + "'");
+        Selectable selectable = automation().of(getComponent())
+                .as(Selectable.class);
+        for (String item : selection) {
+            selectable.selectByContent(item);
         }
-        getComponent().setValue(filtered);
     }
 
     /**
