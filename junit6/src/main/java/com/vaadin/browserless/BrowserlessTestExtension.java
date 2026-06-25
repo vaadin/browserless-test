@@ -17,42 +17,48 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
- * Opt-in JUnit 5 extension that lets a {@link BrowserlessTest} subclass share a
- * single Vaadin environment across all its test methods using
- * {@code @TestInstance(PER_CLASS)}.
+ * JUnit 5 extension that sets up and tears down a browserless Vaadin
+ * environment, registered with {@code @ExtendWith}.
  *
  * <p>
- * {@link BrowserlessTest} manages the default per-method lifecycle on its own
- * (from instance {@code @BeforeEach}/{@code @AfterEach} methods) and does not
- * support {@code PER_CLASS}. Register this extension explicitly to enable it:
+ * The lifecycle is detected from the test class: with the default per-method
+ * lifecycle a fresh environment is created before each test and torn down
+ * after; with {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)} a single
+ * environment is shared across the class (set up in {@code @BeforeAll}, torn
+ * down in {@code @AfterAll}).
  *
  * <pre>
  * {@code
  * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
  * &#64;ExtendWith(BrowserlessTestExtension.class)
- * class MyStatefulTest extends BrowserlessTest {
+ * &#64;ViewPackages(classes = MyView.class)
+ * class MyStatefulTest {
  * }
  * }
  * </pre>
  *
  * <p>
- * It only acts on the {@code PER_CLASS} lifecycle, setting up the shared
- * environment in {@code @BeforeAll} and tearing it down in {@code @AfterAll};
- * for the per-method lifecycle it is a no-op (handled by
- * {@link BrowserlessTest} instead). Because it is registered explicitly on the
- * concrete test class, users can order it relative to other required extensions
- * (such as weld-junit5's {@code @EnableAutoWeld}) as needed.
+ * This is the primary way to obtain a shared per-class environment, since
+ * {@link BrowserlessTest} itself only supports the per-method lifecycle.
+ * Because the extension is registered explicitly on the concrete test class, it
+ * can be ordered relative to other required extensions (such as weld-junit5's
+ * {@code @EnableAutoWeld}) as the test needs. It is meant to be used on its
+ * own, not in combination with {@link BrowserlessTest} (which already manages
+ * the environment via instance lifecycle methods).
  *
  * @see BrowserlessTest
  * @see BrowserlessExtension
  * @see BrowserlessClassExtension
  */
 public class BrowserlessTestExtension extends AbstractBrowserlessExtension
-        implements BeforeAllCallback, AfterAllCallback {
+        implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback,
+        AfterEachCallback {
 
     /**
      * Creates a new extension.
@@ -63,17 +69,27 @@ public class BrowserlessTestExtension extends AbstractBrowserlessExtension
     @Override
     public void beforeAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
-            Object testInstance = ctx.getTestInstance().orElse(null);
-            if (testInstance instanceof BrowserlessTest test) {
-                test.perClassLifecycle = true;
-            }
-            doInit(testInstance, ctx);
+            doInit(ctx.getTestInstance().orElse(null), ctx);
         }
     }
 
     @Override
     public void afterAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
+            doCleanup();
+        }
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext ctx) {
+        if (!isPerClass(ctx)) {
+            doInit(ctx.getTestInstance().orElse(null), ctx);
+        }
+    }
+
+    @Override
+    public void afterEach(ExtensionContext ctx) {
+        if (!isPerClass(ctx)) {
             doCleanup();
         }
     }

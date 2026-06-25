@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.example.base.WelcomeView;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,9 +39,8 @@ import com.vaadin.flow.component.UI;
  * <p>
  * A {@link BeforeEachCallback} declared on the subclass stands in for such a
  * container-starting extension. Because {@link BrowserlessTest} drives its
- * per-method setup from an instance {@code @BeforeEach} method (not from a
- * {@code BeforeEachCallback} on the inherited extension), JUnit 5 always runs
- * the subclass callback first.
+ * per-method setup from an instance {@code @BeforeEach} method, JUnit 5 always
+ * runs every {@code BeforeEachCallback} (including the subclass one) before it.
  */
 @ViewPackages(classes = WelcomeView.class)
 @ExtendWith(BrowserlessTestExtensionOrderingTest.RecordingExtension.class)
@@ -59,6 +59,7 @@ class BrowserlessTestExtensionOrderingTest extends BrowserlessTest {
         }
     }
 
+    @BeforeEach
     @Override
     protected void initVaadinEnvironment() {
         ORDER.add("initVaadinEnvironment");

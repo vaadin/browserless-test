@@ -25,15 +25,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.vaadin.flow.component.UI;
 
 /**
- * Verifies that {@link BrowserlessTest} combined with
- * {@code @TestInstance(PER_CLASS)} and an explicitly registered
- * {@link BrowserlessTestExtension} reuses the same Vaadin environment across
- * all test methods in the class.
+ * Verifies the opt-in per-class path: a test that does not extend
+ * {@link BrowserlessTest} but registers {@link BrowserlessTestExtension}
+ * explicitly together with {@code @TestInstance(PER_CLASS)} reuses the same
+ * Vaadin environment across all test methods in the class.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(BrowserlessTestExtension.class)
 @ViewPackages(classes = WelcomeView.class)
-class BrowserlessTestPerClassLifecycleTest extends BrowserlessTest {
+class BrowserlessTestExtensionPerClassLifecycleTest {
 
     private UI sharedUI;
 
@@ -42,14 +42,12 @@ class BrowserlessTestPerClassLifecycleTest extends BrowserlessTest {
         sharedUI = UI.getCurrent();
         Assertions.assertNotNull(sharedUI,
                 "Expecting current UI to be available after PER_CLASS init");
-        navigate(WelcomeView.class);
     }
 
     @Test
     void firstTest_sameUIInstance() {
         Assertions.assertSame(sharedUI, UI.getCurrent(),
                 "PER_CLASS lifecycle must reuse the same UI across tests");
-        Assertions.assertInstanceOf(WelcomeView.class, getCurrentView());
     }
 
     @Test

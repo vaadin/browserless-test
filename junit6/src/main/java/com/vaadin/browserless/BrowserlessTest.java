@@ -43,38 +43,34 @@ import org.junit.jupiter.api.BeforeEach;
  * }
  * </pre>
  *
- * For the default per-method lifecycle, the Vaadin environment is set up before
- * each test by an instance {@code @BeforeEach} method (which calls
- * {@link #initVaadinEnvironment()}) and torn down by an instance
- * {@code @AfterEach} method (which calls {@link #cleanVaadinEnvironment()}).
- * Driving setup from instance lifecycle methods (rather than from an extension
- * callback) ensures it runs <em>after</em> all JUnit 5 extension
- * {@code beforeEach} callbacks, so the test can be combined with extensions
- * that {@code MockVaadin} depends on — for example a CDI container started by
- * weld-junit5's {@code @EnableAutoWeld}, whose {@code BeanManagerProvider} must
- * be in place before {@code MockVaadin.setup()} runs.
+ * The Vaadin environment is set up before each test by the
+ * {@link #initVaadinEnvironment()} {@code @BeforeEach} method and cleaned up
+ * afterwards by the {@link #cleanVaadinEnvironment()} {@code @AfterEach}
+ * method. Being instance lifecycle methods (rather than extension callbacks),
+ * they run <em>after</em> all JUnit 5 extension {@code beforeEach} callbacks,
+ * so the test can be combined with extensions that {@code MockVaadin} depends
+ * on — for example a CDI container started by weld-junit5's
+ * {@code @EnableAutoWeld}, whose {@code BeanManagerProvider} must be in place
+ * before {@code MockVaadin.setup()} runs.
  *
  * <p>
- * On its own, {@code BrowserlessTest} only supports the default per-method
- * lifecycle; it does <em>not</em> support
- * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}. Tests that need a
- * single Vaadin environment shared across all methods in the class can opt in
- * by registering {@link BrowserlessTestExtension} explicitly, ordering it as
- * needed relative to any other required extensions:
+ * Usually it is not necessary to override {@link #initVaadinEnvironment()} or
+ * {@link #cleanVaadinEnvironment()}, but if it is done then the override must
+ * keep the {@code @BeforeEach}/{@code @AfterEach} annotation so the hook is
+ * still handled by the testing framework. A common reason to override
+ * {@link #initVaadinEnvironment()} is to perform a custom
+ * {@code MockVaadin.setup()} — for instance to register a CDI-aware servlet:
  *
  * <pre>
  * {@code
- * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
- * &#64;ExtendWith(BrowserlessTestExtension.class)
- * &#64;ViewPackages(classes = MyView.class)
- * class MyStatefulTest extends BrowserlessTest {
+ * &#64;BeforeEach
+ * &#64;Override
+ * protected void initVaadinEnvironment() {
+ *     scanTesters();
+ *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, lookupServices());
  * }
  * }
  * </pre>
- *
- * When that extension is present and the class uses {@code PER_CLASS}, it
- * initializes the environment once in {@code @BeforeAll} and tears it down in
- * {@code @AfterAll}, and the per-method hooks above become no-ops.
  *
  * <p>
  * To provide custom Flow service implementations via the
@@ -90,12 +86,21 @@ import org.junit.jupiter.api.BeforeEach;
  * </pre>
  *
  * <p>
- * <strong>Note:</strong> Subclasses may override
- * {@link #initVaadinEnvironment()} to perform a custom
- * {@code MockVaadin.setup()} (for example to register a CDI-aware servlet). The
- * override must NOT be annotated with {@code @BeforeEach}: it is already
- * invoked by the inherited per-method hook, and adding {@code @BeforeEach}
- * would run the setup twice.
+ * This class only supports the default per-method lifecycle; it does
+ * <em>not</em> support {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}.
+ * Tests that need a single Vaadin environment shared across all methods in the
+ * class can register {@link BrowserlessTestExtension} explicitly instead of
+ * extending this class, combining it with any other required extensions:
+ *
+ * <pre>
+ * {@code
+ * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
+ * &#64;ExtendWith(BrowserlessTestExtension.class)
+ * &#64;ViewPackages(classes = MyView.class)
+ * class MyStatefulTest {
+ * }
+ * }
+ * </pre>
  *
  * <p>
  * To get a graphical ASCII representation of the UI tree on failure, add
@@ -110,41 +115,16 @@ import org.junit.jupiter.api.BeforeEach;
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
-    /**
-     * Set by {@link BrowserlessTestExtension} when the environment is managed
-     * by the extension for a {@code PER_CLASS} test (initialized in
-     * {@code @BeforeAll}, torn down in {@code @AfterAll}). When {@code true}
-     * the per-method hooks below must not run.
-     */
-    boolean perClassLifecycle = false;
-
-    /**
-     * Sets up a fresh Vaadin environment before each test, unless the
-     * environment is managed by {@link BrowserlessTestExtension} for a
-     * {@code PER_CLASS} test (in which case it has already been set up once in
-     * {@code @BeforeAll}).
-     *
-     * <p>
-     * Implemented as an instance {@code @BeforeEach} method so that it runs
-     * after all JUnit 5 extension {@code beforeEach} callbacks. It delegates to
-     * {@link #initVaadinEnvironment()}, which subclasses may override.
-     */
     @BeforeEach
-    final void setUpVaadinEnvironment() {
-        if (!perClassLifecycle) {
-            initVaadinEnvironment();
-        }
+    @Override
+    protected void initVaadinEnvironment() {
+        super.initVaadinEnvironment();
     }
 
-    /**
-     * Tears down the Vaadin environment after each test, unless the class uses
-     * the {@code PER_CLASS} lifecycle (handled in {@code @AfterAll}).
-     */
     @AfterEach
-    final void tearDownVaadinEnvironment() {
-        if (!perClassLifecycle) {
-            cleanVaadinEnvironment();
-        }
+    @Override
+    protected void cleanVaadinEnvironment() {
+        super.cleanVaadinEnvironment();
     }
 
     @Override
