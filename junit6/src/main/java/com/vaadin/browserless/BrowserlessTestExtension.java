@@ -17,45 +17,55 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * Package-private extension used exclusively by {@code @ExtendWith} on
- * {@link BrowserlessTest}. Auto-detects lifecycle from
- * {@code @TestInstance(PER_CLASS)} on the test class.
+ * {@link BrowserlessTest}.
+ *
+ * <p>
+ * This extension only manages the <em>shared</em> (PER_CLASS) environment, set
+ * up in {@code @BeforeAll} and torn down in {@code @AfterAll}. The default
+ * per-method lifecycle is intentionally handled by instance
+ * {@code @BeforeEach}/{@code @AfterEach} methods on {@link BrowserlessTest},
+ * not by a {@code BeforeEachCallback}: a {@code BeforeEachCallback} declared on
+ * a superclass is always booted before any extension a subclass adds (e.g.
+ * weld-junit5's {@code @EnableAutoWeld}), which would force {@code MockVaadin}
+ * setup to run before those extensions' state is ready. Instance lifecycle
+ * methods, on the other hand, can be re-declared by the subclass and thus
+ * composed correctly with subclass-registered extensions.
  */
 class BrowserlessTestExtension extends AbstractBrowserlessExtension
-        implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback,
-        AfterEachCallback {
+        implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void beforeAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
-            doInit(ctx.getTestInstance().orElse(null), ctx);
+            Object testInstance = ctx.getTestInstance().orElse(null);
+            // Run the shared setup while the per-method guard is still open,
+            // so initVaadinEnvironment() (or a subclass override of it) runs.
+            doInit(testInstance, ctx);
+            // From now on the per-method instance hooks must stand down: the
+            // environment is shared across all tests in the class.
+            setExtensionManagedLifecycle(testInstance, true);
         }
     }
 
     @Override
     public void afterAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
+            // Re-open the guard so the shared teardown actually runs.
+            setExtensionManagedLifecycle(ctx.getTestInstance().orElse(null),
+                    false);
             doCleanup();
         }
     }
 
-    @Override
-    public void beforeEach(ExtensionContext ctx) {
-        if (!isPerClass(ctx)) {
-            doInit(ctx.getTestInstance().orElse(null), ctx);
-        }
-    }
-
-    @Override
-    public void afterEach(ExtensionContext ctx) {
-        if (!isPerClass(ctx)) {
-            doCleanup();
+    private void setExtensionManagedLifecycle(Object testInstance,
+            boolean managed) {
+        if (testInstance instanceof BrowserlessTest browserlessTest) {
+            browserlessTest.setExtensionManagedLifecycle(managed);
         }
     }
 
