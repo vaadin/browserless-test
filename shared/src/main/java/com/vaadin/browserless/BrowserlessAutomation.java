@@ -30,6 +30,7 @@ import com.vaadin.flow.component.Component;
 final class BrowserlessAutomation {
 
     private static final CapabilityRegistry REGISTRY = new CapabilityRegistry()
+            .register(new BrowserlessUsableProvider())
             .intercept(InterceptScope.global(), new RoundTripInterceptor());
 
     private BrowserlessAutomation() {
