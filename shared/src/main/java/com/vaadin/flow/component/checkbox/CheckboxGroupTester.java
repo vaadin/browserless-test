@@ -29,6 +29,8 @@ import org.jetbrains.annotations.NotNull;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.NotUsableException;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.data.binder.HasItemComponents;
 
 /**
@@ -59,7 +61,14 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void selectItem(String selection) {
         ensureComponentIsUsable();
-        selectItems(List.of(selection));
+        try {
+            automation().of(getComponent()).as(Selectable.class)
+                    .selectByContent(selection);
+        } catch (NotUsableException e) {
+            // a disabled option is rejected by the capability layer; preserve
+            // this tester's not-usable contract (IllegalStateException)
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     /**
