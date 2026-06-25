@@ -47,8 +47,8 @@ class GetTextCellRendererTest extends BrowserlessTest {
     }
 
     @Test
-    void getCellText_renderNull_getsNull() {
-        Assertions.assertNull(grid_.getCellText(0, 1));
+    void getCellText_renderNull_getsEmpty() {
+        Assertions.assertEquals("", grid_.getCellText(0, 1));
     }
 
     @Test

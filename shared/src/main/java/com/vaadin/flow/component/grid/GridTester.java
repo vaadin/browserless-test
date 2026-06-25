@@ -15,7 +15,6 @@
  */
 package com.vaadin.flow.component.grid;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,12 +29,12 @@ import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.automation.Indexable;
+import com.vaadin.flow.automation.ReadableCell;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.function.ValueProvider;
 import com.vaadin.flow.internal.JacksonUtils;
 
 /**
@@ -257,18 +256,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public String getCellText(int row, int column) {
         ensureVisible();
-        final Grid.Column<Y> targetColumn = getColumns().get(column);
-        if (targetColumn.getRenderer() instanceof ComponentRenderer) {
-            Component component = getCellComponent(row, column);
-            if (component == null) {
-                return null;
-            }
-            return component.getElement().getTextRecursively();
-        } else if (targetColumn.getRenderer() instanceof ColumnPathRenderer) {
-            // This renderer just writes the object text using a path
-            return getValueProviderString(row, targetColumn);
-        }
-        return null;
+        return automation().of(getComponent()).as(ReadableCell.class)
+                .cellText(row, column);
     }
 
     /**
@@ -724,26 +713,6 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
             sortOrders.add(insertIndex, GridSortOrder.desc(col).build().get(0));
         }
         getComponent().sort(sortOrders);
-    }
-
-    private String getValueProviderString(int row, Grid.Column<Y> targetColumn)
-            throws IllegalArgumentException {
-        try {
-            ColumnPathRenderer<Y> renderer = (ColumnPathRenderer<Y>) targetColumn
-                    .getRenderer();
-
-            Field f = ColumnPathRenderer.class.getDeclaredField("provider");
-            f.setAccessible(true);
-
-            @SuppressWarnings("unchecked")
-            final ValueProvider<Y, ?> columnValueProvider = (ValueProvider<Y, ?>) f
-                    .get(renderer);
-
-            return columnValueProvider.apply(getRow(row)).toString();
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(
-                    "Failed to get value provider for column", e);
-        }
     }
 
 }
