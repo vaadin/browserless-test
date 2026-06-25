@@ -17,6 +17,7 @@ package com.vaadin.flow.component.textfield;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 
 /**
  * Tester for TextArea components.
@@ -47,7 +48,7 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
      */
     public void setValue(String value) {
         ensureComponentIsUsable();
-        setValueAsUser(value);
+        automation().of(getComponent()).as(Settable.class).set(value);
     }
 
     private boolean hasValidation() {
