@@ -67,7 +67,8 @@ final class BrowserlessUsable implements Usable {
         return !(component instanceof HasValue<?, ?> hv) || !hv.isReadOnly();
     }
 
-    private boolean inert() {
+    @Override
+    public boolean inert() {
         return component.getElement().getNode().isInert();
     }
 
@@ -93,7 +94,8 @@ final class BrowserlessUsable implements Usable {
                     "part of a not visible subtree"));
         }
         if (inert()) {
-            r.add(UsabilityReason.of("inert", "behind a modality curtain"));
+            r.add(UsabilityReason.of(UsabilityReason.INERT,
+                    "behind a modality curtain"));
         }
         if (component instanceof HasValue<?, ?> hv && hv.isReadOnly()) {
             r.add(UsabilityReason.of(UsabilityReason.READ_ONLY, "read only"));
