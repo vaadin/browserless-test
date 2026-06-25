@@ -115,14 +115,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @see #ensureComponentIsUsable()
      */
     protected static boolean isUsable(Component component) {
-        return component.getElement().isEnabled() && component.isAttached()
-                && isEffectivelyVisible(component)
-                && !component.getElement().getNode().isInert();
-    }
-
-    private static boolean isEffectivelyVisible(Component component) {
-        return component.isVisible() && (!component.getParent().isPresent()
-                || isEffectivelyVisible(component.getParent().get()));
+        return BrowserlessAutomation.forDriving(component).of(component)
+                .as(Usable.class).isUsable();
     }
 
     /**
@@ -222,20 +216,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected static void notUsableReasons(Component component,
             Consumer<String> collector) {
-        if (!component.getElement().isEnabled()) {
-            collector.accept("not enabled");
-        }
-        if (!component.isAttached()) {
-            collector.accept("not attached");
-        }
-        if (!component.isVisible()) {
-            collector.accept("not visible");
-        } else if (!isEffectivelyVisible(component)) {
-            collector.accept("part of a not visible subtree");
-        }
-        if (component.getElement().getNode().isInert()) {
-            collector.accept("behind a modality curtain");
-        }
+        BrowserlessAutomation.forDriving(component).of(component)
+                .as(Usable.class).reasons()
+                .forEach(reason -> collector.accept(reason.detail()));
     }
 
     /**
