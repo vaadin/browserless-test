@@ -52,12 +52,15 @@ class MockRequestTest : DynaTest({
         expectList("bar", "baz") { request.getParameterValues("foo")!!.toList() }
     }
 
-    test("getSession(false) returns the old invalid session") {
+    test("getSession(false) returns null once the session is invalidated") {
+        // Mirrors the servlet container contract: after invalidation there is
+        // no current session, so getSession(false) must return null rather than
+        // the stale, invalidated session. See issue #115.
         val session = request.session as MockHttpSession
         expect(true) { session.isValid }
         session.setAttribute("foo", "bar")
         session.invalidate()
-        expect(session) { request.getSession(false) }
+        expect(null) { request.getSession(false) }
         expect(false) { session.isValid }
     }
 
