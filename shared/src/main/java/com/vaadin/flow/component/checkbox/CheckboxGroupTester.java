@@ -90,7 +90,15 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void selectItems(Collection<String> selection) {
         ensureComponentIsUsable();
-        updateSelection(selection, Collection::addAll);
+        try {
+            Selectable selectable = automation().of(getComponent())
+                    .as(Selectable.class);
+            selection.forEach(selectable::selectByContent);
+        } catch (NotUsableException e) {
+            // a disabled option is rejected by the capability layer; preserve
+            // this tester's not-usable contract (IllegalStateException)
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -98,8 +106,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void selectAll() {
         ensureComponentIsUsable();
-        setValueAsUser(getCheckboxes(child -> isUsableCheckbox(child, false))
-                .map(this::getCheckboxValue).collect(Collectors.toSet()));
+        automation().of(getComponent()).as(Selectable.class).selectAll();
     }
 
     /**
@@ -140,12 +147,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void deselectAll() {
         ensureComponentIsUsable();
-        Set<V> usableItems = getCheckboxes(
-                child -> isUsableCheckbox(child, false))
-                .map(this::getCheckboxValue).collect(Collectors.toSet());
-        Set<V> selectedItems = new HashSet<>(getComponent().getValue());
-        selectedItems.removeAll(usableItems);
-        getComponent().setValue(selectedItems);
+        automation().of(getComponent()).as(Selectable.class).deselectAll();
     }
 
     /**
