@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,19 +49,6 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public CheckboxGroupTester(T component) {
         super(component);
-    }
-
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
     }
 
     /**

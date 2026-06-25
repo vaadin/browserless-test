@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.checkbox;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.Tests;
@@ -38,23 +36,6 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
      */
     public CheckboxTester(T component) {
         super(component);
-    }
-
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly()
-                && !getComponent().isDisabledBoolean();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
-        if (getComponent().isDisabledBoolean()) {
-            collector.accept("disabled");
-        }
     }
 
     @Override

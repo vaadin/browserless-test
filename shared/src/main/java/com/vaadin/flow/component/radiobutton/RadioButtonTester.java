@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.radiobutton;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.ClickEvent;
@@ -43,19 +41,6 @@ public class RadioButtonTester<T extends RadioButton<V>, V>
         super(component);
     }
 
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !isDisabled();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (isDisabled()) {
-            collector.accept("disabled");
-        }
-    }
-
     /**
      * If the component is usable, send click to component as if it was from the
      * client.
@@ -68,9 +53,5 @@ public class RadioButtonTester<T extends RadioButton<V>, V>
         ComponentUtil.fireEvent(radioButton, new ClickEvent<>(radioButton, true,
                 0, 0, 0, 0, 0, 0, false, false, false, false));
         radioButton.setChecked(true);
-    }
-
-    protected boolean isDisabled() {
-        return getComponent().getElement().getProperty("disabled", false);
     }
 }
