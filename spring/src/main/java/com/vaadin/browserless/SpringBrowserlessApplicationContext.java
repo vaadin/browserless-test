@@ -85,7 +85,11 @@ public final class SpringBrowserlessApplicationContext {
                 .withLookupServices(
                         BrowserlessTestSpringLookupInitializer.class)
                 .withCloseHook(
-                        BrowserlessTestSpringLookupInitializer::clearApplicationContext);
+                        BrowserlessTestSpringLookupInitializer::clearApplicationContext)
+                // Bind each user's request to Spring's RequestContextHolder so
+                // @SessionScope/@RequestScope beans are resolved per user.
+                .withRequestContextHandler(
+                        new SpringRequestContextHandler(applicationContext));
         if (SpringSecuritySupport.isPresent()) {
             // Register the security-aware request customizer when Spring
             // Security is on the classpath. It is a no-op when no
