@@ -30,6 +30,7 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.automation.Indexable;
 import com.vaadin.flow.automation.ReadableCell;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
@@ -229,7 +230,13 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void selectAll() {
         ensureComponentIsUsable();
-        GridKt._selectAll(getComponent());
+        try {
+            automation().of(getComponent()).as(Selectable.class).selectAll();
+        } catch (UnsupportedOperationException e) {
+            // a single-select grid cannot select-all; preserve this tester's
+            // contract (IllegalStateException for "not multi select")
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     /**
