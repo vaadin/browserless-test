@@ -84,6 +84,8 @@ class BrowserlessBaseClassTest {
             allViews.add(com.example.multiuser.ExternalNavigationView.class);
             allViews.add(com.example.multiuser.SimpleView.class);
             allViews.add(com.example.locator.LocatorDemoView.class);
+            allViews.add(com.example.reload.PreservedCounterView.class);
+            allViews.add(com.example.reload.PlainCounterView.class);
             Assertions.assertEquals(allViews.size(), routes.size());
             Assertions.assertTrue(routes.containsAll(allViews));
         }

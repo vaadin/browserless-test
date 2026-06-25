@@ -390,6 +390,43 @@ public class BrowserlessUIContext
     }
 
     /**
+     * Simulates the user reloading this window (pressing F5): the window's UI
+     * is detached and a fresh one is created in the same Vaadin session, then
+     * the current location is rendered again. Session-scoped state (session
+     * attributes, security context) survives, and sibling windows are
+     * unaffected. Views annotated with
+     * {@link com.vaadin.flow.router.PreserveOnRefresh @PreserveOnRefresh} keep
+     * their component instance and state; other views are recreated.
+     *
+     * @return the view shown after the reload
+     */
+    public HasElement reload() {
+        activate();
+        HasElement view = BrowserlessDSL.reload(ui);
+        // reload() swapped in a fresh UI; re-capture it so later operations on
+        // this window act on the live UI rather than the detached one.
+        this.ui = UI.getCurrent();
+        return view;
+    }
+
+    /**
+     * Simulates a page reload (see {@link #reload()}) and verifies the
+     * resulting view is of the expected type.
+     *
+     * @param expectedTarget
+     *            the expected view class after reload
+     * @param <T>
+     *            the view type
+     * @return the view shown after the reload
+     */
+    public <T extends Component> T reload(Class<T> expectedTarget) {
+        activate();
+        T view = BrowserlessDSL.reload(ui, expectedTarget);
+        this.ui = UI.getCurrent();
+        return view;
+    }
+
+    /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     public void roundTrip() {
