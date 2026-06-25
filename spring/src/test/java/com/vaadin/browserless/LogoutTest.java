@@ -68,7 +68,8 @@ class LogoutTest {
 
         // This is the exact logout sequence from issue #115. The handler
         // invalidates the HttpSession and then asks the
-        // HttpSessionSecurityContextRepository to store the (now empty) context.
+        // HttpSessionSecurityContextRepository to store the (now empty)
+        // context.
         // In a real servlet container request.getSession(false) returns null
         // after invalidation, so saving the empty context is a no-op. The mock
         // request must honour the same contract instead of returning the stale,
@@ -94,8 +95,7 @@ class LogoutTest {
                 "Authentication should be cleared after logout");
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> window.navigate(ProtectedView.class));
-        Assertions.assertInstanceOf(LoginView.class,
-                window.getCurrentView());
+        Assertions.assertInstanceOf(LoginView.class, window.getCurrentView());
     }
 
     @Test
