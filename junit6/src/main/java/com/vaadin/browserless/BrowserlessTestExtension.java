@@ -21,23 +21,44 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
- * Package-private extension used exclusively by {@code @ExtendWith} on
- * {@link BrowserlessTest}.
+ * Opt-in JUnit 5 extension that lets a {@link BrowserlessTest} subclass share a
+ * single Vaadin environment across all its test methods using
+ * {@code @TestInstance(PER_CLASS)}.
  *
  * <p>
- * It only manages the {@code @TestInstance(PER_CLASS)} lifecycle, where the
- * Vaadin environment is shared across the class and must be set up in
- * {@code @BeforeAll}/torn down in {@code @AfterAll}. The default per-method
- * lifecycle is intentionally <em>not</em> handled here: {@link BrowserlessTest}
- * sets up the environment from instance {@code @BeforeEach}/{@code @AfterEach}
- * methods, which JUnit 5 runs after all extension {@code beforeEach} callbacks.
- * Driving per-method setup from a {@code BeforeEachCallback} on this superclass
- * extension would otherwise run before extensions registered on the concrete
- * subclass (e.g. weld-junit5's {@code @EnableAutoWeld}), breaking tests that
- * rely on those extensions for {@code MockVaadin}'s dependencies.
+ * {@link BrowserlessTest} manages the default per-method lifecycle on its own
+ * (from instance {@code @BeforeEach}/{@code @AfterEach} methods) and does not
+ * support {@code PER_CLASS}. Register this extension explicitly to enable it:
+ *
+ * <pre>
+ * {@code
+ * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
+ * &#64;ExtendWith(BrowserlessTestExtension.class)
+ * class MyStatefulTest extends BrowserlessTest {
+ * }
+ * }
+ * </pre>
+ *
+ * <p>
+ * It only acts on the {@code PER_CLASS} lifecycle, setting up the shared
+ * environment in {@code @BeforeAll} and tearing it down in {@code @AfterAll};
+ * for the per-method lifecycle it is a no-op (handled by
+ * {@link BrowserlessTest} instead). Because it is registered explicitly on the
+ * concrete test class, users can order it relative to other required extensions
+ * (such as weld-junit5's {@code @EnableAutoWeld}) as needed.
+ *
+ * @see BrowserlessTest
+ * @see BrowserlessExtension
+ * @see BrowserlessClassExtension
  */
-class BrowserlessTestExtension extends AbstractBrowserlessExtension
+public class BrowserlessTestExtension extends AbstractBrowserlessExtension
         implements BeforeAllCallback, AfterAllCallback {
+
+    /**
+     * Creates a new extension.
+     */
+    public BrowserlessTestExtension() {
+    }
 
     @Override
     public void beforeAll(ExtensionContext ctx) {

@@ -17,7 +17,6 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Base JUnit 6 class for browserless tests.
@@ -56,12 +55,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * be in place before {@code MockVaadin.setup()} runs.
  *
  * <p>
- * When the test class is annotated with
- * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}, the environment is
- * instead shared across all tests in the class: it is initialized once in
- * {@code @BeforeAll} and torn down in {@code @AfterAll} by
- * {@link BrowserlessTestExtension}, and the per-method hooks above become
- * no-ops.
+ * On its own, {@code BrowserlessTest} only supports the default per-method
+ * lifecycle; it does <em>not</em> support
+ * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}. Tests that need a
+ * single Vaadin environment shared across all methods in the class can opt in
+ * by registering {@link BrowserlessTestExtension} explicitly, ordering it as
+ * needed relative to any other required extensions:
+ *
+ * <pre>
+ * {@code
+ * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
+ * &#64;ExtendWith(BrowserlessTestExtension.class)
+ * &#64;ViewPackages(classes = MyView.class)
+ * class MyStatefulTest extends BrowserlessTest {
+ * }
+ * }
+ * </pre>
+ *
+ * When that extension is present and the class uses {@code PER_CLASS}, it
+ * initializes the environment once in {@code @BeforeAll} and tears it down in
+ * {@code @AfterAll}, and the per-method hooks above become no-ops.
  *
  * <p>
  * To provide custom Flow service implementations via the
@@ -91,23 +104,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * @see ViewPackages
  *
  * @see BrowserlessExtension
+ *
+ * @see BrowserlessTestExtension
  */
-@ExtendWith(BrowserlessTestExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
     /**
-     * Set by {@link BrowserlessTestExtension} when the test class uses the
-     * {@code PER_CLASS} lifecycle. In that case the environment is managed by
-     * the extension in {@code @BeforeAll}/{@code @AfterAll} and the per-method
-     * hooks below must not run.
+     * Set by {@link BrowserlessTestExtension} when the environment is managed
+     * by the extension for a {@code PER_CLASS} test (initialized in
+     * {@code @BeforeAll}, torn down in {@code @AfterAll}). When {@code true}
+     * the per-method hooks below must not run.
      */
     boolean perClassLifecycle = false;
 
     /**
-     * Sets up a fresh Vaadin environment before each test, unless the class
-     * uses the {@code PER_CLASS} lifecycle (in which case
-     * {@link BrowserlessTestExtension} has already set it up once in
+     * Sets up a fresh Vaadin environment before each test, unless the
+     * environment is managed by {@link BrowserlessTestExtension} for a
+     * {@code PER_CLASS} test (in which case it has already been set up once in
      * {@code @BeforeAll}).
      *
      * <p>

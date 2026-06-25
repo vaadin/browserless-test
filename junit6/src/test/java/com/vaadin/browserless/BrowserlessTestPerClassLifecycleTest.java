@@ -20,15 +20,18 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.vaadin.flow.component.UI;
 
 /**
  * Verifies that {@link BrowserlessTest} combined with
- * {@code @TestInstance(PER_CLASS)} reuses the same Vaadin environment across
+ * {@code @TestInstance(PER_CLASS)} and an explicitly registered
+ * {@link BrowserlessTestExtension} reuses the same Vaadin environment across
  * all test methods in the class.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(BrowserlessTestExtension.class)
 @ViewPackages(classes = WelcomeView.class)
 class BrowserlessTestPerClassLifecycleTest extends BrowserlessTest {
 
