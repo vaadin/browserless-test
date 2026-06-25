@@ -30,6 +30,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.automation.Automation;
+import com.vaadin.flow.automation.Usable;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -98,7 +99,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @see #ensureComponentIsUsable()
      */
     public boolean isUsable() {
-        return isUsable(getComponent());
+        return automation().of(getComponent()).as(Usable.class).isUsable();
     }
 
     /**
@@ -204,7 +205,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @see #ensureComponentIsUsable()
      */
     protected void notUsableReasons(Consumer<String> collector) {
-        notUsableReasons(component, collector);
+        automation().of(getComponent()).as(Usable.class).reasons()
+                .forEach(reason -> collector.accept(reason.detail()));
     }
 
     /**

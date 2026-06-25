@@ -55,4 +55,21 @@ public class UsableConsolidationTest extends BrowserlessTest {
         Assertions.assertFalse(usableOf(child).isUsable(),
                 "a child of a disabled parent must be not-usable (element-level enablement)");
     }
+
+    @Test
+    public void readOnlyHasValue_testerIsNotUsable_withReason() {
+        com.vaadin.flow.component.textfield.TextField tf = new com.vaadin.flow.component.textfield.TextField();
+        tf.setReadOnly(true);
+        UI.getCurrent().add(tf);
+
+        ComponentTester<com.vaadin.flow.component.textfield.TextField> tester = new ComponentTester<>(
+                tf);
+
+        Assertions.assertFalse(tester.isUsable(),
+                "read-only field is not usable via the consolidated Usable");
+        IllegalStateException ex = Assertions.assertThrows(
+                IllegalStateException.class, tester::ensureComponentIsUsable);
+        Assertions.assertTrue(ex.getMessage().contains("read only"),
+                "message should explain read-only: " + ex.getMessage());
+    }
 }
