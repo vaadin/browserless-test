@@ -79,14 +79,14 @@ class NotificationTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void disabledNotification_isUsable() {
+    void disabledNotification_isNotUsable() {
         String notificationText = "Opened disabled notification";
         Notification notification = Notification.show(notificationText);
         notification.setEnabled(false);
         roundTrip();
 
-        Assertions.assertTrue(test(notification).isUsable(),
-                "Disabled Notification should be usable");
+        Assertions.assertFalse(test(notification).isUsable(),
+                "Disabled Notification should not be usable");
     }
 
     @Test

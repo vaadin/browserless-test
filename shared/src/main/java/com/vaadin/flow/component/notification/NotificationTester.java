@@ -76,21 +76,13 @@ public class NotificationTester<T extends Notification>
 
     @Override
     public boolean isUsable() {
-        T component = getComponent();
-        return component.isVisible() && component.isAttached()
-                && component.isOpened();
+        return super.isUsable() && getComponent().isOpened();
     }
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
-        T component = getComponent();
-        if (!component.isAttached()) {
-            collector.accept("not attached");
-        }
-        if (!component.isVisible()) {
-            collector.accept("not visible");
-        }
-        if (!component.isOpened()) {
+        super.notUsableReasons(collector);
+        if (!getComponent().isOpened()) {
             collector.accept("not opened");
         }
     }

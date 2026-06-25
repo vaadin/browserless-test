@@ -184,9 +184,7 @@ public class PopoverTester extends ComponentTester<Popover> {
 
     @Override
     public boolean isUsable() {
-        Popover component = getComponent();
-        return component.isVisible() && component.isAttached()
-                && component.isOpened() && component.getElement().isEnabled();
+        return super.isUsable() && getComponent().isOpened();
     }
 
     private void fireOpenedChangeEvent() {
@@ -203,18 +201,9 @@ public class PopoverTester extends ComponentTester<Popover> {
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
-        Popover component = getComponent();
-        if (!component.isAttached()) {
-            collector.accept("not attached");
-        }
-        if (!component.isVisible()) {
-            collector.accept("not visible");
-        }
-        if (!component.isOpened()) {
+        super.notUsableReasons(collector);
+        if (!getComponent().isOpened()) {
             collector.accept("not opened");
-        }
-        if (!component.getElement().isEnabled()) {
-            collector.accept("not enabled");
         }
     }
 }
