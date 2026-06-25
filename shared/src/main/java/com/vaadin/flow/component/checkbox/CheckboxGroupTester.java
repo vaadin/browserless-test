@@ -16,22 +16,13 @@
 package com.vaadin.flow.component.checkbox;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.jetbrains.annotations.NotNull;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.automation.NotUsableException;
 import com.vaadin.flow.automation.Selectable;
-import com.vaadin.flow.data.binder.HasItemComponents;
 
 /**
  * Tester for CheckboxGroup components.
@@ -139,7 +130,15 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void deselectItems(Collection<String> selection) {
         ensureComponentIsUsable();
-        updateSelection(selection, Collection::removeAll);
+        try {
+            Selectable selectable = automation().of(getComponent())
+                    .as(Selectable.class);
+            selection.forEach(selectable::deselectByContent);
+        } catch (NotUsableException e) {
+            // a disabled option is rejected by the capability layer; preserve
+            // this tester's not-usable contract (IllegalStateException)
+            throw new IllegalStateException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -157,49 +156,6 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public Set<V> getSelected() {
         return getComponent().getValue();
-    }
-
-    @NotNull
-    private Stream<Checkbox> getCheckboxes(Predicate<Checkbox> filter) {
-        return getComponent().getChildren().filter(Checkbox.class::isInstance)
-                .map(Checkbox.class::cast).filter(filter);
-    }
-
-    // CheckboxGroup uses an internal CheckBox subclass that holds the item and
-    // implements HasItemComponents.ItemComponent
-    @SuppressWarnings("unchecked")
-    private V getCheckboxValue(Checkbox checkbox) {
-        HasItemComponents.ItemComponent<V> cast = (HasItemComponents.ItemComponent<V>) checkbox;
-        return cast.getItem();
-    }
-
-    private boolean isUsableCheckbox(Checkbox checkbox,
-            boolean throwIfNotUsable) {
-        boolean usable = new CheckboxTester<>(checkbox).isUsable();
-        if (!usable && throwIfNotUsable) {
-            throw new IllegalStateException(
-                    "Item " + checkbox.getLabel() + " is not usable");
-        }
-        return usable;
-    }
-
-    public void updateSelection(Collection<String> selection,
-            BiConsumer<Collection<V>, Collection<V>> updater) {
-        Set<String> uniqueItems = new HashSet<>(selection);
-        Map<String, V> selectedItems = getCheckboxes(
-                child -> uniqueItems.contains(child.getLabel()))
-                .filter(child -> isUsableCheckbox(child, true))
-                .collect(Collectors.toMap(Checkbox::getLabel,
-                        this::getCheckboxValue));
-        // Check all selected items exist
-        uniqueItems.removeAll(selectedItems.keySet());
-        if (!uniqueItems.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Invalid Item string representation: " + uniqueItems);
-        }
-        Set<V> newValues = new HashSet<>(getComponent().getValue());
-        updater.accept(newValues, selectedItems.values());
-        getComponent().setValue(Set.copyOf(newValues));
     }
 
 }
