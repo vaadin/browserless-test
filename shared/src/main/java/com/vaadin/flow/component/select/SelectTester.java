@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataViewUtils;
 
@@ -56,14 +57,8 @@ public class SelectTester<T extends Select<Y>, Y> extends ComponentTester<T> {
             setValueAsUser(null);
             return;
         }
-        final List<Y> filtered = getSuggestionItems().stream()
-                .filter(item -> selection.equals(getItemLabel(item)))
-                .collect(Collectors.toList());
-        if (filtered.size() != 1) {
-            throw new IllegalArgumentException(
-                    "No item found for '" + selection + "'");
-        }
-        setValueAsUser(filtered.get(0));
+        automation().of(getComponent()).as(Selectable.class)
+                .selectByContent(selection);
     }
 
     /**
