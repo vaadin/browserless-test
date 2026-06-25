@@ -29,6 +29,7 @@ import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
+import com.vaadin.flow.automation.Indexable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
@@ -216,8 +217,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void select(int row) {
         ensureComponentIsUsable();
-        final Y item = getRow(row);
-        GridKt._select(getComponent(), item);
+        automation().of(getComponent()).as(Indexable.class).selectByIndex(row);
     }
 
     /**
