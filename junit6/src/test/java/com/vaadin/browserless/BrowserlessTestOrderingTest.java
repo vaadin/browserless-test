@@ -43,8 +43,8 @@ import com.vaadin.flow.component.UI;
  * runs every {@code BeforeEachCallback} (including the subclass one) before it.
  */
 @ViewPackages(classes = WelcomeView.class)
-@ExtendWith(BrowserlessTestExtensionOrderingTest.RecordingExtension.class)
-class BrowserlessTestExtensionOrderingTest extends BrowserlessTest {
+@ExtendWith(BrowserlessTestOrderingTest.RecordingExtension.class)
+class BrowserlessTestOrderingTest extends BrowserlessTest {
 
     static final List<String> ORDER = new ArrayList<>();
 

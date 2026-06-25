@@ -86,18 +86,19 @@ import org.junit.jupiter.api.BeforeEach;
  * </pre>
  *
  * <p>
- * This class only supports the default per-method lifecycle; it does
- * <em>not</em> support {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}.
- * Tests that need a single Vaadin environment shared across all methods in the
- * class can register {@link BrowserlessTestExtension} explicitly instead of
- * extending this class, combining it with any other required extensions:
+ * This class only supports the default per-method lifecycle. Tests that need a
+ * single Vaadin environment shared across all methods in the class should not
+ * extend it; instead register a {@link BrowserlessClassExtension} and, if the
+ * testing DSL is wanted directly on the test class, implement
+ * {@link TesterWrappers} (and optionally
+ * {@link com.vaadin.browserless.locator.Locators Locators}):
  *
  * <pre>
  * {@code
- * &#64;TestInstance(TestInstance.Lifecycle.PER_CLASS)
- * &#64;ExtendWith(BrowserlessTestExtension.class)
  * &#64;ViewPackages(classes = MyView.class)
- * class MyStatefulTest {
+ * class MyStatefulTest implements TesterWrappers {
+ *     &#64;RegisterExtension
+ *     static BrowserlessClassExtension ext = new BrowserlessClassExtension();
  * }
  * }
  * </pre>
@@ -110,7 +111,7 @@ import org.junit.jupiter.api.BeforeEach;
  *
  * @see BrowserlessExtension
  *
- * @see BrowserlessTestExtension
+ * @see BrowserlessClassExtension
  */
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
