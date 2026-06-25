@@ -17,7 +17,6 @@ package com.vaadin.browserless;
 
 import com.testapp.sessionscope.Prefs;
 import com.testapp.sessionscope.ReproView;
-import com.testapp.sessionscope.RequestScopeView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,28 +87,6 @@ class MultiUserSessionScopeReproTest {
 
         Assertions.assertNotSame(aliceView.boundSignal(), bobView.boundSignal(),
                 "Each user must resolve its own session-scoped signal instance");
-    }
-
-    @Test
-    void twoUsersEachGetOwnRequestScopedBean() {
-        var alice = app.newUser("alice", "USER");
-        var bob = app.newUser("bob", "USER");
-
-        var aliceWindow = alice.newWindow();
-        aliceWindow.navigate(RequestScopeView.class);
-        RequestScopeView aliceView = (RequestScopeView) aliceWindow
-                .getCurrentView();
-
-        // Navigating bob would throw a cross-session IllegalStateException if
-        // bob reused alice's request-scoped bean (and therefore alice's
-        // signal).
-        var bobWindow = bob.newWindow();
-        bobWindow.navigate(RequestScopeView.class);
-        RequestScopeView bobView = (RequestScopeView) bobWindow
-                .getCurrentView();
-
-        Assertions.assertNotSame(aliceView.boundSignal(), bobView.boundSignal(),
-                "Each user must resolve its own request-scoped signal instance");
     }
 
     @Configuration

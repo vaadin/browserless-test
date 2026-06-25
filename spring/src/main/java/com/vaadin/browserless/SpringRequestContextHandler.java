@@ -21,7 +21,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.RequestScope;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.SessionScope;
 
@@ -32,17 +31,17 @@ import com.vaadin.flow.server.VaadinServletRequest;
  * Spring implementation of {@link RequestContextHandler}.
  * <p>
  * Binds each browserless user's request to Spring's
- * {@link RequestContextHolder}, so that {@code @RequestScope} and
- * {@code @SessionScope} beans resolve against the active user's own request and
- * {@code HttpSession} (each user has its own {@code MockHttpSession}). Without
- * this, a single request is bound to the test thread for the whole test method,
- * and every user reuses the first user's session-scoped instances — see
+ * {@link RequestContextHolder}, so that {@code @SessionScope} beans resolve
+ * against the active user's own {@code HttpSession} (each user has its own
+ * {@code MockHttpSession}). Without this, a single request is bound to the test
+ * thread for the whole test method, and every user reuses the first user's
+ * session-scoped instances — see
  * <a href="https://github.com/vaadin/browserless-test/issues/110">#110</a>.
  * <p>
- * Also registers the standard {@code request} and {@code session} web scopes on
- * the bean factory when they are missing, so {@code @SessionScope}/
- * {@code @RequestScope} beans can be resolved in the mock environment even when
- * the Spring test context is not a {@code WebApplicationContext}.
+ * Also registers the standard {@code session} web scope on the bean factory
+ * when it is missing, so {@code @SessionScope} beans can be resolved in the
+ * mock environment even when the Spring test context is not a
+ * {@code WebApplicationContext}.
  *
  * @see RequestContextHandler
  * @see SpringBrowserlessApplicationContext
@@ -51,23 +50,18 @@ import com.vaadin.flow.server.VaadinServletRequest;
 class SpringRequestContextHandler implements RequestContextHandler {
 
     SpringRequestContextHandler(ApplicationContext applicationContext) {
-        registerWebScopesIfMissing(applicationContext);
+        registerSessionScopeIfMissing(applicationContext);
     }
 
-    private static void registerWebScopesIfMissing(ApplicationContext ctx) {
+    private static void registerSessionScopeIfMissing(ApplicationContext ctx) {
         if (!(ctx instanceof ConfigurableApplicationContext configurable)) {
             return;
         }
         ConfigurableListableBeanFactory beanFactory = configurable
                 .getBeanFactory();
-        // A real WebApplicationContext already registers these during refresh;
+        // A real WebApplicationContext already registers this during refresh;
         // only fill the gap for non-web test contexts to avoid replacing the
-        // container's own scope instances.
-        if (beanFactory.getRegisteredScope(
-                WebApplicationContext.SCOPE_REQUEST) == null) {
-            beanFactory.registerScope(WebApplicationContext.SCOPE_REQUEST,
-                    new RequestScope());
-        }
+        // container's own scope instance.
         if (beanFactory.getRegisteredScope(
                 WebApplicationContext.SCOPE_SESSION) == null) {
             beanFactory.registerScope(WebApplicationContext.SCOPE_SESSION,

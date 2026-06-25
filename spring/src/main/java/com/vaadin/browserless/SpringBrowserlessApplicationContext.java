@@ -87,7 +87,7 @@ public final class SpringBrowserlessApplicationContext {
                 .withCloseHook(
                         BrowserlessTestSpringLookupInitializer::clearApplicationContext)
                 // Bind each user's request to Spring's RequestContextHolder so
-                // @SessionScope/@RequestScope beans are resolved per user.
+                // @SessionScope beans are resolved per user.
                 .withRequestContextHandler(
                         new SpringRequestContextHandler(applicationContext));
         if (SpringSecuritySupport.isPresent()) {

@@ -20,13 +20,13 @@ import com.vaadin.flow.server.VaadinRequest;
 /**
  * Abstracts per-user request-context management for multi-user testing.
  * <p>
- * Some frameworks resolve "session"- and "request"-scoped beans against a
- * thread-local request rather than against the {@code VaadinSession}. Spring's
- * {@code @SessionScope}/{@code @RequestScope} beans, for example, are resolved
- * via {@code RequestContextHolder}, which is bound to a single request for the
- * whole test thread. Without per-user binding, every browserless user resolves
- * those beans against the same request, so the second user reuses the first
- * user's session-scoped instances — see
+ * Some frameworks resolve session-scoped beans against a thread-local request
+ * rather than against the {@code VaadinSession}. Spring's {@code @SessionScope}
+ * beans, for example, are resolved via {@code RequestContextHolder}, which is
+ * bound to a single request for the whole test thread. Without per-user
+ * binding, every browserless user resolves those beans against the same
+ * request, so the second user reuses the first user's session-scoped instances
+ * — see
  * <a href="https://github.com/vaadin/browserless-test/issues/110">#110</a>.
  * <p>
  * Implementations bridge such a framework's request-context thread-local with
