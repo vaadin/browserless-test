@@ -53,7 +53,8 @@ final class BrowserlessUsable implements Usable {
 
     @Override
     public boolean enabled() {
-        return component.getElement().isEnabled();
+        return component.getElement().isEnabled()
+                && !component.getElement().getProperty("disabled", false);
     }
 
     @Override
@@ -78,7 +79,7 @@ final class BrowserlessUsable implements Usable {
     @Override
     public List<UsabilityReason> reasons() {
         List<UsabilityReason> r = new ArrayList<>();
-        if (!component.getElement().isEnabled()) {
+        if (!enabled()) {
             r.add(UsabilityReason.of(UsabilityReason.DISABLED, "not enabled"));
         }
         if (!component.isAttached()) {
