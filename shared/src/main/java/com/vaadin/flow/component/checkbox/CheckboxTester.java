@@ -18,6 +18,7 @@ package com.vaadin.flow.component.checkbox;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 
 /**
  * Tester for Checkbox components.
@@ -42,6 +43,7 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
     public void click(int button, MetaKeys metaKeys) {
         super.click(button, metaKeys);
         T checkbox = getComponent();
-        setValueAsUser(!checkbox.getValue());
+        automation().of(getComponent()).as(Settable.class)
+                .set(!checkbox.getValue());
     }
 }
