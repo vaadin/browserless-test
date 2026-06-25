@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -42,14 +44,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * }
  * </pre>
  *
- * The Vaadin environment lifecycle is managed by
- * {@link BrowserlessTestExtension}, which calls
- * {@link #initVaadinEnvironment()} before each test and
- * {@link #cleanVaadinEnvironment()} after each test via virtual dispatch. When
- * the test class is annotated with
+ * For the default per-method lifecycle, the Vaadin environment is set up before
+ * each test by an instance {@code @BeforeEach} method (which calls
+ * {@link #initVaadinEnvironment()}) and torn down by an instance
+ * {@code @AfterEach} method (which calls {@link #cleanVaadinEnvironment()}).
+ * Driving setup from instance lifecycle methods (rather than from an extension
+ * callback) ensures it runs <em>after</em> all JUnit 5 extension
+ * {@code beforeEach} callbacks, so the test can be combined with extensions
+ * that {@code MockVaadin} depends on — for example a CDI container started by
+ * weld-junit5's {@code @EnableAutoWeld}, whose {@code BeanManagerProvider} must
+ * be in place before {@code MockVaadin.setup()} runs.
+ *
+ * <p>
+ * When the test class is annotated with
  * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}, the environment is
- * shared across all tests in the class (initialized once in {@code @BeforeAll},
- * torn down in {@code @AfterAll}).
+ * instead shared across all tests in the class: it is initialized once in
+ * {@code @BeforeAll} and torn down in {@code @AfterAll} by
+ * {@link BrowserlessTestExtension}, and the per-method hooks above become
+ * no-ops.
  *
  * <p>
  * To provide custom Flow service implementations via the
@@ -65,9 +77,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * </pre>
  *
  * <p>
- * <strong>Note:</strong> Subclasses that override {@code initVaadinEnvironment}
- * must NOT add {@code @BeforeEach} — the extension handles invocation via
- * virtual dispatch.
+ * <strong>Note:</strong> Subclasses may override
+ * {@link #initVaadinEnvironment()} to perform a custom
+ * {@code MockVaadin.setup()} (for example to register a CDI-aware servlet). The
+ * override must NOT be annotated with {@code @BeforeEach}: it is already
+ * invoked by the inherited per-method hook, and adding {@code @BeforeEach}
+ * would run the setup twice.
  *
  * <p>
  * To get a graphical ASCII representation of the UI tree on failure, add
@@ -80,6 +95,43 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(BrowserlessTestExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
+
+    /**
+     * Set by {@link BrowserlessTestExtension} when the test class uses the
+     * {@code PER_CLASS} lifecycle. In that case the environment is managed by
+     * the extension in {@code @BeforeAll}/{@code @AfterAll} and the per-method
+     * hooks below must not run.
+     */
+    boolean perClassLifecycle = false;
+
+    /**
+     * Sets up a fresh Vaadin environment before each test, unless the class
+     * uses the {@code PER_CLASS} lifecycle (in which case
+     * {@link BrowserlessTestExtension} has already set it up once in
+     * {@code @BeforeAll}).
+     *
+     * <p>
+     * Implemented as an instance {@code @BeforeEach} method so that it runs
+     * after all JUnit 5 extension {@code beforeEach} callbacks. It delegates to
+     * {@link #initVaadinEnvironment()}, which subclasses may override.
+     */
+    @BeforeEach
+    final void setUpVaadinEnvironment() {
+        if (!perClassLifecycle) {
+            initVaadinEnvironment();
+        }
+    }
+
+    /**
+     * Tears down the Vaadin environment after each test, unless the class uses
+     * the {@code PER_CLASS} lifecycle (handled in {@code @AfterAll}).
+     */
+    @AfterEach
+    final void tearDownVaadinEnvironment() {
+        if (!perClassLifecycle) {
+            cleanVaadinEnvironment();
+        }
+    }
 
     @Override
     protected final String testingEngine() {

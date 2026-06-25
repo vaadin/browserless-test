@@ -17,44 +17,42 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * Package-private extension used exclusively by {@code @ExtendWith} on
- * {@link BrowserlessTest}. Auto-detects lifecycle from
- * {@code @TestInstance(PER_CLASS)} on the test class.
+ * {@link BrowserlessTest}.
+ *
+ * <p>
+ * It only manages the {@code @TestInstance(PER_CLASS)} lifecycle, where the
+ * Vaadin environment is shared across the class and must be set up in
+ * {@code @BeforeAll}/torn down in {@code @AfterAll}. The default per-method
+ * lifecycle is intentionally <em>not</em> handled here: {@link BrowserlessTest}
+ * sets up the environment from instance {@code @BeforeEach}/{@code @AfterEach}
+ * methods, which JUnit 5 runs after all extension {@code beforeEach} callbacks.
+ * Driving per-method setup from a {@code BeforeEachCallback} on this superclass
+ * extension would otherwise run before extensions registered on the concrete
+ * subclass (e.g. weld-junit5's {@code @EnableAutoWeld}), breaking tests that
+ * rely on those extensions for {@code MockVaadin}'s dependencies.
  */
 class BrowserlessTestExtension extends AbstractBrowserlessExtension
-        implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback,
-        AfterEachCallback {
+        implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void beforeAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
-            doInit(ctx.getTestInstance().orElse(null), ctx);
+            Object testInstance = ctx.getTestInstance().orElse(null);
+            if (testInstance instanceof BrowserlessTest test) {
+                test.perClassLifecycle = true;
+            }
+            doInit(testInstance, ctx);
         }
     }
 
     @Override
     public void afterAll(ExtensionContext ctx) {
         if (isPerClass(ctx)) {
-            doCleanup();
-        }
-    }
-
-    @Override
-    public void beforeEach(ExtensionContext ctx) {
-        if (!isPerClass(ctx)) {
-            doInit(ctx.getTestInstance().orElse(null), ctx);
-        }
-    }
-
-    @Override
-    public void afterEach(ExtensionContext ctx) {
-        if (!isPerClass(ctx)) {
             doCleanup();
         }
     }
