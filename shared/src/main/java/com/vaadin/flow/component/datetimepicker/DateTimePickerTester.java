@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 
 /**
  * Tester for DateTimePicker components.
@@ -64,7 +65,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
             throw new RuntimeException(e);
         }
 
-        setValueAsUser(dateTime);
+        automation().of(getComponent()).as(Settable.class).set(dateTime);
     }
 
     private boolean isInvalid(LocalDateTime date)

@@ -22,6 +22,7 @@ import java.time.LocalTime;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Settable;
 
 /**
  * Tester for TimePicker components.
@@ -63,7 +64,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
             throw new RuntimeException(e);
         }
 
-        setValueAsUser(time);
+        automation().of(getComponent()).as(Settable.class).set(time);
     }
 
     private boolean isInvalid(LocalTime date)
