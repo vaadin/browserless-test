@@ -30,6 +30,8 @@ import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.automation.Automation;
+import com.vaadin.flow.automation.MetaKey;
+import com.vaadin.flow.automation.MouseButton;
 import com.vaadin.flow.automation.Usable;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
@@ -84,6 +86,55 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected Automation automation() {
         return BrowserlessAutomation.forDriving(getComponent());
+    }
+
+    /**
+     * Performs a click with the specified button and meta keys, driving the
+     * shared {@link com.vaadin.flow.automation.Clickable} capability
+     * (gesture-level pointer interaction) instead of firing a
+     * {@code ClickEvent} directly. All the {@link Clickable} mixin variants
+     * (click, middleClick, rightClick, with/without meta keys) funnel through
+     * here.
+     *
+     * @param button
+     *            the mouse button (0=left, 1=middle, 2=right)
+     * @param metaKeys
+     *            the meta keys pressed during click
+     */
+    @Override
+    public void click(int button, MetaKeys metaKeys) {
+        ensureComponentIsUsable();
+        automation().of(getComponent())
+                .as(com.vaadin.flow.automation.Clickable.class)
+                .click(toMouseButton(button), toModifiers(metaKeys));
+    }
+
+    private static MouseButton toMouseButton(int button) {
+        return switch (button) {
+        case 0 -> MouseButton.LEFT;
+        case 1 -> MouseButton.MIDDLE;
+        case 2 -> MouseButton.RIGHT;
+        default -> throw new IllegalArgumentException(
+                "Unsupported mouse button: " + button);
+        };
+    }
+
+    private static java.util.Set<MetaKey> toModifiers(MetaKeys metaKeys) {
+        java.util.EnumSet<MetaKey> modifiers = java.util.EnumSet
+                .noneOf(MetaKey.class);
+        if (metaKeys.isCtrl()) {
+            modifiers.add(MetaKey.CTRL);
+        }
+        if (metaKeys.isShift()) {
+            modifiers.add(MetaKey.SHIFT);
+        }
+        if (metaKeys.isAlt()) {
+            modifiers.add(MetaKey.ALT);
+        }
+        if (metaKeys.isMeta()) {
+            modifiers.add(MetaKey.META);
+        }
+        return modifiers;
     }
 
     /**
