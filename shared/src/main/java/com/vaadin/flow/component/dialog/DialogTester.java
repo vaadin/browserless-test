@@ -17,6 +17,7 @@ package com.vaadin.flow.component.dialog;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Disclosable;
 
 @Tests(Dialog.class)
 public class DialogTester extends ComponentTester<Dialog> {
@@ -34,14 +35,14 @@ public class DialogTester extends ComponentTester<Dialog> {
      * Open the dialog.
      */
     public void open() {
-        getComponent().open();
-        roundTrip();
+        // round-trip is supplied by the registry's interceptor
+        automation().of(getComponent()).as(Disclosable.class).open();
     }
 
     /**
      * Close the dialog.
      */
     public void close() {
-        getComponent().close();
+        automation().of(getComponent()).as(Disclosable.class).close();
     }
 }

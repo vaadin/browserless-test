@@ -19,6 +19,7 @@ import java.util.NoSuchElementException;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Disclosable;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.dom.Element;
 
@@ -38,8 +39,8 @@ public class ConfirmDialogTester extends ComponentTester<ConfirmDialog> {
     }
 
     public void open() {
-        getComponent().open();
-        roundTrip();
+        // round-trip is supplied by the registry's interceptor
+        automation().of(getComponent()).as(Disclosable.class).open();
     }
 
     /**

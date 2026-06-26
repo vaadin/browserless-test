@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import com.vaadin.flow.automation.CapabilityInterceptor;
 import com.vaadin.flow.automation.Invocation;
 import com.vaadin.flow.automation.InvocationContext;
+import com.vaadin.flow.component.UI;
 
 /**
  * Supplies browserless's post-action lifecycle as a capability interceptor:
@@ -30,7 +31,14 @@ final class RoundTripInterceptor implements CapabilityInterceptor {
     @Override
     public void intercept(InvocationContext ctx, Invocation action) {
         action.proceed(); // component-owned provider impl runs innermost
-        ctx.component().getUI().ifPresent(BrowserlessDSL::roundTrip);
+        // Prefer the component's own UI, but fall back to the current UI: a
+        // Disclosable.open() on an overlay (Dialog/ConfirmDialog) attaches the
+        // component during the round-trip, so its getUI() is still empty here —
+        // the legacy testers flushed via UI.getCurrent() for exactly this case.
+        UI ui = ctx.component().getUI().orElseGet(UI::getCurrent);
+        if (ui != null) {
+            BrowserlessDSL.roundTrip(ui);
+        }
         // Signal-queue flush is intentionally NOT included here (environment
         // not reachable from
         // InvocationContext in the spike). Recorded as a gap in the findings

@@ -18,6 +18,7 @@ package com.vaadin.flow.component.login;
 import java.util.function.Consumer;
 
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Disclosable;
 
 /**
  * Tester for LoginOverlay components.
@@ -56,7 +57,7 @@ public class LoginOverlayTester<T extends LoginOverlay>
      * Open LoginOverlay to enable logging in through it.
      */
     public void openOverlay() {
-        getComponent().setOpened(true);
+        automation().of(getComponent()).as(Disclosable.class).open();
     }
 
     /**
