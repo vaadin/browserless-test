@@ -71,14 +71,12 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * currently, using {@code @QuarkusComponentTest} is not recommended.
  *
  * <p>
- * This class extends {@link BaseBrowserlessTest} directly (not
- * {@code BrowserlessTest}) to avoid inheriting
- * {@code @ExtendWith(BrowserlessTestExtension.class)}. The Vaadin environment
- * lifecycle is instead managed by {@code @BeforeEach}/{@code @AfterEach}
- * methods, which JUnit 5 fires <em>after</em> all extension {@code beforeEach}
- * callbacks — in particular after {@code QuarkusTestExtension.beforeEach()},
- * which activates the CDI request scope and applies {@code @TestSecurity}
- * identities.
+ * This class extends {@link BaseBrowserlessTest} directly (rather than
+ * {@code BrowserlessTest}) so it can manage the Vaadin environment lifecycle
+ * with its own {@code @BeforeEach}/{@code @AfterEach} methods, which JUnit 5
+ * fires <em>after</em> all extension {@code beforeEach} callbacks — in
+ * particular after {@code QuarkusTestExtension.beforeEach()}, which activates
+ * the CDI request scope and applies {@code @TestSecurity} identities.
  */
 public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
