@@ -15,7 +15,6 @@
  */
 package com.vaadin.flow.component.grid;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -31,9 +30,9 @@ import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.automation.Indexable;
 import com.vaadin.flow.automation.ReadableCell;
 import com.vaadin.flow.automation.Selectable;
+import com.vaadin.flow.automation.Sortable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.provider.SortDirection;
-import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.internal.JacksonUtils;
@@ -557,7 +556,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *             if column index is invalid
      */
     public boolean isColumnSortable(int column) {
-        return getColumns().get(column).isSortable();
+        return sortable().sortableByIndex(column);
     }
 
     /**
@@ -571,12 +570,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *             if property name does not identify a column
      */
     public boolean isColumnSortable(String property) {
-        Grid.Column<Y> column = getColumn(property);
-        if (column == null) {
-            throw new IllegalArgumentException(
-                    "No column found for property " + property);
-        }
-        return column.isSortable();
+        return sortable().sortableByKey(property);
     }
 
     /**
@@ -594,14 +588,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *             if column index is invalid
      */
     public SortDirection getSortDirection(int column) {
-        if (isColumnSortable(column)) {
-            Grid.Column<Y> col = getColumns().get(column);
-            return getComponent().getSortOrder().stream()
-                    .filter(order -> col.equals(order.getSorted()))
-                    .map(SortOrder::getDirection).findFirst().orElse(null);
-        }
-        throw new IllegalArgumentException(
-                "Column at index " + column + " is not sortable");
+        return toSortDirection(sortable().sortDirectionByIndex(column));
     }
 
     /**
@@ -619,14 +606,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *             is not sortable
      */
     public SortDirection getSortDirection(String property) {
-        if (isColumnSortable(property)) {
-            Grid.Column<Y> col = getColumn(property);
-            return getComponent().getSortOrder().stream()
-                    .filter(order -> col.equals(order.getSorted()))
-                    .map(SortOrder::getDirection).findFirst().orElse(null);
-        }
-        throw new IllegalArgumentException(
-                "Column for property " + property + " is not sortable");
+        return toSortDirection(sortable().sortDirectionByKey(property));
     }
 
     /**
@@ -657,9 +637,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            column index
      */
     public void sortByColumn(int column) {
-        SortDirection currentDirection = getSortDirection(column);
-        Grid.Column<Y> col = getColumns().get(column);
-        doSort(currentDirection, col);
+        sortable().sortByColumnIndex(column);
     }
 
     /**
@@ -672,9 +650,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            the property name of the column, not null
      */
     public void sortByColumn(String property) {
-        SortDirection currentDirection = getSortDirection(property);
-        Grid.Column<Y> col = getColumn(property);
-        doSort(currentDirection, col);
+        sortable().sortByColumnKey(property);
     }
 
     /**
@@ -695,31 +671,13 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
         }
     }
 
-    private Grid.MultiSortPriority getMultiSortPriority() {
-        return "append".equals(
-                getComponent().getElement().getAttribute("multi-sort-priority"))
-                        ? Grid.MultiSortPriority.APPEND
-                        : Grid.MultiSortPriority.PREPEND;
+    private Sortable sortable() {
+        return automation().of(getComponent()).as(Sortable.class);
     }
 
-    private void doSort(SortDirection currentDirection, Grid.Column<Y> col) {
-        List<GridSortOrder<Y>> sortOrders = new ArrayList<>(
-                getComponent().getSortOrder());
-        if (getComponent().isMultiSort()) {
-            sortOrders.removeIf(so -> so.getSorted() == col);
-        } else {
-            sortOrders.clear();
-        }
-        final Grid.MultiSortPriority multiSortPriority = getMultiSortPriority();
-        final int insertIndex = multiSortPriority == Grid.MultiSortPriority.PREPEND
-                ? 0
-                : sortOrders.size();
-        if (currentDirection == null) {
-            sortOrders.add(insertIndex, GridSortOrder.asc(col).build().get(0));
-        } else if (currentDirection == SortDirection.ASCENDING) {
-            sortOrders.add(insertIndex, GridSortOrder.desc(col).build().get(0));
-        }
-        getComponent().sort(sortOrders);
+    private static SortDirection toSortDirection(String direction) {
+        return "NONE".equals(direction) ? null
+                : SortDirection.valueOf(direction);
     }
 
 }
