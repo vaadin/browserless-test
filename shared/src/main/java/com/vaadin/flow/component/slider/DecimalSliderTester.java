@@ -46,9 +46,4 @@ public class DecimalSliderTester<T extends DecimalSlider>
     public DecimalSliderTester(T component) {
         super(component);
     }
-
-    @Override
-    protected Double fromDouble(double value) {
-        return value;
-    }
 }

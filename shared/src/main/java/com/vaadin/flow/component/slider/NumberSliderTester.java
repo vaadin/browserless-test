@@ -16,6 +16,7 @@
 package com.vaadin.flow.component.slider;
 
 import com.vaadin.browserless.ComponentTester;
+import com.vaadin.flow.automation.Steppable;
 
 /**
  * Base tester for {@link NumberSlider} components.
@@ -100,11 +101,7 @@ abstract class NumberSliderTester<T extends NumberSlider<?, TValue>, TValue exte
      */
     public void incrementBy(int steps) {
         ensureComponentIsUsable();
-        double newValue = Math.min(
-                getComponent().getValue().doubleValue()
-                        + steps * getComponent().getStep().doubleValue(),
-                getComponent().getMax().doubleValue());
-        setValueAsUser(fromDouble(newValue));
+        automation().of(getComponent()).as(Steppable.class).increment(steps);
     }
 
     /**
@@ -116,19 +113,6 @@ abstract class NumberSliderTester<T extends NumberSlider<?, TValue>, TValue exte
      */
     public void decrementBy(int steps) {
         ensureComponentIsUsable();
-        double newValue = Math.max(
-                getComponent().getValue().doubleValue()
-                        - steps * getComponent().getStep().doubleValue(),
-                getComponent().getMin().doubleValue());
-        setValueAsUser(fromDouble(newValue));
+        automation().of(getComponent()).as(Steppable.class).decrement(steps);
     }
-
-    /**
-     * Converts a double value to the slider's value type.
-     *
-     * @param value
-     *            the double value to convert
-     * @return the converted value
-     */
-    protected abstract TValue fromDouble(double value);
 }

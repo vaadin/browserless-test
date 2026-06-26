@@ -42,9 +42,4 @@ public class IntegerSliderTester<T extends IntegerSlider>
     public IntegerSliderTester(T component) {
         super(component);
     }
-
-    @Override
-    protected Integer fromDouble(double value) {
-        return (int) value;
-    }
 }
