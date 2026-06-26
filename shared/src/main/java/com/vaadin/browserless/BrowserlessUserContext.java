@@ -88,6 +88,14 @@ public class BrowserlessUserContext implements AutoCloseable {
         Object previousSecuritySnapshot = handler != null
                 ? handler.saveContext()
                 : null;
+        // Save the thread's current request-context binding so it can be
+        // restored after this temporary setup; applySessionThreadLocals() binds
+        // this user's request below.
+        RequestContextHandler requestContextHandler = app
+                .getRequestContextHandler();
+        Object previousRequestContext = requestContextHandler != null
+                ? requestContextHandler.saveContext()
+                : null;
 
         try {
             // Set service as current (needed for session creation)
@@ -141,6 +149,10 @@ public class BrowserlessUserContext implements AutoCloseable {
             // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
                 handler.restoreContext(previousSecuritySnapshot);
+            }
+            // Restore the thread's previous request-context binding.
+            if (requestContextHandler != null) {
+                requestContextHandler.restoreContext(previousRequestContext);
             }
         }
     }
@@ -252,6 +264,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         CurrentInstance.set(VaadinRequest.class, request);
         CurrentInstance.set(VaadinResponse.class, response);
         restoreSecurityContext();
+        bindRequestContext();
     }
 
     /**
@@ -281,6 +294,25 @@ public class BrowserlessUserContext implements AutoCloseable {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();
         if (handler != null) {
             handler.clearContext();
+        }
+        RequestContextHandler requestContextHandler = app
+                .getRequestContextHandler();
+        if (requestContextHandler != null) {
+            requestContextHandler.clearContext();
+        }
+    }
+
+    /**
+     * Binds this user's request as the active framework request context on the
+     * current thread, so framework-managed request/session scopes (e.g.
+     * Spring's {@code @SessionScope}) resolve against this user's own session.
+     * No-op when no {@link RequestContextHandler} is configured.
+     */
+    private void bindRequestContext() {
+        RequestContextHandler requestContextHandler = app
+                .getRequestContextHandler();
+        if (requestContextHandler != null) {
+            requestContextHandler.bind(request);
         }
     }
 

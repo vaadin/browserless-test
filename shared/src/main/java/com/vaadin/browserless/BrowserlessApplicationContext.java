@@ -83,6 +83,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final List<Runnable> closeHooks;
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private TestSignalEnvironment signalsTestEnvironment;
+    private RequestContextHandler requestContextHandler;
     private boolean closed;
 
     BrowserlessApplicationContext(VaadinServletService service,
@@ -306,6 +307,19 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         return null;
     }
 
+    /**
+     * Returns the configured request context handler, or {@code null} when none
+     * is wired. Set by the framework integration (e.g. Spring) so that
+     * framework-managed request/session scopes resolve per user.
+     */
+    RequestContextHandler getRequestContextHandler() {
+        return requestContextHandler;
+    }
+
+    void setRequestContextHandler(RequestContextHandler handler) {
+        this.requestContextHandler = handler;
+    }
+
     void checkNotClosed() {
         if (closed) {
             throw new IllegalStateException(
@@ -331,6 +345,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private final Set<String> viewPackages = new LinkedHashSet<>();
         private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
+        private RequestContextHandler requestContextHandler;
 
         /**
          * Creates a builder with no pre-seeded routes. Routes are derived from
@@ -534,6 +549,22 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
 
         /**
+         * Sets the request context handler used to bind each user's request as
+         * the active framework request context (e.g. Spring's
+         * {@code RequestContextHolder}) so request/session-scoped beans resolve
+         * per user. Wired automatically by framework integrations; not part of
+         * the public configuration surface.
+         */
+        Builder withRequestContextHandler(RequestContextHandler handler) {
+            this.requestContextHandler = handler;
+            return this;
+        }
+
+        RequestContextHandler requestContextHandler() {
+            return requestContextHandler;
+        }
+
+        /**
          * Registers a hook to be invoked when the built application context is
          * closed.
          * <p>
@@ -564,8 +595,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * @return a new application context
          */
         public BrowserlessApplicationContext build() {
-            return new BrowserlessApplicationContext(buildService(), uiFactory,
-                    buildCloseHooks());
+            BrowserlessApplicationContext context = new BrowserlessApplicationContext(
+                    buildService(), uiFactory, buildCloseHooks());
+            context.setRequestContextHandler(requestContextHandler);
+            return context;
         }
 
         VaadinServletService buildService() {
