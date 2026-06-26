@@ -47,7 +47,7 @@ public class LoginOverlayTester<T extends LoginOverlay>
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
         super.notUsableReasons(collector);
-        if (getComponent().isOpened()) {
+        if (!getComponent().isOpened()) {
             collector.accept("not opened");
         }
     }
