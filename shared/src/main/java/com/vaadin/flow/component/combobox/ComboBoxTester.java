@@ -25,10 +25,10 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.flow.automation.Filterable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
-import com.vaadin.flow.function.SerializableConsumer;
 
 @Tests(fqn = "com.vaadin.flow.component.combobox.ComboBox")
 public class ComboBoxTester<T extends ComboBox<Y>, Y>
@@ -55,19 +55,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      */
     public void setFilter(String filter) {
         ensureComponentIsUsable();
-        try {
-
-            final Field dataControllerField = getField(ComboBoxBase.class,
-                    "dataController");
-            ComboBoxDataController<T> dataController = (ComboBoxDataController) dataControllerField
-                    .get(getComponent());
-            final Field filterSlot = getField(ComboBoxDataController.class,
-                    "filterSlot");
-            ((SerializableConsumer<String>) filterSlot.get(dataController))
-                    .accept(filter);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        automation().of(getComponent()).as(Filterable.class).setFilter(filter);
     }
 
     /**
