@@ -28,6 +28,7 @@ import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.automation.Indexable;
+import com.vaadin.flow.automation.ItemClickable;
 import com.vaadin.flow.automation.ReadableCell;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.automation.Sortable;
@@ -88,7 +89,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            row to click
      */
     public void clickRow(int row) {
-        clickRow(row, MouseButton.LEFT);
+        ensureComponentIsUsable();
+        automation().of(getComponent()).as(ItemClickable.class).clickItem(row);
     }
 
     /**
@@ -149,7 +151,9 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            row to click
      */
     public void doubleClickRow(int row) {
-        doubleClickRow(row, MouseButton.LEFT);
+        ensureComponentIsUsable();
+        automation().of(getComponent()).as(ItemClickable.class)
+                .doubleClickItem(row);
     }
 
     /**
