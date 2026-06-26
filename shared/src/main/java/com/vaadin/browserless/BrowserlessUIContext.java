@@ -25,11 +25,7 @@ import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.locator.Locators;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasElement;
-import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
@@ -63,7 +59,7 @@ import com.vaadin.flow.server.VaadinSession;
  * @since 1.1
  */
 public class BrowserlessUIContext
-        implements TesterWrappers, Locators, AutoCloseable {
+        implements BrowserlessDsl, TesterWrappers, Locators, AutoCloseable {
 
     private static final ThreadLocal<BrowserlessUIContext> activeContext = new ThreadLocal<>();
 
@@ -150,71 +146,15 @@ public class BrowserlessUIContext
     }
 
     /**
-     * Navigates this window to the given view class.
+     * Returns the UI the DSL methods operate on, after activating this window's
+     * context on the current thread.
      *
-     * @param navigationTarget
-     *            the view class to navigate to
-     * @param <T>
-     *            the view type
-     * @return the instantiated view
+     * @return this window's UI
      */
-    public <T extends Component> T navigate(Class<T> navigationTarget) {
+    @Override
+    public UI currentUI() {
         activate();
-        return BrowserlessDSL.navigate(ui, navigationTarget);
-    }
-
-    /**
-     * Navigates this window to the given view class with a URL parameter.
-     *
-     * @param navigationTarget
-     *            the view class to navigate to
-     * @param parameter
-     *            the URL parameter
-     * @param <T>
-     *            the view type
-     * @param <C>
-     *            the parameter type
-     * @return the instantiated view
-     */
-    public <C, T extends Component & HasUrlParameter<C>> T navigate(
-            Class<T> navigationTarget, C parameter) {
-        activate();
-        return BrowserlessDSL.navigate(ui, navigationTarget, parameter);
-    }
-
-    /**
-     * Navigates this window to the given view class with route parameters.
-     *
-     * @param navigationTarget
-     *            the view class to navigate to
-     * @param parameters
-     *            the route parameters
-     * @param <T>
-     *            the view type
-     * @return the instantiated view
-     */
-    public <T extends Component> T navigate(Class<T> navigationTarget,
-            Map<String, String> parameters) {
-        activate();
-        return BrowserlessDSL.navigate(ui, navigationTarget, parameters);
-    }
-
-    /**
-     * Navigates this window to the given location and validates the resulting
-     * view.
-     *
-     * @param location
-     *            the navigation location string
-     * @param expectedTarget
-     *            the expected view class
-     * @param <T>
-     *            the view type
-     * @return the instantiated view
-     */
-    public <T extends Component> T navigate(String location,
-            Class<T> expectedTarget) {
-        activate();
-        return BrowserlessDSL.navigate(ui, location, expectedTarget);
+        return ui;
     }
 
     /**
@@ -290,75 +230,6 @@ public class BrowserlessUIContext
     }
 
     /**
-     * Gets a query object for finding components of the given type in this
-     * window's UI.
-     *
-     * @param componentType
-     *            the type of component to search for
-     * @param <T>
-     *            the component type
-     * @return a query object
-     */
-    public <T extends Component> ComponentQuery<T> find(
-            Class<T> componentType) {
-        activate();
-        return BrowserlessDSL.find(ui, componentType);
-    }
-
-    /**
-     * Gets a query object for finding components of the given type nested
-     * inside the specified component.
-     *
-     * @param componentType
-     *            the type of component to search for
-     * @param fromThis
-     *            the component to search within
-     * @param <T>
-     *            the component type
-     * @return a query object
-     */
-    public <T extends Component> ComponentQuery<T> find(Class<T> componentType,
-            Component fromThis) {
-        activate();
-        return BrowserlessDSL.find(ui, componentType, fromThis);
-    }
-
-    /**
-     * Gets a query object for finding components of the given type inside the
-     * current view.
-     *
-     * @param componentType
-     *            the type of component to search for
-     * @param <T>
-     *            the component type
-     * @return a query object
-     */
-    public <T extends Component> ComponentQuery<T> findInView(
-            Class<T> componentType) {
-        activate();
-        return BrowserlessDSL.findView(ui, componentType);
-    }
-
-    /**
-     * Wraps a component with the best matching {@link ComponentTester}. This
-     * generic fallback is used for component types not covered by the specific
-     * {@link TesterWrappers} defaults.
-     *
-     * @param component
-     *            the component to wrap
-     * @param <T>
-     *            the tester type
-     * @param <Y>
-     *            the component type
-     * @return the component wrapped in a tester
-     */
-    public <T extends ComponentTester<Y>, Y extends Component> T test(
-            Y component) {
-        activate();
-        return BaseBrowserlessTest.internalWrap(component);
-    }
-
-    /**
      * Wraps a component in the given {@link ComponentTester}.
      *
      * @param tester
@@ -375,38 +246,6 @@ public class BrowserlessUIContext
             Class<T> tester, Y component) {
         activate();
         return BaseBrowserlessTest.internalWrap(tester, component);
-    }
-
-    /**
-     * Gets the current view displayed in this window.
-     *
-     * @return the current view
-     */
-    public HasElement getCurrentView() {
-        activate();
-        return BrowserlessDSL.getCurrentView(ui);
-    }
-
-    /**
-     * Simulates a server round-trip, flushing pending component changes.
-     */
-    public void roundTrip() {
-        activate();
-        BrowserlessDSL.roundTrip(ui);
-    }
-
-    /**
-     * Simulates a keyboard shortcut performed on the browser.
-     *
-     * @param key
-     *            primary key of the shortcut. This must not be a
-     *            {@link KeyModifier}.
-     * @param modifiers
-     *            key modifiers. Can be empty.
-     */
-    public void fireShortcut(Key key, KeyModifier... modifiers) {
-        activate();
-        BrowserlessDSL.fireShortcut(ui, key, modifiers);
     }
 
     /**
@@ -441,7 +280,7 @@ public class BrowserlessUIContext
      */
     public boolean runPendingSignalsTasks(long maxWaitTime, TimeUnit unit) {
         activate();
-        return BrowserlessDSL.runPendingSignalsTasks(
+        return BrowserlessDslImpl.runPendingSignalsTasks(
                 user.getApp().getSignalsTestEnvironment(), maxWaitTime, unit);
     }
 

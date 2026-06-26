@@ -146,7 +146,7 @@ abstract class AbstractBrowserlessExtension
      * @return the instantiated view
      */
     public <T extends Component> T navigate(Class<T> target) {
-        return BrowserlessDSL.navigate(getUI(), target);
+        return BrowserlessDslImpl.navigate(getUI(), target);
     }
 
     /**
@@ -164,7 +164,7 @@ abstract class AbstractBrowserlessExtension
      */
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
             Class<T> target, C parameter) {
-        return BrowserlessDSL.navigate(getUI(), target, parameter);
+        return BrowserlessDslImpl.navigate(getUI(), target, parameter);
     }
 
     /**
@@ -180,7 +180,7 @@ abstract class AbstractBrowserlessExtension
      */
     public <T extends Component> T navigate(Class<T> target,
             Map<String, String> parameters) {
-        return BrowserlessDSL.navigate(getUI(), target, parameters);
+        return BrowserlessDslImpl.navigate(getUI(), target, parameters);
     }
 
     /**
@@ -196,7 +196,7 @@ abstract class AbstractBrowserlessExtension
      */
     public <T extends Component> T navigate(String location,
             Class<T> expectedTarget) {
-        return BrowserlessDSL.navigate(getUI(), location, expectedTarget);
+        return BrowserlessDslImpl.navigate(getUI(), location, expectedTarget);
     }
 
     /**
@@ -209,7 +209,7 @@ abstract class AbstractBrowserlessExtension
      * @return a component query
      */
     public <T extends Component> ComponentQuery<T> find(Class<T> type) {
-        return BrowserlessDSL.find(getUI(), type);
+        return BrowserlessDslImpl.find(getUI(), type);
     }
 
     /**
@@ -226,7 +226,7 @@ abstract class AbstractBrowserlessExtension
      */
     public <T extends Component> ComponentQuery<T> find(Class<T> type,
             Component fromThis) {
-        return BrowserlessDSL.find(getUI(), type, fromThis);
+        return BrowserlessDslImpl.find(getUI(), type, fromThis);
     }
 
     /**
@@ -239,7 +239,7 @@ abstract class AbstractBrowserlessExtension
      * @return a component query scoped to the current view
      */
     public <T extends Component> ComponentQuery<T> findInView(Class<T> type) {
-        return BrowserlessDSL.findView(getUI(), type);
+        return BrowserlessDslImpl.findView(getUI(), type);
     }
 
     /**
@@ -248,14 +248,14 @@ abstract class AbstractBrowserlessExtension
      * @return the current view
      */
     public HasElement getCurrentView() {
-        return BrowserlessDSL.getCurrentView(getUI());
+        return BrowserlessDslImpl.getCurrentView(getUI());
     }
 
     /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     public void roundTrip() {
-        BrowserlessDSL.roundTrip(getUI());
+        BrowserlessDslImpl.roundTrip(getUI());
     }
 
     /**
@@ -265,7 +265,8 @@ abstract class AbstractBrowserlessExtension
      * @return {@code true} if any pending Signals tasks were processed
      */
     public boolean runPendingSignalsTasks() {
-        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment);
+        return BrowserlessDslImpl
+                .runPendingSignalsTasks(signalsTestEnvironment);
     }
 
     /**
@@ -279,7 +280,7 @@ abstract class AbstractBrowserlessExtension
      * @return {@code true} if any pending Signals tasks were processed
      */
     public boolean runPendingSignalsTasks(long maxWaitTime, TimeUnit unit) {
-        return BrowserlessDSL.runPendingSignalsTasks(signalsTestEnvironment,
+        return BrowserlessDslImpl.runPendingSignalsTasks(signalsTestEnvironment,
                 maxWaitTime, unit);
     }
 
@@ -292,7 +293,7 @@ abstract class AbstractBrowserlessExtension
      *            key modifiers
      */
     public void fireShortcut(Key key, KeyModifier... modifiers) {
-        BrowserlessDSL.fireShortcut(getUI(), key, modifiers);
+        BrowserlessDslImpl.fireShortcut(getUI(), key, modifiers);
     }
 
     @Override

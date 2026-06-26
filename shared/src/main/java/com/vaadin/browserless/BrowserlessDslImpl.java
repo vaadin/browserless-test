@@ -35,9 +35,9 @@ import com.vaadin.flow.router.RouteParameters;
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
-final class BrowserlessDSL {
+final class BrowserlessDslImpl {
 
-    private BrowserlessDSL() {
+    private BrowserlessDslImpl() {
     }
 
     static <T extends Component> T navigate(UI ui, Class<T> target) {

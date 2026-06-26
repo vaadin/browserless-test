@@ -249,7 +249,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Simulates a server round-trip, flushing pending component changes.
      */
     protected void roundTrip() {
-        BaseBrowserlessTest.roundTrip();
+        BrowserlessDslImpl.roundTrip(UI.getCurrent());
     }
 
     /**
