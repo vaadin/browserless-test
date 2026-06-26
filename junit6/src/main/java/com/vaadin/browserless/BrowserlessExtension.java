@@ -128,7 +128,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
 
     @Override
     public void beforeEach(ExtensionContext ctx) {
-        doInit(ctx);
+        doInit(ctx.getTestInstance().orElse(null), ctx);
     }
 
     @Override

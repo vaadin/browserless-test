@@ -50,7 +50,7 @@ abstract class AbstractBrowserlessExtension
 
     // Runtime state
     private TestSignalEnvironment signalsTestEnvironment;
-    private boolean initialized;
+    private Runnable cleanupAction;
 
     // --- Protected builder helpers ---
 
@@ -78,19 +78,24 @@ abstract class AbstractBrowserlessExtension
 
     // --- Lifecycle callbacks ---
 
-    protected void doInit(ExtensionContext ctx) {
-        setUpEnvironment(ctx.getRequiredTestClass());
-        initialized = true;
-    }
-
-    protected void doCleanup() {
-        if (initialized) {
-            tearDownEnvironment();
-            initialized = false;
+    protected void doInit(Object testInstance, ExtensionContext ctx) {
+        if (testInstance instanceof BaseBrowserlessTest base) {
+            base.initVaadinEnvironment();
+            cleanupAction = base::cleanVaadinEnvironment;
+        } else {
+            standaloneInit(ctx.getRequiredTestClass());
+            cleanupAction = this::standaloneCleanup;
         }
     }
 
-    private void tearDownEnvironment() {
+    protected void doCleanup() {
+        if (cleanupAction != null) {
+            cleanupAction.run();
+            cleanupAction = null;
+        }
+    }
+
+    private void standaloneCleanup() {
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
@@ -98,7 +103,7 @@ abstract class AbstractBrowserlessExtension
         MockVaadin.tearDown();
     }
 
-    private void setUpEnvironment(Class<?> testClass) {
+    private void standaloneInit(Class<?> testClass) {
         // Scan for additional component testers
         Set<String> testerPkgs = new HashSet<>(componentTesterPackages);
         ComponentTesterPackages testerAnnotation = testClass
