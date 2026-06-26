@@ -40,8 +40,12 @@ public class LoginOverlayTesterTest extends BrowserlessTest {
 
     @Test
     void overlayClosed_throwsException() {
-        Assertions.assertThrows(IllegalStateException.class,
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class,
                 () -> login_.login("user", "user"));
+        Assertions.assertTrue(exception.getMessage().contains("not opened"),
+                "Reason for a closed overlay should be reported, but was: "
+                        + exception.getMessage());
     }
 
     @Test
