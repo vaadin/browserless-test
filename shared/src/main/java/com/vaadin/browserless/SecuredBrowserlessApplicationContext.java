@@ -219,9 +219,11 @@ public class SecuredBrowserlessApplicationContext<C>
          * @return a new secured application context
          */
         public SecuredBrowserlessApplicationContext<C> build() {
-            return new SecuredBrowserlessApplicationContext<>(
+            SecuredBrowserlessApplicationContext<C> context = new SecuredBrowserlessApplicationContext<>(
                     base.buildService(), base.uiFactory(), handler,
                     base.buildCloseHooks());
+            context.setRequestContextHandler(base.requestContextHandler());
+            return context;
         }
     }
 }

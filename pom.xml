@@ -27,6 +27,7 @@
         <module>locator-processor</module>
         <module>shared</module>
         <module>junit6</module>
+        <module>junit6-cdi-tests</module>
         <module>spring</module>
         <module>quarkus</module>
         <module>bom</module>

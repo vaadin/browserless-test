@@ -15,7 +15,8 @@
  */
 package com.vaadin.browserless;
 
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * Base JUnit 6 class for browserless tests.
@@ -42,14 +43,34 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * }
  * </pre>
  *
- * The Vaadin environment lifecycle is managed by
- * {@link BrowserlessTestExtension}, which calls
- * {@link #initVaadinEnvironment()} before each test and
- * {@link #cleanVaadinEnvironment()} after each test via virtual dispatch. When
- * the test class is annotated with
- * {@code @TestInstance(TestInstance.Lifecycle.PER_CLASS)}, the environment is
- * shared across all tests in the class (initialized once in {@code @BeforeAll},
- * torn down in {@code @AfterAll}).
+ * The Vaadin environment is set up before each test by the
+ * {@link #initVaadinEnvironment()} {@code @BeforeEach} method and cleaned up
+ * afterwards by the {@link #cleanVaadinEnvironment()} {@code @AfterEach}
+ * method. Being instance lifecycle methods (rather than extension callbacks),
+ * they run <em>after</em> all JUnit 5 extension {@code beforeEach} callbacks,
+ * so the test can be combined with extensions that {@code MockVaadin} depends
+ * on — for example a CDI container started by weld-junit5's
+ * {@code @EnableAutoWeld}, whose {@code BeanManagerProvider} must be in place
+ * before {@code MockVaadin.setup()} runs.
+ *
+ * <p>
+ * Usually it is not necessary to override {@link #initVaadinEnvironment()} or
+ * {@link #cleanVaadinEnvironment()}, but if it is done then the override must
+ * keep the {@code @BeforeEach}/{@code @AfterEach} annotation so the hook is
+ * still handled by the testing framework. A common reason to override
+ * {@link #initVaadinEnvironment()} is to perform a custom
+ * {@code MockVaadin.setup()} — for instance to register a CDI-aware servlet:
+ *
+ * <pre>
+ * {@code
+ * &#64;BeforeEach
+ * &#64;Override
+ * protected void initVaadinEnvironment() {
+ *     scanTesters();
+ *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, lookupServices());
+ * }
+ * }
+ * </pre>
  *
  * <p>
  * To provide custom Flow service implementations via the
@@ -65,9 +86,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * </pre>
  *
  * <p>
- * <strong>Note:</strong> Subclasses that override {@code initVaadinEnvironment}
- * must NOT add {@code @BeforeEach} — the extension handles invocation via
- * virtual dispatch.
+ * This class only supports the default per-method lifecycle. Tests that need a
+ * single Vaadin environment shared across all methods in the class should not
+ * extend it; instead register a {@link BrowserlessClassExtension} and, if the
+ * testing DSL is wanted directly on the test class, implement
+ * {@link TesterWrappers} (and optionally
+ * {@link com.vaadin.browserless.locator.Locators Locators}):
+ *
+ * <pre>
+ * {@code
+ * &#64;ViewPackages(classes = MyView.class)
+ * class MyStatefulTest implements TesterWrappers {
+ *     &#64;RegisterExtension
+ *     static BrowserlessClassExtension ext = new BrowserlessClassExtension();
+ * }
+ * }
+ * </pre>
  *
  * <p>
  * To get a graphical ASCII representation of the UI tree on failure, add
@@ -76,10 +110,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * @see ViewPackages
  *
  * @see BrowserlessExtension
+ *
+ * @see BrowserlessClassExtension
  */
-@ExtendWith(BrowserlessTestExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
+
+    @BeforeEach
+    @Override
+    protected void initVaadinEnvironment() {
+        super.initVaadinEnvironment();
+    }
+
+    @AfterEach
+    @Override
+    protected void cleanVaadinEnvironment() {
+        super.cleanVaadinEnvironment();
+    }
 
     @Override
     protected final String testingEngine() {
