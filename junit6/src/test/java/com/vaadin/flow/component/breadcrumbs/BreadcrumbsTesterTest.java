@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.breadcrumbs;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
@@ -68,6 +69,20 @@ class BreadcrumbsTesterTest extends BrowserlessTest {
     void clickItem_byIndex_navigatesToItemPath() {
         test(view.breadcrumbs).clickItem(1);
         Assertions.assertEquals("breadcrumbs-target", currentPath());
+    }
+
+    @Test
+    void getItemPaths_returnsResolvedHrefs() {
+        Assertions.assertEquals(
+                Arrays.asList("breadcrumbs-target", "breadcrumbs-target", null),
+                test(view.breadcrumbs).getItemPaths());
+    }
+
+    @Test
+    void getItemPaths_skipsHiddenItems() {
+        hideItem("Docs");
+        Assertions.assertEquals(Arrays.asList("breadcrumbs-target", null),
+                test(view.breadcrumbs).getItemPaths());
     }
 
     @Test

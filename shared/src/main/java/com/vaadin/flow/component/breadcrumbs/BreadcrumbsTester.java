@@ -48,6 +48,19 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
     }
 
     /**
+     * Gets the resolved navigation path (href) of each breadcrumb item, in
+     * trail order. An item that has no navigable path (such as the current-page
+     * item) is represented by {@code null}; note that {@code null} is distinct
+     * from an empty string, which is the path of the application root.
+     *
+     * @return the item paths, with {@code null} for items that have no path
+     */
+    public List<String> getItemPaths() {
+        ensureComponentIsUsable();
+        return items().map(BreadcrumbsItem::getPath).toList();
+    }
+
+    /**
      * Simulates a click on the item that matches the given label, navigating to
      * its path.
      *
