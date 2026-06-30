@@ -85,15 +85,25 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
 
     override fun getServletPath(): String = ""
 
-    override fun getSession(create: Boolean): HttpSession {
+    override fun getSession(create: Boolean): HttpSession? {
         val isValid = (session as? MockHttpSession)?.isValid ?: true
-        if (create && !isValid) {
+        if (!isValid) {
+            // Mirror the servlet container contract: once the session has been
+            // invalidated there is no current session, so getSession(false)
+            // must return null (and getSession(true) must create a fresh one).
+            // Returning the stale, invalidated session instead made code that
+            // legitimately touches it after logout (e.g. Spring Security's
+            // HttpSessionSecurityContextRepository.saveContext) throw
+            // IllegalStateException. See issue #115.
+            if (!create) {
+                return null
+            }
             session = MockHttpSession.create(session.servletContext)
         }
         return session
     }
 
-    override fun getSession(): HttpSession = getSession(true)
+    override fun getSession(): HttpSession = getSession(true)!!
 
     override fun getServerName(): String = "127.0.0.1"
 
