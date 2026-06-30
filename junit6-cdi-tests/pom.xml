@@ -26,6 +26,17 @@
         <maven.install.skip>true</maven.install.skip>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>flow-bom</artifactId>
+                <version>${flow.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
@@ -44,6 +55,7 @@
             <artifactId>vaadin-cdi</artifactId>
             <version>${vaadin.cdi.version}</version>
             <scope>test</scope>
+
         </dependency>
         <dependency>
             <groupId>org.jboss.weld</groupId>
