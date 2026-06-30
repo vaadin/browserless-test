@@ -52,8 +52,12 @@ import com.vaadin.flow.server.VaadinSession;
  * The security snapshot is <strong>per-user, not per-window</strong>: all of a
  * user's windows share one snapshot. Security-context mutations made while one
  * window is active persist on the thread and remain visible to other windows of
- * the same user; the snapshot is re-captured only on user-switch, so same-user
- * window switches don't touch it.
+ * the same user, including newly opened ones: the snapshot is neither saved nor
+ * restored on a same-user window switch, so it is touched only on a
+ * user-switch. Consequently a logout performed in one window leaves the user
+ * logged out in every other window — to authenticate again, create a fresh user
+ * context with {@link BrowserlessApplicationContext#newUser()} rather than
+ * reusing this one.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
@@ -163,6 +167,12 @@ public class BrowserlessUserContext implements AutoCloseable {
      * The window is automatically activated (thread-locals set) and a new UI is
      * created. If a route target for {@code ""} is registered, the UI will
      * navigate to it.
+     * <p>
+     * A window opened after the user has logged out shares the user's
+     * logged-out security state: it does not restore the pre-logout snapshot.
+     * To log in again, create a fresh user context with
+     * {@link BrowserlessApplicationContext#newUser()} instead of reusing this
+     * one.
      *
      * @return the new UI context
      */
@@ -332,13 +342,26 @@ public class BrowserlessUserContext implements AutoCloseable {
      * Restores this user's security context onto the current thread. Called
      * automatically by {@link BrowserlessUIContext#activate()} when switching
      * to this user.
+     * <p>
+     * Restoring is skipped when the currently-active window already belongs to
+     * this user: the live thread then holds this user's authoritative security
+     * state, and restoring the snapshot would clobber a mutation a sibling
+     * window made (e.g. a logout). This mirrors the save side, which only
+     * captures the snapshot on a cross-user switch — so same-user window
+     * switches neither save nor restore, and a logout in one window is observed
+     * by the user's other windows, existing and newly opened.
      */
     void restoreSecurityContext() {
         SecurityContextHandler<?> handler = app.getSecurityContextHandler();
-        if (handler != null) {
-            // Contract: handler.restoreContext(null) clears the context.
-            handler.restoreContext(securitySnapshot);
+        if (handler == null) {
+            return;
         }
+        BrowserlessUIContext active = BrowserlessUIContext.getActive();
+        if (active != null && active.getUser() == this) {
+            return;
+        }
+        // Contract: handler.restoreContext(null) clears the context.
+        handler.restoreContext(securitySnapshot);
     }
 
     private void checkNotClosed() {
