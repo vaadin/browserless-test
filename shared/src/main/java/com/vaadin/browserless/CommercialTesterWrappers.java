@@ -17,6 +17,8 @@ package com.vaadin.browserless;
 
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.ChartTester;
+import com.vaadin.flow.component.dashboard.Dashboard;
+import com.vaadin.flow.component.dashboard.DashboardTester;
 
 /**
  * Provides factory method to create testers for commercial components.
@@ -33,6 +35,18 @@ public interface CommercialTesterWrappers {
      */
     default ChartTester<Chart> test(Chart chart) {
         return BaseBrowserlessTest.internalWrap(ChartTester.class, chart);
+    }
+
+    /**
+     * Create a tester for the given Dashboard instance.
+     *
+     * @param dashboard
+     *            the dashboard instance to be tested
+     * @return a DashboardTester instance wrapping the given dashboard
+     */
+    default DashboardTester<Dashboard> test(Dashboard dashboard) {
+        return BaseBrowserlessTest.internalWrap(DashboardTester.class,
+                dashboard);
     }
 
 }
