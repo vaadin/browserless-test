@@ -37,6 +37,10 @@ import com.vaadin.flow.server.VaadinServletResponse;
  * Reproduces issue #115: invoking Spring Security's
  * {@link SecurityContextLogoutHandler} from within a browserless test must not
  * throw, mirroring how it behaves inside a real servlet container.
+ * <p>
+ * Also covers issue #127: a logout in one window must leave new windows of the
+ * same user unauthenticated, rather than restoring a stale authenticated
+ * security snapshot.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = SecurityTestConfig.NavigationAccessControlConfig.class)
@@ -96,6 +100,72 @@ class LogoutTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> window.navigate(ProtectedView.class));
         Assertions.assertInstanceOf(LoginView.class, window.getCurrentView());
+    }
+
+    @Test
+    void afterLogout_newWindow_isAlsoUnauthenticated() {
+        var user = app.newUser("john", "USER");
+        var window = user.newWindow();
+        window.navigate(ProtectedView.class);
+        Assertions.assertInstanceOf(ProtectedView.class,
+                window.getCurrentView());
+
+        // Clear the authentication by *replacing* the security context, the
+        // way SecurityContextHolder.clearContext() (and a fresh per-request
+        // context load in a real container) does. This is deliberately not the
+        // SecurityContextLogoutHandler used by the other tests: that handler
+        // clears auth with an in-place context.setAuthentication(null), which
+        // mutates the very object the per-user snapshot aliases and so happens
+        // to clear the snapshot too, masking this bug. A replacing clear leaves
+        // the saved snapshot authenticated and exposes #127.
+        SecurityContextHolder.clearContext();
+
+        // Opening another window for the *same* user after logout must not
+        // restore the stale authenticated snapshot. The new window must
+        // observe the logged-out state, mirroring a real application where
+        // logging out in one tab logs the user out of all tabs, existing and
+        // new (issue #127).
+        var newWindow = user.newWindow();
+        Assertions.assertNull(
+                SecurityContextHolder.getContext().getAuthentication(),
+                "Authentication should remain cleared in a window opened after"
+                        + " logout");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> newWindow.navigate(ProtectedView.class));
+        Assertions.assertInstanceOf(LoginView.class,
+                newWindow.getCurrentView());
+    }
+
+    @Test
+    void afterLogout_switchUserAndBack_newWindowStillUnauthenticated() {
+        var user = app.newUser("john", "USER");
+        var window = user.newWindow();
+        window.navigate(ProtectedView.class);
+        Assertions.assertInstanceOf(ProtectedView.class,
+                window.getCurrentView());
+
+        logout();
+
+        // Switch to a different user. The cross-user switch captures the
+        // outgoing (logged-out) user's live state into its snapshot.
+        var other = app.newUser("jane", "USER");
+        var otherWindow = other.newWindow();
+        otherWindow.navigate(ProtectedView.class);
+        Assertions.assertInstanceOf(ProtectedView.class,
+                otherWindow.getCurrentView());
+
+        // Switch back to the logged-out user via a new window: it must still
+        // be unauthenticated. This guards that the same-user no-clobber rule
+        // does not suppress a legitimate cross-user restore (issue #127).
+        var newWindow = user.newWindow();
+        Assertions.assertNull(
+                SecurityContextHolder.getContext().getAuthentication(),
+                "Original user must remain logged out after a round-trip"
+                        + " through another user");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> newWindow.navigate(ProtectedView.class));
+        Assertions.assertInstanceOf(LoginView.class,
+                newWindow.getCurrentView());
     }
 
     @Test

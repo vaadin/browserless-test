@@ -88,7 +88,8 @@ public class BrowserlessUIContext
         // UI.setCurrent itself after instantiating the UI, so leaving it
         // alone avoids clobbering a prior UI if createUI throws before
         // reaching its own UI.setCurrent. On same-user re-entry the security
-        // restore is a no-op (snapshot matches live thread state).
+        // snapshot is intentionally not restored, so the live thread state
+        // (including any logout) is preserved for the new window.
         user.applySessionThreadLocals();
 
         try {
@@ -142,8 +143,9 @@ public class BrowserlessUIContext
         }
 
         // Install this user's Vaadin thread-locals and UI, restoring the
-        // user's security snapshot. On same-user re-entry the security
-        // restore is a no-op (snapshot matches live thread state).
+        // user's security snapshot. On same-user re-entry the snapshot is
+        // intentionally not restored, so a logout (or any security mutation)
+        // made in a sibling window stays visible.
         user.applyUIThreadLocals(ui);
 
         activeContext.set(this);
