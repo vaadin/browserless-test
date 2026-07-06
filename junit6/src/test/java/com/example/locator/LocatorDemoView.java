@@ -38,6 +38,12 @@ public class LocatorDemoView extends VerticalLayout {
         TextField name = new TextField("Name");
         name.setId("name");
 
+        // A label-less search field identified to the user only by its
+        // placeholder text — the case HasPlaceholderFilter is meant for.
+        TextField search = new TextField();
+        search.setPlaceholder("Search people");
+        search.setId("search");
+
         Span echo = new Span("");
         echo.setId("echo");
 
@@ -71,7 +77,8 @@ public class LocatorDemoView extends VerticalLayout {
         PersonForm personForm = new PersonForm(echo);
         personForm.setId("person-form");
 
-        add(name, save, clear, echo, people, price, date, accept, personForm);
+        add(name, search, save, clear, echo, people, price, date, accept,
+                personForm);
     }
 
     /**
