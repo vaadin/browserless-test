@@ -27,6 +27,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(DatePicker.class)
 public class DatePickerTester<T extends DatePicker> extends ComponentTester<T> {

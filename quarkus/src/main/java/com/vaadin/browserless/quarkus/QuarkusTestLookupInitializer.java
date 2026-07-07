@@ -32,6 +32,8 @@ import com.vaadin.flow.server.VaadinContext;
  * Currently, provides integration with Quarkus security.
  *
  * For internal use only.
+ *
+ * @since 1.0
  */
 public class QuarkusTestLookupInitializer extends LookupInitializer {
 

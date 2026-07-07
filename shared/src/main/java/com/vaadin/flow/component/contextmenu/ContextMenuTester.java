@@ -35,6 +35,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(ContextMenu.class)
 public class ContextMenuTester<T extends ContextMenu>
@@ -336,6 +337,7 @@ public class ContextMenuTester<T extends ContextMenu>
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
      *             if the item at given path is not usable.
+     * @since 1.1
      */
     public String getItemTooltipText(String topLevelText,
             String... nestedItemsText) {
@@ -383,6 +385,7 @@ public class ContextMenuTester<T extends ContextMenu>
      *             if the provided position does not identify a menu item.
      * @throws IllegalStateException
      *             if the item at given position is not usable.
+     * @since 1.1
      */
     public String getItemTooltipText(int topLevelPosition,
             int... nestedItemsPositions) {

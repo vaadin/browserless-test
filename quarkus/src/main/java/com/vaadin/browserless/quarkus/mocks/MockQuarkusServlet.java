@@ -35,6 +35,8 @@ import com.vaadin.quarkus.QuarkusVaadinServlet;
  * Makes sure that the {@link #routes} are properly registered, and that
  * {@link MockQuarkusServletService} is used instead of vanilla
  * {@link com.vaadin.quarkus.QuarkusVaadinServletService}.
+ *
+ * @since 1.0
  */
 public class MockQuarkusServlet extends QuarkusVaadinServlet {
 

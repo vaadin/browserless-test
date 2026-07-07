@@ -17,6 +17,9 @@ package com.vaadin.flow.component.html;
 
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(Paragraph.class)
 public class ParagraphTester extends HtmlClickContainer<Paragraph> {
     /**

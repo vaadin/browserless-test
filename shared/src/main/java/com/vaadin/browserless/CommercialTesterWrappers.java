@@ -22,6 +22,8 @@ import com.vaadin.flow.component.dashboard.DashboardTester;
 
 /**
  * Provides factory method to create testers for commercial components.
+ *
+ * @since 1.0
  */
 @SuppressWarnings("unchecked")
 public interface CommercialTesterWrappers {
@@ -43,6 +45,7 @@ public interface CommercialTesterWrappers {
      * @param dashboard
      *            the dashboard instance to be tested
      * @return a DashboardTester instance wrapping the given dashboard
+     * @since 1.1
      */
     default DashboardTester<Dashboard> test(Dashboard dashboard) {
         return BaseBrowserlessTest.internalWrap(DashboardTester.class,

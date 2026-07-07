@@ -30,6 +30,7 @@ import com.vaadin.flow.component.Component;
  *
  * @param <T>
  *            component type
+ * @since 1.1
  */
 @Tests(MasterDetailLayout.class)
 public class MasterDetailLayoutTester<T extends MasterDetailLayout>

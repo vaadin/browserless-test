@@ -112,6 +112,7 @@ import org.junit.jupiter.api.BeforeEach;
  * @see BrowserlessExtension
  *
  * @see BrowserlessClassExtension
+ * @since 1.0
  */
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {

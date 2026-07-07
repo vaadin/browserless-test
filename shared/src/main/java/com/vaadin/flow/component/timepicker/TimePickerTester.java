@@ -28,6 +28,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(TimePicker.class)
 public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {

@@ -25,6 +25,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(TextArea.class)
 public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {

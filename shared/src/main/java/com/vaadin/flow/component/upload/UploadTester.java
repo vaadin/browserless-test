@@ -56,6 +56,7 @@ import com.vaadin.flow.server.streams.UploadResult;
  *
  * @param <T>
  *            the component type.
+ * @since 1.0
  */
 @Tests(Upload.class)
 public class UploadTester<T extends Upload> extends ComponentTester<T> {

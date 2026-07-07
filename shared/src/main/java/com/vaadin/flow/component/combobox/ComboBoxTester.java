@@ -29,6 +29,9 @@ import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
 
+/**
+ * @since 1.0
+ */
 @Tests(fqn = "com.vaadin.flow.component.combobox.ComboBox")
 public class ComboBoxTester<T extends ComboBox<Y>, Y>
         extends ComponentTester<T> {
@@ -83,7 +86,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * select from the filtered results.
      * <p>
      * Example usage with filtering:
-     * 
+     *
      * <pre>
      * // Apply filter first
      * comboBoxTester.setFilter("search text");

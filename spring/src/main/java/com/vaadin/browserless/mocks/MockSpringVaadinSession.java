@@ -36,6 +36,7 @@ import com.vaadin.flow.server.VaadinSession;
  * </ul>
  *
  * @author mavi
+ * @since 1.0
  */
 public class MockSpringVaadinSession extends VaadinSession {
     @NotNull

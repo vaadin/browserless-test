@@ -28,6 +28,8 @@ package com.vaadin.browserless;
  * <dt>4: The second additional button, typically the forward button</dt>
  * <dt>5+: More additional buttons without any typical meanings</dt>
  * </dl>
+ *
+ * @since 1.0
  */
 public enum MouseButton {
 

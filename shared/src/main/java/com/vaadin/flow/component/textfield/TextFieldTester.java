@@ -28,6 +28,7 @@ import com.vaadin.flow.component.shared.HasClearButton;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests({ TextField.class, PasswordField.class, EmailField.class,
         BigDecimalField.class })

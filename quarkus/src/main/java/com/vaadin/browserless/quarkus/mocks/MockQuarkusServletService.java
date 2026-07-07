@@ -38,6 +38,8 @@ import com.vaadin.quarkus.QuarkusVaadinServletService;
  * {@link com.vaadin.flow.server.VaadinSession}.</li>
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
+ *
+ * @since 1.0
  */
 public class MockQuarkusServletService extends QuarkusVaadinServletService {
 

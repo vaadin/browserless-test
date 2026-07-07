@@ -23,6 +23,9 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataViewUtils;
 
+/**
+ * @since 1.0
+ */
 @Tests(fqn = { "com.vaadin.flow.component.select.Select" })
 public class SelectTester<T extends Select<Y>, Y> extends ComponentTester<T> {
     /**

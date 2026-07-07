@@ -26,6 +26,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Checkbox.class)
 public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {

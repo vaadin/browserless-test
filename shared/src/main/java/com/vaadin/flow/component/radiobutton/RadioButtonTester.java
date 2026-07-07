@@ -29,6 +29,7 @@ import com.vaadin.flow.component.ComponentUtil;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.radiobutton.RadioButton")
 public class RadioButtonTester<T extends RadioButton<V>, V>

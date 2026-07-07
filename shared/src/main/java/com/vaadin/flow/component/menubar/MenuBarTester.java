@@ -32,6 +32,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(MenuBar.class)
 public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
@@ -279,6 +280,7 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
      *             if the item at given path is not usable.
+     * @since 1.1
      */
     public String getItemTooltipText(String topLevelText,
             String... nestedItemsText) {
@@ -326,6 +328,7 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
      *             if the provided position does not identify a menu item.
      * @throws IllegalStateException
      *             if the item at given position is not usable.
+     * @since 1.1
      */
     public String getItemTooltipText(int topLevelPosition,
             int... nestedItemsPositions) {
