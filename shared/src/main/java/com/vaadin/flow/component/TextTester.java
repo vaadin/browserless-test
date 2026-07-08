@@ -24,9 +24,10 @@ import com.vaadin.browserless.Tests;
  * Tester for Text components.
  * <p>
  * {@link Text} renders as a text node rather than an HTML element, so it has no
- * visibility of its own ({@link Text#isVisible()} throws). Usability is
- * therefore derived from the component being attached and enabled and from the
- * effective visibility of its parent subtree.
+ * visibility or enabled state of its own ({@link Text#isVisible()} throws, and
+ * a text node cannot be disabled). Usability is therefore derived from the
+ * component being attached and from the effective visibility of its parent
+ * subtree.
  *
  * @param <T>
  *            component type
@@ -59,17 +60,13 @@ public class TextTester<T extends Text> extends ComponentTester<T> {
     @Override
     public boolean isUsable() {
         T text = getComponent();
-        return text.getElement().isEnabled() && text.isAttached()
-                && isParentEffectivelyVisible(text)
+        return text.isAttached() && isParentEffectivelyVisible(text)
                 && !text.getElement().getNode().isInert();
     }
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
         T text = getComponent();
-        if (!text.getElement().isEnabled()) {
-            collector.accept("not enabled");
-        }
         if (!text.isAttached()) {
             collector.accept("not attached");
         }
