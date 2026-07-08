@@ -100,6 +100,8 @@ import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.login.LoginFormTester;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.login.LoginOverlayTester;
+import com.vaadin.flow.component.markdown.Markdown;
+import com.vaadin.flow.component.markdown.MarkdownTester;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayoutTester;
 import com.vaadin.flow.component.messages.MessageInput;
@@ -262,6 +264,10 @@ public interface TesterWrappers {
     default LoginOverlayTester<LoginOverlay> test(LoginOverlay loginOverlay) {
         return BaseBrowserlessTest.internalWrap(LoginOverlayTester.class,
                 loginOverlay);
+    }
+
+    default MarkdownTester<Markdown> test(Markdown markdown) {
+        return BaseBrowserlessTest.internalWrap(MarkdownTester.class, markdown);
     }
 
     default MasterDetailLayoutTester<MasterDetailLayout> test(
