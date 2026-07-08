@@ -57,6 +57,11 @@ public class TextTester<T extends Text> extends ComponentTester<T> {
         return getComponent().getText();
     }
 
+    // isUsable/notUsableReasons are overridden because the ComponentTester
+    // defaults call Element#isVisible() on the wrapped component (the former
+    // already from the constructor), which unconditionally throws for a text
+    // node. The parent subtree's effective visibility is used instead.
+
     @Override
     public boolean isUsable() {
         T text = getComponent();
