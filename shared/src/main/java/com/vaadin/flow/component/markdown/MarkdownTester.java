@@ -23,7 +23,6 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
- * @since 1.1
  */
 @Tests(Markdown.class)
 public class MarkdownTester<T extends Markdown> extends ComponentTester<T> {
