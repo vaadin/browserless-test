@@ -17,8 +17,8 @@ package com.vaadin.flow.component.radiobutton;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.automation.Activatable;
+import com.vaadin.flow.automation.Clickable;
 
 /**
  * Tester for RadioButton components.
@@ -49,9 +49,9 @@ public class RadioButtonTester<T extends RadioButton<V>, V>
      */
     public void click() {
         ensureComponentIsUsable();
-        T radioButton = getComponent();
-        ComponentUtil.fireEvent(radioButton, new ClickEvent<>(radioButton, true,
-                0, 0, 0, 0, 0, 0, false, false, false, false));
-        radioButton.setChecked(true);
+        // Clickable fires the pointer gesture; Activatable selects the radio
+        // (setChecked(true)) — both via RadioButton's capability provider.
+        automation().of(getComponent()).as(Clickable.class).click();
+        automation().of(getComponent()).as(Activatable.class).activate();
     }
 }
