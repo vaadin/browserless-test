@@ -29,6 +29,8 @@ import java.lang.annotation.Target;
  *
  * If both {@link #classes()} and {@link #packages()} are empty, the scan is
  * assumed to be limited to the annotated class package.
+ *
+ * @since 1.0
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

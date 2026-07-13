@@ -22,6 +22,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(LoginForm.class)
 public class LoginFormTester<T extends LoginForm>

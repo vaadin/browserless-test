@@ -23,6 +23,7 @@ import com.vaadin.flow.component.ComponentUtil;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 public class AbstractLoginTester<T extends AbstractLogin>
         extends ComponentTester<T> {

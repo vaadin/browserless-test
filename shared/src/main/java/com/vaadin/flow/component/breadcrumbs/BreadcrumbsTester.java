@@ -23,6 +23,9 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 
+/**
+ * @since 1.1
+ */
 @Tests(Breadcrumbs.class)
 public class BreadcrumbsTester<T extends Breadcrumbs>
         extends ComponentTester<T> {

@@ -24,6 +24,8 @@ import com.vaadin.flow.dom.Element;
 
 /**
  * Tester for ConfirmDialog.
+ *
+ * @since 1.0
  */
 @Tests(ConfirmDialog.class)
 public class ConfirmDialogTester extends ComponentTester<ConfirmDialog> {

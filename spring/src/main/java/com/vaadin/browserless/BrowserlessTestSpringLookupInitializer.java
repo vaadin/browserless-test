@@ -41,6 +41,8 @@ import com.vaadin.flow.spring.SpringLookupInitializer;
  * be initialized correctly.
  *
  * For internal use only.
+ *
+ * @since 1.0
  */
 public class BrowserlessTestSpringLookupInitializer
         extends SpringLookupInitializer implements TestExecutionListener {

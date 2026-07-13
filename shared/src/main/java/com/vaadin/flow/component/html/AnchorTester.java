@@ -37,6 +37,9 @@ import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.streams.DownloadEvent;
 import com.vaadin.flow.server.streams.DownloadHandler;
 
+/**
+ * @since 1.0
+ */
 @Tests(Anchor.class)
 public class AnchorTester extends HtmlContainerTester<Anchor> {
     /**

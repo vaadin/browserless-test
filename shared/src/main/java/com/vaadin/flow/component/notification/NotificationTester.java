@@ -25,6 +25,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Notification.class)
 public class NotificationTester<T extends Notification>

@@ -35,6 +35,7 @@ import com.vaadin.flow.dom.Element;
  * conditions.
  *
  * @see ComponentQuery#withCondition(Predicate)
+ * @since 1.0
  */
 public final class ElementConditions {
 

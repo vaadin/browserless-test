@@ -33,6 +33,7 @@ import com.vaadin.flow.router.RouterLink;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(RouterLink.class)
 public class RouterLinkTester<T extends RouterLink> extends ComponentTester<T> {

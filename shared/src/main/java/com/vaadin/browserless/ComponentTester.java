@@ -45,6 +45,7 @@ import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 public class ComponentTester<T extends Component> implements Clickable<T> {
 

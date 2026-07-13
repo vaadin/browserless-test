@@ -25,6 +25,8 @@ import com.vaadin.flow.component.ComponentUtil;
 
 /**
  * Tester for Popover components.
+ *
+ * @since 1.0
  */
 @Tests(Popover.class)
 public class PopoverTester extends ComponentTester<Popover> {

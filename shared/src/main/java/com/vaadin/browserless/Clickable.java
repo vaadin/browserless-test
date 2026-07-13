@@ -27,6 +27,7 @@ import com.vaadin.flow.component.ComponentUtil;
  *
  * @param <T>
  *            the type of component being tested
+ * @since 1.0
  */
 public interface Clickable<T extends Component> {
 

@@ -27,6 +27,8 @@ import java.lang.annotation.Target;
  * <p/>
  * This makes adding custom component wrappers simpler as they can then use
  * package protected fields and methods.
+ *
+ * @since 1.0
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)

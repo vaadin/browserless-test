@@ -24,6 +24,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Button.class)
 public class ButtonTester<T extends Button> extends ComponentTester<T> {

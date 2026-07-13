@@ -17,6 +17,9 @@ package com.vaadin.flow.component.html;
 
 import com.vaadin.flow.component.HtmlContainer;
 
+/**
+ * @since 1.0
+ */
 public abstract class HtmlClickContainer<T extends HtmlContainer>
         extends HtmlContainerTester<T> {
     /**

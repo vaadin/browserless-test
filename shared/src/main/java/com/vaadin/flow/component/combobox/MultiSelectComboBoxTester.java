@@ -31,6 +31,9 @@ import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
 
+/**
+ * @since 1.0
+ */
 @Tests(fqn = "com.vaadin.flow.component.combobox.MultiSelectComboBox")
 public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
         extends ComponentTester<T> {

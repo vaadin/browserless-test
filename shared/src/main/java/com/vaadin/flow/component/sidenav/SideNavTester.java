@@ -21,6 +21,9 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.UI;
 
+/**
+ * @since 1.0
+ */
 @Tests(SideNav.class)
 public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
 

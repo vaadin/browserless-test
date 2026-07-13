@@ -29,6 +29,8 @@ import com.vaadin.flow.function.ValueProvider;
 
 /**
  * Utility methods for unit testing properties and functions of LitRenderers.
+ *
+ * @since 1.0
  */
 public class LitRendererTestUtil {
 

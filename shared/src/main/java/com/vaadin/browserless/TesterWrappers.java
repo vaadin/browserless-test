@@ -151,6 +151,9 @@ import com.vaadin.flow.component.virtuallist.VirtualList;
 import com.vaadin.flow.component.virtuallist.VirtualListTester;
 import com.vaadin.flow.router.RouterLink;
 
+/**
+ * @since 1.0
+ */
 @SuppressWarnings("unchecked")
 public interface TesterWrappers {
 

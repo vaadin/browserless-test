@@ -29,6 +29,7 @@ import com.vaadin.flow.component.ItemLabelGenerator;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests(fqn = { "com.vaadin.flow.component.listbox.ListBox" })
 public class ListBoxTester<T extends ListBox<V>, V> extends ComponentTester<T> {

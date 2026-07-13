@@ -28,6 +28,7 @@ import com.vaadin.browserless.Tests;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests(fqn = { "com.vaadin.flow.component.textfield.IntegerField",
         "com.vaadin.flow.component.textfield.NumberField" })

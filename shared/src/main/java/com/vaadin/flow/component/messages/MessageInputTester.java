@@ -24,6 +24,7 @@ import com.vaadin.flow.component.ComponentUtil;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(MessageInput.class)
 public class MessageInputTester<T extends MessageInput>

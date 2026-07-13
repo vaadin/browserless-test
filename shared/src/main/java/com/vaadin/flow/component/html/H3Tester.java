@@ -17,6 +17,9 @@ package com.vaadin.flow.component.html;
 
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(H3.class)
 public class H3Tester extends HtmlClickContainer<H3> {
     /**

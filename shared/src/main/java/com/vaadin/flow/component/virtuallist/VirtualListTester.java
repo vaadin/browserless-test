@@ -36,6 +36,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *            component type
  * @param <Y>
  *            value type
+ * @since 1.0
  */
 @Tests(VirtualList.class)
 public class VirtualListTester<T extends VirtualList<Y>, Y>

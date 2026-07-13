@@ -48,6 +48,7 @@ import com.vaadin.flow.spring.SpringServlet;
  * {@link com.vaadin.flow.spring.SpringVaadinServletService}.
  *
  * @author mavi
+ * @since 1.0
  */
 public class MockSpringServlet extends SpringServlet {
 

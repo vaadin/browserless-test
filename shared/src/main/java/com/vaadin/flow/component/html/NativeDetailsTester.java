@@ -19,6 +19,9 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 
+/**
+ * @since 1.0
+ */
 @Tests(NativeDetails.class)
 public class NativeDetailsTester extends HtmlComponentTester<NativeDetails> {
     /**

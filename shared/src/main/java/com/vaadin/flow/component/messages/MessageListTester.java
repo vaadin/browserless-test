@@ -27,6 +27,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(MessageList.class)
 public class MessageListTester<T extends MessageList>
@@ -132,6 +133,7 @@ public class MessageListTester<T extends MessageList>
      *         has no attachments
      * @throws IndexOutOfBoundsException
      *             – if the index is out of range (index < 0 || index >= size())
+     * @since 1.1
      */
     public List<MessageListItem.Attachment> getAttachments(int index) {
         ensureComponentIsUsable();
@@ -150,6 +152,7 @@ public class MessageListTester<T extends MessageList>
      *         has no attachment with the given name
      * @throws IndexOutOfBoundsException
      *             – if the index is out of range (index < 0 || index >= size())
+     * @since 1.1
      */
     public MessageListItem.Attachment getAttachmentByName(int index,
             String name) {

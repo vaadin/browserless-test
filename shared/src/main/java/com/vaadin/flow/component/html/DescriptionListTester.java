@@ -20,6 +20,9 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(DescriptionList.class)
 public class DescriptionListTester extends HtmlClickContainer<DescriptionList> {
     /**
