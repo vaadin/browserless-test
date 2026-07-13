@@ -77,6 +77,8 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  * fires <em>after</em> all extension {@code beforeEach} callbacks — in
  * particular after {@code QuarkusTestExtension.beforeEach()}, which activates
  * the CDI request scope and applies {@code @TestSecurity} identities.
+ *
+ * @since 1.0
  */
 public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {

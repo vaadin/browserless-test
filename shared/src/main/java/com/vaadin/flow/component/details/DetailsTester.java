@@ -23,6 +23,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Details.class)
 public class DetailsTester<T extends Details> extends ComponentTester<T> {

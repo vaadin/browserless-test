@@ -20,6 +20,9 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(UnorderedList.class)
 public class UnorderedListTester extends HtmlClickContainer<UnorderedList> {
     /**

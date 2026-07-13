@@ -41,6 +41,7 @@ import com.vaadin.flow.component.charts.model.Series;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Chart.class)
 public class ChartTester<T extends Chart> extends ComponentTester<T> {

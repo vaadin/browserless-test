@@ -60,6 +60,8 @@ import com.vaadin.flow.signals.SignalEnvironment;
  *
  * <p>
  * For internal use only. May be renamed or removed in a future release.
+ *
+ * @since 1.0
  */
 public class TestSignalEnvironment extends SignalEnvironment {
 

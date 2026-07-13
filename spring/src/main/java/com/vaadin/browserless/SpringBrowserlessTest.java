@@ -61,6 +61,8 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  * }
  * }
  * </pre>
+ *
+ * @since 1.0
  */
 @ExtendWith({ SpringExtension.class })
 @TestExecutionListeners(listeners = BrowserlessTestSpringLookupInitializer.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)

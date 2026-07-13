@@ -22,6 +22,9 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.internal.nodefeature.ElementPropertyMap;
 import com.vaadin.flow.internal.nodefeature.PropertyChangeDeniedException;
 
+/**
+ * @since 1.0
+ */
 @Tests(Accordion.class)
 public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
     /**

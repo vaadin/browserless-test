@@ -17,6 +17,9 @@ package com.vaadin.flow.component.html;
 
 import com.vaadin.flow.component.HtmlContainer;
 
+/**
+ * @since 1.0
+ */
 public class HtmlContainerTester<T extends HtmlContainer>
         extends HtmlComponentTester<T> {
     /**

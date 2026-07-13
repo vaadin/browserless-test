@@ -28,6 +28,8 @@ import com.vaadin.flow.component.Component;
  * <p/>
  * This is used for automatically selecting a wrapper implementation for a given
  * component.
+ *
+ * @since 1.0
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)

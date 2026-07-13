@@ -48,6 +48,7 @@ import com.vaadin.flow.server.VaadinSession;
  * For internal use only. May be renamed or removed in a future release.
  *
  * @see ViewPackages
+ * @since 1.0
  */
 public abstract class BaseBrowserlessTest {
 

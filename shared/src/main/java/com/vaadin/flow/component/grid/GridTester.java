@@ -44,6 +44,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *            component type
  * @param <Y>
  *            item type
+ * @since 1.0
  */
 @Tests(fqn = { "com.vaadin.flow.component.grid.Grid" })
 public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {

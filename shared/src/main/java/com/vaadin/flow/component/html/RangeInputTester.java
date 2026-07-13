@@ -20,6 +20,9 @@ import java.math.BigDecimal;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(RangeInput.class)
 public class RangeInputTester extends ComponentTester<RangeInput> {
 

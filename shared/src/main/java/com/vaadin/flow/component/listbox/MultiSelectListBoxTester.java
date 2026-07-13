@@ -32,6 +32,7 @@ import com.vaadin.flow.component.ItemLabelGenerator;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests(fqn = { "com.vaadin.flow.component.listbox.MultiSelectListBox" })
 public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>

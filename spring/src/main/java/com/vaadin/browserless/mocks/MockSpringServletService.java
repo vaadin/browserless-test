@@ -40,6 +40,7 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * The class is intentionally opened, to be extensible in user's library.
  *
  * @author mavi
+ * @since 1.0
  */
 public class MockSpringServletService extends SpringVaadinServletService {
     @NotNull

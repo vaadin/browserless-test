@@ -18,6 +18,8 @@ package com.vaadin.browserless;
 /**
  * Exception thrown by {@link BaseBrowserlessTest} methods when the mock
  * environment has not been set up correctly.
+ *
+ * @since 1.0
  */
 public class BrowserlessTestSetupException extends RuntimeException {
     public BrowserlessTestSetupException(String message) {

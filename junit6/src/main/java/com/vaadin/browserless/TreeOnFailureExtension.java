@@ -27,6 +27,8 @@ import com.vaadin.flow.component.UI;
  * <p>
  * This can help with identifying a problem that has happened in the test where
  * a component is missing or has faulty data.
+ *
+ * @since 1.0
  */
 public class TreeOnFailureExtension implements AfterTestExecutionCallback {
 

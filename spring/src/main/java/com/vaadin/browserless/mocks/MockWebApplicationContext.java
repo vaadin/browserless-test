@@ -42,6 +42,8 @@ import org.springframework.web.context.WebApplicationContext;
  * WebApplicationContext.
  *
  * For internal use only.
+ *
+ * @since 1.0
  */
 public class MockWebApplicationContext implements WebApplicationContext {
 

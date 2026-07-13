@@ -26,6 +26,7 @@ import com.vaadin.flow.component.Component;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(Tabs.class)
 public class TabsTester<T extends Tabs> extends ComponentTester<T> {

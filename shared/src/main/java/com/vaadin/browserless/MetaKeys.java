@@ -17,6 +17,8 @@ package com.vaadin.browserless;
 
 /**
  * Class for setting any down meta keys for events supporting meta keys.
+ *
+ * @since 1.0
  */
 public class MetaKeys {
     private boolean ctrl = false;

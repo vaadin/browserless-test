@@ -35,6 +35,7 @@ import com.vaadin.flow.data.binder.HasItemComponents;
  *            component type
  * @param <V>
  *            value type
+ * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.radiobutton.RadioButtonGroup")
 public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>

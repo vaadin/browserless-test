@@ -18,6 +18,9 @@ package com.vaadin.flow.component.dialog;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
+/**
+ * @since 1.0
+ */
 @Tests(Dialog.class)
 public class DialogTester extends ComponentTester<Dialog> {
     /**

@@ -29,6 +29,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * @since 1.0
+ */
 public final class SerializationDebugUtil {
 
     private SerializationDebugUtil() {

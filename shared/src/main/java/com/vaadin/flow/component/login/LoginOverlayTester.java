@@ -24,6 +24,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.0
  */
 @Tests(LoginOverlay.class)
 public class LoginOverlayTester<T extends LoginOverlay>

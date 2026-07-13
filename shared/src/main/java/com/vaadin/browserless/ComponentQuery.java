@@ -45,6 +45,7 @@ import com.vaadin.flow.dom.Element;
  * @param <T>
  *            the type of the component(s) to search for
  * @see ComponentTester
+ * @since 1.0
  */
 public class ComponentQuery<T extends Component> {
 

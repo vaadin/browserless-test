@@ -25,6 +25,8 @@ import com.vaadin.browserless.mocks.MockRequest;
  * Configures mock request with authentication details from Quarkus Security.
  *
  * For internal use only.
+ *
+ * @since 1.0
  */
 public class QuarkusSecurityCustomizer implements MockRequestCustomizer {
 
