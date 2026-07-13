@@ -104,9 +104,18 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     @Override
     public void click(int button, MetaKeys metaKeys) {
         ensureComponentIsUsable();
-        automation().of(getComponent())
-                .as(com.vaadin.flow.automation.Clickable.class)
-                .click(toMouseButton(button), toModifiers(metaKeys));
+        // Clickable is listener-gated in commons (#33): a component with no
+        // server-side ClickEvent listener (e.g. Checkbox, whose click is a
+        // value toggle) does not advertise Clickable. There the gesture is a
+        // no-op — the component's state is moved by the tester's own path (e.g.
+        // a subclass driving Settable) — so skip it instead of failing with
+        // CapabilityNotSupported.
+        com.vaadin.flow.automation.CapabilitySet capabilities = automation()
+                .of(getComponent());
+        if (capabilities.has(com.vaadin.flow.automation.Clickable.class)) {
+            capabilities.as(com.vaadin.flow.automation.Clickable.class)
+                    .click(toMouseButton(button), toModifiers(metaKeys));
+        }
     }
 
     private static MouseButton toMouseButton(int button) {
