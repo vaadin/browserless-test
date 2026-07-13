@@ -17,7 +17,7 @@ package com.vaadin.flow.component.messages;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.automation.Submittable;
 
 /**
  * Tester for MessageInput components.
@@ -49,7 +49,6 @@ public class MessageInputTester<T extends MessageInput>
         if (message == null || message.isEmpty()) {
             return;
         }
-        ComponentUtil.fireEvent(getComponent(),
-                new MessageInput.SubmitEvent(getComponent(), true, message));
+        automation().of(getComponent()).as(Submittable.class).submit(message);
     }
 }
