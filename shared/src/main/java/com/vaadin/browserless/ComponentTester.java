@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -32,7 +33,9 @@ import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.automation.Automation;
 import com.vaadin.flow.automation.MetaKey;
 import com.vaadin.flow.automation.MouseButton;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Usable;
+import com.vaadin.flow.automation.component.Paging;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -86,6 +89,28 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected Automation automation() {
         return BrowserlessAutomation.forDriving(getComponent());
+    }
+
+    /**
+     * Reads every option/suggestion display string through the shared
+     * {@link Readable} capability, paging past {@link Paging#MAX_LIMIT} so the
+     * full list is returned. Testers that expose all options (e.g.
+     * {@code getSuggestions()}) use this rather than a single, capped
+     * {@code options(...)} call.
+     *
+     * @return all option display strings, in display order
+     */
+    protected List<String> readAllOptions() {
+        Readable readable = automation().of(getComponent()).as(Readable.class);
+        List<String> all = new ArrayList<>();
+        List<String> page;
+        int offset = 0;
+        do {
+            page = readable.options(null, offset, Paging.MAX_LIMIT);
+            all.addAll(page);
+            offset += page.size();
+        } while (page.size() == Paging.MAX_LIMIT);
+        return all;
     }
 
     /**

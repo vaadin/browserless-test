@@ -28,7 +28,6 @@ import com.vaadin.browserless.internal.BasicUtilsKt;
 import com.vaadin.flow.automation.Filterable;
 import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
-import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 
 @Tests(fqn = "com.vaadin.flow.component.combobox.ComboBox")
@@ -117,13 +116,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * @return List of item representation strings
      */
     public List<String> getSuggestions() {
-        final List<Y> suggestionItems = getSuggestionItems();
-        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
-                .getItemLabelGenerator();
-
-        return suggestionItems.stream()
-                .map(item -> itemLabelGenerator.apply(item))
-                .collect(Collectors.toList());
+        return readAllOptions();
     }
 
     /**

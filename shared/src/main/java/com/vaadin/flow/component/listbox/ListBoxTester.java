@@ -76,8 +76,7 @@ public class ListBoxTester<T extends ListBox<V>, V> extends ComponentTester<T> {
      * @return List of item representation strings
      */
     public List<String> getSuggestions() {
-        return automation().of(getComponent()).as(Readable.class).options(null,
-                0, Integer.MAX_VALUE);
+        return readAllOptions();
     }
 
     /**

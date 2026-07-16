@@ -127,8 +127,7 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      * @return List of item representation strings
      */
     public List<String> getSuggestions() {
-        return automation().of(getComponent()).as(Readable.class).options(null,
-                0, Integer.MAX_VALUE);
+        return readAllOptions();
     }
 
     /**
