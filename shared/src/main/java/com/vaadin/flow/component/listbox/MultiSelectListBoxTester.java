@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.listbox;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.automation.NotUsableException;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 
@@ -52,8 +54,14 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      *
      * @return current selection
      */
+    @SuppressWarnings("unchecked")
     public Set<V> getSelected() {
-        return getComponent().getValue();
+        Set<V> selected = new LinkedHashSet<>();
+        for (Object value : automation().of(getComponent()).as(Readable.class)
+                .values()) {
+            selected.add((V) value);
+        }
+        return selected;
     }
 
     /**

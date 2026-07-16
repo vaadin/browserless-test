@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Readable;
 
 @Tests(RangeInput.class)
 public class RangeInputTester extends ComponentTester<RangeInput> {
@@ -42,7 +43,8 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
      */
     public Double getValue() {
         ensureVisible();
-        return getComponent().getValue();
+        return (Double) automation().of(getComponent()).as(Readable.class)
+                .value();
     }
 
     /**

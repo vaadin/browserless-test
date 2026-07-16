@@ -18,6 +18,7 @@ package com.vaadin.flow.component.radiobutton;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.automation.NotUsableException;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 
 /**
@@ -72,8 +73,9 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
      *
      * @return current selection, or an empty list. Never {@literal null}.
      */
+    @SuppressWarnings("unchecked")
     public V getSelected() {
-        return getComponent().getValue();
+        return (V) automation().of(getComponent()).as(Readable.class).value();
     }
 
 }

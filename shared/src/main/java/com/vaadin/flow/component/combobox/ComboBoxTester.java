@@ -26,6 +26,7 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtilsKt;
 import com.vaadin.flow.automation.Filterable;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
@@ -104,8 +105,9 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      *
      * @return current selection
      */
+    @SuppressWarnings("unchecked")
     public Y getSelected() {
-        return getComponent().getValue();
+        return (Y) automation().of(getComponent()).as(Readable.class).value();
     }
 
     /**

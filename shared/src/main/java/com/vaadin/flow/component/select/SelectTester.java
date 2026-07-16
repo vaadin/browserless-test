@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataViewUtils;
@@ -41,8 +42,9 @@ public class SelectTester<T extends Select<Y>, Y> extends ComponentTester<T> {
      *
      * @return current selection
      */
+    @SuppressWarnings("unchecked")
     public Y getSelected() {
-        return getComponent().getValue();
+        return (Y) automation().of(getComponent()).as(Readable.class).value();
     }
 
     /**

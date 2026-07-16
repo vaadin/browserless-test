@@ -18,6 +18,7 @@ package com.vaadin.flow.component.combobox;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtilsKt;
 import com.vaadin.flow.automation.Filterable;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
@@ -82,8 +84,14 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *
      * @return current selection
      */
+    @SuppressWarnings("unchecked")
     public Set<Y> getSelected() {
-        return getComponent().getValue();
+        Set<Y> selected = new LinkedHashSet<>();
+        for (Object value : automation().of(getComponent()).as(Readable.class)
+                .values()) {
+            selected.add((Y) value);
+        }
+        return selected;
     }
 
     /**

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.ItemLabelGenerator;
 
@@ -48,8 +49,9 @@ public class ListBoxTester<T extends ListBox<V>, V> extends ComponentTester<T> {
      *
      * @return current selection
      */
+    @SuppressWarnings("unchecked")
     public V getSelected() {
-        return getComponent().getValue();
+        return (V) automation().of(getComponent()).as(Readable.class).value();
     }
 
     /**

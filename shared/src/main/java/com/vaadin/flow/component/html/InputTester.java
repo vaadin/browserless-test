@@ -17,6 +17,7 @@ package com.vaadin.flow.component.html;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Readable;
 
 @Tests(Input.class)
 public class InputTester extends ComponentTester<Input> {
@@ -59,7 +60,8 @@ public class InputTester extends ComponentTester<Input> {
      */
     public String getValue() {
         ensureVisible();
-        return getComponent().getValue();
+        return (String) automation().of(getComponent()).as(Readable.class)
+                .value();
     }
 
     /**
