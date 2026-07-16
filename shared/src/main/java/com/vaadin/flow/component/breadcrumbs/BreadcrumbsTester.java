@@ -16,12 +16,11 @@
 package com.vaadin.flow.component.breadcrumbs;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.automation.PathActivatable;
+import com.vaadin.flow.automation.Readable;
 
 @Tests(Breadcrumbs.class)
 public class BreadcrumbsTester<T extends Breadcrumbs>
@@ -38,18 +37,19 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
     }
 
     /**
-     * Gets the labels of the breadcrumb items, in trail order.
+     * Gets the labels of the breadcrumb items, in trail order, through the
+     * shared {@link Readable} capability.
      *
      * @return the item labels
      */
     public List<String> getItemTexts() {
         ensureComponentIsUsable();
-        return items().map(BreadcrumbsItem::getText).toList();
+        return readAllOptions();
     }
 
     /**
      * Simulates a click on the item that matches the given label, navigating to
-     * its path.
+     * its path, through the shared {@link PathActivatable} capability.
      *
      * @param text
      *            the label of the breadcrumb item, not {@literal null}
@@ -61,12 +61,14 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
      */
     public void clickItem(String text) {
         ensureComponentIsUsable();
-        navigateTo(findItemByText(text));
+        automation().of(getComponent()).as(PathActivatable.class)
+                .activateItem(text);
     }
 
     /**
      * Simulates a click on the item at the given position in the trail,
-     * navigating to its path.
+     * navigating to its path, through the shared {@link PathActivatable}
+     * capability.
      *
      * @param index
      *            the zero-based position of the item in the trail
@@ -77,41 +79,7 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
      */
     public void clickItem(int index) {
         ensureComponentIsUsable();
-        List<BreadcrumbsItem> all = items().toList();
-        if (index < 0 || index >= all.size()) {
-            throw new IllegalArgumentException(
-                    "Breadcrumbs has no item at index " + index);
-        }
-        navigateTo(all.get(index));
-    }
-
-    private void navigateTo(BreadcrumbsItem item) {
-        ensureComponentIsUsable(item, ComponentTester::isUsable);
-        String path = item.getPath();
-        if (path == null) {
-            throw new IllegalStateException(
-                    "Breadcrumbs item '" + item.getText()
-                            + "' has no path and cannot be navigated to");
-        }
-        UI.getCurrent().navigate(path);
-    }
-
-    private BreadcrumbsItem findItemByText(String text) {
-        List<BreadcrumbsItem> matches = items()
-                .filter(item -> text.equals(item.getText())).toList();
-        if (matches.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Cannot find Breadcrumbs item '" + text + "'");
-        } else if (matches.size() > 1) {
-            throw new IllegalStateException("Found " + matches.size()
-                    + " Breadcrumbs items with label '" + text + "'");
-        }
-        return matches.get(0);
-    }
-
-    private Stream<BreadcrumbsItem> items() {
-        return getComponent().getChildren().filter(Component::isVisible)
-                .filter(BreadcrumbsItem.class::isInstance)
-                .map(BreadcrumbsItem.class::cast);
+        automation().of(getComponent()).as(PathActivatable.class)
+                .activateItemAt(index);
     }
 }
