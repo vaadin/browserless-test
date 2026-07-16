@@ -73,54 +73,82 @@ public class VirtualListTester<T extends VirtualList<Y>, Y>
     }
 
     /**
-     * Get the text that is shown on the client for the item at index.
+     * Get the displayed text for the item at index.
      * <p/>
      * The index is zero-based.
      * <p/>
-     * For the default renderer ColumnPathRenderer the result is the sent text
-     * for defined object path.
+     * The text is the item's displayed text as resolved by the {@link Readable}
+     * capability: the item accessible-name generator's value when one is set,
+     * otherwise the text the renderer paints (a {@link ComponentRenderer}'s
+     * rendered component text, or the single- {@code label} {@link LitRenderer}
+     * that {@code setRenderer(ValueProvider)} installs). This is the same
+     * display string the AI/inspect surface reads, so the two never diverge.
      * <p/>
-     * For a ComponentRenderer the result is the rendered component as
-     * prettyString.
-     * <p/>
-     * More to be added as we find other renderers that need handling.
+     * Unlike the best-effort capability read, this tester method keeps a
+     * fail-fast contract: it throws {@link IndexOutOfBoundsException} for an
+     * index outside {@code [0, size())}, and
+     * {@link UnsupportedOperationException} for a multi-property/function
+     * {@link LitRenderer} or any other renderer it does not understand (rather
+     * than returning a {@code String.valueOf} guess).
      *
      * @param index
      *            the zero-based index of the item
-     * @return item content that is sent to the client
+     * @return the item's displayed text
+     * @throws IndexOutOfBoundsException
+     *             when the index is negative or not less than {@link #size()}
+     * @throws UnsupportedOperationException
+     *             when the VirtualList uses a renderer whose text this tester
+     *             cannot resolve
      */
     public String getItemText(int index) {
         ensureVisible();
 
-        // use element text of Component if renderer is ComponentRenderer
-        var itemRenderer = getItemRenderer();
-        if (itemRenderer instanceof ComponentRenderer) {
-            var component = getItemComponent(index);
-            if (component == null) {
-                return null;
-            }
-            return component.getElement().getTextRecursively();
+        var readable = automation().of(getComponent()).as(Readable.class);
+
+        // Readable.items() is best-effort: it clamps out-of-range indices and
+        // never throws. Restore the tester's fail-fast bounds contract before
+        // delegating.
+        var size = readable.count();
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException(
+                    "VirtualList item index out of bounds: " + index + " (size "
+                            + size + ").");
         }
 
-        // use LitRenderer label if renderer is ValueProvider (i.e., has a
-        // single property "label")
-        if (itemRenderer instanceof LitRenderer<Y> litRenderer) {
-            if ((LitRendererTestUtil.getProperties(litRenderer, this::getField)
-                    .stream()
-                    .allMatch(propertyName -> propertyName.equals("label")))
-                    && (LitRendererTestUtil
-                            .getFunctionNames(litRenderer, this::getField)
-                            .isEmpty())) {
-                return getLitRendererPropertyValue(index, "label",
-                        String.class);
+        // The tester only reports item text for renderers it understands;
+        // reject the rest rather than accepting the capability's
+        // String.valueOf fallback. A ComponentRenderer and the single-"label"
+        // LitRenderer that setRenderer(ValueProvider) installs are exactly what
+        // Readable resolves to rendered text.
+        var itemRenderer = getItemRenderer();
+        if (!(itemRenderer instanceof ComponentRenderer)) {
+            if (itemRenderer instanceof LitRenderer<Y> litRenderer) {
+                if (!isSingleLabelLitRenderer(litRenderer)) {
+                    throw new UnsupportedOperationException(
+                            "VirtualListTester is unable to get item text when VirtualList uses a LitRenderer.");
+                }
             } else {
                 throw new UnsupportedOperationException(
-                        "VirtualListTester is unable to get item text when VirtualList uses a LitRenderer.");
+                        "VirtualListTester is unable to get item text for this VirtualList's renderer.");
             }
         }
 
-        throw new UnsupportedOperationException(
-                "VirtualListTester is unable to get item text for this VirtualList's renderer.");
+        // Delegate text resolution to the Readable capability so the tester and
+        // the AI/inspect surface share one source of truth for display text.
+        return readable.items(null, index, 1).get(0);
+    }
+
+    /**
+     * Whether the given LitRenderer is the single-{@code label}, no-function
+     * shape that {@code VirtualList.setRenderer(ValueProvider)} installs, i.e.
+     * the LitRenderer whose displayed text {@link Readable} can resolve.
+     */
+    private boolean isSingleLabelLitRenderer(LitRenderer<Y> litRenderer) {
+        return LitRendererTestUtil.getProperties(litRenderer, this::getField)
+                .stream().allMatch(propertyName -> propertyName.equals("label"))
+                && LitRendererTestUtil
+                        .getFunctionNames(litRenderer, this::getField)
+                        .isEmpty();
     }
 
     /**
