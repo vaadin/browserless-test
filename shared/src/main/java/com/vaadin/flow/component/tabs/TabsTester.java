@@ -19,6 +19,9 @@ import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Indexable;
+import com.vaadin.flow.automation.NotUsableException;
+import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.component.Component;
 
 /**
@@ -74,8 +77,15 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
     public void select(int index) {
         ensureComponentIsUsable();
         if (index >= 0) {
-            doSelectTab(findTab(index), "Tab at index " + index
-                    + " cannot be selected because it is not usable");
+            try {
+                automation().of(getComponent()).as(Indexable.class)
+                        .selectByIndex(index);
+            } catch (NotUsableException e) {
+                // a disabled tab is rejected by the capability layer; preserve
+                // this tester's not-usable contract (IllegalStateException)
+                throw new IllegalStateException("Tab at index " + index
+                        + " cannot be selected because it is not usable", e);
+            }
         } else {
             getComponent().setSelectedTab(null);
         }
@@ -91,7 +101,8 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      */
     public boolean isSelected(String label) {
         ensureComponentIsUsable();
-        return findTab(label).isSelected();
+        return automation().of(getComponent()).as(Selectable.class)
+                .isSelectedByContent(label);
     }
 
     /**
@@ -115,7 +126,8 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      */
     public boolean isSelected(int index) {
         ensureComponentIsUsable();
-        return findTab(index).isSelected();
+        return automation().of(getComponent()).as(Indexable.class)
+                .isSelectedByIndex(index);
     }
 
     /**
