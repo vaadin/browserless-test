@@ -29,6 +29,7 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.automation.Indexable;
 import com.vaadin.flow.automation.ItemClickable;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.ReadableCell;
 import com.vaadin.flow.automation.Selectable;
 import com.vaadin.flow.automation.Sortable;
@@ -64,7 +65,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return items in grid
      */
     public int size() {
-        return GridKt._size(getComponent());
+        return automation().of(getComponent()).as(Readable.class).count();
     }
 
     /**

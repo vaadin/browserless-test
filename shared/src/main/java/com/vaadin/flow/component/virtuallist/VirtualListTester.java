@@ -15,15 +15,13 @@
  */
 package com.vaadin.flow.component.virtuallist;
 
-import java.util.Collections;
-
 import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.LitRendererTestUtil;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
@@ -40,11 +38,6 @@ import com.vaadin.flow.internal.JacksonUtils;
 @Tests(VirtualList.class)
 public class VirtualListTester<T extends VirtualList<Y>, Y>
         extends ComponentTester<T> {
-
-    // don't use a value too large
-    // otherwise Vaadin 19+ will calculate a negative limit
-    // and will pass it to SizeVerifier
-    private static final int SANE_FETCH_LIMIT = Integer.MAX_VALUE / 1000;
 
     /**
      * Wrap given component for testing.
@@ -63,12 +56,7 @@ public class VirtualListTester<T extends VirtualList<Y>, Y>
      */
     public int size() {
         ensureVisible();
-
-        var dataCommunicator = getComponent().getDataCommunicator();
-        return dataCommunicator.isDefinedSize()
-                ? dataCommunicator.getDataProviderSize()
-                : dataCommunicator.getDataProvider().fetch(saneQuery()).toList()
-                        .size();
+        return automation().of(getComponent()).as(Readable.class).count();
     }
 
     /**
@@ -241,11 +229,6 @@ public class VirtualListTester<T extends VirtualList<Y>, Y>
     public void invokeLitRendererFunction(int index, String functionName) {
         invokeLitRendererFunction(index, functionName,
                 JacksonUtils.createArrayNode());
-    }
-
-    private <F> Query<Y, F> saneQuery() {
-        return new Query<>(0, SANE_FETCH_LIMIT, Collections.emptyList(), null,
-                null);
     }
 
 }
