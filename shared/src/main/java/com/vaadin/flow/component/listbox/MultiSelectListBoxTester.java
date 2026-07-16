@@ -26,7 +26,6 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.automation.NotUsableException;
 import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
-import com.vaadin.flow.component.ItemLabelGenerator;
 
 /**
  * Tester for MultiSelectListBox components.
@@ -128,18 +127,8 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      * @return List of item representation strings
      */
     public List<String> getSuggestions() {
-        final List<V> suggestionItems = getSuggestionItems();
-        return suggestionItems.stream().map(this::getItemLabel)
-                .collect(Collectors.toList());
-    }
-
-    private String getItemLabel(V item) {
-        final ItemLabelGenerator<V> itemLabelGenerator = getComponent()
-                .getItemLabelGenerator();
-        if (itemLabelGenerator != null) {
-            return itemLabelGenerator.apply(item);
-        }
-        return item.toString();
+        return automation().of(getComponent()).as(Readable.class).options(null,
+                0, Integer.MAX_VALUE);
     }
 
     /**

@@ -22,7 +22,6 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.automation.Readable;
 import com.vaadin.flow.automation.Selectable;
-import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataViewUtils;
 
 @Tests(fqn = { "com.vaadin.flow.component.select.Select" })
@@ -70,18 +69,8 @@ public class SelectTester<T extends Select<Y>, Y> extends ComponentTester<T> {
      * @return List of item representation strings
      */
     public List<String> getSuggestions() {
-        final List<Y> suggestionItems = getSuggestionItems();
-        return suggestionItems.stream().map(this::getItemLabel)
-                .collect(Collectors.toList());
-    }
-
-    private String getItemLabel(Y item) {
-        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
-                .getItemLabelGenerator();
-        if (itemLabelGenerator != null) {
-            return itemLabelGenerator.apply(item);
-        }
-        return item.toString();
+        return automation().of(getComponent()).as(Readable.class).options(null,
+                0, Integer.MAX_VALUE);
     }
 
     /**
