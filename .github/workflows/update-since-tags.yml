@@ -1,0 +1,66 @@
+name: Update @since tags
+
+# Reconcile Javadoc @since tags for any branch against the published release
+# history, and open a PR with the result. The reconciliation engine and caching
+# live in the shared vaadin/github-actions/reconcile-since-tags action; the target
+# branch is chosen at dispatch time (the version is derived from that branch's pom).
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to reconcile (the PR is opened against it)
+        required: true
+        default: main
+      dev:
+        description: Target version override (blank = derive major.minor from pom)
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - id: since
+        uses: vaadin/github-actions/reconcile-since-tags@8743430abc47b783add936899c41a10f1d6d9987
+        with:
+          group-id: com.vaadin
+          version: ${{ inputs.dev }}
+          artifacts: |
+            browserless-test-shared
+            browserless-test-junit6
+            browserless-test-spring
+            browserless-test-quarkus
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
+        with:
+          base: ${{ inputs.branch }}
+          branch: since-tags/${{ inputs.branch }}
+          add-paths: "**/*.java"
+          title: "docs: reconcile @since tags (${{ steps.since.outputs.version }})"
+          commit-message: |
+            docs: reconcile @since tags
+
+            Automated reconciliation against the published release history:
+            add missing tags, correct wrong ones, create minimal @since javadoc
+            for undocumented types, and remove redundant tags.
+          body: |
+            Automated `@since` reconciliation for `${{ inputs.branch }}` (version `${{ steps.since.outputs.version }}`).
+
+            Generated via [`vaadin/github-actions/reconcile-since-tags`](https://github.com/vaadin/github-actions/tree/main/reconcile-since-tags). See the run's job summary for counts.
+          delete-branch: true
