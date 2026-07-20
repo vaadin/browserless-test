@@ -18,6 +18,8 @@ package com.vaadin.browserless;
 import java.math.BigDecimal;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.TextTester;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
 import com.vaadin.flow.component.breadcrumbs.Breadcrumbs;
@@ -400,6 +402,10 @@ public interface TesterWrappers {
 
     default TabSheetTester<TabSheet> test(TabSheet tabSheet) {
         return BaseBrowserlessTest.internalWrap(TabSheetTester.class, tabSheet);
+    }
+
+    default TextTester<Text> test(Text text) {
+        return BaseBrowserlessTest.internalWrap(TextTester.class, text);
     }
 
     default NumberFieldTester<IntegerField, Integer> test(
