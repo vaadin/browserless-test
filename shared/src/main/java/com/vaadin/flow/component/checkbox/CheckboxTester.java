@@ -43,16 +43,12 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
 
     @Override
     public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly()
-                && !getComponent().isDisabledBoolean();
+        return super.isUsable() && !getComponent().isDisabledBoolean();
     }
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
         super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
         if (getComponent().isDisabledBoolean()) {
             collector.accept("disabled");
         }

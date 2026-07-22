@@ -39,6 +39,22 @@ public class ComboBoxTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlyComboBox_isNotUsable() {
+        view.combo.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.combo).isUsable(),
+                "Read only ComboBox shouldn't be usable");
+    }
+
+    @Test
+    void readOnlyComboBox_setFilter_throws() {
+        view.combo.setReadOnly(true);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).setFilter("fo"));
+    }
+
+    @Test
     void getSuggestionItems_noFilter_allItemsReturned() {
         final List<ComboBoxView.Name> suggestions = test(view.combo)
                 .getSuggestionItems();

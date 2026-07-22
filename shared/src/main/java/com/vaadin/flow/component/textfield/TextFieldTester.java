@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.textfield;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.shared.HasClearButton;
@@ -100,19 +98,5 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
             // implementation
         }
         return null;
-    }
-
-    @Override
-    public boolean isUsable() {
-        // TextFields can be read only so the usable check needs extending
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
     }
 }

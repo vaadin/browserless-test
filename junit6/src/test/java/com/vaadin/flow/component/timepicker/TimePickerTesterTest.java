@@ -61,6 +61,22 @@ class TimePickerTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlyPicker_isNotUsable() {
+        view.picker.setReadOnly(true);
+
+        Assertions.assertFalse(pick_.isUsable(),
+                "Read only TimePicker shouldn't be usable");
+    }
+
+    @Test
+    void readOnlyPicker_setValue_throws() {
+        view.picker.setReadOnly(true);
+
+        assertThrows(IllegalStateException.class,
+                () -> pick_.setValue(LocalTime.NOON));
+    }
+
+    @Test
     void setValue_eventIsFired_valueIsSet() {
 
         AtomicReference<LocalTime> value = new AtomicReference<>(null);
