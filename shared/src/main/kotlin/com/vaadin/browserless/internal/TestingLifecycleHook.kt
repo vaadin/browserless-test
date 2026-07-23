@@ -123,7 +123,24 @@ interface TestingLifecycleHook {
         }
         // Also include virtual children.
         // Issue: https://github.com/mvysny/karibu-testing/issues/85
-        else -> (component.children.toList() + component._getVirtualChildren()).distinct()
+        //
+        // Plus slotted children, which are regular DOM children with a
+        // `slot` attribute (added via SlotUtils.addToSlot — Card header,
+        // Dialog footer, etc.). Some components override getChildren() to
+        // filter those out (see Card.getChildren), making them invisible
+        // to the locator if we only consulted component.children. We pick
+        // them up directly from the element tree so the locator finds
+        // them like the user would in the browser.
+        else -> {
+            val regular = component.children.toList()
+            val slotted = component.element.children
+                .filter { !it.isTextNode && it.hasAttribute("slot") }
+                .toList()
+                .mapNotNull { it.component.orElse(null) }
+                .filter { it !in regular }
+            val virtual = component._getVirtualChildren()
+            (regular + slotted + virtual).distinct()
+        }
     }
 
 
