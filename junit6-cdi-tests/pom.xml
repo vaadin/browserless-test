@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.vaadin</groupId>
         <artifactId>browserless-test</artifactId>
-        <version>1.1-SNAPSHOT</version>
+        <version>1.2-SNAPSHOT</version>
     </parent>
     <artifactId>browserless-test-junit6-cdi-tests</artifactId>
     <packaging>jar</packaging>
@@ -18,7 +18,7 @@
     </description>
 
     <properties>
-        <!-- vaadin-cdi addon aligned with Flow 25.2 (Weld 6 / CDI 4.1) -->
+        <!-- vaadin-cdi addon aligned with Flow 25.3 (Weld 6 / CDI 4.1) -->
         <vaadin.cdi.version>16.1-SNAPSHOT</vaadin.cdi.version>
         <weld.junit5.version>5.0.3.Final</weld.junit5.version>
         <!-- Internal test module: never deploy or attach artifacts. -->
