@@ -18,7 +18,7 @@
     </description>
 
     <properties>
-        <!-- vaadin-cdi addon aligned with Flow 25.2 (Weld 6 / CDI 4.1) -->
+        <!-- vaadin-cdi addon aligned with Flow 25.3 (Weld 6 / CDI 4.1) -->
         <vaadin.cdi.version>16.1-SNAPSHOT</vaadin.cdi.version>
         <weld.junit5.version>5.0.3.Final</weld.junit5.version>
         <!-- Internal test module: never deploy or attach artifacts. -->
