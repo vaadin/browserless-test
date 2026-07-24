@@ -27,13 +27,16 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Base class for browserless tests.
@@ -53,6 +56,8 @@ import com.vaadin.flow.server.VaadinSession;
 public abstract class BaseBrowserlessTest {
 
     private TestSignalEnvironment signalsTestEnvironment;
+
+    private Registration triggerArmingRegistration;
 
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
@@ -81,6 +86,14 @@ public abstract class BaseBrowserlessTest {
 
     protected void initSignalsSupport() {
         signalsTestEnvironment = TestSignalEnvironment.register();
+        // Observe trigger arming for this environment, so client-side triggers
+        // (e.g. Clipboard bindings) armed during navigation are recorded for
+        // simulation. Removed in cleanVaadinEnvironment(). Runs here — the
+        // point
+        // every init path (plain, Spring, Quarkus) reaches — before the test
+        // navigates.
+        triggerArmingRegistration = TriggerSimulation
+                .install(VaadinService.getCurrent());
     }
 
     /**
@@ -122,6 +135,10 @@ public abstract class BaseBrowserlessTest {
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
+        }
+        if (triggerArmingRegistration != null) {
+            triggerArmingRegistration.remove();
+            triggerArmingRegistration = null;
         }
         MockVaadin.tearDown();
     }
