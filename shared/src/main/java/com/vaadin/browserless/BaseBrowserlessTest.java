@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.mocks.MockedUI;
-import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -76,10 +75,6 @@ public abstract class BaseBrowserlessTest {
      */
     protected void initVaadinEnvironment() {
         scanTesters();
-        // Install the trigger-arming observer before any navigation, so client
-        // -side triggers (e.g. Clipboard bindings) armed during view
-        // construction are recorded for later simulation.
-        TriggerSimulation.ensureInstalled();
         MockVaadin.setup(discoverRoutes(), MockedUI::new, lookupServices());
         initSignalsSupport();
     }

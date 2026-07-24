@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.locator.Locators;
-import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -74,10 +73,6 @@ public class BrowserlessUIContext
 
     BrowserlessUIContext(BrowserlessUserContext user) {
         this.user = user;
-
-        // Observe trigger arming before this window navigates, so client-side
-        // triggers armed during view construction are recorded for simulation.
-        TriggerSimulation.ensureInstalled();
 
         BrowserlessUIContext previous = activeContext.get();
 

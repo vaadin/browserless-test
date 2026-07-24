@@ -43,6 +43,7 @@ import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
+import com.vaadin.browserless.trigger.TriggerSimulation
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -312,6 +313,13 @@ object MockVaadin {
 
     @JvmStatic
     fun createUI(uiFactory: UIFactory, session: VaadinSession) {
+        // Observe trigger arming before the UI initialises and navigates, so
+        // client-side triggers (e.g. Clipboard bindings) armed during view
+        // construction are recorded for browserless simulation. createUI is the
+        // single point every UI is created through, so installing here covers
+        // all test entry points (plain, Spring, Quarkus, JUnit extension,
+        // multi-window) without each having to remember to do it.
+        TriggerSimulation.ensureInstalled()
         val request: VaadinRequest = checkNotNull(VaadinRequest.getCurrent())
         val ui: UI = uiFactory()
         require(ui.session == null) {
