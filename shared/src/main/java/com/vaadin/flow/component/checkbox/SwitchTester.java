@@ -40,6 +40,15 @@ public class SwitchTester<T extends Switch> extends ComponentTester<T> {
         super(component);
     }
 
+    /**
+     * Checks whether the switch is currently on.
+     *
+     * @return {@code true} if the switch is on, {@code false} otherwise
+     */
+    public boolean isOn() {
+        return getComponent().getValue();
+    }
+
     @Override
     public boolean isUsable() {
         return super.isUsable() && !getComponent().isReadOnly();

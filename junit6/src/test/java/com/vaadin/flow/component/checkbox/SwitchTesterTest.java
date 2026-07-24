@@ -17,28 +17,33 @@ package com.vaadin.flow.component.checkbox;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
-import com.vaadin.experimental.FeatureFlags;
 import com.vaadin.flow.router.RouteConfiguration;
-import com.vaadin.flow.server.VaadinService;
 
 @ViewPackages
 class SwitchTesterTest extends BrowserlessTest {
 
     SwitchView view;
 
-    @BeforeEach
-    public void registerView() {
-        // Switch is experimental and throws on attach unless the feature flag
-        // is enabled, so enable it before navigating to the view.
-        FeatureFlags.get(VaadinService.getCurrent().getContext()).setEnabled(
-                SwitchFeatureFlagProvider.SWITCH_COMPONENT.getId(), true);
+    @BeforeAll
+    static void enableSwitchFeatureFlag() {
+        System.setProperty("vaadin.experimental.switchComponent", "true");
+    }
 
+    @AfterAll
+    static void clearSwitchFeatureFlag() {
+        System.clearProperty("vaadin.experimental.switchComponent");
+    }
+
+    @BeforeEach
+    void registerView() {
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(SwitchView.class);
         view = navigate(SwitchView.class);
@@ -63,6 +68,16 @@ class SwitchTesterTest extends BrowserlessTest {
         test(view.field).click();
         Assertions.assertFalse(view.field.getValue(),
                 "Expecting switch not to be on, but was");
+    }
+
+    @Test
+    void isOn_reflectsValue() {
+        Assertions.assertFalse(test(view.field).isOn(),
+                "Expecting switch initial state to be off");
+
+        test(view.field).click();
+        Assertions.assertTrue(test(view.field).isOn(),
+                "Expecting switch to be on after click");
     }
 
     @Test
