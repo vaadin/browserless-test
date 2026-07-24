@@ -30,6 +30,8 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.checkbox.CheckboxGroupTester;
 import com.vaadin.flow.component.checkbox.CheckboxTester;
+import com.vaadin.flow.component.checkbox.Switch;
+import com.vaadin.flow.component.checkbox.SwitchTester;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.combobox.ComboBoxTester;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
@@ -185,6 +187,10 @@ public interface TesterWrappers {
             CheckboxGroup checkboxGroup, Class<V> valueType) {
         return BaseBrowserlessTest.internalWrap(CheckboxGroupTester.class,
                 checkboxGroup);
+    }
+
+    default SwitchTester<Switch> test(Switch field) {
+        return BaseBrowserlessTest.internalWrap(SwitchTester.class, field);
     }
 
     default <V> ComboBoxTester<ComboBox<V>, V> test(ComboBox<V> comboBox) {
