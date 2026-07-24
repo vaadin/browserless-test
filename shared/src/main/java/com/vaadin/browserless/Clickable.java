@@ -15,13 +15,10 @@
  */
 package com.vaadin.browserless;
 
-import tools.jackson.databind.node.ObjectNode;
-
 import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
-import com.vaadin.flow.internal.JacksonUtils;
 
 /**
  * Mixin interface for component testers that support click simulation.
@@ -118,12 +115,6 @@ public interface Clickable<T extends Component> {
         // A real browser also runs any client-side click triggers on this
         // component (e.g. Clipboard.onClick bindings) during the gesture;
         // reproduce their server-observable effect here.
-        ObjectNode eventData = JacksonUtils.createObjectNode();
-        eventData.put("button", button);
-        eventData.put("shiftKey", metaKeys.isShift());
-        eventData.put("ctrlKey", metaKeys.isCtrl());
-        eventData.put("altKey", metaKeys.isAlt());
-        eventData.put("metaKey", metaKeys.isMeta());
-        TriggerSimulation.fire(component, "click", eventData);
+        TriggerSimulation.fireClick(component, button, metaKeys);
     }
 }

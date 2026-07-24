@@ -23,6 +23,7 @@ import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
@@ -517,6 +518,10 @@ public class ContextMenuTester<T extends ContextMenu>
         }
         ComponentUtil.fireEvent(menuItem, new ClickEvent<>(menuItem, true, 0, 0,
                 0, 0, 1, 0, false, false, false, false));
+        // A real browser also runs any client-side click triggers on the item
+        // (e.g. Clipboard.onClick bindings) during the gesture; reproduce their
+        // server-observable effect here, as Clickable#click does for buttons.
+        TriggerSimulation.fireClick(menuItem);
     }
 
     private void attachMenuToUI() {

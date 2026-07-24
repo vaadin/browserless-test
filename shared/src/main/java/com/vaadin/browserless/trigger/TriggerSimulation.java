@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.browserless.MetaKeys;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
@@ -36,6 +37,7 @@ import com.vaadin.flow.component.trigger.internal.DomEventTrigger;
 import com.vaadin.flow.component.trigger.internal.Trigger;
 import com.vaadin.flow.component.trigger.internal.Triggers;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.shared.Registration;
 
@@ -161,6 +163,44 @@ public final class TriggerSimulation {
                         action -> dispatch(action, armed.trigger(), context));
             }
         }
+    }
+
+    /**
+     * Fires the {@code "click"} triggers armed on {@code host} as a left-button
+     * click with no modifier keys. Shorthand for
+     * {@link #fireClick(Component, int, MetaKeys)}.
+     *
+     * @param host
+     *            the component the click targets, not {@code null}
+     */
+    public static void fireClick(Component host) {
+        fireClick(host, 0, new MetaKeys());
+    }
+
+    /**
+     * Fires the {@code "click"} triggers armed on {@code host} with the given
+     * mouse button and modifier-key state, building the event payload the
+     * {@code MouseEvent}-based inputs expect. This is the single place callers
+     * (component click, context-menu item click, …) go through to reproduce a
+     * client-side click gesture.
+     *
+     * @param host
+     *            the component the click targets, not {@code null}
+     * @param button
+     *            the mouse button ({@code 0} left, {@code 1} middle, {@code 2}
+     *            right)
+     * @param metaKeys
+     *            the modifier keys held during the click, not {@code null}
+     */
+    public static void fireClick(Component host, int button,
+            MetaKeys metaKeys) {
+        ObjectNode eventData = JacksonUtils.createObjectNode();
+        eventData.put("button", button);
+        eventData.put("shiftKey", metaKeys.isShift());
+        eventData.put("ctrlKey", metaKeys.isCtrl());
+        eventData.put("altKey", metaKeys.isAlt());
+        eventData.put("metaKey", metaKeys.isMeta());
+        fire(host, "click", eventData);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
