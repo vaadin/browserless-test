@@ -18,9 +18,17 @@ package com.vaadin.flow.component.clipboard;
 import java.io.Serializable;
 
 import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.browserless.ComponentQuery;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.dom.DomEvent;
+import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.internal.JacksonUtils;
+import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
+import com.vaadin.flow.shared.JsonConstants;
 
 /**
  * Browserless test driver for the {@link Clipboard} API: a per-window stand-in
@@ -185,6 +193,99 @@ public final class ClipboardSimulator implements Serializable {
     public void grantAccess() {
         readDenied = false;
         writeDenied = false;
+    }
+
+    /**
+     * Simulates a paste gesture onto the given component, delivering this
+     * clipboard's current contents to any {@link Clipboard#onPaste} listener
+     * registered on it (or a descendant, since {@code paste} bubbles).
+     *
+     * @param target
+     *            the component to paste onto, not {@code null}
+     */
+    public void pasteInto(Component target) {
+        firePaste(target, text, html);
+    }
+
+    /**
+     * Simulates a paste gesture onto the given component with explicit
+     * contents, without changing this clipboard's stored contents. Useful for a
+     * one-off paste distinct from the clipboard's current state.
+     *
+     * @param target
+     *            the component to paste onto, not {@code null}
+     * @param text
+     *            the {@code text/plain} contents to paste, or {@code null}
+     * @param html
+     *            the {@code text/html} contents to paste, or {@code null}
+     */
+    public void pasteInto(Component target, @Nullable String text,
+            @Nullable String html) {
+        firePaste(target, text, html);
+    }
+
+    /**
+     * Dispatches a {@code paste} DOM event to the component, using the exact
+     * event-data keys {@link Clipboard#onPaste} reads and mapping the paste
+     * target to the component so {@code PasteEvent#getTargetElement()}
+     * resolves. The client-side skip-editable filter of {@code onPaste} is not
+     * evaluated — the listener always receives the event.
+     */
+    private static void firePaste(Component target, @Nullable String text,
+            @Nullable String html) {
+        Element element = target.getElement();
+        ObjectNode eventData = JacksonUtils.createObjectNode();
+        putNullable(eventData, Clipboard.PASTE_TEXT_EXPR, text);
+        putNullable(eventData, Clipboard.PASTE_HTML_EXPR, html);
+        eventData.put(JsonConstants.MAP_STATE_NODE_EVENT_DATA,
+                element.getNode().getId());
+        DomEvent event = new DomEvent(element, "paste", eventData);
+        element.getNode().getFeature(ElementListenerMap.class).fireEvent(event);
+    }
+
+    private static void putNullable(ObjectNode data, String key,
+            @Nullable String value) {
+        if (value == null) {
+            data.putNull(key);
+        } else {
+            data.put(key, value);
+        }
+    }
+
+    /**
+     * Simulates a paste gesture onto the single component matched by the given
+     * query, delivering this clipboard's current contents to its
+     * {@link Clipboard#onPaste} listener. Convenience for the common
+     * find-then-paste flow.
+     *
+     * @param target
+     *            a query resolving to exactly one component to paste onto, not
+     *            {@code null}
+     * @throws java.util.NoSuchElementException
+     *             if the query does not match exactly one component
+     */
+    public void pasteInto(ComponentQuery<? extends Component> target) {
+        pasteInto(target.single());
+    }
+
+    /**
+     * Simulates a paste gesture onto the single component matched by the given
+     * query with explicit contents, without changing this clipboard's stored
+     * contents.
+     *
+     * @param target
+     *            a query resolving to exactly one component to paste onto, not
+     *            {@code null}
+     * @param text
+     *            the {@code text/plain} contents to paste, or {@code null}
+     * @param html
+     *            the {@code text/html} contents to paste, or {@code null}
+     * @throws java.util.NoSuchElementException
+     *             if the query does not match exactly one component
+     */
+    public void pasteInto(ComponentQuery<? extends Component> target,
+            @Nullable String text, @Nullable String html) {
+        pasteInto(target.single(), text, html);
     }
 
     /**
