@@ -16,11 +16,13 @@
 package com.vaadin.flow.component.clipboard;
 
 import java.io.Serializable;
+import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.ComponentQuery;
+import com.vaadin.browserless.internal.UploadSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
@@ -28,6 +30,8 @@ import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.shared.JsonConstants;
 
 /**
@@ -61,6 +65,7 @@ public final class ClipboardSimulator implements Serializable {
     private @Nullable String html;
     private boolean readDenied;
     private boolean writeDenied;
+    private long nextPasteId = 1;
 
     private ClipboardSimulator() {
     }
@@ -286,6 +291,81 @@ public final class ClipboardSimulator implements Serializable {
     public void pasteInto(ComponentQuery<? extends Component> target,
             @Nullable String text, @Nullable String html) {
         pasteInto(target.single(), text, html);
+    }
+
+    /**
+     * Simulates a file paste onto the given component, delivering each file to
+     * its {@link Clipboard#onFilePaste} handler as one upload (carrying the
+     * paste-id and file-count headers), then firing the paste-finished event so
+     * queued UI changes flush.
+     *
+     * @param target
+     *            the component to paste onto, not {@code null}
+     * @param files
+     *            the pasted files, at least one
+     * @throws IllegalArgumentException
+     *             if no files are given
+     * @throws IllegalStateException
+     *             if no {@code onFilePaste} handler is registered on the
+     *             component
+     */
+    public void pasteFilesInto(Component target, PastedFile... files) {
+        firePastedFiles(target, files);
+    }
+
+    /**
+     * Simulates a file paste onto the single component matched by the given
+     * query. Convenience for the common find-then-paste flow.
+     *
+     * @param target
+     *            a query resolving to exactly one component to paste onto, not
+     *            {@code null}
+     * @param files
+     *            the pasted files, at least one
+     * @throws java.util.NoSuchElementException
+     *             if the query does not match exactly one component
+     */
+    public void pasteFilesInto(ComponentQuery<? extends Component> target,
+            PastedFile... files) {
+        firePastedFiles(target.single(), files);
+    }
+
+    private void firePastedFiles(Component target, PastedFile... files) {
+        if (files.length == 0) {
+            throw new IllegalArgumentException("At least one file is required");
+        }
+        Element element = target.getElement();
+        String url = element.getAttributeNames()
+                .filter(name -> name
+                        .startsWith(Clipboard.PASTE_UPLOAD_ATTRIBUTE_PREFIX))
+                .map(element::getAttribute).findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No Clipboard.onFilePaste registration found on "
+                                + target));
+        UploadHandler handler = UploadSimulation.resolveUploadHandler(url);
+        Map<String, String> headers = Map.of(Clipboard.PASTE_ID_HEADER,
+                Long.toString(nextPasteId++), Clipboard.PASTE_FILE_COUNT_HEADER,
+                Integer.toString(files.length));
+        // Each file is a separate upload carrying the paste headers, exactly as
+        // the client posts them; the handler (or its PasteFileHandler wrapper)
+        // reads the headers to correlate the paste.
+        UploadSimulation.withRequestHeaders(headers, () -> {
+            for (PastedFile file : files) {
+                UploadSimulation.invokeUpload(handler, element,
+                        VaadinRequest.getCurrent(), file.fileName(),
+                        file.contentType(), file.content());
+            }
+        });
+        RuntimeException caught = UploadSimulation.runUIQueue();
+        // The client dispatches this once all uploads settle; the server
+        // listener forces the round trip that flushes UI.access changes.
+        element.getNode().getFeature(ElementListenerMap.class)
+                .fireEvent(new DomEvent(element,
+                        Clipboard.FILE_PASTE_FINISHED_EVENT,
+                        JacksonUtils.createObjectNode()));
+        if (caught != null) {
+            throw caught;
+        }
     }
 
     /**

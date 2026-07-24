@@ -22,14 +22,18 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.jspecify.annotations.Nullable;
 
+import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
+import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.communication.TransferUtil;
 import com.vaadin.flow.server.streams.UploadEvent;
@@ -148,6 +152,33 @@ public final class UploadSimulation {
             handler.responseHandled(new UploadResult(false,
                     VaadinResponse.getCurrent(), cause));
             throw cause;
+        }
+    }
+
+    /**
+     * Runs {@code action} with the given request headers temporarily added to
+     * the current request, then removes them. Lets callers expose
+     * upload-specific headers (e.g. the clipboard paste id and file count) to
+     * the {@link UploadHandler}, which reads them via
+     * {@code event.getRequest().getHeader(...)}.
+     *
+     * @param headers
+     *            header name/value pairs to add for the duration, not
+     *            {@code null}
+     * @param action
+     *            the action to run with the headers in place, not {@code null}
+     */
+    public static void withRequestHeaders(Map<String, String> headers,
+            Runnable action) {
+        MockRequest request = (MockRequest) ((VaadinServletRequest) VaadinRequest
+                .getCurrent()).getRequest();
+        Map<String, List<String>> requestHeaders = request.getHeaders();
+        headers.forEach(
+                (name, value) -> requestHeaders.put(name, List.of(value)));
+        try {
+            action.run();
+        } finally {
+            headers.keySet().forEach(requestHeaders::remove);
         }
     }
 

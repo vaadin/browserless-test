@@ -15,10 +15,16 @@
  */
 package com.vaadin.browserless;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.component.clipboard.ClipboardSimulator;
+import com.vaadin.flow.component.clipboard.PasteFileHandler;
+import com.vaadin.flow.component.clipboard.PastedFile;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.trigger.internal.PromiseAction.Error;
@@ -38,6 +44,7 @@ class ClipboardSimulationTest {
         final NativeButton copy = new NativeButton("copy");
         final NativeButton paste = new NativeButton("paste");
         final Div pasteTarget = new Div();
+        final Div fileTarget = new Div();
         String copied;
         int copyCount;
         Error copyError;
@@ -45,6 +52,10 @@ class ClipboardSimulationTest {
         Error pasteError;
         String onPasteText;
         String onPasteHtml;
+        int pasteStartTotal;
+        final List<String> pastedFileNames = new ArrayList<>();
+        final List<String> pastedFileContents = new ArrayList<>();
+        int pasteCompleteCount;
 
         ClipboardView() {
             Clipboard.onClick(copy).writeText("hello", c -> {
@@ -58,7 +69,14 @@ class ClipboardSimulationTest {
                 onPasteText = e.getText();
                 onPasteHtml = e.getHtml();
             });
-            add(copy, paste, pasteTarget);
+            Clipboard.onFilePaste(fileTarget, PasteFileHandler.batch()
+                    .onStart(start -> pasteStartTotal = start.totalFiles())
+                    .onFile(file -> {
+                        pastedFileNames.add(file.fileName());
+                        pastedFileContents.add(new String(file.bytes(),
+                                StandardCharsets.UTF_8));
+                    }).onComplete(complete -> pasteCompleteCount++).build());
+            add(copy, paste, pasteTarget, fileTarget);
         }
     }
 
@@ -182,6 +200,26 @@ class ClipboardSimulationTest {
 
             assertEquals("explicit", view.onPasteText);
             assertNull(view.onPasteHtml);
+        }
+    }
+
+    @Test
+    void pasteFilesInto_deliversFilesToOnFilePasteBatchHandler() {
+        try (BrowserlessUIContext window = open()) {
+            ClipboardView view = window.find(ClipboardView.class).single();
+
+            clipboard(window).pasteFilesInto(view.fileTarget,
+                    PastedFile.of("a.txt", "text/plain",
+                            "AAA".getBytes(StandardCharsets.UTF_8)),
+                    PastedFile.of("b.txt", "text/plain",
+                            "BBB".getBytes(StandardCharsets.UTF_8)));
+
+            assertEquals(List.of("a.txt", "b.txt"), view.pastedFileNames);
+            assertEquals(List.of("AAA", "BBB"), view.pastedFileContents);
+            // totalFiles comes from the X-Paste-File-Count header,
+            // onComplete fires once the whole paste has been observed.
+            assertEquals(2, view.pasteStartTotal);
+            assertEquals(1, view.pasteCompleteCount);
         }
     }
 
