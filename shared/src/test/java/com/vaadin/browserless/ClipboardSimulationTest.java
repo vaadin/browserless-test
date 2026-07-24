@@ -25,6 +25,7 @@ import com.vaadin.flow.component.trigger.internal.PromiseAction.Error;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end browserless simulation of Flow's {@code Clipboard} write/read
@@ -37,13 +38,16 @@ class ClipboardSimulationTest {
         final NativeButton copy = new NativeButton("copy");
         final NativeButton paste = new NativeButton("paste");
         String copied;
+        int copyCount;
         Error copyError;
         String pasted;
         Error pasteError;
 
         ClipboardView() {
-            Clipboard.onClick(copy).writeText("hello", c -> copied = c,
-                    e -> copyError = e);
+            Clipboard.onClick(copy).writeText("hello", c -> {
+                copied = c;
+                copyCount++;
+            }, e -> copyError = e);
             Clipboard.onClick(paste).readText(t -> pasted = t,
                     e -> pasteError = e);
             add(copy, paste);
@@ -109,6 +113,28 @@ class ClipboardSimulationTest {
             assertNull(view.copied);
             assertEquals("NotAllowedError", view.copyError.name());
             assertNull(clipboard(window).text());
+        }
+    }
+
+    @Test
+    void concurrentEnvironments_areScopedToTheirOwnService() {
+        ClipboardView[] a = new ClipboardView[1];
+        ClipboardView[] b = new ClipboardView[1];
+        try (BrowserlessUIContext w1 = BrowserlessUIContext
+                .forComponent(() -> a[0] = new ClipboardView());
+                BrowserlessUIContext w2 = BrowserlessUIContext
+                        .forComponent(() -> b[0] = new ClipboardView())) {
+            // w2's view was armed while BOTH environments' arming observers
+            // were
+            // installed. If observers weren't scoped to their own service, both
+            // would record into w2 and the action would fire twice.
+            w2.test(b[0].copy).click();
+            assertEquals(1, b[0].copyCount, "action must fire exactly once");
+            assertEquals("hello", ClipboardSimulator.forUI(w2.getUI()).text());
+
+            // The other environment is untouched.
+            assertEquals(0, a[0].copyCount);
+            assertTrue(ClipboardSimulator.forUI(w1.getUI()).isEmpty());
         }
     }
 

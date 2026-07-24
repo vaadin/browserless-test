@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +36,8 @@ import com.vaadin.flow.component.trigger.internal.DomEventTrigger;
 import com.vaadin.flow.component.trigger.internal.Trigger;
 import com.vaadin.flow.component.trigger.internal.Triggers;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Browserless simulation of Flow's client-side trigger/action API.
@@ -47,6 +48,13 @@ import com.vaadin.flow.dom.Element;
  * which actions are wired to which host and DOM event), and {@link #fire} then
  * reproduces the server-observable effect of each matching action through a
  * registered {@link ActionSimulator}.
+ * <p>
+ * The arming observer is installed per mocked environment via {@link #install}
+ * and removed when that environment is torn down — mirroring how
+ * {@code TestSignalEnvironment} is registered/unregistered — so no test-only
+ * listener is left behind on the process-global {@link Triggers} registry
+ * between tests. Built-in action simulators, being stateless, are registered
+ * once on class initialisation.
  * <p>
  * Test tooling drives this indirectly — e.g. clicking a button through a
  * component tester fires {@code "click"} here in addition to the server-side
@@ -61,41 +69,50 @@ public final class TriggerSimulation {
     private static final Logger LOGGER = LoggerFactory
             .getLogger(TriggerSimulation.class);
 
-    private static final AtomicBoolean INSTALLED = new AtomicBoolean();
-
     private static final Map<Class<? extends Action>, ActionSimulator<?>> SIMULATORS = new ConcurrentHashMap<>();
+
+    static {
+        // Stateless universal simulators; register once for the process.
+        ClipboardActionSimulators.registerInto(TriggerSimulation::register);
+    }
 
     private TriggerSimulation() {
     }
 
     /**
-     * Installs the arming listener and registers the built-in action
-     * simulators, once per JVM. Must run before the application arms any
-     * triggers (i.e. before navigation), so browserless test setup calls it
-     * during environment initialization. Idempotent and cheap on subsequent
-     * calls.
+     * Installs a trigger-arming observer for the given mocked environment's
+     * {@link VaadinService} and returns a {@link Registration} that removes it.
+     * Call at environment setup, before the application arms any triggers (i.e.
+     * before navigation), and remove it at teardown.
+     * <p>
+     * {@link Triggers} scopes the observer to {@code owner}'s service, so it is
+     * notified only of armings from this environment — concurrent environments
+     * (parallel tests, multiple apps) stay isolated without any filtering here.
+     *
+     * @param owner
+     *            the service of the environment this observer belongs to, not
+     *            {@code null}
+     * @return a registration that removes the observer on teardown, never
+     *         {@code null}
      */
-    public static void ensureInstalled() {
-        if (INSTALLED.compareAndSet(false, true)) {
-            Triggers.addArmingListener(new Triggers.ArmingListener() {
-                @Override
-                public void onArmed(Trigger trigger, List<Action> actions) {
-                    UI ui = uiOf(trigger);
-                    if (ui != null) {
-                        registryFor(ui).armed(trigger, actions);
-                    }
+    public static Registration install(VaadinService owner) {
+        return Triggers.addArmingListener(owner, new Triggers.ArmingListener() {
+            @Override
+            public void onArmed(Trigger trigger, List<Action> actions) {
+                UI ui = uiOf(trigger);
+                if (ui != null) {
+                    registryFor(ui).armed(trigger, actions);
                 }
+            }
 
-                @Override
-                public void onDisarmed(Trigger trigger) {
-                    UI ui = uiOf(trigger);
-                    if (ui != null) {
-                        registryFor(ui).disarmed(trigger);
-                    }
+            @Override
+            public void onDisarmed(Trigger trigger) {
+                UI ui = uiOf(trigger);
+                if (ui != null) {
+                    registryFor(ui).disarmed(trigger);
                 }
-            });
-            ClipboardActionSimulators.registerInto(TriggerSimulation::register);
-        }
+            }
+        });
     }
 
     /**
