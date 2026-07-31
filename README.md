@@ -36,6 +36,10 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   browser windows per user against a shared application within a single test;
   Vaadin thread-locals and per-user security context are switched
   automatically as you interact with each window
+- **Per-test Vaadin configuration** — apply application properties, feature
+  flags, and `Lookup` services to a single test class or method with
+  `@BrowserlessTestConfig`, without touching system properties or leaking into
+  other tests
 - **External navigation capture** — assert URLs triggered by
   `Page.setLocation()` and `Page.open()` (including `_blank`, named, and
   `_self` / `_parent` / `_top` targets) without leaving the test
@@ -368,6 +372,105 @@ window.find(PersonFormLocator::new).fillIn("Ada", "ada@example.com").submit();
 Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
+
+## Per-test Vaadin configuration
+
+Some tests need a Vaadin environment configured differently from the rest of
+the suite — a view behind a feature flag, or a setting such as
+`devmode.sessionSerialization.enabled`. Annotate the test class or the test
+method with `@BrowserlessTestConfig`:
+
+```java
+@ViewPackages(classes = CartView.class)
+@BrowserlessTestConfig(
+        applicationProperties = "devmode.sessionSerialization.enabled=true",
+        featureFlags = "myExperimentalFeature")
+class CartViewTest extends BrowserlessTest {
+
+    @Test
+    void experimentalFeatureIsAvailable() {
+        // the feature flag is enabled for this test only
+    }
+
+    @Test
+    @BrowserlessTestConfig(featureFlags = "myExperimentalFeature=false")
+    void fallbackWhenFeatureIsDisabled() {
+        // method level configuration wins over the class level one
+    }
+}
+```
+
+- `applicationProperties` entries are `name=value` pairs, applied to the Vaadin
+  deployment configuration of the mock environment. The value is everything
+  after the first `=`.
+- `featureFlags` entries are either a feature identifier, to enable it, or an
+  `id=true|false` pair. They override whatever
+  `vaadin-featureflags.properties` or the `vaadin.experimental.*` system
+  properties declare.
+- `lookupServices` are implementation classes registered with the Vaadin
+  `Lookup` — an `InstantiatorFactory`, a `ResourceProvider`, and so on:
+
+  ```java
+  @BrowserlessTestConfig(lookupServices = MyInstantiatorFactory.class)
+  class MyViewTest extends BrowserlessTest {
+  }
+  ```
+
+All of them are scoped to the Vaadin environment created for the test, so there
+is nothing to reset afterwards and nothing leaks into other tests.
+
+Class level and method level annotations are merged, with the method winning;
+for a `@Nested` test, the enclosing class configuration is merged in as well.
+Lookup services are the exception: they **accumulate** instead of being
+replaced, so a test method can add a service but cannot remove one declared by
+its class. Services required by the Spring and Quarkus integrations are always
+registered and are never affected by the test configuration.
+A method level annotation cannot be honored when the Vaadin environment is
+shared by all the tests in a class (`BrowserlessClassExtension`), and is
+rejected with an error.
+
+The same configuration can be defined programmatically, without annotations,
+on the extensions:
+
+```java
+@RegisterExtension
+BrowserlessExtension extension = new BrowserlessExtension()
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags(FeatureFlags.COLLABORATION_ENGINE_BACKEND);
+```
+
+on the application context builder, for multi-user tests:
+
+```java
+try (var app = BrowserlessApplicationContext.create(builder -> builder
+        .withViewPackages(CartView.class)
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags("myExperimentalFeature"))) {
+    // ...
+}
+```
+
+or by overriding `testConfiguration()` on a base class based test:
+
+```java
+@Override
+protected BrowserlessConfiguration testConfiguration() {
+    return BrowserlessConfiguration.builder()
+            .withConfiguration(super.testConfiguration())
+            .withFeatureFlags("myExperimentalFeature").build();
+}
+```
+
+When both are used, the programmatic configuration wins over the class level
+annotation, and loses against the method level one.
+
+> [!NOTE]
+> With Spring, a Vaadin property defined in the Spring environment (e.g.
+> `vaadin.devmode.sessionSerialization.enabled` in `application.properties`) is
+> applied by `SpringServlet` on top of the test configuration, and therefore
+> wins over `@BrowserlessTestConfig`. Use `@TestPropertySource` to override
+> such a property for a test. Properties that are not Vaadin init parameters
+> are not affected.
 
 ## Multi-user and multi-window testing
 

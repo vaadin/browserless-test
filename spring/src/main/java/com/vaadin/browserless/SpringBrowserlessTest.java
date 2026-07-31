@@ -64,7 +64,7 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
  *
  * @since 1.0
  */
-@ExtendWith({ SpringExtension.class })
+@ExtendWith({ SpringExtension.class, BrowserlessTestConfigExtension.class })
 @TestExecutionListeners(listeners = BrowserlessTestSpringLookupInitializer.class, mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS)
 public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
@@ -78,7 +78,7 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
     }
 
     @Override
-    protected Set<Class<?>> lookupServices() {
+    protected Set<Class<?>> frameworkLookupServices() {
         return Set.of(BrowserlessTestSpringLookupInitializer.class,
                 SpringSecurityRequestCustomizer.class);
     }
@@ -96,7 +96,8 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         scanTesters();
         MockSpringServlet servlet = new MockSpringServlet(discoverRoutes(),
                 applicationContext, MockedUI::new);
-        MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+        MockVaadin.setup(MockedUI::new, servlet, allLookupServices(),
+                testConfiguration());
         initSignalsSupport();
     }
 
