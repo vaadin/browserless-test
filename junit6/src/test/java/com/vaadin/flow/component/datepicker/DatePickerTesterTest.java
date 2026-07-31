@@ -59,6 +59,22 @@ class DatePickerTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlyPicker_isNotUsable() {
+        view.picker.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.picker).isUsable(),
+                "Read only DatePicker shouldn't be usable");
+    }
+
+    @Test
+    void readOnlyPicker_setValue_throws() {
+        view.picker.setReadOnly(true);
+
+        assertThrows(IllegalStateException.class,
+                () -> test(view.picker).setValue(LocalDate.of(1995, 1, 5)));
+    }
+
+    @Test
     void setValue_eventIsFired_valueIsSet() {
 
         AtomicReference<LocalDate> value = new AtomicReference<>(null);

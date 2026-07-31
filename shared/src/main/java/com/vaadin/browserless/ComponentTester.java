@@ -31,6 +31,7 @@ import tools.jackson.databind.node.ObjectNode;
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.AbstractFieldSupport;
 import com.vaadin.flow.dom.DomEvent;
@@ -88,7 +89,21 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @see #ensureComponentIsUsable()
      */
     public boolean isUsable() {
-        return isUsable(getComponent());
+        return isUsable(getComponent()) && !isComponentReadOnly();
+    }
+
+    /**
+     * Checks whether the wrapped component is a value component that is
+     * currently in read-only state.
+     * <p>
+     * A read-only {@link HasValue} component cannot be interacted with to
+     * change its value, so it is considered not usable.
+     *
+     * @return {@code true} if the component is read-only
+     */
+    protected boolean isComponentReadOnly() {
+        return getComponent() instanceof HasValue<?, ?> hasValue
+                && hasValue.isReadOnly();
     }
 
     /**
@@ -195,6 +210,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected void notUsableReasons(Consumer<String> collector) {
         notUsableReasons(component, collector);
+        if (isComponentReadOnly()) {
+            collector.accept("read only");
+        }
     }
 
     /**

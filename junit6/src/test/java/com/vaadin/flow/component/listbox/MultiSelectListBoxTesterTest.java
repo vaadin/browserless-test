@@ -37,6 +37,14 @@ class MultiSelectListBoxTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlyListBox_isNotUsable() {
+        view.multiSelectListBox.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.multiSelectListBox).isUsable(),
+                "Read only MultiSelectListBox shouldn't be usable");
+    }
+
+    @Test
     void getSuggestionItems_returnsAllItems() {
         assertIterableEquals(view.selection,
                 test(view.multiSelectListBox).getSuggestionItems());

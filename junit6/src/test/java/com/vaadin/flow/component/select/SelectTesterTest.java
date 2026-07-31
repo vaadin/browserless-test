@@ -37,6 +37,14 @@ class SelectTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlySelect_isNotUsable() {
+        view.select.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.select).isUsable(),
+                "Read only Select shouldn't be usable");
+    }
+
+    @Test
     void getSuggestionItems_returnsAllItems() {
         final SelectTester<Select<String>, String> select_ = test(view.select);
         assertIterableEquals(view.items, select_.getSuggestionItems());
