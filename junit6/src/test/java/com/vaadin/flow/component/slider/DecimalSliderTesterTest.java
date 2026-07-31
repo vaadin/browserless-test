@@ -17,8 +17,6 @@ package com.vaadin.flow.component.slider;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,16 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DecimalSliderTesterTest extends BrowserlessTest {
 
     DecimalSliderView view;
-
-    @BeforeAll
-    static void enableSliderFeatureFlag() {
-        System.setProperty("vaadin.experimental.sliderComponent", "true");
-    }
-
-    @AfterAll
-    static void clearSliderFeatureFlag() {
-        System.clearProperty("vaadin.experimental.sliderComponent");
-    }
 
     @BeforeEach
     void init() {

@@ -21,9 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,17 +36,6 @@ import com.vaadin.flow.router.RouteConfiguration;
 class MessageListTesterTest extends BrowserlessTest {
 
     MessagesView view;
-
-    @BeforeAll
-    static void enableAttachmentsFeatureFlag() {
-        System.setProperty("vaadin.experimental.messageListAttachments",
-                "true");
-    }
-
-    @AfterAll
-    static void clearAttachmentsFeatureFlag() {
-        System.clearProperty("vaadin.experimental.messageListAttachments");
-    }
 
     @BeforeEach
     void init() {
