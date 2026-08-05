@@ -114,11 +114,23 @@ class GridProTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void setValue_forHiddenColumn_throwsException() {
+    void setValue_forDisabledField_throwsException() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> tester.setValue(0, 5, "Should fail"));
+
+        assertEquals(true, exception.getMessage()
+                .startsWith("Editor field is not usable:"));
+    }
+
+    @Test
+    void setValue_forOutOfBoundsVisibleColumn_throwsException() {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
 
         assertThrows(IndexOutOfBoundsException.class,
-                () -> tester.setValue(0, 5, true));
+                () -> tester.setValue(0, 6, true));
     }
 
     @SuppressWarnings("unchecked")
