@@ -23,7 +23,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
 @Tag("div")
-@Route(value = "grid-pro", registerAtStartup = true)
+@Route(value = "grid-pro", registerAtStartup = false)
 public class GridProView extends Component implements HasComponents {
 
     public GridProView() {
@@ -44,6 +44,10 @@ public class GridProView extends Component implements HasComponents {
                 .setVisible(false);
         gridPro.addEditColumn(Bean::getYesNo).select(Bean::setYesNo,
                 YesNo.class);
+        var disabledField = new TextField();
+        disabledField.setEnabled(false);
+        gridPro.addEditColumn(Bean::getDescription).custom(disabledField,
+                Bean::setDescription);
         gridPro.setItems(beans);
         gridPro.addCellEditStartedListener(e -> {
             var span = new Span("Cell edit: " + e.getItem().getName());
