@@ -19,7 +19,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.grid.GridTester;
 import com.vaadin.flow.component.gridpro.GridPro.CellEditStartedEvent;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
@@ -65,11 +65,19 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
         var column = getColumns().get(columnIndex);
         if (column instanceof EditColumn<Y> editColumn) {
             Y item = getRow(rowIndex);
-            fireCellEditStartedEvent(gridPro, editColumn, item);
             if ("custom".equals(editColumn.getEditorType())) {
-                editColumn.getEditorField().setValue(value);
+                var field = editColumn.getEditorField();
+                if (isUsable((Component) field)) {
+                    fireCellEditStartedEvent(gridPro, editColumn, item);
+                    field.setValue(value);
+                } else {
+                    throw new IllegalStateException(
+                            "Editor field is not usable: " + field);
+                }
+                field.setValue(value);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             } else {
+                fireCellEditStartedEvent(gridPro, editColumn, item);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             }
         } else {
