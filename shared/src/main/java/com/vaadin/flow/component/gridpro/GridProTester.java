@@ -67,14 +67,14 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
                 var field = editColumn.getEditorField();
-                if (isUsable((Component) field)) {
+                if (isUsable((Component) field) && !field.isReadOnly()) {
                     fireCellEditStartedEvent(gridPro, editColumn, item);
                     field.setValue(value);
                 } else {
                     throw new IllegalStateException(
-                            "Editor field is not usable: " + field);
+                            "Editor field on row " + rowIndex + " at column "
+                                    + columnIndex + " is not usable");
                 }
-                field.setValue(value);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             } else {
                 fireCellEditStartedEvent(gridPro, editColumn, item);
