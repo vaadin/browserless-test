@@ -32,7 +32,7 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
 
     /**
      * Set value for the cell at the given row and column index. The column must
-     * be an EditColumn.
+     * be an EditColumn. The indexes for row and column are 0 based.
      *
      * @param rowIndex
      *            the index of the row
@@ -46,8 +46,8 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
         ensureComponentIsUsable();
         var gridpro = getComponent();
         var column = gridpro.getColumns().get(columnIndex);
-        if (column instanceof EditColumn editColumn) {
-            var updater = (ItemUpdater<Y, String>) editColumn.getItemUpdater();
+        if (column instanceof EditColumn<Y> editColumn) {
+            var updater = editColumn.getItemUpdater();
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
                 editColumn.getEditorField().setValue(value);
