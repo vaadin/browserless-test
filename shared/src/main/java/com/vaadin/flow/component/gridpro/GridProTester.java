@@ -15,9 +15,6 @@
  */
 package com.vaadin.flow.component.gridpro;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
@@ -83,46 +80,27 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
 
     private void fireCellEditStartedEvent(GridPro<Y> gridPro,
             EditColumn<Y> editColumn, Y item) {
-        try {
-            Method fireEvent = Component.class.getDeclaredMethod("fireEvent",
-                    ComponentEvent.class);
-            fireEvent.setAccessible(true);
-            ObjectNode itemNode = JacksonUtils.createObjectNode();
-            itemNode.put("key",
-                    gridPro.getDataCommunicator().getKeyMapper().key(item));
-            fireEvent.invoke(gridPro, new CellEditStartedEvent<Y>(gridPro, true,
-                    itemNode, editColumn.getInternalId()));
-        } catch (NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException exception) {
-            throw new IllegalStateException(
-                    "Unable to fire GridPro cell edit start event", exception);
-        }
+        ObjectNode itemNode = JacksonUtils.createObjectNode();
+        itemNode.put("key",
+                gridPro.getDataCommunicator().getKeyMapper().key(item));
+        ComponentUtil.fireEvent(gridPro, new CellEditStartedEvent<Y>(gridPro,
+                true, itemNode, editColumn.getInternalId()));
     }
 
     private void fireItemPropertyChangedEvent(GridPro<Y> gridPro,
             EditColumn<Y> editColumn, Y item, Object value) {
-        try {
-            Method fireEvent = Component.class.getDeclaredMethod("fireEvent",
-                    ComponentEvent.class);
-            fireEvent.setAccessible(true);
-            ObjectNode itemNode = JacksonUtils.createObjectNode();
-            itemNode.put("key",
-                    gridPro.getDataCommunicator().getKeyMapper().key(item));
-            if (value instanceof Boolean booleanValue) {
-                itemNode.put(editColumn.getInternalId(), booleanValue);
-            } else if (value != null) {
-                itemNode.put(editColumn.getInternalId(), String.valueOf(value));
-            } else {
-                itemNode.putNull(editColumn.getInternalId());
-            }
-            fireEvent.invoke(gridPro, new ItemPropertyChangedEvent<Y>(gridPro,
-                    true, itemNode, editColumn.getInternalId()));
-        } catch (NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException exception) {
-            throw new IllegalStateException(
-                    "Unable to fire GridPro item property changed event",
-                    exception);
+        ObjectNode itemNode = JacksonUtils.createObjectNode();
+        itemNode.put("key",
+                gridPro.getDataCommunicator().getKeyMapper().key(item));
+        if (value instanceof Boolean booleanValue) {
+            itemNode.put(editColumn.getInternalId(), booleanValue);
+        } else if (value != null) {
+            itemNode.put(editColumn.getInternalId(), String.valueOf(value));
+        } else {
+            itemNode.putNull(editColumn.getInternalId());
         }
+        ComponentUtil.fireEvent(gridPro, new ItemPropertyChangedEvent<Y>(
+                gridPro, true, itemNode, editColumn.getInternalId()));
     }
 
 }
