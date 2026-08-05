@@ -17,7 +17,8 @@ package com.vaadin.flow.component.gridpro;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
+
+import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
@@ -28,8 +29,6 @@ import com.vaadin.flow.component.gridpro.GridPro.CellEditStartedEvent;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
 import com.vaadin.flow.component.gridpro.GridPro.ItemPropertyChangedEvent;
 import com.vaadin.flow.internal.JacksonUtils;
-
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Tester for Grid components.
