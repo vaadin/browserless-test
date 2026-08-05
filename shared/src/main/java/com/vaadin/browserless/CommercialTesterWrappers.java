@@ -19,6 +19,9 @@ import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.ChartTester;
 import com.vaadin.flow.component.dashboard.Dashboard;
 import com.vaadin.flow.component.dashboard.DashboardTester;
+import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.component.gridpro.GridPro;
+import com.vaadin.flow.component.gridpro.GridProTester;
 
 /**
  * Provides factory method to create testers for commercial components.
@@ -27,6 +30,31 @@ import com.vaadin.flow.component.dashboard.DashboardTester;
  */
 @SuppressWarnings("unchecked")
 public interface CommercialTesterWrappers {
+
+    /**
+     * Create a tester for the given GridPro instance.
+     *
+     * @param grid
+     *            the GridPro instance to be tested
+     * @return a GridProTester instance wrapping the given GridPro
+     */
+    default <V> GridProTester<GridPro<V>, V> test(GridPro<V> grid) {
+        return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
+    }
+
+    /**
+     * Create a tester for the given GridPro instance.
+     *
+     * @param grid
+     *            the GridPro instance to be tested
+     * @param itemType
+     *            the type of the items in the GridPro
+     * @return a GridProTester instance wrapping the given GridPro
+     */
+    default <V> GridProTester<GridPro<V>, V> test(GridPro<V> grid,
+            Class<V> itemType) {
+        return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
+    }
 
     /**
      * Create a tester for the given Chart instance.
