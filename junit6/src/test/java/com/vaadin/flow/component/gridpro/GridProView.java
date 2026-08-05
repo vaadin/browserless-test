@@ -18,6 +18,7 @@ package com.vaadin.flow.component.gridpro;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
@@ -38,15 +39,29 @@ public class GridProView extends Component implements HasComponents {
         var textField = new TextField();
         gridPro.addEditColumn(Bean::getDescription).custom(textField,
                 Bean::setDescription);
-        gridPro.addColumn(item -> "Dummy");
+        gridPro.addColumn(Bean::getName);
+        gridPro.addEditColumn(Bean::getChecked).checkbox(Bean::setChecked)
+                .setVisible(false);
+        gridPro.addEditColumn(Bean::getYesNo).select(Bean::setYesNo,
+                YesNo.class);
         gridPro.setItems(beans);
+        gridPro.addCellEditStartedListener(e -> {
+            var span = new Span("Cell edit: " + e.getItem().getName());
+            span.setId(e.getItem().getName());
+            add(span);
+        });
         add(gridPro);
+    }
+
+    public enum YesNo {
+        YES, NO
     }
 
     public static class Bean {
         private String name;
         private String description;
         private Boolean checked;
+        private YesNo yesNo;
 
         public Bean(String name, String description) {
             this.name = name;
@@ -75,6 +90,14 @@ public class GridProView extends Component implements HasComponents {
 
         public void setDescription(String description) {
             this.description = description;
+        }
+
+        public YesNo getYesNo() {
+            return yesNo;
+        }
+
+        public void setYesNo(YesNo yesNo) {
+            this.yesNo = yesNo;
         }
     }
 }
