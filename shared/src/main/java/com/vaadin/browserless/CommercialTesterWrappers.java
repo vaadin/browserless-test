@@ -19,7 +19,6 @@ import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.ChartTester;
 import com.vaadin.flow.component.dashboard.Dashboard;
 import com.vaadin.flow.component.dashboard.DashboardTester;
-import com.vaadin.flow.component.grid.GridTester;
 import com.vaadin.flow.component.gridpro.GridPro;
 import com.vaadin.flow.component.gridpro.GridProTester;
 
