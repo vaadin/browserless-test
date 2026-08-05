@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.html.Span;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,8 +34,11 @@ class GridProTesterTest extends BrowserlessTest {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
 
         tester.setValue(0, 0, true);
+        assertCellEditStarted("Bean 1");
         tester.setValue(1, 0, true);
+        assertCellEditStarted("Bean 2");
         tester.setValue(2, 0, true);
+        assertCellEditStarted("Bean 3");
 
         List<GridProView.Bean> items = getItems(tester.getComponent());
         assertEquals(Boolean.TRUE, items.get(0).getChecked());
@@ -47,13 +51,20 @@ class GridProTesterTest extends BrowserlessTest {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
 
         tester.setValue(0, 1, "Updated Bean 1");
+        assertCellEditStarted("Bean 1");
         tester.setValue(1, 1, "Updated Bean 2");
+        assertCellEditStarted("Bean 2");
         tester.setValue(2, 1, "Updated Bean 3");
+        assertCellEditStarted("Bean 3");
 
         List<GridProView.Bean> items = getItems(tester.getComponent());
         assertEquals("Updated Bean 1", items.get(0).getName());
         assertEquals("Updated Bean 2", items.get(1).getName());
         assertEquals("Updated Bean 3", items.get(2).getName());
+        assertEquals("Updated Bean 1", tester.getCellText(0, 1));
+        assertEquals("Updated Bean 2", tester.getCellText(1, 1));
+        assertEquals("Updated Bean 3", tester.getCellText(2, 1));
+
     }
 
     @Test
@@ -61,13 +72,33 @@ class GridProTesterTest extends BrowserlessTest {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
 
         tester.setValue(0, 2, "Updated Description 1");
+        assertCellEditStarted("Bean 1");
         tester.setValue(1, 2, "Updated Description 2");
+        assertCellEditStarted("Bean 2");
         tester.setValue(2, 2, "Updated Description 3");
+        assertCellEditStarted("Bean 3");
 
         List<GridProView.Bean> items = getItems(tester.getComponent());
         assertEquals("Updated Description 1", items.get(0).getDescription());
         assertEquals("Updated Description 2", items.get(1).getDescription());
         assertEquals("Updated Description 3", items.get(2).getDescription());
+    }
+
+    @Test
+    void setYesNo_updatesAllRows() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+
+        tester.setValue(0, 4, GridProView.YesNo.YES);
+        assertCellEditStarted("Bean 1");
+        tester.setValue(1, 4, GridProView.YesNo.NO);
+        assertCellEditStarted("Bean 2");
+        tester.setValue(2, 4, GridProView.YesNo.YES);
+        assertCellEditStarted("Bean 3");
+
+        List<GridProView.Bean> items = getItems(tester.getComponent());
+        assertEquals(GridProView.YesNo.YES, items.get(0).getYesNo());
+        assertEquals(GridProView.YesNo.NO, items.get(1).getYesNo());
+        assertEquals(GridProView.YesNo.YES, items.get(2).getYesNo());
     }
 
     @Test
@@ -82,6 +113,14 @@ class GridProTesterTest extends BrowserlessTest {
                 exception.getMessage());
     }
 
+    @Test
+    void setValue_forHiddenColumn_throwsException() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> tester.setValue(0, 5, true));
+    }
+
     @SuppressWarnings("unchecked")
     private GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> navigateToTester() {
         navigate(GridProView.class);
@@ -91,6 +130,11 @@ class GridProTesterTest extends BrowserlessTest {
 
     private List<GridProView.Bean> getItems(GridPro<GridProView.Bean> gridPro) {
         return gridPro.getGenericDataView().getItems().toList();
+    }
+
+    private void assertCellEditStarted(String itemName) {
+        assertEquals("Cell edit: " + itemName,
+                test(find(Span.class).id(itemName)).getText());
     }
 
 }
