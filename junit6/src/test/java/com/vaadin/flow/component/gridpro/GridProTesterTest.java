@@ -157,12 +157,25 @@ class GridProTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void setValue_forUneditablCell_throwsException() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> tester.setValue(0, 7, "Should fail"));
+
+        assertEquals(true, exception.getMessage()
+                .startsWith("Cell on row 0 at column 7 is not editable"));
+    }
+
+    @Test
     void setValue_forOutOfBoundsVisibleColumn_throwsException() {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
                 gridPro);
 
         assertThrows(IndexOutOfBoundsException.class,
-                () -> tester.setValue(0, 7, true));
+                () -> tester.setValue(0, 8, true));
     }
 
     private List<GridProView.Bean> getItems(GridPro<GridProView.Bean> gridPro) {
