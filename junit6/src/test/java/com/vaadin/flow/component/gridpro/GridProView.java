@@ -48,6 +48,10 @@ public class GridProView extends Component implements HasComponents {
         disabledField.setEnabled(false);
         gridPro.addEditColumn(Bean::getDescription).custom(disabledField,
                 Bean::setDescription);
+        var readOnlyField = new TextField();
+        readOnlyField.setReadOnly(true);
+        gridPro.addEditColumn(Bean::getDescription).custom(readOnlyField,
+                Bean::setDescription);
         gridPro.setItems(beans);
         gridPro.addCellEditStartedListener(e -> {
             var span = new Span("Cell edit: " + e.getItem().getName());
