@@ -493,7 +493,13 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
         return getColumns().get(column).getHeaderText();
     }
 
-    private List<Grid.Column<Y>> getColumns() {
+    /**
+     * Return visible columns in the grid. The order of the columns is the same
+     * as in the grid.
+     * 
+     * @return visible columns in the grid
+     */
+    protected List<Grid.Column<Y>> getColumns() {
         return getComponent().getColumns().stream().filter(Component::isVisible)
                 .toList();
     }
