@@ -18,6 +18,7 @@ package com.vaadin.flow.component.gridpro;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
@@ -52,6 +53,10 @@ public class GridProView extends Component implements HasComponents {
         readOnlyField.setReadOnly(true);
         gridPro.addEditColumn(Bean::getDescription).custom(readOnlyField,
                 Bean::setDescription);
+        gridPro.addEditColumn(Bean::getName).text(Bean::setName)
+                .setKey("uneditable");
+        var column = (EditColumn<Bean>) gridPro.getColumnByKey("uneditable");
+        column.setCellEditableProvider(item -> false);
         gridPro.setItems(beans);
         gridPro.addCellEditStartedListener(e -> {
             var span = new Span("Cell edit: " + e.getItem().getName());
