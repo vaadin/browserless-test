@@ -17,11 +17,13 @@ package com.vaadin.flow.component.gridpro;
 
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.router.RouteConfiguration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,10 +31,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ViewPackages
 class GridProTesterTest extends BrowserlessTest {
 
+    GridPro<GridProView.Bean> gridPro;
+
+    @BeforeEach
+    @SuppressWarnings("unchecked")
+    public void registerView() {
+        RouteConfiguration.forApplicationScope()
+                .setAnnotatedRoute(GridProView.class);
+        navigate(GridProView.class);
+        gridPro = find(GridPro.class).id("grid-pro");
+    }
+
     @Test
     void setCheckboxValue_updatesAllRows() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
-
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
         tester.setValue(0, 0, true);
         assertCellEditStarted("Bean 1");
         tester.setValue(1, 0, true);
@@ -48,7 +61,8 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setName_updatesAllRows() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         tester.setValue(0, 1, "Updated Bean 1");
         assertCellEditStarted("Bean 1");
@@ -69,7 +83,8 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setDescription_updatesAllRows() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         tester.setValue(0, 2, "Updated Description 1");
         assertCellEditStarted("Bean 1");
@@ -86,7 +101,8 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setYesNo_updatesAllRows() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         tester.setValue(0, 4, GridProView.YesNo.YES);
         assertCellEditStarted("Bean 1");
@@ -103,7 +119,8 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setValue_forNonEditColumn_throwsException() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -115,7 +132,8 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setValue_forDisabledField_throwsException() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
@@ -127,17 +145,11 @@ class GridProTesterTest extends BrowserlessTest {
 
     @Test
     void setValue_forOutOfBoundsVisibleColumn_throwsException() {
-        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = navigateToTester();
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
 
         assertThrows(IndexOutOfBoundsException.class,
                 () -> tester.setValue(0, 6, true));
-    }
-
-    @SuppressWarnings("unchecked")
-    private GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> navigateToTester() {
-        navigate(GridProView.class);
-        GridPro<GridProView.Bean> gridPro = find(GridPro.class).id("grid-pro");
-        return new GridProTester<>(gridPro);
     }
 
     private List<GridProView.Bean> getItems(GridPro<GridProView.Bean> gridPro) {
