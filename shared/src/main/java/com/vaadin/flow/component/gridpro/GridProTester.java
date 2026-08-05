@@ -23,7 +23,6 @@ import tools.jackson.databind.node.ObjectNode;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentEvent;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridTester;
 import com.vaadin.flow.component.gridpro.GridPro.CellEditStartedEvent;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
