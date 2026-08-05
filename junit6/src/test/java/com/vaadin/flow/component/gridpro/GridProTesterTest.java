@@ -140,7 +140,20 @@ class GridProTesterTest extends BrowserlessTest {
                 () -> tester.setValue(0, 5, "Should fail"));
 
         assertEquals(true, exception.getMessage()
-                .startsWith("Editor field is not usable:"));
+                .startsWith("Editor field on row 0 at column 5 is not usable"));
+    }
+
+    @Test
+    void setValue_forReadOnlyField_throwsException() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> tester.setValue(0, 6, "Should fail"));
+
+        assertEquals(true, exception.getMessage()
+                .startsWith("Editor field on row 0 at column 6 is not usable"));
     }
 
     @Test
@@ -149,7 +162,7 @@ class GridProTesterTest extends BrowserlessTest {
                 gridPro);
 
         assertThrows(IndexOutOfBoundsException.class,
-                () -> tester.setValue(0, 6, true));
+                () -> tester.setValue(0, 7, true));
     }
 
     private List<GridProView.Bean> getItems(GridPro<GridProView.Bean> gridPro) {
