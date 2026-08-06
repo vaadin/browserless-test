@@ -106,15 +106,28 @@ class GridProTesterTest extends BrowserlessTest {
 
         tester.setValue(0, 4, GridProView.YesNo.YES);
         assertCellEditStarted("Bean 1");
-        tester.setValue(1, 4, GridProView.YesNo.NO);
+        tester.setValue(1, 4, "NO");
         assertCellEditStarted("Bean 2");
-        tester.setValue(2, 4, GridProView.YesNo.YES);
+        tester.setValue(2, 4, "YES");
         assertCellEditStarted("Bean 3");
 
         List<GridProView.Bean> items = getItems(tester.getComponent());
         assertEquals(GridProView.YesNo.YES, items.get(0).getYesNo());
         assertEquals(GridProView.YesNo.NO, items.get(1).getYesNo());
         assertEquals(GridProView.YesNo.YES, items.get(2).getYesNo());
+    }
+
+    @Test
+    void setYesNo_updatesAllRows_YepThrows() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> tester.setValue(0, 4, "YEP"));
+
+        assertEquals("Value YEP is not a valid option for the select editor",
+                exception.getMessage());
     }
 
     @Test
@@ -139,8 +152,9 @@ class GridProTesterTest extends BrowserlessTest {
                 IllegalStateException.class,
                 () -> tester.setValue(0, 5, "Should fail"));
 
-        assertEquals(true, exception.getMessage()
-                .startsWith("Editor field on row 0 at column 5 is not usable"));
+        assertEquals(
+                "TextField[DISABLED, value='', manualValidation='true'] is not usable because it is not enabled.",
+                exception.getMessage());
     }
 
     @Test
@@ -152,8 +166,9 @@ class GridProTesterTest extends BrowserlessTest {
                 IllegalStateException.class,
                 () -> tester.setValue(0, 6, "Should fail"));
 
-        assertEquals(true, exception.getMessage()
-                .startsWith("Editor field on row 0 at column 6 is not usable"));
+        assertEquals(
+                "TextField[RO, value='', readonly='true', manualValidation='true'] is not usable because it is .",
+                exception.getMessage());
     }
 
     @Test
