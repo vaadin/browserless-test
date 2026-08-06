@@ -59,9 +59,11 @@ public class GridProView extends Component implements HasComponents {
         column.setCellEditableProvider(item -> false);
         gridPro.setItems(beans);
         gridPro.addCellEditStartedListener(e -> {
-            var span = new Span("Cell edit: " + e.getItem().getName());
-            span.setId(e.getItem().getName());
-            add(span);
+            if (e.isFromClient()) {
+                var span = new Span("Cell edit: " + e.getItem().getName());
+                span.setId(e.getItem().getName());
+                add(span);
+            }
         });
         add(gridPro);
     }
