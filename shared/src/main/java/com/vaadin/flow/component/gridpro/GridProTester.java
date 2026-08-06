@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.gridpro;
 
-import java.lang.reflect.Field;
-
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
@@ -97,14 +95,11 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
     private boolean isCellEditable(int rowIndex, int columnIndex,
             EditColumn<Y> editColumn) {
         try {
-            Field cellEditableProviderField = EditColumn.class
-                    .getDeclaredField("cellEditableProvider");
-            cellEditableProviderField.setAccessible(true);
-            SerializablePredicate<Y> cellEditableProvider = (SerializablePredicate<Y>) cellEditableProviderField
-                    .get(editColumn);
+            var cellEditableProvider = (SerializablePredicate<Y>) getField(
+                    EditColumn.class, "cellEditableProvider").get(editColumn);
             return cellEditableProvider == null
                     || cellEditableProvider.test(getRow(rowIndex));
-        } catch (NoSuchFieldException | IllegalAccessException exception) {
+        } catch (IllegalAccessException exception) {
             throw new IllegalStateException(
                     "Unable to determine whether cell on row " + rowIndex
                             + " at column " + columnIndex + " is editable",
