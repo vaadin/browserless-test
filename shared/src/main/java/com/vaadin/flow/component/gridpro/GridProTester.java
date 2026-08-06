@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.gridpro;
 
 import java.lang.reflect.Field;
-import java.util.List;
 
 import tools.jackson.databind.node.ObjectNode;
 
@@ -24,10 +23,10 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.grid.GridTester;
-import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.component.gridpro.GridPro.CellEditStartedEvent;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
 import com.vaadin.flow.component.gridpro.GridPro.ItemPropertyChangedEvent;
+import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.internal.JacksonUtils;
 
 /**
