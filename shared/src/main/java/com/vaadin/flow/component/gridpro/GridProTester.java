@@ -28,7 +28,7 @@ import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.internal.JacksonUtils;
 
 /**
- * Tester for Grid components.
+ * Tester for GridPro components.
  *
  * @param <T>
  *            component type
