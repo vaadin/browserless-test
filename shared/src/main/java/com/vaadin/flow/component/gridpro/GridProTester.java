@@ -18,6 +18,7 @@ package com.vaadin.flow.component.gridpro;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
+import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.grid.GridTester;
