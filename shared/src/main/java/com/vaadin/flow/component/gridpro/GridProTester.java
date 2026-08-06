@@ -15,12 +15,16 @@
  */
 package com.vaadin.flow.component.gridpro;
 
+import java.lang.reflect.Field;
+import java.util.List;
+
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.component.gridpro.GridPro.CellEditStartedEvent;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
 import com.vaadin.flow.component.gridpro.GridPro.ItemPropertyChangedEvent;
@@ -64,6 +68,10 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
         var gridPro = getComponent();
         var column = getColumns().get(columnIndex);
         if (column instanceof EditColumn<Y> editColumn) {
+            if (!isCellEditable(rowIndex, columnIndex, editColumn)) {
+                throw new IllegalStateException("Cell on row " + rowIndex
+                        + " at column " + columnIndex + " is not editable");
+            }
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
                 var field = editColumn.getEditorField();
@@ -83,6 +91,25 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
         } else {
             throw new IllegalArgumentException(
                     "Column at index " + columnIndex + " is not an EditColumn");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean isCellEditable(int rowIndex, int columnIndex,
+            EditColumn<Y> editColumn) {
+        try {
+            Field cellEditableProviderField = EditColumn.class
+                    .getDeclaredField("cellEditableProvider");
+            cellEditableProviderField.setAccessible(true);
+            SerializablePredicate<Y> cellEditableProvider = (SerializablePredicate<Y>) cellEditableProviderField
+                    .get(editColumn);
+            return cellEditableProvider == null
+                    || cellEditableProvider.test(getRow(rowIndex));
+        } catch (NoSuchFieldException | IllegalAccessException exception) {
+            throw new IllegalStateException(
+                    "Unable to determine whether cell on row " + rowIndex
+                            + " at column " + columnIndex + " is editable",
+                    exception);
         }
     }
 
