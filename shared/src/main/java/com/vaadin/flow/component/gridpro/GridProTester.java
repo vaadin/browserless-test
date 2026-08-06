@@ -77,7 +77,7 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
             }
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
-                field = editColumn.getEditorField();
+                var field = editColumn.getEditorField();
                 ensureComponentIsUsable((Component) field, f -> isUsable(f));
                 if (field.isReadOnly()) {
                     throw new IllegalStateException(PrettyPrintTreeKt
