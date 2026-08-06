@@ -69,9 +69,8 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
                 throw new IllegalStateException("Cell on row " + rowIndex
                         + " at column " + columnIndex + " is not editable");
             }
-            if ("select".equals(editColumn.getEditorType())
-                    && !(value instanceof Enum<?>)
-                    && !editColumn.getOptions().contains(value)) {
+            if ("select".equals(editColumn.getEditorType()) && !editColumn
+                    .getOptions().contains(String.valueOf(value))) {
                 throw new IllegalArgumentException("Value " + value
                         + " is not a valid option for the select editor");
             }
