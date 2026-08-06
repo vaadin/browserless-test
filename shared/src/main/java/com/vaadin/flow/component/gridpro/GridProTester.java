@@ -76,9 +76,13 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
             }
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
-                var field = editColumn.getEditorField();
-                ensureComponentIsUsable((Component) field,
-                        f -> isUsable(f) && !field.isReadOnly());
+                field = editColumn.getEditorField();
+                ensureComponentIsUsable((Component) field, f -> isUsable(f));
+                if (field.isReadOnly()) {
+                    throw new IllegalStateException(PrettyPrintTreeKt
+                            .toPrettyString((Component) field)
+                            + " is not usable because it is read only.");
+                }
                 fireCellEditStartedEvent(gridPro, editColumn, item);
                 field.setValue(value);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
