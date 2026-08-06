@@ -50,7 +50,7 @@ public interface CommercialTesterWrappers {
      *            the type of the items in the GridPro
      * @return a GridProTester instance wrapping the given GridPro
      */
-    default <V> GridProTester<GridPro<V>, V> test(GridPro<V> grid,
+    default <V> GridProTester<GridPro<V>, V> test(GridPro grid,
             Class<V> itemType) {
         return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
     }
