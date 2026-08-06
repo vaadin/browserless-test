@@ -180,7 +180,7 @@ class GridProTesterTest extends BrowserlessTest {
                 () -> tester.setValue(0, 6, "Should fail"));
 
         assertEquals(
-                "TextField[RO, value='', readonly='true', manualValidation='true'] is not usable because it is .",
+                "TextField[RO, value='', readonly='true', manualValidation='true'] is not usable because it is read only.",
                 exception.getMessage());
     }
 
