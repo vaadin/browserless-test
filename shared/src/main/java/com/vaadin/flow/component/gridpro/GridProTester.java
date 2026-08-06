@@ -69,17 +69,19 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
                 throw new IllegalStateException("Cell on row " + rowIndex
                         + " at column " + columnIndex + " is not editable");
             }
+            if ("select".equals(editColumn.getEditorType())
+                    && !(value instanceof Enum<?>)
+                    && !editColumn.getOptions().contains(value)) {
+                throw new IllegalArgumentException("Value " + value
+                        + " is not a valid option for the select editor");
+            }
             Y item = getRow(rowIndex);
             if ("custom".equals(editColumn.getEditorType())) {
                 var field = editColumn.getEditorField();
-                if (isUsable((Component) field) && !field.isReadOnly()) {
-                    fireCellEditStartedEvent(gridPro, editColumn, item);
-                    field.setValue(value);
-                } else {
-                    throw new IllegalStateException(
-                            "Editor field on row " + rowIndex + " at column "
-                                    + columnIndex + " is not usable");
-                }
+                ensureComponentIsUsable((Component) field,
+                        f -> isUsable(f) && !field.isReadOnly());
+                fireCellEditStartedEvent(gridPro, editColumn, item);
+                field.setValue(value);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             } else {
                 fireCellEditStartedEvent(gridPro, editColumn, item);
