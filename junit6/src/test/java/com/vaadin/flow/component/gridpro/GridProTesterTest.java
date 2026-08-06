@@ -131,6 +131,19 @@ class GridProTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void setYesNo_wronEnumThrows() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> tester.setValue(0, 4, MaybeNo.MAYBE));
+
+        assertEquals("Value MAYBE is not a valid option for the select editor",
+                exception.getMessage());
+    }
+
+    @Test
     void setValue_forNonEditColumn_throwsException() {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
                 gridPro);
@@ -202,4 +215,7 @@ class GridProTesterTest extends BrowserlessTest {
                 test(find(Span.class).id(itemName)).getText());
     }
 
+    public static enum MaybeNo {
+        MAYBE, NO,
+    }
 }
