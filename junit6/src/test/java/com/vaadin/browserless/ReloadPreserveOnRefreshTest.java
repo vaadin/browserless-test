@@ -15,11 +15,11 @@
  */
 package com.vaadin.browserless;
 
+import com.example.reload.PlainCounterView;
+import com.example.reload.PreservedCounterView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.example.reload.PlainCounterView;
-import com.example.reload.PreservedCounterView;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.server.VaadinSession;
