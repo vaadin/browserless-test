@@ -49,6 +49,8 @@ class GeneratedAggregatorsTest {
                 "core aggregator should expose findButton, was: " + methods);
         assertFalse(methods.contains("findChart"),
                 "core aggregator must not expose findChart: " + methods);
+        assertFalse(methods.contains("findGridPro"),
+                "core aggregator must not expose findGridPro: " + methods);
     }
 
     @Test
@@ -58,6 +60,9 @@ class GeneratedAggregatorsTest {
         Set<String> methods = methodNames(agg.getDeclaredMethods());
         assertTrue(methods.contains("findChart"),
                 "commercial aggregator should expose findChart, was: "
+                        + methods);
+        assertTrue(methods.contains("findGridPro"),
+                "commercial aggregator should expose findGridPro, was: "
                         + methods);
         assertFalse(methods.contains("findButton"),
                 "commercial aggregator should not duplicate core entries: "
