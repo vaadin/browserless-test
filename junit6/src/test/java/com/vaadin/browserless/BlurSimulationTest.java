@@ -142,16 +142,17 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
-    public void serverSideFocus_movesFocusAndBlursPreviouslyFocusedField() {
+    public void serverSideFocusInValueChangeListener_movesFocusAndBlursPreviouslyFocusedField() {
         TextField other = new TextField("Other");
         AtomicReference<FocusEvent<TextField>> otherFocus = new AtomicReference<>();
         other.addFocusListener(otherFocus::set);
         container.add(other);
+        // Application logic jumping to the next field once a value is
+        // entered; Focusable.focus() only schedules a client-side JS call,
+        // which the framework picks up like a browser would
+        textField.addValueChangeListener(e -> other.focus());
 
         test(textField).setValue("100");
-        // Server-side focus call from application logic; only schedules a
-        // client-side JS call, picked up on the next (simulated) round-trip
-        other.focus();
 
         Assertions.assertTrue(test(other).isFocused(),
                 "Server-side focus() should give the field focus");
