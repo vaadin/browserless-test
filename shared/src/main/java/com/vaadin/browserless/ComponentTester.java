@@ -278,6 +278,20 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     public void focus() {
         ensureComponentIsUsable();
         FocusTracker.moveFocusTo(component);
+        FocusTracker.flush(component);
+    }
+
+    /**
+     * Checks whether the wrapped component currently has keyboard focus in the
+     * simulated browser, including focus given with server-side
+     * {@link com.vaadin.flow.component.Focusable#focus()} calls.
+     *
+     * @return {@code true} if the component is focused
+     */
+    public boolean isFocused() {
+        UI ui = component.getUI().orElseGet(UI::getCurrent);
+        return ui != null && FocusTracker.getFocusedComponent(ui)
+                .filter(focused -> focused == component).isPresent();
     }
 
     /**
@@ -291,6 +305,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     public void blur() {
         ensureVisible();
         FocusTracker.blur(component);
+        FocusTracker.flush(component);
     }
 
     /**
@@ -501,6 +516,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
                     | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
+            // Value change listeners may have called Focusable.focus()
+            FocusTracker.flush(component);
             return;
         }
         throw new IllegalArgumentException("Parameter component: invalid value "

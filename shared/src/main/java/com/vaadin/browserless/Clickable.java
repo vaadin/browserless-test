@@ -114,5 +114,8 @@ public interface Clickable<T extends Component> {
                 new ClickEvent<>(component, true, 0, 0, 0, 0, 0, button,
                         metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                         metaKeys.isMeta()));
+        // Click listeners may have called Focusable.focus(), e.g. for a field
+        // in a freshly opened dialog
+        FocusTracker.flush(component);
     }
 }

@@ -28,6 +28,7 @@ import com.vaadin.flow.component.BlurNotifier.BlurEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.FocusNotifier.FocusEvent;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldTester;
@@ -138,6 +139,55 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "Consecutive edits of the same field should not blur it in between");
         Assertions.assertTrue(focusCount.get() <= 1,
                 "Editing the same field again should not re-fire focus");
+    }
+
+    @Test
+    public void serverSideFocus_movesFocusAndBlursPreviouslyFocusedField() {
+        TextField other = new TextField("Other");
+        AtomicReference<FocusEvent<TextField>> otherFocus = new AtomicReference<>();
+        other.addFocusListener(otherFocus::set);
+        container.add(other);
+
+        test(textField).setValue("100");
+        // Server-side focus call from application logic; only schedules a
+        // client-side JS call, picked up on the next (simulated) round-trip
+        other.focus();
+
+        Assertions.assertTrue(test(other).isFocused(),
+                "Server-side focus() should give the field focus");
+        Assertions.assertNotNull(otherFocus.get(),
+                "Focus listener should fire for server-side focus()");
+        Assertions.assertTrue(otherFocus.get().isFromClient(),
+                "The focus event is sent by the browser, so it should look like it came from the client");
+        Assertions.assertNotNull(receivedBlur.get(),
+                "The previously focused field should have been blurred");
+    }
+
+    @Test
+    public void buttonClickOpensDialog_serverSideFocusOnDialogField_focusesImplicitly() {
+        // knoobie's case from the PR review: a button click opens a dialog
+        // and the field inside is focused server-side for fast text insertion
+        TextField dialogField = new TextField("Quick add");
+        AtomicReference<FocusEvent<TextField>> dialogFieldFocus = new AtomicReference<>();
+        dialogField.addFocusListener(dialogFieldFocus::set);
+        Dialog dialog = new Dialog(dialogField);
+        Button open = new Button("Open", e -> {
+            dialog.open();
+            dialogField.focus();
+        });
+        container.add(open);
+
+        test(textField).setValue("100");
+        test(open).click();
+
+        Assertions.assertNotNull(receivedBlur.get(),
+                "Clicking the button should blur the previously focused field");
+        Assertions.assertNotNull(dialogFieldFocus.get(),
+                "Server-side focus() in the click listener should focus the dialog field");
+        Assertions.assertTrue(dialogFieldFocus.get().isFromClient());
+        Assertions.assertTrue(test(dialogField).isFocused(),
+                "The dialog field should be tracked as the focused component");
+        Assertions.assertFalse(test(textField).isFocused());
     }
 
     @Test
