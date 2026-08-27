@@ -267,10 +267,10 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     /**
      * Simulates the user moving keyboard focus to the wrapped component.
      * <p>
-     * Fires a blur event on the previously focused component and a focus
-     * event on this one, as if they came from the client. Focus also moves
-     * implicitly when interacting with components through testers, so calling
-     * this is rarely needed.
+     * Fires a blur event on the previously focused component and a focus event
+     * on this one, as if they came from the client. Focus also moves implicitly
+     * when interacting with components through testers, so calling this is
+     * rarely needed.
      *
      * @throws IllegalStateException
      *             if the component is not usable

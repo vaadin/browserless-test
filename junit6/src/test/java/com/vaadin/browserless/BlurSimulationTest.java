@@ -33,12 +33,13 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldTester;
 
 /**
- * Covers https://vaadin.com/forum/t/missing-blur-event-simulation-api-in-browserless-test/179736
+ * Covers
+ * https://vaadin.com/forum/t/missing-blur-event-simulation-api-in-browserless-test/179736
  *
  * Business logic (validation, persistence, dialogs) is often attached to blur
  * listeners of Focusable components. ComponentTester exposes explicit focus()
- * and blur() methods, and beyond that focus and blur happen implicitly, the
- * way they do with a real user: FocusTracker keeps track of which component is
+ * and blur() methods, and beyond that focus and blur happen implicitly, the way
+ * they do with a real user: FocusTracker keeps track of which component is
  * focused, entering a value through a tester first focuses the field, and
  * interacting with any other component (another setValue, a button click, ...)
  * moves focus there, firing blur on the previously focused component. Test

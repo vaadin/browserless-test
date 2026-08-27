@@ -29,13 +29,13 @@ import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
  * Keeps track of the component that has keyboard focus during a browserless
  * test, mirroring how focus behaves with a real user in a browser.
  * <p>
- * Testers report simulated user interactions here: interacting with a
- * component moves focus to it, which fires a {@code blur} DOM event on the
- * previously focused component and a {@code focus} DOM event on the newly
- * focused one, both as if they came from the client. Test authors normally
- * never need to call this class directly; focus and blur listeners fire
- * implicitly, just like in production. For explicit control there are
- * {@link ComponentTester#focus()} and {@link ComponentTester#blur()}.
+ * Testers report simulated user interactions here: interacting with a component
+ * moves focus to it, which fires a {@code blur} DOM event on the previously
+ * focused component and a {@code focus} DOM event on the newly focused one,
+ * both as if they came from the client. Test authors normally never need to
+ * call this class directly; focus and blur listeners fire implicitly, just like
+ * in production. For explicit control there are {@link ComponentTester#focus()}
+ * and {@link ComponentTester#blur()}.
  *
  * @since 1.3
  */
@@ -64,9 +64,9 @@ public final class FocusTracker {
      * interaction.
      * <p>
      * Fires a {@code blur} DOM event on the previously focused component and,
-     * if the given component is {@link Focusable}, a {@code focus} DOM event
-     * on it. Interacting again with the already focused component is a no-op,
-     * as in a browser.
+     * if the given component is {@link Focusable}, a {@code focus} DOM event on
+     * it. Interacting again with the already focused component is a no-op, as
+     * in a browser.
      *
      * @param component
      *            the component the user interacts with, not null
