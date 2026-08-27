@@ -33,20 +33,16 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldTester;
 
 /**
- * Reproduces https://vaadin.com/forum/t/missing-blur-event-simulation-api-in-browserless-test/179736
+ * Covers https://vaadin.com/forum/t/missing-blur-event-simulation-api-in-browserless-test/179736
  *
  * Business logic (validation, persistence, dialogs) is often attached to blur
- * listeners of Focusable components. There is no public tester API to simulate
- * a blur event: ComponentTester.fireDomEvent is protected and Focusable.blur()
- * only enqueues a client-side JS call, which never round-trips in a
- * browserless test.
- *
- * Beyond an explicit blur API, focus and blur should happen implicitly, the
- * way they do with a real user: the framework should track which component is
- * focused, entering a value through a tester should first focus the field, and
+ * listeners of Focusable components. ComponentTester exposes explicit focus()
+ * and blur() methods, and beyond that focus and blur happen implicitly, the
+ * way they do with a real user: FocusTracker keeps track of which component is
+ * focused, entering a value through a tester first focuses the field, and
  * interacting with any other component (another setValue, a button click, ...)
- * should move focus there, firing blur on the previously focused component.
- * Test script authors should never need to call blur themselves.
+ * moves focus there, firing blur on the previously focused component. Test
+ * script authors never need to call blur themselves.
  */
 @ViewPackages(packages = "com.example")
 public class BlurSimulationTest extends BrowserlessTest {
@@ -71,11 +67,10 @@ public class BlurSimulationTest extends BrowserlessTest {
         TextFieldTester<TextField, String> tester = test(textField);
         tester.setValue("100");
 
-        // Focusable.blur() is the only blur-ish method reachable from test
-        // code, but it has no effect without a browser. The tester itself
-        // offers nothing: fireDomEvent is protected and there is no Blurable
-        // mixin comparable to Clickable.
-        textField.blur();
+        // Note that Flow's Focusable.blur() cannot be used here: it only
+        // executes client-side JS, so the server-side event would arrive
+        // earliest on the next round-trip even with a real browser
+        tester.blur();
 
         Assertions.assertNotNull(receivedBlur.get(),
                 "Blur listener should be reachable through the public tester API");

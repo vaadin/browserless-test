@@ -265,6 +265,35 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
+     * Simulates the user moving keyboard focus to the wrapped component.
+     * <p>
+     * Fires a blur event on the previously focused component and a focus
+     * event on this one, as if they came from the client. Focus also moves
+     * implicitly when interacting with components through testers, so calling
+     * this is rarely needed.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void focus() {
+        ensureComponentIsUsable();
+        FocusTracker.moveFocusTo(component);
+    }
+
+    /**
+     * Simulates the wrapped component losing keyboard focus, firing a blur
+     * event as if it came from the client.
+     * <p>
+     * Focus also moves implicitly when interacting with other components
+     * through testers, so calling this is only needed when nothing else is
+     * interacted with after this component.
+     */
+    public void blur() {
+        ensureVisible();
+        FocusTracker.blur(component);
+    }
+
+    /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     protected void roundTrip() {
@@ -461,6 +490,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected <V> void setValueAsUser(V value) {
         if (component instanceof AbstractField) {
+            FocusTracker.moveFocusTo(component);
             final AbstractFieldSupport<?, V> fs = getFieldSupport();
             try {
                 final Method m = AbstractFieldSupport.class.getDeclaredMethod(
