@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.BlurNotifier.BlurEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.FocusNotifier.FocusEvent;
+import com.vaadin.flow.component.FocusOption;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
@@ -158,10 +159,33 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "Server-side focus() should give the field focus");
         Assertions.assertNotNull(otherFocus.get(),
                 "Focus listener should fire for server-side focus()");
-        Assertions.assertTrue(otherFocus.get().isFromClient(),
-                "The focus event is sent by the browser, so it should look like it came from the client");
+        Assertions.assertFalse(otherFocus.get().isFromClient(),
+                "Focusable.focus() marks the resulting focus event as not from the client");
         Assertions.assertNotNull(receivedBlur.get(),
                 "The previously focused field should have been blurred");
+        Assertions.assertTrue(receivedBlur.get().isFromClient(),
+                "The blur on the previous field is a plain browser reaction, so it is from the client");
+    }
+
+    @Test
+    public void serverSideFocusWithOptions_generatesDifferentJs_alsoDetected() {
+        TextField other = new TextField("Other");
+        AtomicReference<FocusEvent<TextField>> otherFocus = new AtomicReference<>();
+        other.addFocusListener(otherFocus::set);
+        container.add(other);
+        // focus(FocusOption...) generates "this.focus($0)" instead of
+        // "this.focus()" in the scheduled JavaScript
+        textField.addValueChangeListener(
+                e -> other.focus(FocusOption.PreventScroll.ENABLED));
+
+        test(textField).setValue("100");
+
+        Assertions.assertTrue(test(other).isFocused(),
+                "Server-side focus(FocusOption...) should give the field focus");
+        Assertions.assertNotNull(otherFocus.get(),
+                "Focus listener should fire for server-side focus(FocusOption...)");
+        Assertions.assertFalse(otherFocus.get().isFromClient(),
+                "Focusable.focus() marks the resulting focus event as not from the client");
     }
 
     @Test
@@ -185,7 +209,8 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "Clicking the button should blur the previously focused field");
         Assertions.assertNotNull(dialogFieldFocus.get(),
                 "Server-side focus() in the click listener should focus the dialog field");
-        Assertions.assertTrue(dialogFieldFocus.get().isFromClient());
+        Assertions.assertFalse(dialogFieldFocus.get().isFromClient(),
+                "Focusable.focus() marks the resulting focus event as not from the client");
         Assertions.assertTrue(test(dialogField).isFocused(),
                 "The dialog field should be tracked as the focused component");
         Assertions.assertFalse(test(textField).isFocused());
