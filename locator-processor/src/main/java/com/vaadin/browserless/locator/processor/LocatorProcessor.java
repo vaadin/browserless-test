@@ -150,7 +150,8 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String DEFAULT_COMMERCIAL_ENTRYPOINT_FQN = "com.vaadin.browserless.locator.GeneratedCommercialLocators";
     private static final List<String> DEFAULT_COMMERCIAL_PACKAGES = List.of(
             "com.vaadin.flow.component.charts",
-            "com.vaadin.flow.component.dashboard");
+            "com.vaadin.flow.component.dashboard",
+            "com.vaadin.flow.component.gridpro");
 
     /**
      * Public methods that we never delegate from the locator. These belong to
