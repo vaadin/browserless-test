@@ -13,22 +13,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.flow.component.html;
+package com.vaadin.flow.component.html.tester;
 
-import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasComponents;
+import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.router.Route;
 
-/**
- * @since 1.0
- */
-@Tests(Image.class)
-public class ImageTester extends HtmlComponentTester<Image> {
-    /**
-     * Wrap given component for testing.
-     *
-     * @param component
-     *            target component
-     */
-    public ImageTester(Image component) {
-        super(component);
+@Tag("div")
+@Route(value = "image", registerAtStartup = false)
+public class ImageView extends Component implements HasComponents {
+
+    Image image = new Image("logo.png", "Logo");
+
+    int clicks = 0;
+
+    public ImageView() {
+        image.setTitle("Vaadin logo");
+        image.addClickListener(event -> clicks++);
+        add(image);
     }
+
 }
