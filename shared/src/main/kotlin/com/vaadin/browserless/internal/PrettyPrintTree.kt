@@ -16,9 +16,6 @@
 package com.vaadin.browserless.internal
 
 
-import java.lang.reflect.AccessibleObject
-import java.lang.reflect.Field
-import java.lang.reflect.Method
 import java.util.*
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.HasValidation
@@ -191,8 +188,14 @@ fun Component.toPrettyString(): String {
 
 /**
  * Reads the `href` value of this component, so that [toPrettyString] can dump it for
- * any component declaring it, not just [Anchor]. Both a no-arg `href()` method and a
- * `href` field are looked up, anywhere in the class hierarchy.
+ * any component declaring it, not just [Anchor].
+ *
+ * A no-arg `href()` method and an `href` field are looked up, anywhere in the class
+ * hierarchy. Those are exactly the members the previous kotlin-reflect based lookup
+ * matched: Kotlin properties and Java fields are named `href`, while a bean getter
+ * shows up as `getHref` and was never picked up. Bean getters are therefore not
+ * consulted here either, keeping the dump unchanged for components such as
+ * [com.vaadin.flow.router.RouterLink] which only expose `getHref()`.
  *
  * The Java reflection API is used on purpose since it resolves member metadata lazily:
  * some components have methods referencing classes (e.g. Spring ones) which may not be
@@ -204,16 +207,12 @@ fun Component.toPrettyString(): String {
 private fun Component.hrefValue(): Any? {
     var clazz: Class<*>? = javaClass
     while (clazz != null) {
-        val member: AccessibleObject? =
-            clazz.declaredMethods.firstOrNull { it.name == "href" && it.parameterCount == 0 }
-                ?: clazz.declaredFields.firstOrNull { it.name == "href" }
-        if (member != null) {
-            member.isAccessible = true
-            return when (member) {
-                is Method -> member.invoke(this)
-                else -> (member as Field).get(this)
-            }
-        }
+        clazz.declaredMethods
+            .firstOrNull { it.name == "href" && it.parameterCount == 0 }
+            ?.let { return it.apply { isAccessible = true }.invoke(this) }
+        clazz.declaredFields
+            .firstOrNull { it.name == "href" }
+            ?.let { return it.apply { isAccessible = true }.get(this) }
         clazz = clazz.superclass
     }
     return null

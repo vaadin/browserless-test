@@ -103,6 +103,18 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
     test("toPrettyStringAnchor()") {
         expect("Anchor[]") { Anchor().toPrettyString() }
         expect("Anchor[href='vaadin.com']") { Anchor("vaadin.com").toPrettyString() }
+        // the href is dumped for any component declaring it, also when it is
+        // inherited or declared as a plain href() method or a Kotlin property
+        expect("MyAnchor[href='vaadin.com']") { MyAnchor("vaadin.com").toPrettyString() }
+        expect("ComponentWithHrefFunction[href='vaadin.com']") {
+            ComponentWithHrefFunction().toPrettyString()
+        }
+        expect("ComponentWithHrefProperty[href='vaadin.com']") {
+            ComponentWithHrefProperty().toPrettyString()
+        }
+        // a bean getter is not an href member, mirroring what the kotlin-reflect
+        // based lookup used to match. RouterLink e.g. only has getHref().
+        expect("ComponentWithHrefGetter[]") { ComponentWithHrefGetter().toPrettyString() }
     }
     test("toPrettyStringImage()") {
         expect("Image[]") { Image().toPrettyString() }
@@ -257,6 +269,32 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
 
 class MyComponentWithToString : Div() {
     override fun toString(): String = "my-div(25)"
+}
+
+/**
+ * Inherits the private `href` field from [Anchor].
+ */
+private class MyAnchor(href: String) : Anchor(href)
+
+/**
+ * Declares `href` as a plain no-arg function, the way a record-style accessor would.
+ */
+private class ComponentWithHrefFunction : Div() {
+    fun href(): String = "vaadin.com"
+}
+
+/**
+ * Declares `href` as a Kotlin property, which compiles to an `href` field.
+ */
+private class ComponentWithHrefProperty : Div() {
+    var href: String = "vaadin.com"
+}
+
+/**
+ * Exposes `href` through a bean getter only, like [com.vaadin.flow.router.RouterLink] does.
+ */
+private class ComponentWithHrefGetter : Div() {
+    fun getHref(): String = "vaadin.com"
 }
 
 /**
