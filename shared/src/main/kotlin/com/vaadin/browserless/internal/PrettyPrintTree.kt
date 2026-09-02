@@ -200,9 +200,6 @@ fun Component.toPrettyString(): String {
  * covers bean getters, Kotlin properties without a backing field and members
  * inherited from an interface.
  *
- * Blank values are skipped since a getter typically reports a missing `href` as an
- * empty string, e.g. [Anchor.getHref].
- *
  * The Java reflection API is used on purpose since it resolves member metadata lazily:
  * some components have methods referencing classes (e.g. Spring ones) which may not be
  * present in all projects, and eagerly scanning all metadata (parameters, generics, ...)
@@ -210,39 +207,42 @@ fun Component.toPrettyString(): String {
  *
  * @return the `href` value, or null if this component has none.
  */
-private fun Component.hrefValue(): Any? = hrefMembers().firstNotNullOfOrNull { member ->
+private fun Component.hrefValue(): Any? {
+    // members declared by the component classes themselves, at any visibility:
+    // Anchor.href e.g. is a private field
+    var clazz: Class<*>? = javaClass
+    while (clazz != null) {
+        clazz.declaredMethods
+            .firstOrNull { it.name == "href" && it.parameterCount == 0 }
+            ?.let { method -> readHref(method)?.let { return it } }
+        clazz.declaredFields
+            .firstOrNull { it.name == "href" }
+            ?.let { field -> readHref(field)?.let { return it } }
+        clazz = clazz.superclass
+    }
+    // bean getters, e.g. RouterLink.getHref(), and members inherited from an
+    // interface. getMethods() only gets consulted here, since it is the more
+    // expensive call and most components declare no href member at all
+    javaClass.methods
+        .filter { (it.name == "href" || it.name == "getHref") && it.parameterCount == 0 }
+        .forEach { method -> readHref(method)?.let { return it } }
+    return null
+}
+
+/**
+ * Reads the value the given `href` [member] holds for this component.
+ *
+ * @return the value, or null if there is none or it is blank - a getter typically
+ * reports a missing `href` as an empty string, e.g. [Anchor.getHref].
+ */
+private fun Component.readHref(member: AccessibleObject): Any? {
     member.isAccessible = true
     val value: Any? = when (member) {
         is Method -> member.invoke(this)
         is Field -> member.get(this)
         else -> null
     }
-    value?.takeIf { it.toString().isNotBlank() }
-}
-
-/**
- * The members which may hold the `href` value of this component, in the order
- * [hrefValue] consults them. Computed lazily so that the more expensive
- * [Class.getMethods] is only ever touched for components declaring no `href` member
- * of their own.
- */
-private fun Component.hrefMembers(): Sequence<AccessibleObject> {
-    val componentClass: Class<*> = javaClass
-    return sequence {
-        var clazz: Class<*>? = componentClass
-        while (clazz != null) {
-            clazz.declaredMethods
-                .firstOrNull { it.name == "href" && it.parameterCount == 0 }
-                ?.let { yield(it) }
-            clazz.declaredFields
-                .firstOrNull { it.name == "href" }
-                ?.let { yield(it) }
-            clazz = clazz.superclass
-        }
-        yieldAll(componentClass.methods.filter {
-            (it.name == "href" || it.name == "getHref") && it.parameterCount == 0
-        })
-    }
+    return value?.takeIf { it.toString().isNotBlank() }
 }
 
 /**
