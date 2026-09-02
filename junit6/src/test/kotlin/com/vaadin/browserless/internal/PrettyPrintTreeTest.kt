@@ -112,9 +112,14 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         expect("ComponentWithHrefProperty[href='vaadin.com']") {
             ComponentWithHrefProperty().toPrettyString()
         }
+        expect("ComponentWithHrefInterface[href='vaadin.com']") {
+            ComponentWithHrefInterface().toPrettyString()
+        }
         // a bean getter is not an href member, mirroring what the kotlin-reflect
-        // based lookup used to match. RouterLink e.g. only has getHref().
+        // based lookup used to match. RouterLink e.g. only has getHref(), and so
+        // does a Kotlin href property without a backing field.
         expect("ComponentWithHrefGetter[]") { ComponentWithHrefGetter().toPrettyString() }
+        expect("ComponentWithComputedHref[]") { ComponentWithComputedHref().toPrettyString() }
     }
     test("toPrettyStringImage()") {
         expect("Image[]") { Image().toPrettyString() }
@@ -295,6 +300,23 @@ private class ComponentWithHrefProperty : Div() {
  */
 private class ComponentWithHrefGetter : Div() {
     fun getHref(): String = "vaadin.com"
+}
+
+/**
+ * Inherits `href` as a default method from an interface.
+ */
+private interface HasHrefFunction {
+    fun href(): String = "vaadin.com"
+}
+
+private class ComponentWithHrefInterface : Div(), HasHrefFunction
+
+/**
+ * Declares `href` as a Kotlin property without a backing field, which compiles to a
+ * bean getter and is therefore not dumped.
+ */
+private class ComponentWithComputedHref : Div() {
+    val href: String get() = "vaadin.com"
 }
 
 /**

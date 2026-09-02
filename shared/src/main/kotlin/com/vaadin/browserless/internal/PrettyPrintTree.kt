@@ -190,12 +190,16 @@ fun Component.toPrettyString(): String {
  * Reads the `href` value of this component, so that [toPrettyString] can dump it for
  * any component declaring it, not just [Anchor].
  *
- * A no-arg `href()` method and an `href` field are looked up, anywhere in the class
- * hierarchy. Those are exactly the members the previous kotlin-reflect based lookup
- * matched: Kotlin properties and Java fields are named `href`, while a bean getter
- * shows up as `getHref` and was never picked up. Bean getters are therefore not
- * consulted here either, keeping the dump unchanged for components such as
- * [com.vaadin.flow.router.RouterLink] which only expose `getHref()`.
+ * Matched, at any visibility and anywhere in the class hierarchy: a no-arg `href()`
+ * method - including a default one inherited from an interface - and an `href` field,
+ * which is what a Kotlin `href` property with a backing field compiles to. A bean
+ * getter is not matched, mirroring the previous kotlin-reflect based lookup where a
+ * Java getter shows up as `getHref` and never matched the searched `href` name: the
+ * dump therefore stays unchanged for components such as
+ * [com.vaadin.flow.router.RouterLink] which only expose `getHref()`. The flip side is
+ * that a Kotlin `href` property without a backing field (a custom getter, or a
+ * delegated property) compiles to a bean getter as well and is not dumped either,
+ * whereas the kotlin-reflect based lookup did report it.
  *
  * The Java reflection API is used on purpose since it resolves member metadata lazily:
  * some components have methods referencing classes (e.g. Spring ones) which may not be
@@ -215,6 +219,11 @@ private fun Component.hrefValue(): Any? {
             ?.let { return it.apply { isAccessible = true }.get(this) }
         clazz = clazz.superclass
     }
+    // the walk above covers the classes only; this also covers href() default
+    // methods inherited from an interface
+    javaClass.methods
+        .firstOrNull { it.name == "href" && it.parameterCount == 0 }
+        ?.let { return it.invoke(this) }
     return null
 }
 
