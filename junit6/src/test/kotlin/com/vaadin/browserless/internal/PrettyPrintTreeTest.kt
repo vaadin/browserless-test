@@ -117,17 +117,16 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
         // a bean getter is consulted as well, which is all a Kotlin href property
         // without a backing field compiles to
-        expect("ComponentWithHrefGetter[href='vaadin.com']") {
-            ComponentWithHrefGetter().toPrettyString()
-        }
         expect("ComponentWithComputedHref[href='vaadin.com']") {
             ComponentWithComputedHref().toPrettyString()
         }
-        // a blank href is dumped by no component, whether it is reported as null by
-        // a field or as an empty string by a getter
-        expect("ComponentWithBlankHref[]") { ComponentWithBlankHref().toPrettyString() }
+        // a blank member doesn't end the lookup, the getter still gets its turn
+        expect("ComponentWithBlankHrefField[href='vaadin.com']") {
+            ComponentWithBlankHrefField().toPrettyString()
+        }
     }
     test("toPrettyStringRouterLink()") {
+        // getHref() reports a missing href as an empty string, which is not dumped
         expect("RouterLink[]") { RouterLink().toPrettyString() }
         expect("RouterLink[text='Hello', href='helloworld']") {
             RouterLink("Hello", HelloWorldView::class.java).toPrettyString()
@@ -308,17 +307,10 @@ private class ComponentWithHrefProperty : Div() {
 }
 
 /**
- * Exposes `href` through a bean getter only, like [com.vaadin.flow.router.RouterLink] does.
+ * Has a blank `href` field, but reports a real one through its getter.
  */
-private class ComponentWithHrefGetter : Div() {
-    fun getHref(): String = "vaadin.com"
-}
-
-/**
- * Reports a missing `href` the way a getter usually does, as an empty string.
- */
-private class ComponentWithBlankHref : Div() {
-    fun getHref(): String = ""
+private class ComponentWithBlankHrefField : Anchor("") {
+    override fun getHref(): String = "vaadin.com"
 }
 
 /**
@@ -332,7 +324,7 @@ private class ComponentWithHrefInterface : Div(), HasHrefFunction
 
 /**
  * Declares `href` as a Kotlin property without a backing field, which compiles to a
- * bean getter.
+ * bean getter, exactly like [com.vaadin.flow.router.RouterLink.getHref] is one.
  */
 private class ComponentWithComputedHref : Div() {
     val href: String get() = "vaadin.com"
