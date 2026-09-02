@@ -115,11 +115,23 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         expect("ComponentWithHrefInterface[href='vaadin.com']") {
             ComponentWithHrefInterface().toPrettyString()
         }
-        // a bean getter is not an href member, mirroring what the kotlin-reflect
-        // based lookup used to match. RouterLink e.g. only has getHref(), and so
-        // does a Kotlin href property without a backing field.
-        expect("ComponentWithHrefGetter[]") { ComponentWithHrefGetter().toPrettyString() }
-        expect("ComponentWithComputedHref[]") { ComponentWithComputedHref().toPrettyString() }
+        // a bean getter is consulted as well, which is all a Kotlin href property
+        // without a backing field compiles to
+        expect("ComponentWithHrefGetter[href='vaadin.com']") {
+            ComponentWithHrefGetter().toPrettyString()
+        }
+        expect("ComponentWithComputedHref[href='vaadin.com']") {
+            ComponentWithComputedHref().toPrettyString()
+        }
+        // a blank href is dumped by no component, whether it is reported as null by
+        // a field or as an empty string by a getter
+        expect("ComponentWithBlankHref[]") { ComponentWithBlankHref().toPrettyString() }
+    }
+    test("toPrettyStringRouterLink()") {
+        expect("RouterLink[]") { RouterLink().toPrettyString() }
+        expect("RouterLink[text='Hello', href='helloworld']") {
+            RouterLink("Hello", HelloWorldView::class.java).toPrettyString()
+        }
     }
     test("toPrettyStringImage()") {
         expect("Image[]") { Image().toPrettyString() }
@@ -303,6 +315,13 @@ private class ComponentWithHrefGetter : Div() {
 }
 
 /**
+ * Reports a missing `href` the way a getter usually does, as an empty string.
+ */
+private class ComponentWithBlankHref : Div() {
+    fun getHref(): String = ""
+}
+
+/**
  * Inherits `href` as a default method from an interface.
  */
 private interface HasHrefFunction {
@@ -313,7 +332,7 @@ private class ComponentWithHrefInterface : Div(), HasHrefFunction
 
 /**
  * Declares `href` as a Kotlin property without a backing field, which compiles to a
- * bean getter and is therefore not dumped.
+ * bean getter.
  */
 private class ComponentWithComputedHref : Div() {
     val href: String get() = "vaadin.com"

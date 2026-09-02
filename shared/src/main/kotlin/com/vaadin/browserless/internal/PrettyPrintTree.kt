@@ -16,6 +16,9 @@
 package com.vaadin.browserless.internal
 
 
+import java.lang.reflect.AccessibleObject
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.util.*
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.HasValidation
@@ -190,16 +193,15 @@ fun Component.toPrettyString(): String {
  * Reads the `href` value of this component, so that [toPrettyString] can dump it for
  * any component declaring it, not just [Anchor].
  *
- * Matched, at any visibility and anywhere in the class hierarchy: a no-arg `href()`
- * method - including a default one inherited from an interface - and an `href` field,
- * which is what a Kotlin `href` property with a backing field compiles to. A bean
- * getter is not matched, mirroring the previous kotlin-reflect based lookup where a
- * Java getter shows up as `getHref` and never matched the searched `href` name: the
- * dump therefore stays unchanged for components such as
- * [com.vaadin.flow.router.RouterLink] which only expose `getHref()`. The flip side is
- * that a Kotlin `href` property without a backing field (a custom getter, or a
- * delegated property) compiles to a bean getter as well and is not dumped either,
- * whereas the kotlin-reflect based lookup did report it.
+ * The first member holding a non-blank value wins, looked up in this order: a no-arg
+ * `href()` method or an `href` field declared anywhere in the class hierarchy, at any
+ * visibility - that is also what a Kotlin `href` property with a backing field
+ * compiles to - and finally the public no-arg `href()` and `getHref()` methods, which
+ * covers bean getters, Kotlin properties without a backing field and members
+ * inherited from an interface.
+ *
+ * Blank values are skipped since a getter typically reports a missing `href` as an
+ * empty string, e.g. [Anchor.getHref].
  *
  * The Java reflection API is used on purpose since it resolves member metadata lazily:
  * some components have methods referencing classes (e.g. Spring ones) which may not be
@@ -208,23 +210,39 @@ fun Component.toPrettyString(): String {
  *
  * @return the `href` value, or null if this component has none.
  */
-private fun Component.hrefValue(): Any? {
-    var clazz: Class<*>? = javaClass
-    while (clazz != null) {
-        clazz.declaredMethods
-            .firstOrNull { it.name == "href" && it.parameterCount == 0 }
-            ?.let { return it.apply { isAccessible = true }.invoke(this) }
-        clazz.declaredFields
-            .firstOrNull { it.name == "href" }
-            ?.let { return it.apply { isAccessible = true }.get(this) }
-        clazz = clazz.superclass
+private fun Component.hrefValue(): Any? = hrefMembers().firstNotNullOfOrNull { member ->
+    member.isAccessible = true
+    val value: Any? = when (member) {
+        is Method -> member.invoke(this)
+        is Field -> member.get(this)
+        else -> null
     }
-    // the walk above covers the classes only; this also covers href() default
-    // methods inherited from an interface
-    javaClass.methods
-        .firstOrNull { it.name == "href" && it.parameterCount == 0 }
-        ?.let { return it.invoke(this) }
-    return null
+    value?.takeIf { it.toString().isNotBlank() }
+}
+
+/**
+ * The members which may hold the `href` value of this component, in the order
+ * [hrefValue] consults them. Computed lazily so that the more expensive
+ * [Class.getMethods] is only ever touched for components declaring no `href` member
+ * of their own.
+ */
+private fun Component.hrefMembers(): Sequence<AccessibleObject> {
+    val componentClass: Class<*> = javaClass
+    return sequence {
+        var clazz: Class<*>? = componentClass
+        while (clazz != null) {
+            clazz.declaredMethods
+                .firstOrNull { it.name == "href" && it.parameterCount == 0 }
+                ?.let { yield(it) }
+            clazz.declaredFields
+                .firstOrNull { it.name == "href" }
+                ?.let { yield(it) }
+            clazz = clazz.superclass
+        }
+        yieldAll(componentClass.methods.filter {
+            (it.name == "href" || it.name == "getHref") && it.parameterCount == 0
+        })
+    }
 }
 
 /**
