@@ -16,10 +16,10 @@
 package com.vaadin.browserless.internal
 
 
+import java.lang.reflect.AccessibleObject
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.util.*
-import kotlin.reflect.KCallable
-import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.kotlinFunction
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.HasValidation
 import com.vaadin.flow.component.HasValue
@@ -143,20 +143,7 @@ fun Component.toPrettyString(): String {
         }
     }
     // Any component with href should output it not only Anchor
-    val hrefCallable = try {
-        val functionOrProperty = this.javaClass.kotlin.members.find { it.name == "href" }
-        functionOrProperty?.isAccessible = true
-        functionOrProperty
-    } catch (t: TypeNotPresentException) {
-        // Some components have methods referencing Spring classes that may not
-        // be present for all project. Kotlin member introspection seems to
-        // immediately scan for all metadata (parameters, generics, ...) making
-        // this method fail. As a fallback we inspect with Java reflection API
-        // that seems to be more lazy
-        val method = this.javaClass.methods.find { it.name == "href" }
-        method?.kotlinFunction
-    }
-    hrefCallable?.call(this)?.let {
+    hrefValue()?.let {
         list.add("href='$it'")
     }
     if (this is Button && icon is Icon) {
@@ -200,6 +187,62 @@ fun Component.toPrettyString(): String {
         name = javaClass.name
     }
     return name + list
+}
+
+/**
+ * Reads the `href` value of this component, so that [toPrettyString] can dump it for
+ * any component declaring it, not just [Anchor].
+ *
+ * The first member holding a non-blank value wins, looked up in this order: a no-arg
+ * `href()` method or an `href` field declared anywhere in the class hierarchy, at any
+ * visibility - that is also what a Kotlin `href` property with a backing field
+ * compiles to - and finally the public no-arg `href()` and `getHref()` methods, which
+ * covers bean getters, Kotlin properties without a backing field and members
+ * inherited from an interface.
+ *
+ * The Java reflection API is used on purpose since it resolves member metadata lazily:
+ * some components have methods referencing classes (e.g. Spring ones) which may not be
+ * present in all projects, and eagerly scanning all metadata (parameters, generics, ...)
+ * would fail for those.
+ *
+ * @return the `href` value, or null if this component has none.
+ */
+private fun Component.hrefValue(): Any? {
+    // members declared by the component classes themselves, at any visibility:
+    // Anchor.href e.g. is a private field
+    var clazz: Class<*>? = javaClass
+    while (clazz != null) {
+        clazz.declaredMethods
+            .firstOrNull { it.name == "href" && it.parameterCount == 0 }
+            ?.let { method -> readHref(method)?.let { return it } }
+        clazz.declaredFields
+            .firstOrNull { it.name == "href" }
+            ?.let { field -> readHref(field)?.let { return it } }
+        clazz = clazz.superclass
+    }
+    // bean getters, e.g. RouterLink.getHref(), and members inherited from an
+    // interface. getMethods() only gets consulted here, since it is the more
+    // expensive call and most components declare no href member at all
+    javaClass.methods
+        .filter { (it.name == "href" || it.name == "getHref") && it.parameterCount == 0 }
+        .forEach { method -> readHref(method)?.let { return it } }
+    return null
+}
+
+/**
+ * Reads the value the given `href` [member] holds for this component.
+ *
+ * @return the value, or null if there is none or it is blank - a getter typically
+ * reports a missing `href` as an empty string, e.g. [Anchor.getHref].
+ */
+private fun Component.readHref(member: AccessibleObject): Any? {
+    member.isAccessible = true
+    val value: Any? = when (member) {
+        is Method -> member.invoke(this)
+        is Field -> member.get(this)
+        else -> null
+    }
+    return value?.takeIf { it.toString().isNotBlank() }
 }
 
 /**
