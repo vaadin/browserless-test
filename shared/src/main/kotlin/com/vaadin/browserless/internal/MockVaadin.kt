@@ -18,10 +18,12 @@ package com.vaadin.browserless.internal
 import java.io.Serializable
 import java.util.EventObject
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import jakarta.servlet.ServletContext
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.UI
+import com.vaadin.flow.component.page.ExtendedClientDetails
 import com.vaadin.flow.component.page.Page
 import com.vaadin.flow.di.Lookup
 import com.vaadin.flow.function.SerializableBiConsumer
@@ -77,6 +79,13 @@ object MockVaadin {
     private val strongRefReq = ThreadLocal<VaadinRequest>()
     private val strongRefRes = ThreadLocal<VaadinResponse>()
     private val lastNavigation = ThreadLocal<Location>()
+
+    // The window name to assign to the next UI created by [createUI]. A reload
+    // records the closing UI's window name here so the recreated UI reuses it
+    // (see [closeCurrentUI]); a brand-new window leaves it unset and gets a
+    // fresh unique name. Mirrors the [lastNavigation] hand-off.
+    private val lastWindowName = ThreadLocal<String>()
+    private val windowNameCounter = AtomicLong()
 
     /**
      * Mocks Vaadin for the current test method:
@@ -169,6 +178,9 @@ object MockVaadin {
     fun closeCurrentUI(fireUIDetach: Boolean) {
         val ui: UI = UI.getCurrent() ?: return
         lastNavigation.set(ui.internals.activeViewLocation)
+        // Preserve the window name so a following createUI (reload / session
+        // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
+        lastWindowName.set(ui.internals.extendedClientDetails.windowName)
         if (ui.isClosing && ui.internals.session != null) {
             ui._close()
         }
@@ -195,6 +207,7 @@ object MockVaadin {
             VaadinService.setCurrent(null)
         }
         lastNavigation.remove()
+        lastWindowName.remove()
     }
 
     private fun clearVaadinInstances(fireUIDetach: Boolean) {
@@ -334,6 +347,21 @@ object MockVaadin {
 
         session.addUI(ui)
         session.service.eventBus.fireEvent(UIInitEvent(ui, session.service), rethrowListenerFailure)
+
+        // Assign a stable, non-null window name via ExtendedClientDetails so
+        // @PreserveOnRefresh works. Flow keys its preserved-component cache on
+        // window.name, and the name must (a) be non-null and (b) stay constant
+        // across reloads of the same window. A reload carries the previous UI's
+        // name in lastWindowName; a brand-new window gets a fresh unique name.
+        // screenWidth is set to a real value so retrieveExtendedClientDetails
+        // resolves synchronously rather than waiting for a client round-trip.
+        val windowName = lastWindowName.get()
+            ?: "window-${windowNameCounter.incrementAndGet()}"
+        lastWindowName.remove()
+        ui.internals.setExtendedClientDetails(
+            ExtendedClientDetails(ui, "1920", "1080", null, null, null, null,
+                null, null, null, null, null, null, null, null, windowName,
+                null, null, null))
 
         // navigate to the initial page
         if (lastNavigation.get() != null) {
@@ -509,11 +537,14 @@ object MockVaadin {
      * (`BrowserlessUIContext.close`) call [closeCurrentUI] without a matching
      * [createUI], so this method must be invoked afterwards to prevent the
      * recorded location from leaking into the next unrelated [createUI] on the
-     * same thread (e.g. `user.newWindow()`).
+     * same thread (e.g. `user.newWindow()`). Also clears the recorded window
+     * name for the same reason: a fresh window must get a new unique name, not
+     * inherit the closed window's name.
      */
     @JvmStatic
     fun clearLastNavigation() {
         lastNavigation.remove()
+        lastWindowName.remove()
     }
 }
 

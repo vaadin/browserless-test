@@ -252,6 +252,34 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
+     * Simulates the user reloading the page (pressing F5): the current UI is
+     * detached and a fresh one is created in the same Vaadin session, then the
+     * current location is rendered again. Session-scoped state survives. Views
+     * annotated with
+     * {@link com.vaadin.flow.router.PreserveOnRefresh @PreserveOnRefresh} keep
+     * their component instance and state; other views are recreated.
+     *
+     * @return the view shown after the reload
+     */
+    public HasElement reload() {
+        return BrowserlessDSL.reload(getUI());
+    }
+
+    /**
+     * Simulates a page reload (see {@link #reload()}) and verifies the
+     * resulting view is of the expected type.
+     *
+     * @param expectedTarget
+     *            the expected view class after reload
+     * @param <T>
+     *            the view type
+     * @return the view shown after the reload
+     */
+    public <T extends Component> T reload(Class<T> expectedTarget) {
+        return BrowserlessDSL.reload(getUI(), expectedTarget);
+    }
+
+    /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     public void roundTrip() {
