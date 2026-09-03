@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Base JUnit 6 class for browserless tests.
@@ -112,8 +113,10 @@ import org.junit.jupiter.api.BeforeEach;
  * @see BrowserlessExtension
  *
  * @see BrowserlessClassExtension
+ * @see BrowserlessTestConfig
  * @since 1.0
  */
+@ExtendWith(BrowserlessTestConfigExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 

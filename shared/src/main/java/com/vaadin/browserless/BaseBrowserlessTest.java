@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -53,6 +54,7 @@ import com.vaadin.flow.server.VaadinSession;
 public abstract class BaseBrowserlessTest {
 
     private TestSignalEnvironment signalsTestEnvironment;
+    private BrowserlessConfiguration resolvedConfiguration;
 
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
@@ -75,8 +77,28 @@ public abstract class BaseBrowserlessTest {
      */
     protected void initVaadinEnvironment() {
         scanTesters();
-        MockVaadin.setup(discoverRoutes(), MockedUI::new, lookupServices());
+        MockVaadin.setup(discoverRoutes(), MockedUI::new, allLookupServices(),
+                testConfiguration());
         initSignalsSupport();
+    }
+
+    /**
+     * Gets the lookup services to register, combining the ones required by the
+     * framework integration, the ones provided by the deprecated
+     * {@link #lookupServices()} hook, and the ones declared by the test
+     * configuration.
+     *
+     * For internal use only.
+     *
+     * @return the set of services implementation classes, never
+     *         {@literal null}.
+     */
+    @SuppressWarnings("deprecation")
+    protected final Set<Class<?>> allLookupServices() {
+        Set<Class<?>> services = new LinkedHashSet<>(frameworkLookupServices());
+        services.addAll(lookupServices());
+        services.addAll(testConfiguration().getLookupServices());
+        return services;
     }
 
     protected void initSignalsSupport() {
@@ -136,9 +158,72 @@ public abstract class BaseBrowserlessTest {
      * {@link com.vaadin.flow.di.ResourceProvider}, etc.
      *
      * @return set of services implementation classes, never {@literal null}.
+     * @deprecated since 1.2, declare the services with
+     *             {@link BrowserlessTestConfig#lookupServices()} or by
+     *             overriding {@link #testConfiguration()} instead. Overrides of
+     *             this method are still honored.
      */
+    @Deprecated(since = "1.2")
     protected Set<Class<?>> lookupServices() {
         return Collections.emptySet();
+    }
+
+    /**
+     * Gets the services implementations required by the framework integration
+     * to initialize the Vaadin {@link com.vaadin.flow.di.Lookup}, for example
+     * the Spring or Quarkus lookup initializers.
+     *
+     * These services are always registered, regardless of the test
+     * configuration, so that a test customizing {@link #testConfiguration()}
+     * cannot accidentally break the framework integration.
+     *
+     * Meant to be overridden by framework specific base classes only; tests
+     * should declare their own services with
+     * {@link BrowserlessTestConfig#lookupServices()}.
+     *
+     * @return set of services implementation classes, never {@literal null}.
+     * @since 1.2
+     */
+    protected Set<Class<?>> frameworkLookupServices() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Gets the custom Vaadin configuration, such as application properties and
+     * feature flags, to apply to the mock Vaadin environment.
+     *
+     * Default implementation returns the configuration declared by the
+     * {@link BrowserlessTestConfig} annotations present on the test class and
+     * on the current test method, if any. Override this method to provide the
+     * configuration programmatically, potentially on top of the declared one.
+     *
+     * <pre>
+     * &#64;Override
+     * protected BrowserlessConfiguration testConfiguration() {
+     *     return BrowserlessConfiguration.builder()
+     *             .withConfiguration(super.testConfiguration())
+     *             .withFeatureFlags("myExperimentalFeature").build();
+     * }
+     * </pre>
+     *
+     * @return the configuration to apply, never {@literal null}.
+     * @see BrowserlessTestConfig
+     * @since 1.2
+     */
+    protected BrowserlessConfiguration testConfiguration() {
+        if (resolvedConfiguration != null) {
+            return resolvedConfiguration;
+        }
+        return BrowserlessConfiguration.from(getClass());
+    }
+
+    /**
+     * Sets the configuration resolved by the JUnit extension that handles
+     * {@link BrowserlessTestConfig} annotations, so that annotations on the
+     * current test method are taken into account as well.
+     */
+    void setResolvedConfiguration(BrowserlessConfiguration configuration) {
+        this.resolvedConfiguration = configuration;
     }
 
     /**

@@ -16,11 +16,13 @@
 package com.vaadin.browserless;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
+import com.vaadin.experimental.Feature;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletService;
 
@@ -210,6 +212,66 @@ public class SecuredBrowserlessApplicationContext<C>
          */
         public Builder<C> withCloseHook(Runnable hook) {
             base.withCloseHook(hook);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withApplicationProperty
+         */
+        public Builder<C> withApplicationProperty(String name, String value) {
+            base.withApplicationProperty(name, value);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withApplicationProperties
+         */
+        public Builder<C> withApplicationProperties(
+                Map<String, String> properties) {
+            base.withApplicationProperties(properties);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withFeatureFlags(String...)
+         */
+        public Builder<C> withFeatureFlags(String... featureIds) {
+            base.withFeatureFlags(featureIds);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withFeatureFlags(Feature...)
+         */
+        public Builder<C> withFeatureFlags(Feature... features) {
+            base.withFeatureFlags(features);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withFeatureFlag(String,
+         *      boolean)
+         */
+        public Builder<C> withFeatureFlag(String featureId, boolean enabled) {
+            base.withFeatureFlag(featureId, enabled);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withFeatureFlag(Feature,
+         *      boolean)
+         */
+        public Builder<C> withFeatureFlag(Feature feature, boolean enabled) {
+            base.withFeatureFlag(feature, enabled);
+            return this;
+        }
+
+        /**
+         * @see BrowserlessApplicationContext.Builder#withConfiguration
+         */
+        public Builder<C> withConfiguration(
+                BrowserlessConfiguration configuration) {
+            base.withConfiguration(configuration);
             return this;
         }
 
