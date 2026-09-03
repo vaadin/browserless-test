@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
@@ -111,5 +112,9 @@ public interface Clickable<T extends Component> {
                 new ClickEvent<>(component, true, 0, 0, 0, 0, 0, button,
                         metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                         metaKeys.isMeta()));
+        // A real browser also runs any client-side click triggers on this
+        // component (e.g. Clipboard.onClick bindings) during the gesture;
+        // reproduce their server-observable effect here.
+        TriggerSimulation.fireClick(component, button, metaKeys);
     }
 }
