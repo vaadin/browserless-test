@@ -204,15 +204,19 @@ public class TextFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void textFieldWithoutClearButton_clear_throws() {
+    void textFieldWithoutClearButton_clear_valueIsCleared() {
+        // Selecting the contents and deleting them empties the field whether
+        // or not a clear button is rendered, so clear() does not require one.
         TextField tf = new TextField();
         tf.setClearButtonVisible(false);
+        tf.setRequiredIndicatorVisible(true);
+        tf.setValue("Some value");
         getCurrentView().getElement().appendChild(tf.getElement());
 
         TextFieldTester<TextField, String> tf_ = test(tf);
+        tf_.clear();
 
-        Assertions.assertThrows(IllegalStateException.class, tf_::clear,
-                "Clear should not be usable when clear button is not visible");
+        Assertions.assertTrue(tf.isEmpty(), "Value should have cleared");
     }
 
     @Test

@@ -51,6 +51,23 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
         setValueAsUser(value);
     }
 
+    /**
+     * Empties the field, as when the user deletes its contents (or clicks the
+     * clear button, where one is shown).
+     * <p/>
+     * Emptying is something the user can always do, so the empty value is set
+     * without running the set-time validity check: a field may legitimately end
+     * up invalid — a required field, for instance — once emptied.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void clear() {
+        ensureComponentIsUsable();
+
+        setValueAsUser(getComponent().getEmptyValue());
+    }
+
     private boolean hasValidation() {
         return getValidationSupport() != null;
     }

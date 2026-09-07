@@ -92,4 +92,18 @@ class DatePickerTesterTest extends BrowserlessTest {
         Assertions.assertEquals(newValue, value.get());
     }
 
+    @Test
+    void requiredPicker_clear_valueIsCleared() {
+        test(view.picker).setValue(LocalDate.of(1995, 1, 5));
+        view.picker.setRequiredIndicatorVisible(true);
+
+        // setValue(null) is refused on a required picker; emptying is still
+        // something the user can do, so clear() bypasses that check.
+        assertThrows(IllegalArgumentException.class,
+                () -> test(view.picker).setValue(null));
+        test(view.picker).clear();
+
+        Assertions.assertNull(view.picker.getValue(),
+                "Value should have cleared");
+    }
 }

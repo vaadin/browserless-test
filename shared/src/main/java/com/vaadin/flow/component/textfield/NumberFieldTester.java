@@ -62,6 +62,23 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
         setValueAsUser(value);
     }
 
+    /**
+     * Empties the field, as when the user deletes its contents (or clicks the
+     * clear button, where one is shown).
+     * <p/>
+     * Emptying is something the user can always do, so the empty value is set
+     * without running the set-time validity check: a field may legitimately end
+     * up invalid — a required field, for instance — once emptied.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void clear() {
+        ensureComponentIsUsable();
+
+        setValueAsUser(getComponent().getEmptyValue());
+    }
+
     private boolean isValid(V value) {
         final boolean isRequiredButEmpty = getComponent().isRequired()
                 && Objects.equals(getComponent().getEmptyValue(), value);

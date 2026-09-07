@@ -17,7 +17,6 @@ package com.vaadin.flow.component.textfield;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.component.shared.HasClearButton;
 
 /**
  * Tester for TextField components.
@@ -64,25 +63,20 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
     }
 
     /**
-     * Resets the value to the empty one, as when clicking on component clear
-     * button on the browser.
-     *
-     * An {@link IllegalStateException} is thrown if the clear button is not
-     * visible.
+     * Empties the field, as when the user deletes its contents (or clicks the
+     * clear button, where one is shown).
+     * <p/>
+     * Emptying is something the user can always do, so the empty value is set
+     * without running the set-time validity check: a field may legitimately end
+     * up invalid — a required field, for instance — once emptied.
      *
      * @throws IllegalStateException
-     *             if the text field is not usable or the clear button is not
-     *             visible.
+     *             if the component is not usable
      */
     public void clear() {
         ensureComponentIsUsable();
 
-        if (getComponent() instanceof HasClearButton
-                && ((HasClearButton) getComponent()).isClearButtonVisible()) {
-            setValue(getComponent().getEmptyValue());
-        } else {
-            throw new IllegalStateException("Clear button is not visible");
-        }
+        setValueAsUser(getComponent().getEmptyValue());
     }
 
     private boolean hasValidation() {

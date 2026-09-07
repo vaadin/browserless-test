@@ -94,4 +94,14 @@ class TimePickerTesterTest extends BrowserlessTest {
         Assertions.assertEquals(newValue, value.get());
     }
 
+    @Test
+    void requiredPicker_clear_valueIsCleared() {
+        pick_.setValue(LocalTime.NOON);
+        view.picker.setRequiredIndicatorVisible(true);
+
+        pick_.clear();
+
+        Assertions.assertNull(view.picker.getValue(),
+                "Value should have cleared");
+    }
 }

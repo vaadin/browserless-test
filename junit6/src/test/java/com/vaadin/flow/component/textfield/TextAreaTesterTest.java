@@ -144,4 +144,23 @@ class TextAreaTesterTest extends BrowserlessTest {
         Assertions.assertTrue(ta_.getComponent().isInvalid());
     }
 
+    @Test
+    public void textArea_clear_clientSideEventIsFired_valueIsCleared() {
+        AtomicReference<String> value = new AtomicReference<>(null);
+
+        TextArea ta = view.textArea;
+        ta.setValue("Some value");
+        ta.addValueChangeListener(
+                (HasValue.ValueChangeListener<AbstractField.ComponentValueChangeEvent<TextArea, String>>) event -> {
+                    if (event.isFromClient()) {
+                        value.set(event.getValue());
+                    }
+                });
+
+        test(ta).clear();
+
+        Assertions.assertEquals("", ta.getValue(), "Value should have cleared");
+        Assertions.assertEquals("", value.get(),
+                "Clearing should be seen as a client-side value change");
+    }
 }

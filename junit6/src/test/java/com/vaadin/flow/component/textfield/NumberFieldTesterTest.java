@@ -140,4 +140,16 @@ class NumberFieldTesterTest extends BrowserlessTest {
                 () -> nf_.setValue(newValue));
     }
 
+    @Test
+    public void requiredNumberField_clear_valueIsCleared() {
+        view.numberField.setRequired(true);
+
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(15d);
+        nf_.clear();
+
+        Assertions.assertNull(view.numberField.getValue(),
+                "Value should have cleared");
+    }
 }
