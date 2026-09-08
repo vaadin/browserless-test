@@ -145,12 +145,15 @@ class AccordionTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void unknownSummary_closeDetailsBySummary_throws() {
+    void unknownSummary_closeAndToggle_throw() {
         final AccordionTester<Accordion> wrap = test(view.accordion);
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> wrap.closeDetails("Orange"),
                 "Closing a panel that does not exist should throw");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> wrap.toggleDetails("Orange"),
+                "Toggling a panel that does not exist should throw");
     }
 
     @Test
@@ -166,6 +169,27 @@ class AccordionTesterTest extends BrowserlessTest {
                 "Toggling an open panel should close it");
         Assertions.assertTrue(view.accordion.getOpenedPanel().isEmpty(),
                 "No panel should be open after toggling the open one closed");
+    }
+
+    @Test
+    void otherPanelOpen_toggleDetails_switchesTheOpenPanel() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Red");
+
+        final List<Accordion.OpenedChangeEvent> events = new ArrayList<>();
+        view.accordion.addOpenedChangeListener(events::add);
+
+        wrap.toggleDetails("Green");
+
+        Assertions.assertTrue(wrap.isOpen("Green"),
+                "Toggling a closed panel should open it");
+        Assertions.assertFalse(wrap.isOpen("Red"),
+                "Opening a panel should close whichever panel was open before");
+        Assertions.assertEquals(1, events.size(),
+                "Switching the open panel should fire a single OpenedChangeEvent");
+        Assertions.assertEquals(OptionalInt.of(1),
+                events.get(0).getOpenedIndex(),
+                "The event should report the index of the newly opened panel");
     }
 
     @Test
