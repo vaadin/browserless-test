@@ -27,6 +27,7 @@ import com.vaadin.flow.component.grid.ColumnPathRenderer
 import com.vaadin.flow.component.grid.FooterRow
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.grid.GridMultiSelectionModel
+import com.vaadin.flow.component.grid.GridNoneSelectionModel
 import com.vaadin.flow.component.grid.GridSingleSelectionModel
 import com.vaadin.flow.component.grid.GridSortOrder
 import com.vaadin.flow.component.grid.HeaderRow
@@ -824,6 +825,37 @@ public fun <T> Grid<T>._selectAll() {
     val clientSelectAllMethod = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientSelectAll")
     clientSelectAllMethod.isAccessible = true
     clientSelectAllMethod.invoke(selectionModel)
+}
+
+/**
+ * Deselects given [item]: the same code that runs when the user ctrl-clicks a selected row or
+ * unchecks the row's selection checkbox in multi-select, or clicks the selected row in single select.
+ *
+ * Does nothing if the [item] is not selected, if the item is not selectable
+ * ([Grid.setItemSelectableProvider]), or if the grid is single-select with
+ * [GridSingleSelectionModel.isDeselectAllowed] set to false - in the browser the user's click
+ * would be ignored in those cases as well.
+ */
+public fun <T: Any> Grid<T>._deselect(item: T) {
+    checkEditableByUser()
+    // fails properly if the Grid doesn't support selection.
+    selectionModel.deselectFromClient(item)
+}
+
+/**
+ * Clears the selection, running the same code as when the user deselects every selected row.
+ * Works both for single- and multi-select grids; fails if the grid doesn't support selection.
+ *
+ * Rows are deselected one by one rather than through the "select all" checkbox, so this also
+ * works when the checkbox is hidden - unchecking rows individually is something the user can
+ * always do.
+ */
+public fun <T: Any> Grid<T>._deselectAll() {
+    checkEditableByUser()
+    if(selectionModel is GridNoneSelectionModel) {
+        throw IllegalStateException("Deselect all requires a selection mode other than NONE")
+    }
+    selectedItems.toList().forEach { selectionModel.deselectFromClient(it) }
 }
 
 /**

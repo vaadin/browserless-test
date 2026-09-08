@@ -235,6 +235,45 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     /**
+     * Deselect the item on given row.
+     * <p/>
+     * The index is 0 based.
+     * <p/>
+     * Simulates the user deselecting a row: ctrl-clicking a selected row or
+     * unchecking the row's selection checkbox in multi select, clicking the
+     * selected row in single select.
+     * <p/>
+     * Does nothing if the row is not selected, if the item is not selectable
+     * or, in single select, if deselecting is not allowed - in the browser the
+     * user's click would be ignored in those cases as well.
+     *
+     * @param row
+     *            row to deselect
+     * @throws IllegalStateException
+     *             if not usable or if the grid doesn't support selection
+     */
+    public void deselect(int row) {
+        ensureComponentIsUsable();
+        final Y item = getRow(row);
+        GridKt._deselect(getComponent(), item);
+    }
+
+    /**
+     * Clear the selection of the grid.
+     * <p/>
+     * Works for both single and multi select. The rows are deselected one by
+     * one instead of through the select-all checkbox, so this also works when
+     * that checkbox is hidden.
+     *
+     * @throws IllegalStateException
+     *             if not usable or if the grid doesn't support selection
+     */
+    public void deselectAll() {
+        ensureComponentIsUsable();
+        GridKt._deselectAll(getComponent());
+    }
+
+    /**
      * Get the text that is shown on the client for the cell in the given
      * position.
      * <p/>
