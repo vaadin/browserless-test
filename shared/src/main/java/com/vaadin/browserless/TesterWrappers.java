@@ -22,10 +22,14 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.TextTester;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
+import com.vaadin.flow.component.avatar.AvatarGroup;
+import com.vaadin.flow.component.avatar.AvatarGroupTester;
 import com.vaadin.flow.component.breadcrumbs.Breadcrumbs;
 import com.vaadin.flow.component.breadcrumbs.BreadcrumbsTester;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonTester;
+import com.vaadin.flow.component.card.Card;
+import com.vaadin.flow.component.card.CardTester;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.checkbox.CheckboxGroupTester;
@@ -131,6 +135,8 @@ import com.vaadin.flow.component.slider.IntegerRangeSlider;
 import com.vaadin.flow.component.slider.IntegerRangeSliderTester;
 import com.vaadin.flow.component.slider.IntegerSlider;
 import com.vaadin.flow.component.slider.IntegerSliderTester;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.splitlayout.SplitLayoutTester;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetTester;
 import com.vaadin.flow.component.tabs.Tabs;
@@ -164,6 +170,18 @@ public interface TesterWrappers {
                 accordion);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param avatarGroup
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default AvatarGroupTester<AvatarGroup> test(AvatarGroup avatarGroup) {
+        return BaseBrowserlessTest.internalWrap(AvatarGroupTester.class,
+                avatarGroup);
+    }
+
     default BreadcrumbsTester<Breadcrumbs> test(Breadcrumbs breadcrumbs) {
         return BaseBrowserlessTest.internalWrap(BreadcrumbsTester.class,
                 breadcrumbs);
@@ -171,6 +189,17 @@ public interface TesterWrappers {
 
     default ButtonTester<Button> test(Button button) {
         return BaseBrowserlessTest.internalWrap(ButtonTester.class, button);
+    }
+
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param card
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default CardTester<Card> test(Card card) {
+        return BaseBrowserlessTest.internalWrap(CardTester.class, card);
     }
 
     default CheckboxTester<Checkbox> test(Checkbox checkbox) {
@@ -400,6 +429,18 @@ public interface TesterWrappers {
             IntegerSlider integerSlider) {
         return BaseBrowserlessTest.internalWrap(IntegerSliderTester.class,
                 integerSlider);
+    }
+
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param splitLayout
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default SplitLayoutTester<SplitLayout> test(SplitLayout splitLayout) {
+        return BaseBrowserlessTest.internalWrap(SplitLayoutTester.class,
+                splitLayout);
     }
 
     default TabsTester<Tabs> test(Tabs tabs) {
