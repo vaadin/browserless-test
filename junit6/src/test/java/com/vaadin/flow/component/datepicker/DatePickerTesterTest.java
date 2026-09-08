@@ -106,4 +106,13 @@ class DatePickerTesterTest extends BrowserlessTest {
         Assertions.assertNull(view.picker.getValue(),
                 "Value should have cleared");
     }
+
+    @Test
+    void notUsablePicker_clear_throws() {
+        view.picker.setEnabled(false);
+
+        assertThrows(IllegalStateException.class,
+                () -> test(view.picker).clear(),
+                "Clear should not be usable when the picker is not usable");
+    }
 }
