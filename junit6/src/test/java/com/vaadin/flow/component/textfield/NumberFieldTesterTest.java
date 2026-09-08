@@ -278,6 +278,61 @@ class NumberFieldTesterTest extends BrowserlessTest {
         test(negativeRange).stepUp();
         Assertions.assertEquals(-4d, negativeRange.getValue(),
                 "An empty field should first land on the greatest aligned value when zero is above the range");
+
+        negativeRange.clear();
+        test(negativeRange).stepDown();
+        Assertions.assertEquals(-3d, negativeRange.getValue(),
+                "Stepping down an empty field should land on max, which the component commits as is");
+
+        view.numberField.setStepButtonsVisible(true);
+        test(view.numberField).stepDown();
+        Assertions.assertEquals(-1d, view.numberField.getValue(),
+                "Stepping down an empty field with no boundaries should start from zero");
+    }
+
+    @Test
+    public void negativeValue_step_movesTowardsTheStepBasis() {
+        // A value below the step basis keeps the sign of its margin, exactly
+        // like the remainder in the web component, so both step directions move
+        // towards the basis. Verified against the real component algorithm.
+        view.numberField.setStepButtonsVisible(true);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(-2.5);
+
+        nf_.stepDown();
+        Assertions.assertEquals(-2d, view.numberField.getValue(),
+                "Stepping down below the step basis aligns towards the basis");
+
+        nf_.setValue(-2.5);
+        nf_.stepUp();
+        Assertions.assertEquals(-1d, view.numberField.getValue(),
+                "Stepping up below the step basis aligns towards the basis");
+
+        // With min set, the step scale is measured from min instead of zero.
+        view.numberField.setMin(-10);
+        nf_.setValue(-2.5);
+        nf_.stepDown();
+        Assertions.assertEquals(-3d, view.numberField.getValue(),
+                "With min set the step scale is measured from min");
+    }
+
+    @Test
+    public void stepZeroTimes_valueIsNotChanged_noEventIsFired() {
+        view.numberField.setStepButtonsVisible(true);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(5d);
+        AtomicInteger events = new AtomicInteger();
+        view.numberField
+                .addValueChangeListener(event -> events.incrementAndGet());
+
+        nf_.stepUp(0);
+        nf_.stepDown(0);
+
+        Assertions.assertEquals(5d, view.numberField.getValue());
+        Assertions.assertEquals(0, events.get(),
+                "Clicking a step button zero times should not change the value");
     }
 
 }

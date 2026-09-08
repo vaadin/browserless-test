@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.textfield;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
@@ -227,11 +226,23 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     private double stepAligned(double value, boolean up) {
         final BigDecimal step = BigDecimal.valueOf(getStep());
         final BigDecimal current = BigDecimal.valueOf(value);
-        final BigDecimal margin = current
-                .subtract(BigDecimal.valueOf(getStepBasis())).remainder(step);
+        final BigDecimal margin = margin(current);
         final BigDecimal stepped = up ? current.subtract(margin).add(step)
                 : current.subtract(margin.signum() == 0 ? step : margin);
         return stepped.doubleValue();
+    }
+
+    /**
+     * Returns how far the given value is from the {@literal step} scale,
+     * keeping the sign of the value like the remainder in the web component's
+     * {@code _getIncrement} does. A value below the step basis, that is a
+     * negative value in a field without {@literal min}, therefore has a
+     * negative margin and steps towards the basis, which is what the real step
+     * buttons do: in a plain NumberField, stepping down from -2.5 lands on -2.
+     */
+    private BigDecimal margin(BigDecimal value) {
+        return value.subtract(BigDecimal.valueOf(getStepBasis()))
+                .remainder(BigDecimal.valueOf(getStep()));
     }
 
     /**
@@ -239,11 +250,12 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      * not greater than the given value.
      */
     private double alignedFloor(double value) {
-        final BigDecimal step = BigDecimal.valueOf(getStep());
-        final BigDecimal basis = BigDecimal.valueOf(getStepBasis());
-        final BigDecimal steps = BigDecimal.valueOf(value).subtract(basis)
-                .divide(step, 0, RoundingMode.FLOOR);
-        return basis.add(steps.multiply(step)).doubleValue();
+        final BigDecimal current = BigDecimal.valueOf(value);
+        BigDecimal margin = margin(current);
+        if (margin.signum() < 0) {
+            margin = margin.add(BigDecimal.valueOf(getStep()));
+        }
+        return current.subtract(margin).doubleValue();
     }
 
     private double getStep() {
@@ -254,7 +266,10 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
 
     private double getStepBasis() {
         // The step scale is only measured from min when min is actually set on
-        // the element, otherwise it is measured from zero.
+        // the element, otherwise it is measured from zero. The element property
+        // is the only reliable signal for that: getMinDouble() reports
+        // Integer.MIN_VALUE for an IntegerField without min, and the
+        // component's own minSetByUser flag is private.
         return getComponent().getElement().getProperty("min") == null ? 0
                 : getComponent().getMinDouble();
     }
