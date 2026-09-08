@@ -121,6 +121,38 @@ class GridProTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void setValue_compositeEditor_editorValueChangeLooksLikeUserInteraction() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+        List<String> userEdits = new ArrayList<>();
+        view.compositeEditor.addValueChangeListener(ev -> {
+            if (ev.isFromClient()) {
+                userEdits.add(ev.getValue());
+            }
+        });
+
+        tester.setValue(0, 8, "Updated Description 1");
+
+        assertEquals(List.of("Updated Description 1"), userEdits,
+                "An AbstractCompositeField editor should also report isFromClient() == true");
+        assertEquals("Updated Description 1",
+                getItems(tester.getComponent()).get(0).getDescription());
+    }
+
+    @Test
+    void setValue_foreignEditor_valueIsStillSet() {
+        GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
+                gridPro);
+
+        tester.setValue(0, 9, "Updated Description 1");
+
+        assertEquals("Updated Description 1", view.foreignEditor.getValue(),
+                "An editor without a client value path should still be set");
+        assertEquals("Updated Description 1",
+                getItems(tester.getComponent()).get(0).getDescription());
+    }
+
+    @Test
     void setYesNo_updatesAllRows() {
         GridProTester<GridPro<GridProView.Bean>, GridProView.Bean> tester = new GridProTester<>(
                 gridPro);
@@ -224,7 +256,7 @@ class GridProTesterTest extends BrowserlessTest {
                 gridPro);
 
         assertThrows(IndexOutOfBoundsException.class,
-                () -> tester.setValue(0, 8, true));
+                () -> tester.setValue(0, 10, true));
     }
 
     private List<GridProView.Bean> getItems(GridPro<GridProView.Bean> gridPro) {

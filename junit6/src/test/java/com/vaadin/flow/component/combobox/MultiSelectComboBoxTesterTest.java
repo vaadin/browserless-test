@@ -46,6 +46,10 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertFalse(test(view.combo).isUsable(),
                 "Read only MultiSelectComboBox shouldn't be usable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
     }
 
     @Test

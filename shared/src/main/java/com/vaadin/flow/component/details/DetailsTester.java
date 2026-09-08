@@ -17,8 +17,6 @@ package com.vaadin.flow.component.details;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.internal.nodefeature.ElementPropertyMap;
-import com.vaadin.flow.internal.nodefeature.PropertyChangeDeniedException;
 
 /**
  * Tester for Details components.
@@ -96,15 +94,7 @@ public class DetailsTester<T extends Details> extends ComponentTester<T> {
         // Simulate a user toggling the summary so that the resulting
         // OpenedChangeEvent reports isFromClient() == true, consistent with
         // AccordionTester and the other interaction testers.
-        try {
-            component.getElement().getNode()
-                    .getFeature(ElementPropertyMap.class)
-                    .deferredUpdateFromClient("opened", opened).run();
-        } catch (PropertyChangeDeniedException e) {
-            throw new IllegalStateException("Unable to simulate "
-                    + (opened ? "opening" : "closing") + " the details", e);
-        }
-        roundTrip();
+        setPropertyAsUser("opened", opened);
     }
 
 }

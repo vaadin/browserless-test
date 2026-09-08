@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.checkbox;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -90,7 +91,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
      */
     public void selectAll() {
         ensureComponentIsUsable();
-        setValueAsUser(getCheckboxes(child -> isUsableCheckbox(child, false))
+        selectAsUser(getCheckboxes(child -> isUsableCheckbox(child, false))
                 .map(this::getCheckboxValue).collect(Collectors.toSet()));
     }
 
@@ -137,7 +138,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
                 .map(this::getCheckboxValue).collect(Collectors.toSet());
         Set<V> selectedItems = new HashSet<>(getComponent().getValue());
         selectedItems.removeAll(usableItems);
-        setValueAsUser(Set.copyOf(selectedItems));
+        selectAsUser(Set.copyOf(selectedItems));
     }
 
     /**
@@ -189,7 +190,22 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
         }
         Set<V> newValues = new HashSet<>(getComponent().getValue());
         updater.accept(newValues, selectedItems.values());
-        setValueAsUser(Set.copyOf(newValues));
+        selectAsUser(Set.copyOf(newValues));
+    }
+
+    // CheckboxGroup.setValue refreshes the child checkboxes after updating the
+    // value. setValueAsUser bypasses that setter to get isFromClient() == true,
+    // so refresh them explicitly to keep the child Checkbox components in sync
+    // with the selection, the way the browser would.
+    private void selectAsUser(Set<V> value) {
+        setValueAsUser(value);
+        try {
+            getMethod(CheckboxGroup.class, "refreshCheckboxes")
+                    .invoke(getComponent());
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(
+                    "Unable to refresh the checkboxes of the group", e);
+        }
     }
 
 }

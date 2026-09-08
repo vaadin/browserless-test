@@ -45,6 +45,12 @@ class MultiSelectListBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertFalse(test(view.multiSelectListBox).isUsable(),
                 "Read only MultiSelectListBox shouldn't be usable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).selectItems("one"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).deselectItems("one"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).clearSelection());
     }
 
     @Test

@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -148,6 +149,27 @@ class CheckboxGroupTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void selectAndDeselect_childCheckboxesStayInSyncWithSelection() {
+        test(view.checkboxGroup).selectItem("test-bar");
+        Assertions.assertEquals(Set.of("test-bar"), checkedLabels());
+
+        test(view.checkboxGroup).selectItems("test-jay");
+        Assertions.assertEquals(Set.of("test-bar", "test-jay"),
+                checkedLabels());
+
+        test(view.checkboxGroup).deselectItem("test-bar");
+        Assertions.assertEquals(Set.of("test-jay"), checkedLabels());
+
+        test(view.checkboxGroup).selectAll();
+        Assertions.assertEquals(
+                Set.of("test-foo", "test-bar", "test-baz", "test-jay"),
+                checkedLabels());
+
+        test(view.checkboxGroup).deselectAll();
+        Assertions.assertEquals(Set.of(), checkedLabels());
+    }
+
+    @Test
     void selectItem_notExisting_throws() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.checkboxGroup).selectItem("jay"));
@@ -229,6 +251,13 @@ class CheckboxGroupTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.checkboxGroup).deselectAll());
 
+    }
+
+    private Set<String> checkedLabels() {
+        return view.checkboxGroup.getChildren()
+                .filter(Checkbox.class::isInstance).map(Checkbox.class::cast)
+                .filter(Checkbox::getValue).map(Checkbox::getLabel)
+                .collect(Collectors.toSet());
     }
 
     private String checkboxItemKey(String label) {
