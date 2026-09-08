@@ -270,6 +270,11 @@ class GridTesterSortTest extends BrowserlessTest {
 
     @Test
     void sortByColumn_notUsableGrid_throws() {
+        // sorted first, so that the direction taking overloads are asserted
+        // with the grid already in the requested direction, where they have
+        // nothing left to do and would otherwise return silently
+        grid_.sortByColumn(0, SortDirection.ASCENDING);
+        beanGrid_.sortByColumn("firstName", SortDirection.ASCENDING);
         view.grid.setVisible(false);
         view.beanGrid.setEnabled(false);
 

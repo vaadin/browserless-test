@@ -653,6 +653,9 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            sort direction
      */
     public void sortByColumn(int column, SortDirection direction) {
+        // the loop below may not run at all when the grid is already sorted in
+        // the requested direction, so doSort() cannot be relied on to check
+        ensureComponentIsUsable();
         while (getSortDirection(column) != direction) {
             sortByColumn(column);
         }
@@ -701,6 +704,9 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            sort direction
      */
     public void sortByColumn(String property, SortDirection direction) {
+        // the loop below may not run at all when the grid is already sorted in
+        // the requested direction, so doSort() cannot be relied on to check
+        ensureComponentIsUsable();
         while (getSortDirection(property) != direction) {
             sortByColumn(property);
         }

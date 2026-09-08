@@ -152,6 +152,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *             if the component is not usable
      */
     public void uploadAll(Collection<File> files) {
+        ensureComponentIsUsable();
         Receiver receiver = getComponent().getReceiver();
         if (receiver != null && !(receiver instanceof MultiFileReceiver)) {
             throw new IllegalStateException(

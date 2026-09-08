@@ -97,6 +97,9 @@ class UploadTesterTest extends BrowserlessTest {
                 () -> single_.uploadFailed(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> multi_.uploadAll(file1, file2));
+        // not being usable is reported before the file count is validated
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> multi_.uploadAll(List.of()));
     }
 
     @Test
