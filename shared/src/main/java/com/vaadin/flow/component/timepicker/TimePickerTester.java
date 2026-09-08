@@ -79,9 +79,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     private boolean isInvalid(LocalTime date)

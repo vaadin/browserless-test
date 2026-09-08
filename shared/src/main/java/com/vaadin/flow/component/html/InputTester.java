@@ -77,8 +77,6 @@ public class InputTester extends ComponentTester<Input> {
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 }

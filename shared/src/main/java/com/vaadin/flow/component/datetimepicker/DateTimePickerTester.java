@@ -80,9 +80,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     private boolean isInvalid(LocalDateTime date)

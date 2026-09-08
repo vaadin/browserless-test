@@ -74,9 +74,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     private boolean hasValidation() {

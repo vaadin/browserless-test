@@ -74,9 +74,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     private boolean isValid(V value) {

@@ -451,6 +451,34 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
+     * Empties the field as the user would, by setting the component's empty
+     * value without running any tester-side validity check.
+     * <p>
+     * Emptying a field is always available to the user — select the contents,
+     * press Delete — and stays legal even when it leaves the field invalid, so
+     * the empty value is set unconditionally. This is the shared implementation
+     * behind the {@code clear()} methods of the value testers; each of them
+     * declares {@code clear()} itself so that the generated locators pick it
+     * up.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if the component does not hold a value
+     */
+    protected void clearAsUser() {
+        ensureComponentIsUsable();
+
+        if (!(component instanceof HasValue<?, ?> field)) {
+            throw new IllegalArgumentException(
+                    "Parameter component: invalid value " + component
+                            + ": not a HasValue: " + component.getClass());
+        }
+
+        setValueAsUser(field.getEmptyValue());
+    }
+
+    /**
      * Sets the value to given component. Supports pretending that the value
      * came from the browser. Will throw an exception if the component is not
      * instance of AbstractField. This method is purposed for internal use and

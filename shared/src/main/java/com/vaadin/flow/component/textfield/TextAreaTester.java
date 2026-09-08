@@ -63,9 +63,7 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
      *             if the component is not usable
      */
     public void clear() {
-        ensureComponentIsUsable();
-
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     private boolean hasValidation() {
