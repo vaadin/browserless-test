@@ -141,7 +141,7 @@ class TreeGridTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void expandOrCollapseHiddenTreeGrid_throws() {
+    void hiddenTreeGrid_throws() {
         treeGrid_.expand(0);
         view.treeGrid.setVisible(false);
 
@@ -149,6 +149,10 @@ class TreeGridTesterTest extends BrowserlessTest {
                 () -> treeGrid_.expand(1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> treeGrid_.collapse(0));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> treeGrid_.isExpanded(0));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> treeGrid_.hasChildren(0));
     }
 
 }
