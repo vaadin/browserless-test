@@ -479,7 +479,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Sets the value to the given field, pretending that the value came from
      * the browser, so that the fired value change event reports
      * {@code isFromClient() == true}. Will throw an exception if the field is
-     * not an instance of AbstractField.
+     * not backed by an {@link AbstractField} or an
+     * {@link AbstractCompositeField}; use {@link #canSetValueAsUser(HasValue)}
+     * to check up front.
      * <p>
      * This method is purposed for internal use and when creating custom testers
      * extending ComponentTesters, for fields other than the wrapped component,
