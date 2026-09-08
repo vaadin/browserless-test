@@ -505,30 +505,4 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
                 + component + ": unsupported type of HasValue: "
                 + component.getClass());
     }
-
-    /**
-     * Empties the wrapped value component, as when the user deletes its
-     * contents (or clicks the clear button, where one is shown).
-     * <p/>
-     * Emptying is something the user can always do, so the empty value is set
-     * with {@link #setValueAsUser(Object)}, bypassing the set-time validity
-     * check: a field may legitimately end up invalid — a required field, for
-     * instance — once emptied.
-     * <p/>
-     * Testers for value components expose this as a public {@code clear()}.
-     *
-     * @throws IllegalStateException
-     *             if the component is not usable
-     */
-    protected void clearAsUser() {
-        ensureComponentIsUsable();
-
-        if (component instanceof HasValue<?, ?> hasValue) {
-            setValueAsUser(hasValue.getEmptyValue());
-            return;
-        }
-        throw new IllegalArgumentException("Parameter component: invalid value "
-                + component + ": unsupported type of HasValue: "
-                + component.getClass());
-    }
 }
