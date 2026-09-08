@@ -94,6 +94,8 @@ class UploadTesterTest extends BrowserlessTest {
                 () -> single_.uploadAborted(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.uploadFailed(file1));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.removeFile(file1));
     }
 
     @Test
@@ -256,6 +258,40 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void upload_acceptedByClientButNotByServer_notReceived() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedMimeTypes("image/*");
+        view.uploadSingle.setAcceptedFileExtensions(".png");
+
+        // The client side gate accepts the file because its content type
+        // matches, but Flow requires the extension to match as well
+        single_.upload("notes.txt", "image/png",
+                "not an image".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "Server side validation does not reject files on the client, but got "
+                        + rejected);
+        listener.assertNotStarted();
+        Assertions.assertTrue(listener.uploadedData.isEmpty(),
+                "File failing server side validation should not have been received");
+    }
+
+    @Test
+    void upload_maxFilesSetToZero_everyFileRejected() {
+        view.uploadMulti.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        view.uploadMulti.setMaxFiles(0);
+
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected,
+                "An explicit maxFiles of zero should reject every file");
+    }
+
+    @Test
     void uploadAll_fileCountExceeded_extraFilesRejected() {
         AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
         view.uploadMulti.setUploadHandler(
@@ -397,10 +433,13 @@ class UploadTesterTest extends BrowserlessTest {
         single_.upload(file1);
         view.uploadSingle.clearFileList();
         single_.upload(file2);
+        // every clearFileList() has to be picked up, not only the first one
+        view.uploadSingle.clearFileList();
+        single_.upload(file3);
 
         Assertions.assertTrue(rejected.isEmpty(),
                 "No file should have been rejected, but got " + rejected);
-        listener.assertFilesReceived(2);
+        listener.assertFilesReceived(3);
     }
 
     @Test

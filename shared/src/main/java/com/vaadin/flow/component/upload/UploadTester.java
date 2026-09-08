@@ -75,6 +75,19 @@ import com.vaadin.flow.server.streams.UploadResult;
  * the upload handler or receiver. Instead a
  * {@link Upload#addFileRejectedListener(com.vaadin.flow.component.ComponentEventListener)
  * FileRejectedEvent} is fired, exactly as it would be in a browser.
+ * <p>
+ * {@code maxFiles} is checked against an emulated file list, so files stay in
+ * it between calls just like the entries the browser shows: uploading two files
+ * to an {@code Upload} configured with a plain {@link Receiver} rejects the
+ * second one, because such an {@code Upload} implicitly sets {@code maxFiles}
+ * to one. Use {@link #removeFile(String)} or {@link Upload#clearFileList()} to
+ * make room, as the user would.
+ * <p>
+ * The accepted file types are checked the way the web component does, against
+ * the file name or the content type. That is a laxer rule than the server side
+ * validation Flow applies to {@link Upload#setAcceptedMimeTypes(String...)} and
+ * {@link Upload#setAcceptedFileExtensions(String...)}, which the file has to
+ * pass as well before it reaches the upload handler.
  *
  * @param <T>
  *            the component type.
@@ -429,14 +442,19 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     }
 
     private boolean accept(FileList fileList, UploadItem item, long size) {
-        int maxFiles = getComponent().getMaxFiles();
-        if (maxFiles > 0 && fileList.fileNames.size() >= maxFiles) {
+        // A limit that has never been set is Infinity on the client, whereas
+        // the Upload getters report it as zero, so the property itself decides
+        // whether the limit applies. This keeps setMaxFiles(0) meaning "reject
+        // everything", as it does in the browser.
+        if (hasProperty("maxFiles")
+                && fileList.fileNames.size() >= getComponent().getMaxFiles()) {
             fireFileRejected(item.fileName, errorMessage(
                     UploadI18N.Error::getTooManyFiles, DEFAULT_TOO_MANY_FILES));
             return false;
         }
         int maxFileSize = getComponent().getMaxFileSize();
-        if (maxFileSize > 0 && size > maxFileSize) {
+        if (hasProperty("maxFileSize") && maxFileSize >= 0
+                && size > maxFileSize) {
             fireFileRejected(item.fileName,
                     errorMessage(UploadI18N.Error::getFileIsTooBig,
                             DEFAULT_FILE_IS_TOO_BIG));
@@ -452,6 +470,10 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
             return false;
         }
         return true;
+    }
+
+    private boolean hasProperty(String name) {
+        return getComponent().getElement().hasProperty(name);
     }
 
     /**
