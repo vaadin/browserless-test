@@ -63,6 +63,10 @@ public class SplitLayoutTester<T extends SplitLayout>
      * position} and notifies
      * {@link SplitLayout#addSplitterDragEndListener(com.vaadin.flow.component.ComponentEventListener)
      * splitter drag end listeners}.
+     * <p>
+     * The component rounds the position it derives from a drag to two decimals,
+     * so {@link #getSplitterPosition()} reports {@code 33.33} after dragging to
+     * {@code 33.333}.
      *
      * @param position
      *            the new splitter position, as a percentage between 0 and 100
@@ -87,7 +91,8 @@ public class SplitLayoutTester<T extends SplitLayout>
 
     /**
      * Gets the relative position of the splitter, as a percentage between 0 and
-     * 100 of the space given to the primary split.
+     * 100 of the space given to the primary split. A position that comes from a
+     * drag is rounded to two decimals by the component.
      *
      * @return the splitter position, or {@code null} if it has neither been set
      *         on the server nor been dragged by the user

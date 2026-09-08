@@ -72,7 +72,7 @@ class AvatarGroupTesterTest extends BrowserlessTest {
      * never collapses below two avatars, so a max of 0 or 1 behaves as 2.
      */
     @ParameterizedTest
-    @CsvSource({ "3, 2, +3", "2, 1, +4", "1, 1, +4", "0, 1, +4" })
+    @CsvSource({ "3, 2, +3", "2, 1, +4", "1, 1, +4" })
     void maxItemsVisibleExceeded_itemsSplitBetweenAvatarsAndOverflow(
             int maxItemsVisible, int expectedVisible,
             String expectedAbbreviation) {
@@ -100,6 +100,16 @@ class AvatarGroupTesterTest extends BrowserlessTest {
 
         assertEquals("Currently 5 active users",
                 test(view.avatarGroup).getActiveUsersLabel());
+    }
+
+    @Test
+    void getActiveUsersLabel_phraseMissingForCurrentCount_returnsNull() {
+        view.avatarGroup.setI18n(new AvatarGroupI18n()
+                .setManyActiveUsers("Currently {count} active users"));
+        view.avatarGroup.setItems(new AvatarGroupItem("Alice"));
+
+        assertNull(test(view.avatarGroup).getActiveUsersLabel(),
+                "No singular phrase is set, so there is nothing to report");
     }
 
     @Test

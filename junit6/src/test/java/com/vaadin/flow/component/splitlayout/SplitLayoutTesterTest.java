@@ -70,6 +70,14 @@ class SplitLayoutTesterTest extends BrowserlessTest {
         assertEquals(25.5, test(view.layout).getSplitterPosition());
     }
 
+    @Test
+    void dragSplitterTo_positionWithMoreThanTwoDecimals_isRoundedByComponent() {
+        test(view.layout).dragSplitterTo(33.333);
+
+        assertEquals(33.33, test(view.layout).getSplitterPosition(),
+                "The component rounds a dragged position to two decimals");
+    }
+
     @ParameterizedTest
     @ValueSource(doubles = { -0.5, 100.5 })
     void dragSplitterTo_positionOutsideRange_throws(double position) {

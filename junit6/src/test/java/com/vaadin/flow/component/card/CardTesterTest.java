@@ -131,6 +131,7 @@ class CardTesterTest extends BrowserlessTest {
 
         assertThrows(IllegalStateException.class,
                 test(view.card)::getTitleAsText);
+        assertThrows(IllegalStateException.class, test(view.card)::getTitle);
         assertThrows(IllegalStateException.class, test(view.card)::getSubtitle);
         assertThrows(IllegalStateException.class, test(view.card)::getHeader);
         assertThrows(IllegalStateException.class,
