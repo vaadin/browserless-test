@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.dialog;
 
+import java.util.function.Consumer;
+
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
@@ -64,10 +66,11 @@ public class DialogTester extends ComponentTester<Dialog> {
      * dialog, leaving it up to the listener whether to close it.
      *
      * @throws IllegalStateException
-     *             if the dialog is not open or close-on-Esc is disabled
+     *             if the dialog is not usable, e.g. not open, or close-on-Esc
+     *             is disabled
      */
     public void pressEscape() {
-        ensureDialogIsOpen();
+        ensureComponentIsUsable();
         if (!getComponent().isCloseOnEsc()) {
             throw new IllegalStateException(
                     "close-on-Esc is disabled for this dialog");
@@ -83,11 +86,11 @@ public class DialogTester extends ComponentTester<Dialog> {
      * dialog, leaving it up to the listener whether to close it.
      *
      * @throws IllegalStateException
-     *             if the dialog is not open or close-on-outside-click is
-     *             disabled
+     *             if the dialog is not usable, e.g. not open, or
+     *             close-on-outside-click is disabled
      */
     public void clickOutside() {
-        ensureDialogIsOpen();
+        ensureComponentIsUsable();
         if (!getComponent().isCloseOnOutsideClick()) {
             throw new IllegalStateException(
                     "close-on-outside-click is disabled for this dialog");
@@ -104,17 +107,24 @@ public class DialogTester extends ComponentTester<Dialog> {
         return getComponent().isOpened();
     }
 
+    @Override
+    public boolean isUsable() {
+        return super.isUsable() && isOpen();
+    }
+
+    @Override
+    protected void notUsableReasons(Consumer<String> collector) {
+        super.notUsableReasons(collector);
+        if (!isOpen()) {
+            collector.accept("not opened");
+        }
+    }
+
     private void closeFromClient() {
         // The very entry point the web component invokes when the user
         // dismisses the dialog: it fires DialogCloseActionEvent when a close
         // action listener is registered, and closes the dialog otherwise.
         getComponent().handleClientClose();
         roundTrip();
-    }
-
-    private void ensureDialogIsOpen() {
-        if (!isOpen()) {
-            throw new IllegalStateException("dialog is not open");
-        }
     }
 }

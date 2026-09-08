@@ -187,4 +187,17 @@ class DialogTesterTest extends BrowserlessTest {
                 "close() should not fire a DialogCloseActionEvent");
     }
 
+    @Test
+    void pressEscape_dialogBehindStrictModalDialog_throws() {
+        dialog_.open();
+        Dialog blocking = new Dialog();
+        blocking.setModality(ModalityMode.STRICT);
+        test(blocking).open();
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.pressEscape(),
+                "Escape should not reach a dialog behind a strict modal dialog");
+        Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
+    }
+
 }
