@@ -162,6 +162,19 @@ class BasicGridTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void basicGrid_disabled_contentCanStillBeRead() {
+        test(view.basicGrid).select(0);
+        view.basicGrid.setEnabled(false);
+
+        GridTester<Grid<Person>, Person> grid_ = test(view.basicGrid);
+
+        Assertions.assertEquals("Jorma", grid_.getCellText(0, 0),
+                "Cell content should be readable for a disabled grid");
+        Assertions.assertEquals(1, grid_.getSelected().size(),
+                "Selection should be readable for a disabled grid");
+    }
+
+    @Test
     void basicGrid_doubleClick() {
         AtomicInteger doubleClicks = new AtomicInteger(0);
         view.basicGrid.addItemDoubleClickListener(

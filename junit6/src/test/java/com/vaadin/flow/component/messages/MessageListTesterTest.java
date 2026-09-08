@@ -190,6 +190,19 @@ class MessageListTesterTest extends BrowserlessTest {
                 () -> test(view.list).getAttachmentByName(3, "report.pdf"));
     }
 
+    @Test
+    void disabledList_messagesCanStillBeRead() {
+        view.list.getElement().setEnabled(false);
+
+        final MessageListTester<MessageList> list_ = test(view.list);
+        Assertions.assertEquals(3, list_.size(),
+                "A disabled MessageList should still be readable");
+        Assertions.assertIterableEquals(
+                Arrays.asList(view.one, view.two, view.three),
+                list_.getMessages(),
+                "A disabled MessageList should still be readable");
+    }
+
     /**
      * Add a new message item to the MessageList.
      *
