@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.checkbox;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -125,6 +126,25 @@ class CheckboxGroupTesterTest extends BrowserlessTest {
         Assertions.assertTrue(selectedItems.isEmpty(),
                 "Expecting no elements to be selected, but got "
                         + selectedItems);
+    }
+
+    @Test
+    void selectAndDeselect_valueChangesLookLikeUserInteraction() {
+        List<Boolean> fromClient = new ArrayList<>();
+        view.checkboxGroup.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        test(view.checkboxGroup).selectItem("test-bar");
+        test(view.checkboxGroup).selectItems("test-jay", "test-foo");
+        test(view.checkboxGroup).deselectItem("test-bar");
+        test(view.checkboxGroup).deselectItems("test-jay");
+        test(view.checkboxGroup).selectAll();
+        test(view.checkboxGroup).deselectAll();
+
+        Assertions.assertEquals(6, fromClient.size(),
+                "Every interaction should fire a value change event");
+        Assertions.assertFalse(fromClient.contains(false),
+                "Tester driven value changes should report isFromClient() == true");
     }
 
     @Test

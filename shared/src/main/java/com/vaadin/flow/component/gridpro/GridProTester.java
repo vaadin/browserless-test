@@ -85,7 +85,7 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
                             + " is not usable because it is read only.");
                 }
                 fireCellEditStartedEvent(gridPro, editColumn, item);
-                field.setValue(value);
+                setValueAsUser(field, value);
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             } else {
                 fireCellEditStartedEvent(gridPro, editColumn, item);

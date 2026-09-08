@@ -137,7 +137,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
                 .map(this::getCheckboxValue).collect(Collectors.toSet());
         Set<V> selectedItems = new HashSet<>(getComponent().getValue());
         selectedItems.removeAll(usableItems);
-        getComponent().setValue(selectedItems);
+        setValueAsUser(Set.copyOf(selectedItems));
     }
 
     /**
@@ -189,7 +189,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
         }
         Set<V> newValues = new HashSet<>(getComponent().getValue());
         updater.accept(newValues, selectedItems.values());
-        getComponent().setValue(Set.copyOf(newValues));
+        setValueAsUser(Set.copyOf(newValues));
     }
 
 }

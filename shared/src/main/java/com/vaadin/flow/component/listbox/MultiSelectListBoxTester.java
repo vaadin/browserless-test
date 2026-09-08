@@ -107,7 +107,7 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      * Clear all selected items from the component.
      */
     public void clearSelection() {
-        getComponent().clear();
+        setValueAsUser(getComponent().getEmptyValue());
     }
 
     /**

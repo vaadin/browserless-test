@@ -439,12 +439,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         return query.all();
     }
 
-    private <V> AbstractFieldSupport<?, V> getFieldSupport() {
+    private <V> AbstractFieldSupport<?, V> getFieldSupport(Object target) {
         try {
             final Field javaField = AbstractField.class
                     .getDeclaredField("fieldSupport");
             javaField.setAccessible(true);
-            return (AbstractFieldSupport<?, V>) javaField.get(component);
+            return (AbstractFieldSupport<?, V>) javaField.get(target);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -460,8 +460,28 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the new value, may be null.
      */
     protected <V> void setValueAsUser(V value) {
-        if (component instanceof AbstractField) {
-            final AbstractFieldSupport<?, V> fs = getFieldSupport();
+        setValueAsUser(asHasValue(), value);
+    }
+
+    /**
+     * Sets the value to the given field, pretending that the value came from
+     * the browser, so that the fired value change event reports
+     * {@code isFromClient() == true}. Will throw an exception if the field is
+     * not an instance of AbstractField.
+     * <p>
+     * This method is purposed for internal use and when creating custom testers
+     * extending ComponentTesters, for fields other than the wrapped component,
+     * such as an editor field owned by the wrapped component.
+     *
+     * @param field
+     *            the field to set the value to, not {@literal null}.
+     * @param value
+     *            the new value, may be null.
+     * @since 1.2
+     */
+    protected <V> void setValueAsUser(HasValue<?, V> field, V value) {
+        if (field instanceof AbstractField) {
+            final AbstractFieldSupport<?, V> fs = getFieldSupport(field);
             try {
                 final Method m = AbstractFieldSupport.class.getDeclaredMethod(
                         "setValue", Object.class, boolean.class, boolean.class);
@@ -472,6 +492,16 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
                 throw new RuntimeException(e);
             }
             return;
+        }
+        throw new IllegalArgumentException("Parameter component: invalid value "
+                + field + ": unsupported type of HasValue: "
+                + field.getClass());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <V> HasValue<?, V> asHasValue() {
+        if (component instanceof HasValue) {
+            return (HasValue<?, V>) component;
         }
         throw new IllegalArgumentException("Parameter component: invalid value "
                 + component + ": unsupported type of HasValue: "

@@ -27,6 +27,8 @@ import com.vaadin.flow.router.Route;
 @Route(value = "grid-pro", registerAtStartup = false)
 public class GridProView extends Component implements HasComponents {
 
+    TextField customEditor = new TextField();
+
     public GridProView() {
         var gridPro = new GridPro<Bean>();
         gridPro.setId("grid-pro");
@@ -37,8 +39,7 @@ public class GridProView extends Component implements HasComponents {
 
         gridPro.addEditColumn(Bean::getChecked).checkbox(Bean::setChecked);
         gridPro.addEditColumn(Bean::getName).text(Bean::setName);
-        var textField = new TextField();
-        gridPro.addEditColumn(Bean::getDescription).custom(textField,
+        gridPro.addEditColumn(Bean::getDescription).custom(customEditor,
                 Bean::setDescription);
         gridPro.addColumn(Bean::getName);
         gridPro.addEditColumn(Bean::getChecked).checkbox(Bean::setChecked)
