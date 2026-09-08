@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.textfield;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
@@ -138,6 +139,145 @@ class NumberFieldTesterTest extends BrowserlessTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> nf_.setValue(newValue));
+    }
+
+    @Test
+    public void stepButtonsNotVisible_step_throws() {
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        assertThrows(IllegalStateException.class, nf_::stepUp,
+                "Stepping a field without step buttons should fail");
+        assertThrows(IllegalStateException.class, nf_::stepDown,
+                "Stepping a field without step buttons should fail");
+    }
+
+    @Test
+    public void emptyNumberField_stepUp_oneStepIsSet_clientSideEventIsFired() {
+        view.numberField.setStepButtonsVisible(true);
+        AtomicReference<Double> value = new AtomicReference<>(null);
+        view.numberField.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                value.compareAndSet(null, event.getValue());
+            }
+        });
+
+        test(view.numberField).stepUp();
+
+        Assertions.assertEquals(1d, value.get(),
+                "Stepping up an empty field should set the first step");
+        Assertions.assertEquals(1d, view.numberField.getValue());
+    }
+
+    @Test
+    public void unalignedValue_step_movesToTheClosestValueAlignedWithStep() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(1);
+        view.numberField.setStep(5);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(3d);
+
+        nf_.stepUp();
+        Assertions.assertEquals(6d, view.numberField.getValue(),
+                "Step up should align the value with the step scale");
+
+        nf_.stepDown();
+        Assertions.assertEquals(1d, view.numberField.getValue(),
+                "Step down from an aligned value should apply a full step");
+    }
+
+    @Test
+    public void decimalStep_step_doesNotLosePrecision() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setStep(0.1);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(0.1);
+
+        nf_.stepUp();
+        Assertions.assertEquals(0.2, view.numberField.getValue());
+
+        nf_.stepDown();
+        Assertions.assertEquals(0.1, view.numberField.getValue());
+    }
+
+    @Test
+    public void stepWouldExceedBoundaries_throws_valueIsNotChanged() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(0);
+        view.numberField.setMax(10);
+        view.numberField.setStep(3);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(9d);
+
+        assertThrows(IllegalStateException.class, nf_::stepUp,
+                "Step up should fail when the step button would be disabled in the browser");
+        Assertions.assertEquals(9d, view.numberField.getValue(),
+                "A failed step should not change the value");
+
+        nf_.setValue(0d);
+        assertThrows(IllegalStateException.class, nf_::stepDown,
+                "Step down should fail when the step button would be disabled in the browser");
+        Assertions.assertEquals(0d, view.numberField.getValue(),
+                "A failed step should not change the value");
+    }
+
+    @Test
+    public void integerField_stepUpMultipleTimes_singleEventWithAllStepsApplied() {
+        view.integerField.setStepButtonsVisible(true);
+        view.integerField.setStep(2);
+        AtomicInteger events = new AtomicInteger();
+        view.integerField
+                .addValueChangeListener(event -> events.incrementAndGet());
+
+        test(view.integerField).stepUp(3);
+
+        Assertions.assertEquals(6, view.integerField.getValue(),
+                "Each of the three clicks should apply one step");
+        Assertions.assertEquals(1, events.get(),
+                "The value should be set once, after all the steps");
+    }
+
+    @Test
+    public void nonUsableField_step_throws() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setReadOnly(true);
+
+        assertThrows(IllegalStateException.class,
+                () -> test(view.numberField).stepUp(),
+                "Stepping a read only field should fail");
+    }
+
+    @Test
+    public void negativeTimes_step_throws() {
+        view.numberField.setStepButtonsVisible(true);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepUp(-1));
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepDown(-1));
+    }
+
+    @Test
+    public void emptyField_step_startsFromZeroOrTheClosestBoundary() {
+        final NumberField positiveRange = new NumberField();
+        positiveRange.setStepButtonsVisible(true);
+        positiveRange.setMin(5);
+        final NumberField negativeRange = new NumberField();
+        negativeRange.setStepButtonsVisible(true);
+        negativeRange.setMax(-3);
+        negativeRange.setStep(2);
+        view.add(positiveRange, negativeRange);
+
+        test(positiveRange).stepUp();
+        Assertions.assertEquals(5d, positiveRange.getValue(),
+                "An empty field should first land on min when zero is below the range");
+
+        test(negativeRange).stepUp();
+        Assertions.assertEquals(-4d, negativeRange.getValue(),
+                "An empty field should first land on the greatest aligned value when zero is above the range");
     }
 
 }
