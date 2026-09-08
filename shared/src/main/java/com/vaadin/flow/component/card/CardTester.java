@@ -95,6 +95,56 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
         return List.of(getComponent().getFooterComponents());
     }
 
+    /**
+     * Get the component shown as the card header, in place of the title and
+     * subtitle.
+     *
+     * @return the header component, or {@code null} if the card has no header
+     *         component
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public Component getHeader() {
+        ensureComponentIsUsable();
+        return getComponent().getHeader();
+    }
+
+    /**
+     * Get the component shown before the card header.
+     *
+     * @return the header prefix component, or {@code null} if the card has none
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public Component getHeaderPrefix() {
+        ensureComponentIsUsable();
+        return getComponent().getHeaderPrefix();
+    }
+
+    /**
+     * Get the component shown after the card header.
+     *
+     * @return the header suffix component, or {@code null} if the card has none
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public Component getHeaderSuffix() {
+        ensureComponentIsUsable();
+        return getComponent().getHeaderSuffix();
+    }
+
+    /**
+     * Get the component shown as the card media.
+     *
+     * @return the media component, or {@code null} if the card has none
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public Component getMedia() {
+        ensureComponentIsUsable();
+        return getComponent().getMedia();
+    }
+
     private String textOf(Component component) {
         return component == null ? ""
                 : component.getElement().getTextRecursively();

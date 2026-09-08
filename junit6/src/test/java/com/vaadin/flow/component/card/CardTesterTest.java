@@ -78,6 +78,28 @@ class CardTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getSlottedComponents_returnContentOfEachSlot() {
+        Assertions.assertNull(test(view.card).getHeader());
+        Assertions.assertNull(test(view.card).getHeaderPrefix());
+        Assertions.assertNull(test(view.card).getHeaderSuffix());
+        Assertions.assertNull(test(view.card).getMedia());
+
+        Span header = new Span("Custom header");
+        Span prefix = new Span("prefix");
+        Span suffix = new Span("suffix");
+        Span media = new Span("media");
+        view.card.setHeader(header);
+        view.card.setHeaderPrefix(prefix);
+        view.card.setHeaderSuffix(suffix);
+        view.card.setMedia(media);
+
+        Assertions.assertSame(header, test(view.card).getHeader());
+        Assertions.assertSame(prefix, test(view.card).getHeaderPrefix());
+        Assertions.assertSame(suffix, test(view.card).getHeaderSuffix());
+        Assertions.assertSame(media, test(view.card).getMedia());
+    }
+
+    @Test
     void getters_notUsable_throw() {
         view.card.setVisible(false);
         Assertions.assertThrows(IllegalStateException.class,
@@ -86,5 +108,13 @@ class CardTesterTest extends BrowserlessTest {
                 test(view.card)::getSubtitleText);
         Assertions.assertThrows(IllegalStateException.class,
                 test(view.card)::getFooterComponents);
+        Assertions.assertThrows(IllegalStateException.class,
+                test(view.card)::getHeader);
+        Assertions.assertThrows(IllegalStateException.class,
+                test(view.card)::getHeaderPrefix);
+        Assertions.assertThrows(IllegalStateException.class,
+                test(view.card)::getHeaderSuffix);
+        Assertions.assertThrows(IllegalStateException.class,
+                test(view.card)::getMedia);
     }
 }
