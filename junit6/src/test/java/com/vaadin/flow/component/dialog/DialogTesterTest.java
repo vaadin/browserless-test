@@ -15,8 +15,8 @@
  */
 package com.vaadin.flow.component.dialog;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,14 +101,14 @@ class DialogTesterTest extends BrowserlessTest {
     @Test
     void pressEscape_closesDialogAsUser() {
         dialog_.open();
-        AtomicBoolean closedFromClient = trackCloseSource();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
 
         dialog_.pressEscape();
 
         Assertions.assertFalse(dialog_.isOpen(),
                 "Dialog should be closed by pressing Escape");
-        Assertions.assertTrue(closedFromClient.get(),
-                "Escape should close the dialog as a client-side close");
+        Assertions.assertEquals(Boolean.TRUE, closedFromClient.get(),
+                "Escape should fire a close event reported as client-side");
     }
 
     @Test
@@ -147,14 +147,14 @@ class DialogTesterTest extends BrowserlessTest {
     @Test
     void clickOutside_closesDialogAsUser() {
         dialog_.open();
-        AtomicBoolean closedFromClient = trackCloseSource();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
 
         dialog_.clickOutside();
 
         Assertions.assertFalse(dialog_.isOpen(),
                 "Dialog should be closed by clicking outside");
-        Assertions.assertTrue(closedFromClient.get(),
-                "Clicking outside should close the dialog as a client-side close");
+        Assertions.assertEquals(Boolean.TRUE, closedFromClient.get(),
+                "Clicking outside should fire a close event reported as client-side");
     }
 
     @Test
@@ -176,14 +176,14 @@ class DialogTesterTest extends BrowserlessTest {
         view.dialog.addDialogCloseActionListener(
                 event -> closeActions.incrementAndGet());
         dialog_.open();
-        AtomicBoolean closedFromClient = trackCloseSource();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
 
         dialog_.close();
 
         Assertions.assertFalse(dialog_.isOpen(),
                 "close() should close the dialog from the server side");
-        Assertions.assertFalse(closedFromClient.get(),
-                "close() should not be reported as a client-side close");
+        Assertions.assertEquals(Boolean.FALSE, closedFromClient.get(),
+                "close() should fire a close event reported as server-side");
         Assertions.assertEquals(0, closeActions.get(),
                 "close() should not fire a DialogCloseActionEvent");
     }
@@ -203,10 +203,12 @@ class DialogTesterTest extends BrowserlessTest {
 
     /**
      * Records whether the dialog was closed from the client, as reported by
-     * {@link com.vaadin.flow.component.dialog.Dialog.OpenedChangeEvent}.
+     * {@link com.vaadin.flow.component.dialog.Dialog.OpenedChangeEvent}. Stays
+     * {@code null} when the dialog never fires a close event, so tests can tell
+     * a server-side close apart from no close at all.
      */
-    private AtomicBoolean trackCloseSource() {
-        AtomicBoolean closedFromClient = new AtomicBoolean();
+    private AtomicReference<Boolean> trackCloseSource() {
+        AtomicReference<Boolean> closedFromClient = new AtomicReference<>();
         view.dialog.addOpenedChangeListener(event -> {
             if (!event.isOpened()) {
                 closedFromClient.set(event.isFromClient());
