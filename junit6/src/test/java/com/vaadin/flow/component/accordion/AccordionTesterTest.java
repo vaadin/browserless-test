@@ -95,6 +95,96 @@ class AccordionTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void closeDetails_viaTester_eventFiredWithFromClientTrue() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+
+        final List<Accordion.OpenedChangeEvent> events = new ArrayList<>();
+        view.accordion.addOpenedChangeListener(events::add);
+
+        wrap.closeDetails();
+
+        Assertions.assertEquals(1, events.size(),
+                "Closing the open panel should fire a single OpenedChangeEvent");
+        Accordion.OpenedChangeEvent event = events.get(0);
+        Assertions.assertTrue(event.isFromClient(),
+                "Tester close simulates a user interaction and should report isFromClient() == true");
+        Assertions.assertTrue(event.getOpenedIndex().isEmpty(),
+                "Closed accordion should report an empty opened index");
+        Assertions.assertFalse(wrap.isOpen("Green"), "Green should be closed");
+    }
+
+    @Test
+    void closeDetails_bySummary_closesThePanel() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+
+        wrap.closeDetails("Green");
+
+        Assertions.assertFalse(wrap.isOpen("Green"), "Green should be closed");
+    }
+
+    @Test
+    void noOpenPanel_closeDetails_throws() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+        wrap.closeDetails();
+
+        Assertions.assertThrows(IllegalStateException.class, wrap::closeDetails,
+                "Closing an accordion with no open panel should throw");
+    }
+
+    @Test
+    void closedPanel_closeDetailsBySummary_throws() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> wrap.closeDetails("Red"),
+                "Closing a panel that is not the open one should throw");
+    }
+
+    @Test
+    void unknownSummary_closeDetailsBySummary_throws() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> wrap.closeDetails("Orange"),
+                "Closing a panel that does not exist should throw");
+    }
+
+    @Test
+    void toggleDetails_opensAndClosesTheSamePanel() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+
+        wrap.toggleDetails("Green");
+        Assertions.assertTrue(wrap.isOpen("Green"),
+                "Toggling a closed panel should open it");
+
+        wrap.toggleDetails("Green");
+        Assertions.assertFalse(wrap.isOpen("Green"),
+                "Toggling an open panel should close it");
+        Assertions.assertTrue(view.accordion.getOpenedPanel().isEmpty(),
+                "No panel should be open after toggling the open one closed");
+    }
+
+    @Test
+    void notUsableAccordion_closeAndToggle_throw() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+        view.accordion.getElement().setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class, wrap::closeDetails,
+                "Closing a disabled accordion should throw");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> wrap.closeDetails("Green"),
+                "Closing a disabled accordion by summary should throw");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> wrap.toggleDetails("Green"),
+                "Toggling a disabled accordion should throw");
+    }
+
+    @Test
     void attach_noInitialOpenedChangeEventFired() {
         Assertions.assertTrue(view.openedChangeEvents.isEmpty(),
                 "No OpenedChangeEvent should be fired on initial attach, but got "
