@@ -79,6 +79,15 @@ class SplitLayoutTesterTest extends BrowserlessTest {
     }
 
     @ParameterizedTest
+    @ValueSource(doubles = { 0, 100 })
+    void dragSplitterTo_positionAtRangeEnds_isAccepted(double position) {
+        test(view.layout).dragSplitterTo(position);
+
+        assertEquals(position, test(view.layout).getSplitterPosition(),
+                "Collapsing a split fully is a legal drag");
+    }
+
+    @ParameterizedTest
     @ValueSource(doubles = { -0.5, 100.5 })
     void dragSplitterTo_positionOutsideRange_throws(double position) {
         assertThrows(IllegalArgumentException.class,
