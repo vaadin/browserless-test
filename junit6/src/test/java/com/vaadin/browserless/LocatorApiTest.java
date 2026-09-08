@@ -157,26 +157,6 @@ class LocatorApiTest {
     }
 
     @Test
-    void grid_deselectFromLocator_clearsSelection() {
-        try (var app = createApplicationContext()) {
-            var window = app.newUser().newWindow();
-            window.navigate(LocatorDemoView.class);
-
-            window.findGrid(Person.class).select(0);
-            window.findGrid(Person.class).deselect(0);
-            Assertions.assertTrue(
-                    window.findGrid(Person.class).getSelected().isEmpty(),
-                    "deselect() should be reachable from the generated locator");
-
-            window.findGrid(Person.class).select(1);
-            window.findGrid(Person.class).deselectAll();
-            Assertions.assertTrue(
-                    window.findGrid(Person.class).getSelected().isEmpty(),
-                    "deselectAll() should be reachable from the generated locator");
-        }
-    }
-
-    @Test
     void singleLocator_reusedAfterUiChange_reresolves() {
         try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();

@@ -194,6 +194,29 @@ class BasicGridTesterTest extends BrowserlessTest {
         Assertions.assertSame(view.person1,
                 test(view.basicGrid).getSelected().iterator().next(),
                 "Deselect should be ignored when deselect is not allowed");
+
+        test(view.basicGrid).deselectAll();
+        Assertions.assertSame(view.person1,
+                test(view.basicGrid).getSelected().iterator().next(),
+                "Deselect all shouldn't clear a selection the user can't deselect");
+    }
+
+    @Test
+    void basicGrid_itemNotSelectable_selectionIsKept() {
+        view.basicGrid
+                .setItemSelectableProvider(person -> person != view.person1);
+        // not selectable from the client, so select it as the application
+        view.basicGrid.select(view.person1);
+
+        test(view.basicGrid).deselect(0);
+        Assertions.assertSame(view.person1,
+                test(view.basicGrid).getSelected().iterator().next(),
+                "Deselect should be ignored for an item that is not selectable");
+
+        test(view.basicGrid).deselectAll();
+        Assertions.assertSame(view.person1,
+                test(view.basicGrid).getSelected().iterator().next(),
+                "Deselect all should be ignored for an item that is not selectable");
     }
 
     @Test

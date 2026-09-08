@@ -849,6 +849,11 @@ public fun <T: Any> Grid<T>._deselect(item: T) {
  * Rows are deselected one by one rather than through the "select all" checkbox, so this also
  * works when the checkbox is hidden - unchecking rows individually is something the user can
  * always do.
+ *
+ * Rows the user couldn't deselect are left alone, following the same rules as [_deselect]:
+ * items that are not selectable, or any row of a single-select grid with
+ * [GridSingleSelectionModel.isDeselectAllowed] set to false. The selection is therefore not
+ * guaranteed to be empty afterwards.
  */
 public fun <T: Any> Grid<T>._deselectAll() {
     checkEditableByUser()

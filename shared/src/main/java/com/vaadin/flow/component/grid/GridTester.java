@@ -264,6 +264,11 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * Works for both single and multi select. The rows are deselected one by
      * one instead of through the select-all checkbox, so this also works when
      * that checkbox is hidden.
+     * <p/>
+     * Rows the user couldn't deselect stay selected, following the same rules
+     * as {@link #deselect(int)}: a row whose item is not selectable, or any row
+     * of a single select grid where deselecting is not allowed, is left as it
+     * is. The selection is not necessarily empty afterwards.
      *
      * @throws IllegalStateException
      *             if not usable or if the grid doesn't support selection
