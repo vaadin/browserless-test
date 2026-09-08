@@ -64,6 +64,17 @@ class SplitLayoutTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void dragSplitterTo_positionAtRangeEnds_accepted() {
+        test(view.splitLayout).dragSplitterTo(0);
+        Assertions.assertEquals(0d,
+                test(view.splitLayout).getSplitterPosition());
+
+        test(view.splitLayout).dragSplitterTo(100);
+        Assertions.assertEquals(100d,
+                test(view.splitLayout).getSplitterPosition());
+    }
+
+    @Test
     void dragSplitterTo_notUsable_throws() {
         view.splitLayout.setVisible(false);
         Assertions.assertThrows(IllegalStateException.class,

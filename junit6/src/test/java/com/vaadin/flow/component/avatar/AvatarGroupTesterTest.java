@@ -69,6 +69,15 @@ class AvatarGroupTesterTest extends BrowserlessTest {
                 "The client never collapses below two slots");
         Assertions.assertEquals("+4",
                 test(view.avatarGroup).getOverflowAbbreviation());
+
+        // Clamped to two slots, which the two items fit, so no overflow avatar
+        view.avatarGroup.setItems(new AvatarGroupItem("Aria Bailey"),
+                new AvatarGroupItem("Aaliyah Butler"));
+
+        Assertions.assertEquals(names("Aria Bailey", "Aaliyah Butler"),
+                names(test(view.avatarGroup).getVisibleItems()));
+        Assertions.assertEquals(List.of(),
+                test(view.avatarGroup).getOverflowItems());
     }
 
     @Test

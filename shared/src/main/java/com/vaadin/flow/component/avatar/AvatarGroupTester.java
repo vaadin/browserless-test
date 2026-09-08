@@ -70,8 +70,7 @@ public class AvatarGroupTester<T extends AvatarGroup>
     public List<AvatarGroupItem> getVisibleItems() {
         ensureComponentIsUsable();
         List<AvatarGroupItem> items = getComponent().getItems();
-        Integer limit = overflowLimit(items);
-        return limit == null ? items : List.copyOf(items.subList(0, limit));
+        return List.copyOf(items.subList(0, visibleCount(items)));
     }
 
     /**
@@ -85,9 +84,7 @@ public class AvatarGroupTester<T extends AvatarGroup>
     public List<AvatarGroupItem> getOverflowItems() {
         ensureComponentIsUsable();
         List<AvatarGroupItem> items = getComponent().getItems();
-        Integer limit = overflowLimit(items);
-        return limit == null ? List.of()
-                : List.copyOf(items.subList(limit, items.size()));
+        return List.copyOf(items.subList(visibleCount(items), items.size()));
     }
 
     /**
@@ -104,15 +101,16 @@ public class AvatarGroupTester<T extends AvatarGroup>
     }
 
     /**
-     * Number of items rendered as individual avatars, or {@code null} when all
-     * items are visible.
+     * Number of items rendered as individual avatars. Only when the items do
+     * not fit the limit does the overflow avatar appear and claim the last
+     * slot.
      */
-    private Integer overflowLimit(List<AvatarGroupItem> items) {
+    private int visibleCount(List<AvatarGroupItem> items) {
         Integer maxItemsVisible = getComponent().getMaxItemsVisible();
         if (maxItemsVisible == null) {
-            return null;
+            return items.size();
         }
         int max = Math.max(maxItemsVisible, MINIMUM_DISPLAYED_AVATARS);
-        return max < items.size() ? max - 1 : null;
+        return max < items.size() ? max - 1 : items.size();
     }
 }

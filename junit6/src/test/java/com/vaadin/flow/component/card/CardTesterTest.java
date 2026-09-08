@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -44,6 +45,11 @@ class CardTesterTest extends BrowserlessTest {
 
         view.card.setTitle(new Span("Kilpisjärvi"));
         Assertions.assertEquals("Kilpisjärvi", test(view.card).getTitleText());
+
+        // Removing the title component leaves the card without any title,
+        // the string title having been dropped by setTitle(Component)
+        view.card.setTitle((Component) null);
+        Assertions.assertEquals("", test(view.card).getTitleText());
     }
 
     @Test
