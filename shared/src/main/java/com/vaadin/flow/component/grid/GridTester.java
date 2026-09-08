@@ -714,6 +714,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     private void doSort(SortDirection currentDirection, Grid.Column<Y> col) {
+        ensureComponentIsUsable();
         List<GridSortOrder<Y>> sortOrders = new ArrayList<>(
                 getComponent().getSortOrder());
         if (getComponent().isMultiSort()) {

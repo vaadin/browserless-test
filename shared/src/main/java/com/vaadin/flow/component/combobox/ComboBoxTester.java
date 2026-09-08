@@ -100,11 +100,14 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * @throws IllegalArgumentException
      *             if no item with the given label is found among current
      *             suggestions
+     * @throws IllegalStateException
+     *             if the component is not usable
      * @see #setFilter(String)
      * @see #getSuggestions()
      * @see #getSuggestionItems()
      */
     public void selectItem(String selection) {
+        ensureComponentIsUsable();
         if (selection == null) {
             setValueAsUser(null);
             return;

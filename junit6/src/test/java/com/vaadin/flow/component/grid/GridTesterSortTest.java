@@ -267,4 +267,24 @@ class GridTesterSortTest extends BrowserlessTest {
                 List.of(grid_.getRow(0), grid_.getRow(1), grid_.getRow(2)));
 
     }
+
+    @Test
+    void sortByColumn_notUsableGrid_throws() {
+        view.grid.setVisible(false);
+        view.beanGrid.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> grid_.sortByColumn(0),
+                "Hidden grid should not be sortable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> grid_.sortByColumn(0, SortDirection.ASCENDING),
+                "Hidden grid should not be sortable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> beanGrid_.sortByColumn("firstName"),
+                "Disabled grid should not be sortable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> beanGrid_.sortByColumn("firstName",
+                        SortDirection.ASCENDING),
+                "Disabled grid should not be sortable");
+    }
 }
