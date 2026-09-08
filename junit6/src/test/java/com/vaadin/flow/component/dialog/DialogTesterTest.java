@@ -101,12 +101,7 @@ class DialogTesterTest extends BrowserlessTest {
     @Test
     void pressEscape_closesDialogAsUser() {
         dialog_.open();
-        AtomicBoolean closedFromClient = new AtomicBoolean();
-        view.dialog.addOpenedChangeListener(event -> {
-            if (!event.isOpened()) {
-                closedFromClient.set(event.isFromClient());
-            }
-        });
+        AtomicBoolean closedFromClient = trackCloseSource();
 
         dialog_.pressEscape();
 
@@ -152,11 +147,14 @@ class DialogTesterTest extends BrowserlessTest {
     @Test
     void clickOutside_closesDialogAsUser() {
         dialog_.open();
+        AtomicBoolean closedFromClient = trackCloseSource();
 
         dialog_.clickOutside();
 
         Assertions.assertFalse(dialog_.isOpen(),
                 "Dialog should be closed by clicking outside");
+        Assertions.assertTrue(closedFromClient.get(),
+                "Clicking outside should close the dialog as a client-side close");
     }
 
     @Test
@@ -178,11 +176,14 @@ class DialogTesterTest extends BrowserlessTest {
         view.dialog.addDialogCloseActionListener(
                 event -> closeActions.incrementAndGet());
         dialog_.open();
+        AtomicBoolean closedFromClient = trackCloseSource();
 
         dialog_.close();
 
         Assertions.assertFalse(dialog_.isOpen(),
                 "close() should close the dialog from the server side");
+        Assertions.assertFalse(closedFromClient.get(),
+                "close() should not be reported as a client-side close");
         Assertions.assertEquals(0, closeActions.get(),
                 "close() should not fire a DialogCloseActionEvent");
     }
@@ -198,6 +199,20 @@ class DialogTesterTest extends BrowserlessTest {
                 () -> dialog_.pressEscape(),
                 "Escape should not reach a dialog behind a strict modal dialog");
         Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
+    }
+
+    /**
+     * Records whether the dialog was closed from the client, as reported by
+     * {@link com.vaadin.flow.component.dialog.Dialog.OpenedChangeEvent}.
+     */
+    private AtomicBoolean trackCloseSource() {
+        AtomicBoolean closedFromClient = new AtomicBoolean();
+        view.dialog.addOpenedChangeListener(event -> {
+            if (!event.isOpened()) {
+                closedFromClient.set(event.isFromClient());
+            }
+        });
+        return closedFromClient;
     }
 
 }
