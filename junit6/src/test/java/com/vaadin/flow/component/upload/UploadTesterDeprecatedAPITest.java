@@ -22,6 +22,8 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -283,10 +285,20 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
     }
 
     @Test
-    void upload_fileCountExceeded_throws() {
+    void uploadAll_fileCountExceeded_extraFilesRejected() {
+        List<String> rejected = new ArrayList<>();
+        view.uploadMulti.addFileRejectedListener(ev -> rejected
+                .add(ev.getFileName() + ":" + ev.getErrorMessage()));
         view.uploadMulti.setMaxFiles(2);
-        Assertions.assertThrows(IllegalStateException.class,
-                () -> multi_.uploadAll(file1, file2, file3));
+
+        multi_.uploadAll(file1, file2, file3);
+
+        Assertions.assertEquals(List.of(file3.getName() + ":Too Many Files."),
+                rejected,
+                "The file exceeding maxFiles should have been rejected");
+        Assertions.assertEquals(Set.of(file1.getName(), file2.getName()),
+                view.multiReceiver.getFiles(),
+                "Only the files fitting maxFiles should have been received");
     }
 
     void assertFailedUpload(BiConsumer<String, String> wrapperAction) {
