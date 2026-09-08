@@ -144,6 +144,30 @@ class LocatorApiTest {
     }
 
     @Test
+    void checkbox_setCheckedAndIsChecked_reachableFromLocator() {
+        // setChecked()/isChecked() are declared on CheckboxTester so that
+        // LocatorProcessor picks them up as locator delegates.
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            Assertions.assertFalse(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox initial state not to be checked");
+
+            window.findCheckbox().withId("accept").setChecked(true);
+            Assertions.assertTrue(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox to be checked, but was not");
+
+            window.findCheckbox().withId("accept").setChecked(true);
+            Assertions.assertTrue(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox to stay checked, but was not");
+        }
+    }
+
+    @Test
     void grid_typedRowAccessor() {
         try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();

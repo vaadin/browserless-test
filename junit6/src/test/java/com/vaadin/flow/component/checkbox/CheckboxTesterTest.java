@@ -16,6 +16,7 @@
 package com.vaadin.flow.component.checkbox;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +74,57 @@ class CheckboxTesterTest extends BrowserlessTest {
                 "Expected checked change event to be fired, but was not");
         Assertions.assertTrue(view.checkbox.getValue(),
                 "Expecting checkbox not to be checked, but was");
+    }
+
+    @Test
+    void isChecked_reflectsValue() {
+        Assertions.assertFalse(test(view.checkbox).isChecked(),
+                "Expecting checkbox initial state not to be checked");
+
+        test(view.checkbox).click();
+        Assertions.assertTrue(test(view.checkbox).isChecked(),
+                "Expecting checkbox to be checked after click");
+    }
+
+    @Test
+    void setChecked_onlyChangesStateWhenNeeded() {
+        AtomicInteger changes = new AtomicInteger();
+        AtomicBoolean fromClient = new AtomicBoolean();
+        view.checkbox.addValueChangeListener(ev -> {
+            changes.incrementAndGet();
+            fromClient.set(ev.isFromClient());
+        });
+
+        test(view.checkbox).setChecked(true);
+        Assertions.assertTrue(view.checkbox.getValue(),
+                "Expecting checkbox to be checked, but was not");
+        Assertions.assertEquals(1, changes.get(),
+                "Expecting a single value change event");
+        Assertions.assertTrue(fromClient.get(),
+                "Expecting the value change to come from the client");
+
+        test(view.checkbox).setChecked(true);
+        Assertions.assertTrue(view.checkbox.getValue(),
+                "Expecting checkbox to stay checked, but was not");
+        Assertions.assertEquals(1, changes.get(),
+                "Expecting no value change event when already checked");
+
+        test(view.checkbox).setChecked(false);
+        Assertions.assertFalse(view.checkbox.getValue(),
+                "Expecting checkbox not to be checked, but was");
+        Assertions.assertEquals(2, changes.get(),
+                "Expecting a value change event when unchecking");
+    }
+
+    @Test
+    void setChecked_notUsableAndAlreadyInRequestedState_throws() {
+        test(view.checkbox).setChecked(true);
+        view.checkbox.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.checkbox).setChecked(true),
+                "Expecting a disabled checkbox not to be settable, "
+                        + "even to the state it is already in");
     }
 
     @Test
