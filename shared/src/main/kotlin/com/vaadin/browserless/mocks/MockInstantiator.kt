@@ -15,15 +15,29 @@
  */
 package com.vaadin.browserless.mocks
 
+import com.vaadin.flow.component.HasElement
 import com.vaadin.flow.di.Instantiator
 import com.vaadin.flow.i18n.I18NProvider
+import com.vaadin.flow.router.NavigationEvent
+import com.vaadin.flow.router.PageTitleGenerator
+import com.vaadin.flow.server.DependencyFilter
 import com.vaadin.flow.server.auth.MenuAccessControl
+import com.vaadin.flow.server.communication.IndexHtmlRequestListener
+import java.util.stream.Stream
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.implementation.MethodCall
 import net.bytebuddy.matcher.ElementMatchers
 
 /**
  * Makes sure to load [MockNpmTemplateParser].
+ *
+ * Every [Instantiator] method is forwarded to [delegate] explicitly: Kotlin
+ * interface delegation only generates forwarders for the abstract members of
+ * [Instantiator], so a method with a Java `default` implementation would
+ * silently resolve to that default instead of reaching the delegate. That
+ * would hide whatever the real environment's instantiator does — a Spring
+ * `PageTitleGenerator` bean, for instance, would never be applied in a test.
+ * `MockInstantiatorDelegationTest` guards the forwarding.
  */
 open class MockInstantiator(val delegate: Instantiator) : Instantiator by delegate {
 
@@ -41,6 +55,28 @@ open class MockInstantiator(val delegate: Instantiator) : Instantiator by delega
     override fun getMenuAccessControl(): MenuAccessControl = delegate.menuAccessControl
 
     override fun getI18NProvider(): I18NProvider? = delegate.i18NProvider
+
+    override fun getPageTitleGenerator(): PageTitleGenerator? = delegate.pageTitleGenerator
+
+    override fun getIndexHtmlRequestListeners(
+        indexHtmlRequestListeners: Stream<IndexHtmlRequestListener>
+    ): Stream<IndexHtmlRequestListener> =
+        delegate.getIndexHtmlRequestListeners(indexHtmlRequestListeners)
+
+    override fun getDependencyFilters(
+        serviceInitFilters: Stream<DependencyFilter>
+    ): Stream<DependencyFilter> = delegate.getDependencyFilters(serviceInitFilters)
+
+    override fun getApplicationClass(instance: Any): Class<*> =
+        delegate.getApplicationClass(instance)
+
+    override fun getApplicationClass(clazz: Class<*>): Class<*> =
+        delegate.getApplicationClass(clazz)
+
+    override fun <T : HasElement> createRouteTarget(
+        routeTargetType: Class<T>,
+        event: NavigationEvent
+    ): T = delegate.createRouteTarget(routeTargetType, event)
 
     companion object {
         @JvmStatic
