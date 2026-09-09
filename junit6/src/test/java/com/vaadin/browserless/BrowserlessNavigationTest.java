@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.util.Collections;
+import java.util.List;
 
 import com.example.SingleParam;
 import com.example.TemplatedParam;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.MockRouteNotFoundError;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.QueryParameters;
 
 @ViewPackages(packages = "com.example")
 public class BrowserlessNavigationTest extends BrowserlessTest {
@@ -63,6 +66,34 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
                 .contains("Navigation resulted in unexpected class"));
         Assertions.assertTrue(exception.getMessage()
                 .contains(MockRouteNotFoundError.class.getName()));
+    }
+
+    @Test
+    public void navigationWithQueryString_queryParametersReachView() {
+        final TemplatedParam view = navigate(
+                "template/ORD-1?tab=history&page=2", TemplatedParam.class);
+
+        Assertions.assertEquals("ORD-1", view.parameter,
+                "Route parameter should be resolved from the path, without the query string");
+        Assertions.assertEquals(List.of("history"),
+                view.queryParameters.getParameters().get("tab"),
+                "Query parameter of the location should be available to the view");
+        Assertions.assertEquals(List.of("2"),
+                view.queryParameters.getParameters().get("page"),
+                "Query parameter of the location should be available to the view");
+    }
+
+    @Test
+    public void navigationWithQueryStringAndQueryParameters_throwsWithExplanation() {
+        IllegalArgumentException exception = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> UI.getCurrent().navigate("template/ORD-1?tab=history",
+                        QueryParameters.of("page", "2")),
+                "Giving the query both in the location and as QueryParameters should be rejected");
+        Assertions.assertTrue(
+                exception.getMessage().contains("template/ORD-1?tab=history"),
+                "Exception should name the offending location, but was: "
+                        + exception.getMessage());
     }
 
     @Test

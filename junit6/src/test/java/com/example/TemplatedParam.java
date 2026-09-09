@@ -19,15 +19,18 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 
 @Route("template/:param")
 @Tag("div")
 public class TemplatedParam extends Component implements BeforeEnterObserver {
     public String parameter;
+    public QueryParameters queryParameters;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         parameter = event.getRouteParameters().get("param").get();
+        queryParameters = event.getLocation().getQueryParameters();
     }
 }
