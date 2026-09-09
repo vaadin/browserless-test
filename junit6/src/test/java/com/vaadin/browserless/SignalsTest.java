@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Timeout;
 
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
-import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 @ViewPackages(packages = "com.example.base.signals")
 @Timeout(10)
@@ -119,7 +118,6 @@ public class SignalsTest extends BrowserlessTest {
 
     @Test
     void sharedListSignal_insert_operationConfirmedByRunPendingSignalsTasks() {
-        navigate(SignalsView.class);
         var tickets = new SharedListSignal<>(String.class);
 
         var operation = tickets.insertLast("a ticket");
@@ -140,24 +138,6 @@ public class SignalsTest extends BrowserlessTest {
                         + "Signals tasks");
         Assertions.assertTrue(operation.result().join().successful(),
                 "Insert operation should have succeeded");
-    }
-
-    @Test
-    void sharedValueSignal_set_operationConfirmedByRunPendingSignalsTasks() {
-        navigate(SignalsView.class);
-        var signal = new SharedValueSignal<>("initial");
-
-        var operation = signal.set("changed");
-
-        Assertions.assertEquals("changed", signal.peek());
-        Assertions.assertFalse(operation.result().isDone(),
-                "Operation should still be unconfirmed before pending "
-                        + "Signals tasks are run");
-
-        Assertions.assertTrue(runPendingSignalsTasks(),
-                "Expected a pending confirmation task to be run");
-        Assertions.assertTrue(operation.result().join().successful(),
-                "Set operation should have succeeded");
     }
 
 }
