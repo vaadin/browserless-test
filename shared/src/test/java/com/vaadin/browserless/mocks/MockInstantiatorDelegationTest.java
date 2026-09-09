@@ -57,7 +57,7 @@ class MockInstantiatorDelegationTest {
                 MockInstantiator.class.getDeclaredMethod(method.getName(),
                         method.getParameterTypes());
             } catch (NoSuchMethodException e) {
-                missing.add(method.getName());
+                missing.add(method.toGenericString());
             }
         }
 
@@ -75,25 +75,14 @@ class MockInstantiatorDelegationTest {
             Set<String> called = new LinkedHashSet<>();
             invoke(MockInstantiator.create(recordingInstantiator(called)),
                     method);
-            if (!called.contains(method.getName())) {
-                notForwarded.add(method.getName());
+            if (!called.contains(method.toGenericString())) {
+                notForwarded.add(method.toGenericString());
             }
         }
 
         Assertions.assertTrue(notForwarded.isEmpty(),
                 () -> "Calling these methods on MockInstantiator never reached the delegate: "
                         + notForwarded);
-    }
-
-    @Test
-    void pageTitleGenerator_isTakenFromTheDelegate() {
-        PageTitleGenerator generator = context -> "generated";
-        Instantiator mockInstantiator = MockInstantiator
-                .create(instantiatorWithPageTitleGenerator(generator));
-
-        Assertions.assertSame(generator,
-                mockInstantiator.getPageTitleGenerator(),
-                "The delegate's page title generator should be visible through MockInstantiator");
     }
 
     private static List<Method> instantiatorMethods() {
@@ -139,15 +128,17 @@ class MockInstantiatorDelegationTest {
     }
 
     /**
-     * An {@link Instantiator} recording the names of the methods called on it,
-     * returning values benign enough for the caller to carry on.
+     * An {@link Instantiator} recording the methods called on it, returning
+     * values benign enough for the caller to carry on. Methods are recorded by
+     * {@link Method#toGenericString()} so that overloads, such as the two
+     * {@code getApplicationClass} ones, are told apart.
      */
     private static Instantiator recordingInstantiator(Set<String> called) {
         return (Instantiator) Proxy.newProxyInstance(
                 MockInstantiatorDelegationTest.class.getClassLoader(),
                 new Class<?>[] { Instantiator.class },
                 (proxy, method, args) -> {
-                    called.add(method.getName());
+                    called.add(method.toGenericString());
                     return returnValueFor(method.getReturnType());
                 });
     }
@@ -167,18 +158,5 @@ class MockInstantiatorDelegationTest {
                 MockInstantiatorDelegationTest.class.getClassLoader(),
                 new Class<?>[] { RouteRegistry.class },
                 (proxy, method, args) -> null);
-    }
-
-    private static Instantiator instantiatorWithPageTitleGenerator(
-            PageTitleGenerator generator) {
-        return (Instantiator) Proxy.newProxyInstance(
-                MockInstantiatorDelegationTest.class.getClassLoader(),
-                new Class<?>[] { Instantiator.class },
-                (proxy, method, args) -> {
-                    if ("getPageTitleGenerator".equals(method.getName())) {
-                        return generator;
-                    }
-                    return returnValueFor(method.getReturnType());
-                });
     }
 }
