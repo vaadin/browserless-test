@@ -421,6 +421,22 @@ public class BrowserlessUIContext
      * thread, it is temporarily released during the wait to allow background
      * threads to acquire the lock and enqueue tasks.
      *
+     * <p>
+     * Confirmation of a write to a shared signal (for example
+     * {@code SharedValueSignal} or {@code SharedListSignal}) is dispatched
+     * through the same queue. The new value is visible immediately through
+     * {@code peek()}, but the {@code SignalOperation} returned by the write
+     * only completes once the queued confirmation task has been run by this
+     * method. Blocking on {@code operation.result().get()} without draining the
+     * queue first never completes, because the confirmation task can only run
+     * on the thread that calls this method:
+     *
+     * <pre>{@code
+     * var operation = tickets.insertLast("a ticket");
+     * window.runPendingSignalsTasks();
+     * assertTrue(operation.result().join().successful());
+     * }</pre>
+     *
      * @return {@code true} if any pending Signals tasks were processed
      * @see #runPendingSignalsTasks(long, TimeUnit)
      */
