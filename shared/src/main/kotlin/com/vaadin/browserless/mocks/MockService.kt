@@ -17,7 +17,6 @@ package com.vaadin.browserless.mocks
 
 import java.io.Serializable
 import com.vaadin.flow.component.UI
-import com.vaadin.flow.di.Instantiator
 import com.vaadin.flow.function.DeploymentConfiguration
 import com.vaadin.flow.server.VaadinRequest
 import com.vaadin.flow.server.VaadinServlet
@@ -45,5 +44,4 @@ open class MockService(servlet: VaadinServlet,
     override fun isAtmosphereAvailable(): Boolean = false
     override fun getMainDivId(session: VaadinSession?, request: VaadinRequest?): String = "ROOT-1"
     override fun createVaadinSession(request: VaadinRequest): VaadinSession = MockVaadinSession(this, uiFactory)
-    override fun getInstantiator(): Instantiator = MockInstantiator.create(super.getInstantiator())
 }
