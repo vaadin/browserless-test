@@ -40,6 +40,12 @@ import java.util.stream.Stream
  * `PageTitleGenerator` bean used to be dropped in browserless tests. Since a
  * wrapper can always fall behind a method added to [Instantiator] later,
  * [create] hands back the delegate itself instead of wrapping it.
+ *
+ * The list of forwarders below is deliberately not guarded by a test: pinning
+ * it would fail the build whenever Flow adds a method to [Instantiator], which
+ * is not worth it for a class scheduled for removal and used by nothing here.
+ * A method missing from the list is therefore silently dropped for callers who
+ * construct this class themselves — one more reason not to.
  */
 @Deprecated(
     "Wrapping the instantiator of the mocked environment has no effect; use that instantiator directly. Scheduled for removal."
