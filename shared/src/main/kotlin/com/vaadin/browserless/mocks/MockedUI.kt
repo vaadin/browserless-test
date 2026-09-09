@@ -51,9 +51,17 @@ open class MockedUI : UI() {
         component?.simulateClosedEvent()
     }
 
+    /**
+     * Renders the route server side, as a test has no client router to hand
+     * the navigation to.
+     *
+     * This replaces [UI.navigate] rather than extending it — `super` is never
+     * called — so nothing the real [UI.navigate] does with a location reaches a
+     * browserless test. Any change to how Flow turns a location string into a
+     * [Location] has to be mirrored in [toLocation] to be observable here.
+     */
     override fun navigate(locationString: String, queryParameters: QueryParameters) {
 
-        // server-side routing only for tests as there is no client to handle routing.
         try {
             UI::class.java.getDeclaredMethod("renderViewForRoute", Location::class.java, NavigationTrigger::class.java)
                     .apply { isAccessible = true }
