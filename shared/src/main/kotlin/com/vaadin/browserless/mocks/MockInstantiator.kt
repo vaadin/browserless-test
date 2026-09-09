@@ -29,7 +29,7 @@ import net.bytebuddy.implementation.MethodCall
 import net.bytebuddy.matcher.ElementMatchers
 
 /**
- * Makes sure to load [MockNpmTemplateParser].
+ * An [Instantiator] wrapping the one the mocked environment provides.
  *
  * Every [Instantiator] method is forwarded to [delegate] explicitly: Kotlin
  * interface delegation only generates forwarders for the abstract members of

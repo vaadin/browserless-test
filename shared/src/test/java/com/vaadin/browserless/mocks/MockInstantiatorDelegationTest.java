@@ -49,25 +49,6 @@ import com.vaadin.flow.server.RouteRegistry;
 class MockInstantiatorDelegationTest {
 
     @Test
-    void everyInstantiatorMethod_isOverriddenByMockInstantiator() {
-        List<String> missing = new ArrayList<>();
-
-        for (Method method : instantiatorMethods()) {
-            try {
-                MockInstantiator.class.getDeclaredMethod(method.getName(),
-                        method.getParameterTypes());
-            } catch (NoSuchMethodException e) {
-                missing.add(method.toGenericString());
-            }
-        }
-
-        Assertions.assertTrue(missing.isEmpty(),
-                () -> "MockInstantiator must override every Instantiator method to reach the delegate, but "
-                        + missing
-                        + " resolves to the interface default implementation instead");
-    }
-
-    @Test
     void everyInstantiatorMethod_reachesTheDelegate() {
         List<String> notForwarded = new ArrayList<>();
 
@@ -81,8 +62,9 @@ class MockInstantiatorDelegationTest {
         }
 
         Assertions.assertTrue(notForwarded.isEmpty(),
-                () -> "Calling these methods on MockInstantiator never reached the delegate: "
-                        + notForwarded);
+                () -> "MockInstantiator must override every Instantiator method to reach the delegate, but calling "
+                        + notForwarded
+                        + " never reached it — the interface default implementation ran instead");
     }
 
     private static List<Method> instantiatorMethods() {
