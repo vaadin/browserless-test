@@ -22,6 +22,7 @@ import com.example.SingleParam;
 import com.example.TemplatedParam;
 import com.example.base.HelloWorldView;
 import com.example.base.WelcomeView;
+import com.example.failing.FailingAssertionView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -71,10 +72,11 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
     @Test
     public void navigationWithQueryString_queryParametersReachView() {
         final TemplatedParam view = navigate(
-                "template/ORD-1?tab=history&page=2", TemplatedParam.class);
+                "template/ORD-1?tab=history&page=2#details",
+                TemplatedParam.class);
 
         Assertions.assertEquals("ORD-1", view.parameter,
-                "Route parameter should be resolved from the path, without the query string");
+                "Route parameter should be resolved from the path, without the query string or fragment");
         Assertions.assertEquals(List.of("history"),
                 view.queryParameters.getParameters().get("tab"),
                 "Query parameter of the location should be available to the view");
@@ -84,16 +86,34 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
     }
 
     @Test
-    public void navigationWithQueryStringAndQueryParameters_throwsWithExplanation() {
+    public void uiNavigationWithQueryStringInLocation_throwsWithExplanation() {
+        // UI.navigate takes the query separately, in a test as in production
         IllegalArgumentException exception = Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> UI.getCurrent().navigate("template/ORD-1?tab=history",
-                        QueryParameters.of("page", "2")),
-                "Giving the query both in the location and as QueryParameters should be rejected");
+                        QueryParameters.empty()),
+                "UI.navigate should reject a location that is not a path");
         Assertions.assertTrue(
                 exception.getMessage().contains("template/ORD-1?tab=history"),
                 "Exception should name the offending location, but was: "
                         + exception.getMessage());
+
+        UI.getCurrent().navigate("template/ORD-1",
+                QueryParameters.of("tab", "history"));
+        Assertions.assertEquals(List.of("history"),
+                ((TemplatedParam) getCurrentView()).queryParameters
+                        .getParameters().get("tab"),
+                "Query parameters given to UI.navigate should reach the view");
+    }
+
+    @Test
+    public void navigationToViewFailingAnAssertion_reportsTheAssertion() {
+        AssertionError error = Assertions.assertThrows(AssertionError.class,
+                () -> navigate("failing-assertion", FailingAssertionView.class),
+                "The error thrown while entering the view should reach the caller");
+        Assertions.assertEquals(FailingAssertionView.MESSAGE,
+                error.getMessage(),
+                "The caller should see what was thrown, not a wrapper hiding it");
     }
 
     @Test

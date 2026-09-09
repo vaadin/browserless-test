@@ -68,27 +68,26 @@ open class MockedUI : UI() {
     }
 
     /**
-     * Builds the [Location] to render, accepting a query string or a fragment
-     * embedded in [locationString] instead of rejecting it.
+     * Builds the [Location] to render, the way [UI.navigate] does in a running
+     * application, but saying so when the location is one that application
+     * would not navigate to either.
      *
-     * `Location(String, QueryParameters)` requires a bare path, so a location
-     * such as `orders/1?tab=history` would end up with the query string inside
-     * a path segment and fail with an assertion error on a message that names
-     * neither the location nor the API that was called. Locations written that
-     * way are the normal way to express a query in a test, so parse them with
-     * `Location(String)`, which splits off the query string and retains the
-     * fragment the same way a browser navigation would.
+     * [UI.navigate] takes the path and the query separately, so a location
+     * such as `orders/1?tab=history` leaves the query string inside a path
+     * segment: a running application silently binds it into a route parameter
+     * (or fails to match the route at all), and under the assertions a test
+     * runs with it later trips `Base path can not contain query separator=?`,
+     * a message that names neither the location nor the API that was called.
+     * Report it here instead, rather than mocking the location into working
+     * and letting a test pass for navigation that is broken in production.
      */
     private fun toLocation(locationString: String, queryParameters: QueryParameters): Location {
-        if (!locationString.contains(QUERY_SEPARATOR) && !locationString.contains(FRAGMENT_SEPARATOR)) {
-            return Location(locationString, queryParameters)
+        require(!locationString.contains(QUERY_SEPARATOR) && !locationString.contains(FRAGMENT_SEPARATOR)) {
+            "Location '$locationString' must be a path: UI.navigate takes the query string as QueryParameters, " +
+                    "and ignores a fragment. Pass the query as QueryParameters, or navigate with the browserless " +
+                    "navigate(location, viewType), which parses the location the way the address bar spells it."
         }
-        require(queryParameters.parameters.isEmpty()) {
-            "Location '$locationString' contains a query string or fragment, but query parameters were also " +
-                    "given separately. Pass the query parameters either in the location string or as " +
-                    "QueryParameters, not both."
-        }
-        return Location(locationString)
+        return Location(locationString, queryParameters)
     }
 
     private fun roundTrip() {

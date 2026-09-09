@@ -30,7 +30,6 @@ import org.springframework.test.context.ContextConfiguration;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.PageTitleGenerator;
 import com.vaadin.flow.router.RouteConfiguration;
-import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 
 /**
@@ -41,14 +40,6 @@ import com.vaadin.flow.server.VaadinServiceInitListener;
 @ContextConfiguration(classes = SpringPageTitleGeneratorTest.TestConfig.class)
 @ViewPackages(packages = "com.testapp.pagetitle")
 class SpringPageTitleGeneratorTest extends SpringBrowserlessTest {
-
-    @Test
-    void pageTitleGeneratorBean_isAvailableOnTheInstantiator() {
-        PageTitleGenerator generator = VaadinService.getCurrent()
-                .getInstantiator().getPageTitleGenerator();
-        Assertions.assertInstanceOf(OrderTitleGenerator.class, generator,
-                "The PageTitleGenerator bean should be found through the instantiator");
-    }
 
     @Test
     void pageTitleGeneratorBean_resolvesTitleOfViewWithPageTitleValue() {

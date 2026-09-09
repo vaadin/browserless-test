@@ -26,6 +26,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.RouteParameters;
 
 /**
@@ -59,7 +60,15 @@ final class BrowserlessDSL {
 
     static <T extends Component> T navigate(UI ui, String location,
             Class<T> expectedTarget) {
-        ui.navigate(location);
+        // A test writes the location the way it appears in the browser's
+        // address bar, so accept a query string (and a fragment) in it.
+        // UI.navigate takes the path and the query separately, and would
+        // otherwise leave the query string inside a path segment: it would
+        // silently bind it into a route parameter, and then trip Flow's
+        // assertion on the base path once the location is rendered back.
+        Location parsedLocation = new Location(location);
+        ui.navigate(parsedLocation.getPath(),
+                parsedLocation.getQueryParameters());
         return validateNavigationTarget(ui, expectedTarget);
     }
 
