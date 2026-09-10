@@ -173,7 +173,7 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
         return usable;
     }
 
-    public void updateSelection(Collection<String> selection,
+    private void updateSelection(Collection<String> selection,
             BiConsumer<Collection<V>, Collection<V>> updater) {
         Set<String> uniqueItems = new HashSet<>(selection);
         Map<String, V> selectedItems = getCheckboxes(
