@@ -57,15 +57,26 @@ open class MockedUI : UI() {
      *
      * This replaces [UI.navigate] rather than extending it — `super` is never
      * called — so nothing the real [UI.navigate] does with a location reaches a
-     * browserless test. Any change to how Flow turns a location string into a
-     * [Location] has to be mirrored in [toLocation] to be observable here.
+     * browserless test. How a location string becomes a [Location], and how a
+     * fragment-only location is treated, therefore has to be mirrored here to
+     * be observable in a test.
      */
     override fun navigate(locationString: String, queryParameters: QueryParameters) {
+        val location = toLocation(locationString, queryParameters)
+
+        // A location that consists only of a fragment does not identify a
+        // route: a running application leaves it to the client router rather
+        // than resolving the "" route and replacing the current view. A test
+        // has no client router, so there is simply nothing to render.
+        if (location.path.isEmpty() && location.queryParameters.parameters.isEmpty() &&
+                locationString.contains(FRAGMENT_SEPARATOR)) {
+            return
+        }
 
         try {
             UI::class.java.getDeclaredMethod("renderViewForRoute", Location::class.java, NavigationTrigger::class.java)
                     .apply { isAccessible = true }
-                    .invoke(this, toLocation(locationString, queryParameters), NavigationTrigger.UI_NAVIGATE)
+                    .invoke(this, location, NavigationTrigger.UI_NAVIGATE)
         } catch (ex: InvocationTargetException) {
             // Reflection is an implementation detail of the mocked routing:
             // report what the router threw, not an InvocationTargetException
@@ -76,26 +87,23 @@ open class MockedUI : UI() {
     }
 
     /**
-     * Builds the [Location] to render, the way [UI.navigate] does in a running
-     * application, but saying so when the location is one that application
-     * would not navigate to either.
+     * Builds the [Location] to render the way [UI.navigate] does in a running
+     * application.
      *
-     * [UI.navigate] takes the path and the query separately, so a location
-     * such as `orders/1?tab=history` leaves the query string inside a path
-     * segment: a running application silently binds it into a route parameter
-     * (or fails to match the route at all), and under the assertions a test
-     * runs with it later trips `Base path can not contain query separator=?`,
-     * a message that names neither the location nor the API that was called.
-     * Report it here instead, rather than mocking the location into working
-     * and letting a test pass for navigation that is broken in production.
+     * Without separate query parameters the location string is the only source
+     * of them, so it is free to carry a query string and a fragment. Given
+     * both, its own query string or fragment would be lost, which is a mistake
+     * worth reporting rather than dropping silently.
      */
     private fun toLocation(locationString: String, queryParameters: QueryParameters): Location {
-        require(!locationString.contains(QUERY_SEPARATOR) && !locationString.contains(FRAGMENT_SEPARATOR)) {
-            "Location '$locationString' must be a path: UI.navigate takes the query string as QueryParameters, " +
-                    "and ignores a fragment. Pass the query as QueryParameters, or navigate with the browserless " +
-                    "navigate(location, viewType), which parses the location the way the address bar spells it."
+        val separateParameters = queryParameters.parameters.isNotEmpty()
+        require(!separateParameters ||
+                (!locationString.contains(QUERY_SEPARATOR) && !locationString.contains(FRAGMENT_SEPARATOR))) {
+            "The location '$locationString' must be a plain path when query parameters are given separately, " +
+                    "since its own query string or fragment would be lost. Pass the whole URL to " +
+                    "navigate(String) instead."
         }
-        return Location(locationString, queryParameters)
+        return if (separateParameters) Location(locationString, queryParameters) else Location(locationString)
     }
 
     private fun roundTrip() {

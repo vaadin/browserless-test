@@ -86,13 +86,13 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
     }
 
     @Test
-    public void uiNavigationWithQueryStringInLocation_throwsWithExplanation() {
-        // UI.navigate takes the query separately, in a test as in production
+    public void uiNavigationWithQueryStringAndQueryParameters_throwsWithExplanation() {
+        // Given both, the query string in the location would be lost
         IllegalArgumentException exception = Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> UI.getCurrent().navigate("template/ORD-1?tab=history",
-                        QueryParameters.empty()),
-                "UI.navigate should reject a location that is not a path");
+                        QueryParameters.of("page", "2")),
+                "Giving the query both in the location and separately should be rejected");
         Assertions.assertTrue(
                 exception.getMessage().contains("template/ORD-1?tab=history"),
                 "Exception should name the offending location, but was: "
@@ -104,6 +104,19 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
                 ((TemplatedParam) getCurrentView()).queryParameters
                         .getParameters().get("tab"),
                 "Query parameters given to UI.navigate should reach the view");
+    }
+
+    @Test
+    public void navigationToFragmentOnlyLocation_keepsCurrentView() {
+        final TemplatedParam view = navigate("template/ORD-1",
+                TemplatedParam.class);
+
+        // A fragment identifies a place within the page, not a route: it does
+        // not replace the current view with the one of the "" route
+        UI.getCurrent().navigate("#details");
+
+        Assertions.assertSame(view, getCurrentView(),
+                "A fragment-only location should not navigate away from the current view");
     }
 
     @Test
