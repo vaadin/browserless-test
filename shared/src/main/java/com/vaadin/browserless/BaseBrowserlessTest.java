@@ -175,12 +175,18 @@ public abstract class BaseBrowserlessTest {
 
     /**
      * Navigate to view corresponding to the given navigation target with the
-     * specified parameters.
+     * specified route parameters.
+     * <p>
+     * These are the parameters of the route template, such as {@code orderId}
+     * of {@code @Route("order/:orderId")} — not query parameters. To navigate
+     * with a query string, write it into the location given to
+     * {@link #navigate(String, Class)}.
      *
      * @param navigationTarget
      *            view class to navigate to
      * @param parameters
-     *            parameters to pass to view.
+     *            route parameters of the target's route template, keyed by
+     *            parameter name
      * @param <T>
      *            view type
      * @return instantiated view
@@ -194,9 +200,15 @@ public abstract class BaseBrowserlessTest {
     /**
      * Navigate to given location string. Check that location navigated to is
      * the expected view or throw exception.
+     * <p>
+     * The location is written the way it appears in the browser's address bar,
+     * so it may carry a query string and a fragment — for example
+     * {@code "order/ORD-1?tab=history"}, whose query parameters the view reads
+     * from the navigation event.
      *
      * @param location
-     *            location string for navigating
+     *            location string for navigating, optionally with a query string
+     *            and a fragment
      * @param expectedTarget
      *            class that is expected for navigation
      * @param <T>
