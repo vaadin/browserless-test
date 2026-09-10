@@ -232,4 +232,19 @@ public class TextFieldTesterTest extends BrowserlessTest {
                 "Clear should not be usable when text field is not usable");
     }
 
+    @Test
+    void textFieldWithoutClearButton_clickClearButton_throws() {
+        TextField tf = new TextField();
+        tf.setClearButtonVisible(false);
+        tf.setValue("Some value");
+        getCurrentView().getElement().appendChild(tf.getElement());
+
+        TextFieldTester<TextField, String> tf_ = test(tf);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                tf_::clickClearButton,
+                "A hidden clear button is not something the user can click");
+        Assertions.assertEquals("Some value", tf.getValue(),
+                "Value should not have changed");
+    }
 }

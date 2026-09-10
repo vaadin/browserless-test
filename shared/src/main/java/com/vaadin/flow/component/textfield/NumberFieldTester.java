@@ -77,6 +77,21 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
         clearAsUser();
     }
 
+    /**
+     * Empties the field by clicking its clear button, as the user would.
+     * <p/>
+     * Unlike {@link #clear()}, which models selecting the contents and deleting
+     * them and is therefore always available, this requires the clear button to
+     * be visible — a hidden clear button is not something the user can click.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     */
+    public void clickClearButton() {
+        clickClearButtonAsUser();
+    }
+
     private boolean isValid(V value) {
         final boolean isRequiredButEmpty = getComponent().isRequired()
                 && Objects.equals(getComponent().getEmptyValue(), value);

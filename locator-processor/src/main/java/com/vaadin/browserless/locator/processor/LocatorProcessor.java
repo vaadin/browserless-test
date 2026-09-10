@@ -82,6 +82,7 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
+    private static final String HAS_CLEAR_BUTTON_FQN = "com.vaadin.flow.component.shared.HasClearButton";
 
     /**
      * Mapping from Vaadin {@code Has*} interface FQN to the locator-side
@@ -326,6 +327,7 @@ public class LocatorProcessor extends AbstractProcessor {
         DeclaredType testerType = (DeclaredType) tester.asType();
         LinkedHashMap<String, ExecutableElement> inherited = new LinkedHashMap<>();
         collectDelegateMethods(tester, componentTesterEl, inherited);
+        checkClearButtonCoverage(tester, target, inherited);
         for (ExecutableElement m : inherited.values()) {
             ExecutableType resolved = (ExecutableType) types
                     .asMemberOf(testerType, m);
@@ -764,6 +766,38 @@ public class LocatorProcessor extends AbstractProcessor {
      * classes are visited first, so an inherited method whose erased signature
      * matches a leaf override is skipped — the leaf's version wins.
      */
+    /**
+     * Keep {@code clickClearButton()} coverage uniform: a component that
+     * implements {@code HasClearButton} has a clear button the user can click,
+     * so its tester must model that. Partial coverage is exactly the kind of
+     * gap you would otherwise only discover by compiling against the locator,
+     * so it is an error here rather than a warning.
+     *
+     * <p>
+     * Silently skipped when {@code HasClearButton} is not on the compilation
+     * classpath — nothing in this compilation unit can implement it then.
+     */
+    private void checkClearButtonCoverage(TypeElement tester,
+            TypeElement target, Map<String, ExecutableElement> delegates) {
+        if (processingEnv.getElementUtils()
+                .getTypeElement(HAS_CLEAR_BUTTON_FQN) == null) {
+            return;
+        }
+        if (!indexSupertypes(target).containsKey(HAS_CLEAR_BUTTON_FQN)) {
+            return;
+        }
+        if (delegates.containsKey("clickClearButton()")) {
+            return;
+        }
+        note(Diagnostic.Kind.ERROR,
+                "Tester " + tester.getQualifiedName() + " targets "
+                        + target.getQualifiedName()
+                        + ", which implements HasClearButton, but declares no"
+                        + " public clickClearButton(). Add it (delegating to"
+                        + " ComponentTester#clickClearButtonAsUser()) so the"
+                        + " generated locator exposes it.");
+    }
+
     private void collectDelegateMethods(TypeElement type,
             TypeElement componentTesterEl,
             LinkedHashMap<String, ExecutableElement> collected) {
