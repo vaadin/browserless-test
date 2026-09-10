@@ -94,6 +94,11 @@ open class MockedUI : UI() {
      * of them, so it is free to carry a query string and a fragment. Given
      * both, its own query string or fragment would be lost, which is a mistake
      * worth reporting rather than dropping silently.
+     *
+     * This mirrors `UI.navigate(String, QueryParameters)` as of
+     * https://github.com/vaadin/flow/pull/25591, backported to 25.3 in
+     * https://github.com/vaadin/flow/pull/25618. Compare against that method
+     * rather than against a locally resolved snapshot, which may predate it.
      */
     private fun toLocation(locationString: String, queryParameters: QueryParameters): Location {
         val separateParameters = queryParameters.parameters.isNotEmpty()

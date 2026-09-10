@@ -98,6 +98,12 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
                 "Exception should name the offending location, but was: "
                         + exception.getMessage());
 
+        // A fragment would be lost just as silently
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> UI.getCurrent().navigate("template/ORD-1#details",
+                        QueryParameters.of("page", "2")),
+                "A location carrying a fragment should be rejected as well");
+
         UI.getCurrent().navigate("template/ORD-1",
                 QueryParameters.of("tab", "history"));
         Assertions.assertEquals(List.of("history"),
