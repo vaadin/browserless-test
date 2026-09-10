@@ -55,7 +55,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 └── MockedUI[]
     └── WelcomeView[@theme='padding spacing']
         └── Text[text='Welcome!']
-""".trim()) { UI.getCurrent().toPrettyTree().trim() }
+""".trim()) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
     }
     afterEach { MockVaadin.tearDown() }
 
@@ -300,7 +300,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
     └── WelcomeView[@theme='padding spacing']
         └── Text[text='Welcome!']
 """.trim()
-            ) { UI.getCurrent().toPrettyTree().trim() }
+            ) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
         }
     }
 
@@ -560,3 +560,15 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         }
     }
 }
+/**
+ * Sorts the names within every `@theme='...'` of a pretty printed component
+ * tree.
+ *
+ * A component's theme names are a set, so the order they are printed in is
+ * whatever order the component happened to add them in — nothing a test should
+ * assert on. Sorting both sides keeps a tree assertion about the tree.
+ */
+private fun String.withSortedThemeNames(): String =
+        Regex("@theme='([^']*)'").replace(this) { match ->
+            "@theme='" + match.groupValues[1].split(' ').sorted().joinToString(" ") + "'"
+        }
