@@ -114,6 +114,32 @@ class LocatorApiTest {
     }
 
     @Test
+    void datePicker_clickClearButton_isDelegatedToTheLocator() {
+        // The processor requires clickClearButton() on every HasClearButton
+        // tester precisely so it reaches the generated locator; pin that here
+        // rather than relying only on the processor's own check.
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            var date = window.findDatePicker().withId("date").component();
+            window.findDatePicker().withLabel("Date")
+                    .setValue(LocalDate.of(2026, 5, 28));
+
+            date.setClearButtonVisible(false);
+            Assertions.assertThrows(IllegalStateException.class,
+                    () -> window.findDatePicker().withLabel("Date")
+                            .clickClearButton(),
+                    "A hidden clear button is not something the user can click");
+
+            date.setClearButtonVisible(true);
+            window.findDatePicker().withLabel("Date").clickClearButton();
+
+            Assertions.assertTrue(date.isEmpty(), "Value should have cleared");
+        }
+    }
+
+    @Test
     void withValue_typedAgainstComponentValueType() {
         // HasValueFilter threads V from the component's HasValue<?, V>, so
         // withValue is bound to the component's exact value type — String

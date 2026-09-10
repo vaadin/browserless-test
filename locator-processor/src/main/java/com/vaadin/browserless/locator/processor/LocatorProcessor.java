@@ -766,38 +766,6 @@ public class LocatorProcessor extends AbstractProcessor {
      * classes are visited first, so an inherited method whose erased signature
      * matches a leaf override is skipped — the leaf's version wins.
      */
-    /**
-     * Keep {@code clickClearButton()} coverage uniform: a component that
-     * implements {@code HasClearButton} has a clear button the user can click,
-     * so its tester must model that. Partial coverage is exactly the kind of
-     * gap you would otherwise only discover by compiling against the locator,
-     * so it is an error here rather than a warning.
-     *
-     * <p>
-     * Silently skipped when {@code HasClearButton} is not on the compilation
-     * classpath — nothing in this compilation unit can implement it then.
-     */
-    private void checkClearButtonCoverage(TypeElement tester,
-            TypeElement target, Map<String, ExecutableElement> delegates) {
-        if (processingEnv.getElementUtils()
-                .getTypeElement(HAS_CLEAR_BUTTON_FQN) == null) {
-            return;
-        }
-        if (!indexSupertypes(target).containsKey(HAS_CLEAR_BUTTON_FQN)) {
-            return;
-        }
-        if (delegates.containsKey("clickClearButton()")) {
-            return;
-        }
-        note(Diagnostic.Kind.ERROR,
-                "Tester " + tester.getQualifiedName() + " targets "
-                        + target.getQualifiedName()
-                        + ", which implements HasClearButton, but declares no"
-                        + " public clickClearButton(). Add it (delegating to"
-                        + " ComponentTester#clickClearButtonAsUser()) so the"
-                        + " generated locator exposes it.");
-    }
-
     private void collectDelegateMethods(TypeElement type,
             TypeElement componentTesterEl,
             LinkedHashMap<String, ExecutableElement> collected) {
@@ -833,6 +801,30 @@ public class LocatorProcessor extends AbstractProcessor {
                     (TypeElement) ((DeclaredType) sup).asElement(),
                     componentTesterEl, collected);
         }
+    }
+
+    /**
+     * Keep {@code clickClearButton()} coverage uniform: a component that
+     * implements {@code HasClearButton} has a clear button the user can click,
+     * so its tester must model that. Partial coverage is exactly the kind of
+     * gap you would otherwise only discover by compiling against the generated
+     * locator, so it is an error here rather than a warning.
+     */
+    private void checkClearButtonCoverage(TypeElement tester,
+            TypeElement target, Map<String, ExecutableElement> delegates) {
+        if (!indexSupertypes(target).containsKey(HAS_CLEAR_BUTTON_FQN)) {
+            return;
+        }
+        if (delegates.containsKey("clickClearButton()")) {
+            return;
+        }
+        note(Diagnostic.Kind.ERROR,
+                "Tester " + tester.getQualifiedName() + " targets "
+                        + target.getQualifiedName()
+                        + ", which implements HasClearButton, but declares no"
+                        + " public clickClearButton(). Add it (delegating to"
+                        + " ComponentTester#clickClearButtonAsUser()) so the"
+                        + " generated locator exposes it.");
     }
 
     private String erasedSignatureKey(ExecutableElement m) {
