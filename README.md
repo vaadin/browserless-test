@@ -14,7 +14,7 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 
 ## Features
 
-- **65+ built-in component testers** — ready-made wrappers for Grid, Button,
+- **68+ built-in component testers** — ready-made wrappers for Grid, Button,
   TextField, ComboBox, Dialog, DatePicker, Upload, Charts, and many more
 - **View navigation** — navigate to `@Route`-annotated views with path, query,
   and template parameters
