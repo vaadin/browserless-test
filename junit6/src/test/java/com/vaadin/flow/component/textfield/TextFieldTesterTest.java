@@ -194,19 +194,6 @@ public class TextFieldTesterTest extends BrowserlessTest
                 "Value should have cleared");
     }
 
-    @Test
-    void notUsableTextField_clear_throws() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(true);
-        tf.setEnabled(false);
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-
-        Assertions.assertThrows(IllegalStateException.class, tf_::clear,
-                "Clear should not be usable when text field is not usable");
-    }
-
     @Override
     public HasValue<?, ?> fieldUnderTest() {
         view.textField.setValue("Some value");

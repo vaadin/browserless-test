@@ -43,6 +43,8 @@ public interface RefusesEmptyValueContract extends ClearContract {
         Assertions.assertThrows(IllegalArgumentException.class,
                 this::setEmptyValue,
                 "setValue() should refuse the empty value on a required field");
+        Assertions.assertFalse(field.isEmpty(),
+                "a refused setValue() should not have changed the value");
 
         clear();
 
