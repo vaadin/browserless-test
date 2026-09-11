@@ -19,6 +19,7 @@ package com.vaadin.browserless.mocks
 
 import java.io.Serializable
 import java.util.Enumeration
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -111,14 +112,17 @@ open class MockHttpSession(
         }
     }
 
+    fun setId(id: String) {
+        sessionId = id;
+    }
+
     override fun toString(): String =
         "MockHttpSession(sessionId='$sessionId', creationTime=$creationTime, maxInactiveInterval=$maxInactiveInterval, attributes=$attributes, isValid=$isValid)"
 
     companion object {
-        private val sessionIdGenerator = AtomicInteger()
         fun create(ctx: ServletContext): MockHttpSession =
             MockHttpSession(
-                sessionIdGenerator.incrementAndGet().toString(),
+                UUID.randomUUID().toString(),
                 ctx,
                 System.currentTimeMillis(),
                 30
