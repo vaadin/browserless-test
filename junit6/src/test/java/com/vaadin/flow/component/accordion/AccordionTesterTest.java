@@ -95,6 +95,22 @@ class AccordionTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void alreadyOpenPanel_openDetails_staysOpenAndFiresNoEvent() {
+        final AccordionTester<Accordion> wrap = test(view.accordion);
+        wrap.openDetails("Green");
+
+        final List<Accordion.OpenedChangeEvent> events = new ArrayList<>();
+        view.accordion.addOpenedChangeListener(events::add);
+
+        wrap.openDetails("Green");
+
+        Assertions.assertTrue(wrap.isOpen("Green"),
+                "Re-opening the open panel should leave it open");
+        Assertions.assertTrue(events.isEmpty(),
+                "Re-opening the open panel is not a state change and should fire no event");
+    }
+
+    @Test
     void closeDetails_viaTester_eventFiredWithFromClientTrue() {
         final AccordionTester<Accordion> wrap = test(view.accordion);
         wrap.openDetails("Green");
@@ -196,11 +212,14 @@ class AccordionTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void notUsableAccordion_closeAndToggle_throw() {
+    void notUsableAccordion_openCloseAndToggle_throw() {
         final AccordionTester<Accordion> wrap = test(view.accordion);
         wrap.openDetails("Green");
         view.accordion.getElement().setEnabled(false);
 
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> wrap.openDetails("Red"),
+                "Opening a disabled accordion should throw");
         Assertions.assertThrows(IllegalStateException.class, wrap::closeDetails,
                 "Closing a disabled accordion should throw");
         Assertions.assertThrows(IllegalStateException.class,
