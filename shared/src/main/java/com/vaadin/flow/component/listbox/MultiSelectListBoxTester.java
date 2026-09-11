@@ -110,8 +110,7 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
      *             if the component is not usable
      */
     public void clearSelection() {
-        ensureComponentIsUsable();
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     /**

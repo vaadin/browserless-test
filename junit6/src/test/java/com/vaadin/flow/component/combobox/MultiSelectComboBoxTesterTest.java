@@ -25,11 +25,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
+public class MultiSelectComboBoxTesterTest extends BrowserlessTest
+        implements ClearButtonContract {
 
     MultiSelectComboBoxView view;
 
@@ -58,6 +61,16 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.combo).setFilter("fo"));
+    }
+
+    @Test
+    void notUsableComboBox_selectItem_throws() {
+        view.combo.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
     }
 
     @Test
@@ -128,5 +141,18 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
                 view.combo.getSelectedItems());
         Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
         Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
+    }
+
+    // As with ComboBox, emptying without a clear button is selectItem(null).
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.combo.setValue(Set.of(view.items.get(0)));
+        return view.combo;
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.combo).clickClearButton();
     }
 }

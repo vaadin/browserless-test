@@ -45,17 +45,69 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      */
     public void openDetails(String summary) {
         ensureComponentIsUsable();
-        final AccordionPanel childPanel = getPanelBySummary(summary);
-        if (childPanel == null) {
-            throw new IllegalArgumentException(
-                    "No dropdown found for '" + summary + "'");
+        openPanel(requirePanelBySummary(summary));
+    }
+
+    /**
+     * Close the open accordion panel, as if the user clicked its summary.
+     *
+     * An exception will be thrown if no panel is open.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable or if no panel is open
+     */
+    public void closeDetails() {
+        ensureComponentIsUsable();
+        if (getComponent().getOpenedPanel().isEmpty()) {
+            throw new IllegalStateException("No accordion panel is open");
         }
-        // Simulate a user opening the panel so that the resulting
-        // OpenedChangeEvent reports isFromClient() == true, consistent with the
-        // other interaction testers.
-        int index = getComponent().getElement()
-                .indexOfChild(childPanel.getElement());
-        setPropertyAsUser("opened", (double) index);
+        closePanel();
+    }
+
+    /**
+     * Close the accordion panel with the given summary, as if the user clicked
+     * its summary.
+     *
+     * An exception will be thrown if the panel is not the open one.
+     *
+     * @param summary
+     *            summary of accordion panel
+     * @throws IllegalArgumentException
+     *             if no dropdown panel found for summary
+     * @throws IllegalStateException
+     *             if the component is not usable or if the panel is not open
+     */
+    public void closeDetails(String summary) {
+        ensureComponentIsUsable();
+        if (!isOpen(requirePanelBySummary(summary))) {
+            throw new IllegalStateException(
+                    "Accordion panel '" + summary + "' is not open");
+        }
+        closePanel();
+    }
+
+    /**
+     * Toggle the accordion panel with the given summary, as if the user clicked
+     * its summary. An open panel is closed, a closed panel is opened.
+     *
+     * Note that an accordion has at most one open panel, so opening a panel
+     * closes whichever panel was open before.
+     *
+     * @param summary
+     *            summary of accordion panel
+     * @throws IllegalArgumentException
+     *             if no dropdown panel found for summary
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void toggleDetails(String summary) {
+        ensureComponentIsUsable();
+        final AccordionPanel childPanel = requirePanelBySummary(summary);
+        if (isOpen(childPanel)) {
+            closePanel();
+        } else {
+            openPanel(childPanel);
+        }
     }
 
     /**
@@ -97,6 +149,36 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      */
     public boolean hasPanel(String summary) {
         return getPanelBySummary(summary) != null;
+    }
+
+    private void openPanel(AccordionPanel childPanel) {
+        int index = getComponent().getElement()
+                .indexOfChild(childPanel.getElement());
+        updateOpenedFromClient((double) index);
+    }
+
+    private void closePanel() {
+        updateOpenedFromClient(null);
+    }
+
+    /**
+     * Simulates a user opening or closing a panel, so that the resulting
+     * {@code OpenedChangeEvent} reports {@code isFromClient() == true},
+     * consistent with the other interaction testers. A {@code null} index
+     * closes the accordion, which is what the client sends when the summary of
+     * the open panel is clicked.
+     */
+    private void updateOpenedFromClient(@Nullable Double index) {
+        setPropertyAsUser("opened", index);
+    }
+
+    private AccordionPanel requirePanelBySummary(String summary) {
+        final AccordionPanel childPanel = getPanelBySummary(summary);
+        if (childPanel == null) {
+            throw new IllegalArgumentException(
+                    "No dropdown found for '" + summary + "'");
+        }
+        return childPanel;
     }
 
     private boolean isOpen(AccordionPanel childPanel) {

@@ -131,4 +131,15 @@ class MultiSelectListBoxTesterTest extends BrowserlessTest {
         Assertions.assertTrue(list_.getSelected().isEmpty());
     }
 
+    @Test
+    void notUsableListBox_clearSelection_throws() {
+        final MultiSelectListBoxTester<MultiSelectListBox<String>, String> list_ = test(
+                view.multiSelectListBox);
+        list_.selectItems("one");
+        view.multiSelectListBox.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                list_::clearSelection);
+    }
+
 }
