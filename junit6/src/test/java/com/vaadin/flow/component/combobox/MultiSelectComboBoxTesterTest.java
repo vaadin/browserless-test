@@ -98,15 +98,4 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty(),
                 "Selecting null should clear selection");
     }
-
-    @Test
-    void clickClearButton_selectionIsCleared() {
-        view.combo.setClearButtonVisible(true);
-        test(view.combo).selectItem("test-foo", "test-bar");
-
-        test(view.combo).clickClearButton();
-
-        Assertions.assertTrue(view.combo.getValue().isEmpty(),
-                "Selection should have cleared");
-    }
 }

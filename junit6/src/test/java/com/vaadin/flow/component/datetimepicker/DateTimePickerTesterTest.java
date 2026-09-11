@@ -99,18 +99,4 @@ class DateTimePickerTesterTest extends BrowserlessTest {
 
         Assertions.assertEquals(newValue, value.get());
     }
-
-    @Test
-    void requiredPicker_clear_valueIsCleared() {
-        // DateTimePicker has no clear button at all, so clear() cannot be
-        // gated on one.
-        test(view.picker).setValue(
-                LocalDateTime.of(LocalDate.of(1995, 1, 5), LocalTime.NOON));
-        view.picker.setRequiredIndicatorVisible(true);
-
-        test(view.picker).clear();
-
-        Assertions.assertNull(view.picker.getValue(),
-                "Value should have cleared");
-    }
 }

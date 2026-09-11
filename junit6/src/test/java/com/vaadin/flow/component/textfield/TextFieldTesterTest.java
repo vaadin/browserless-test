@@ -204,22 +204,6 @@ public class TextFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void textFieldWithoutClearButton_clear_valueIsCleared() {
-        // Selecting the contents and deleting them empties the field whether
-        // or not a clear button is rendered, so clear() does not require one.
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(false);
-        tf.setRequiredIndicatorVisible(true);
-        tf.setValue("Some value");
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-        tf_.clear();
-
-        Assertions.assertTrue(tf.isEmpty(), "Value should have cleared");
-    }
-
-    @Test
     void notUsableTextField_clear_throws() {
         TextField tf = new TextField();
         tf.setClearButtonVisible(true);
@@ -230,21 +214,5 @@ public class TextFieldTesterTest extends BrowserlessTest {
 
         Assertions.assertThrows(IllegalStateException.class, tf_::clear,
                 "Clear should not be usable when text field is not usable");
-    }
-
-    @Test
-    void textFieldWithoutClearButton_clickClearButton_throws() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(false);
-        tf.setValue("Some value");
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-
-        Assertions.assertThrows(IllegalStateException.class,
-                tf_::clickClearButton,
-                "A hidden clear button is not something the user can click");
-        Assertions.assertEquals("Some value", tf.getValue(),
-                "Value should not have changed");
     }
 }

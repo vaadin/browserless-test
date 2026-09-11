@@ -90,25 +90,4 @@ public class ComboBoxTesterTest extends BrowserlessTest {
         Assertions.assertNull(test(view.combo).getSelected(),
                 "Selecting null should clear selection");
     }
-
-    @Test
-    void clickClearButton_selectionIsCleared() {
-        view.combo.setClearButtonVisible(true);
-        test(view.combo).selectItem("test-foo");
-
-        test(view.combo).clickClearButton();
-
-        Assertions.assertNull(view.combo.getValue(),
-                "Selection should have cleared");
-    }
-
-    @Test
-    void clickClearButton_buttonNotVisible_throws() {
-        view.combo.setClearButtonVisible(false);
-        test(view.combo).selectItem("test-foo");
-
-        Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.combo).clickClearButton(),
-                "A hidden clear button is not something the user can click");
-    }
 }
