@@ -16,15 +16,19 @@
 package com.vaadin.browserless;
 
 import java.util.Collections;
+import java.util.List;
 
 import com.example.SingleParam;
 import com.example.TemplatedParam;
 import com.example.base.HelloWorldView;
 import com.example.base.WelcomeView;
+import com.example.failing.FailingAssertionView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.internal.MockRouteNotFoundError;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.QueryParameters;
 
 @ViewPackages(packages = "com.example")
 public class BrowserlessNavigationTest extends BrowserlessTest {
@@ -63,6 +67,72 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
                 .contains("Navigation resulted in unexpected class"));
         Assertions.assertTrue(exception.getMessage()
                 .contains(MockRouteNotFoundError.class.getName()));
+    }
+
+    @Test
+    public void navigationWithQueryString_queryParametersReachView() {
+        final TemplatedParam view = navigate(
+                "template/ORD-1?tab=history&page=2#details",
+                TemplatedParam.class);
+
+        Assertions.assertEquals("ORD-1", view.parameter,
+                "Route parameter should be resolved from the path, without the query string or fragment");
+        Assertions.assertEquals(List.of("history"),
+                view.queryParameters.getParameters().get("tab"),
+                "Query parameter of the location should be available to the view");
+        Assertions.assertEquals(List.of("2"),
+                view.queryParameters.getParameters().get("page"),
+                "Query parameter of the location should be available to the view");
+    }
+
+    @Test
+    public void uiNavigationWithQueryStringAndQueryParameters_throwsWithExplanation() {
+        // Given both, the query string in the location would be lost
+        IllegalArgumentException exception = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> UI.getCurrent().navigate("template/ORD-1?tab=history",
+                        QueryParameters.of("page", "2")),
+                "Giving the query both in the location and separately should be rejected");
+        Assertions.assertTrue(
+                exception.getMessage().contains("template/ORD-1?tab=history"),
+                "Exception should name the offending location, but was: "
+                        + exception.getMessage());
+
+        // A fragment would be lost just as silently
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> UI.getCurrent().navigate("template/ORD-1#details",
+                        QueryParameters.of("page", "2")),
+                "A location carrying a fragment should be rejected as well");
+
+        UI.getCurrent().navigate("template/ORD-1",
+                QueryParameters.of("tab", "history"));
+        Assertions.assertEquals(List.of("history"),
+                ((TemplatedParam) getCurrentView()).queryParameters
+                        .getParameters().get("tab"),
+                "Query parameters given to UI.navigate should reach the view");
+    }
+
+    @Test
+    public void navigationToFragmentOnlyLocation_keepsCurrentView() {
+        final TemplatedParam view = navigate("template/ORD-1",
+                TemplatedParam.class);
+
+        // A fragment identifies a place within the page, not a route: it does
+        // not replace the current view with the one of the "" route
+        UI.getCurrent().navigate("#details");
+
+        Assertions.assertSame(view, getCurrentView(),
+                "A fragment-only location should not navigate away from the current view");
+    }
+
+    @Test
+    public void navigationToViewFailingAnAssertion_reportsTheAssertion() {
+        AssertionError error = Assertions.assertThrows(AssertionError.class,
+                () -> navigate("failing-assertion", FailingAssertionView.class),
+                "The error thrown while entering the view should reach the caller");
+        Assertions.assertEquals(FailingAssertionView.MESSAGE,
+                error.getMessage(),
+                "The caller should see what was thrown, not a wrapper hiding it");
     }
 
     @Test

@@ -24,7 +24,8 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   `findTextField()` entry points that combine query filters with tester
   actions
 - **Keyboard shortcut simulation** — fire shortcuts with modifier keys
-- **Signals / reactive state** — process pending signal tasks in tests
+- **Signals / reactive state** — process pending signal tasks in tests,
+  including the confirmation of shared-signal writes
 - **Round-trip simulation** — flush pending server-side changes
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
@@ -369,6 +370,48 @@ Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
 
+## Signals
+
+Signal effects and shared-signal confirmations are not executed on a background
+thread pool in a browserless test. They are queued, so that a test can decide
+when they run, and are executed on the test thread by
+`runPendingSignalsTasks()` (also available as
+`window.runPendingSignalsTasks()` in the multi-window API and on the JUnit
+extension).
+
+### Effects triggered outside the UI thread
+
+```java
+CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0));
+runPendingSignalsTasks(); // waits up to 100 ms for the first task
+assertEquals("Counter: 10", test(view.counter).getText());
+```
+
+### Writes to shared signals
+
+A write to a `SharedValueSignal`, `SharedListSignal`,
+`SharedMapSignal` or `SharedNumberSignal` is applied optimistically and
+is visible through `peek()` straight away. The `SignalOperation`
+returned by the write is completed only when the underlying signal tree
+confirms the command, and that confirmation is dispatched through the same
+queue — so it completes on the next `runPendingSignalsTasks()`:
+
+```java
+var operation = tickets.insertLast("a ticket");
+
+assertEquals(1, tickets.peek().size()); // already applied
+assertFalse(operation.result().isDone()); // not confirmed yet
+
+runPendingSignalsTasks();
+
+assertTrue(operation.result().join().successful());
+```
+
+Blocking on the operation before draining the queue —
+`operation.result().get(5, SECONDS)` — always times out: the confirmation
+task can only run on the thread that is blocked waiting for it. A timeout there
+means the queue has not been drained, not that the write was lost.
+
 ## Multi-user and multi-window testing
 
 For tests that need to drive multiple users — or multiple browser windows for
@@ -569,6 +612,12 @@ and `_blank`.
   subsequent activation.
 - Same-user window switches don't touch the snapshot, so per-window UI state
   is preserved across interleaved operations within one user.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
+including the shared test contracts (`ClearContract`, `ClearButtonContract`,
+`RefusesEmptyValueContract`) that every value tester's test class implements.
 
 ## License
 

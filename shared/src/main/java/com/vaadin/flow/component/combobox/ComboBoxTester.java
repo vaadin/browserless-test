@@ -100,11 +100,14 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * @throws IllegalArgumentException
      *             if no item with the given label is found among current
      *             suggestions
+     * @throws IllegalStateException
+     *             if the component is not usable
      * @see #setFilter(String)
      * @see #getSuggestions()
      * @see #getSuggestionItems()
      */
     public void selectItem(String selection) {
+        ensureComponentIsUsable();
         if (selection == null) {
             setValueAsUser(null);
             return;
@@ -120,6 +123,21 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
                     "No item found for '" + selection + "'");
         }
         setValueAsUser(filtered.get(0));
+    }
+
+    /**
+     * Clears the selection by clicking the clear button, as the user would.
+     * <p/>
+     * Requires the clear button to be visible — a hidden clear button is not
+     * something the user can click. {@link #selectItem(String)} with
+     * {@code null} clears the selection without that requirement.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     */
+    public void clickClearButton() {
+        clickClearButtonAsUser();
     }
 
     /**

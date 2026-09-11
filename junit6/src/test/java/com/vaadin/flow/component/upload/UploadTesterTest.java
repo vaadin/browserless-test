@@ -78,13 +78,28 @@ class UploadTesterTest extends BrowserlessTest {
 
     @Test
     void upload_notUsable_throws() {
+        // handlers are registered so that the upload only fails because the
+        // component is not usable
+        view.uploadSingle
+                .setUploadHandler(UploadHandler.inMemory((metadata, data) -> {
+                }));
+        view.uploadMulti
+                .setUploadHandler(UploadHandler.inMemory((metadata, data) -> {
+                }));
         view.uploadSingle.setVisible(false);
+        view.uploadMulti.setVisible(false);
+
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.upload(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.uploadAborted(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.uploadFailed(file1));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> multi_.uploadAll(file1, file2));
+        // not being usable is reported before the file count is validated
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> multi_.uploadAll(List.of()));
     }
 
     @Test

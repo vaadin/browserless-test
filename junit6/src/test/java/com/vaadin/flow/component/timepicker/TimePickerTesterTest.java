@@ -23,6 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.RefusesEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -31,7 +33,8 @@ import com.vaadin.flow.router.RouteConfiguration;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
-class TimePickerTesterTest extends BrowserlessTest {
+class TimePickerTesterTest extends BrowserlessTest
+        implements RefusesEmptyValueContract, ClearButtonContract {
 
     TimePickerView view;
     TimePickerTester<TimePicker> pick_;
@@ -94,4 +97,24 @@ class TimePickerTesterTest extends BrowserlessTest {
         Assertions.assertEquals(newValue, value.get());
     }
 
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.picker.setValue(LocalTime.NOON);
+        return view.picker;
+    }
+
+    @Override
+    public void clear() {
+        pick_.clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        pick_.clickClearButton();
+    }
+
+    @Override
+    public void setEmptyValue() {
+        pick_.setValue(view.picker.getEmptyValue());
+    }
 }

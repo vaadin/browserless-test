@@ -15,67 +15,77 @@
  */
 package com.vaadin.browserless.mocks
 
+import com.vaadin.flow.component.HasElement
 import com.vaadin.flow.di.Instantiator
 import com.vaadin.flow.i18n.I18NProvider
+import com.vaadin.flow.router.NavigationEvent
+import com.vaadin.flow.router.PageTitleGenerator
+import com.vaadin.flow.server.DependencyFilter
 import com.vaadin.flow.server.auth.MenuAccessControl
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.implementation.MethodCall
-import net.bytebuddy.matcher.ElementMatchers
+import com.vaadin.flow.server.communication.IndexHtmlRequestListener
+import java.util.stream.Stream
 
 /**
- * Makes sure to load [MockNpmTemplateParser].
+ * An [Instantiator] wrapping the one the mocked environment provides.
+ *
+ * The wrapper does not mock anything any more: the [getOrCreate] special cases
+ * it was written for are long gone, so every member simply forwards to
+ * [delegate]. The mocked services therefore use the environment's own
+ * instantiator directly, and this class is kept for source compatibility only.
+ *
+ * The forwarding is spelled out by hand on purpose: Kotlin interface delegation
+ * only generates forwarders for the abstract members of [Instantiator], so a
+ * method Flow declares as a Java `default` would otherwise resolve to that
+ * default implementation and never reach the delegate — which is how a Spring
+ * `PageTitleGenerator` bean used to be dropped in browserless tests. Since a
+ * wrapper can always fall behind a method added to [Instantiator] later,
+ * [create] hands back the delegate itself instead of wrapping it.
+ *
+ * The list of forwarders below is deliberately not guarded by a test: pinning
+ * it would fail the build whenever Flow adds a method to [Instantiator], which
+ * is not worth it for a class scheduled for removal and used by nothing here.
+ * A method missing from the list is therefore silently dropped for callers who
+ * construct this class themselves — one more reason not to.
  */
+@Deprecated(
+    "Wrapping the instantiator of the mocked environment has no effect; use that instantiator directly. Scheduled for removal."
+)
 open class MockInstantiator(val delegate: Instantiator) : Instantiator by delegate {
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : Any?> getOrCreate(type: Class<T>): T = when (type) {
-        /*
-        LitTemplateParser.LitTemplateParserFactory::class.java ->
-            MockLitTemplateParserFactory as T
-        MockInstantiatorV18.classNpmTemplateParserFactory ->
-            MockInstantiatorV18.classMockNpmTemplateParserFactory.getConstructor().newInstance() as T
-         */
-        else -> delegate.getOrCreate(type)
-    }
+    override fun <T : Any?> getOrCreate(type: Class<T>): T = delegate.getOrCreate(type)
 
     override fun getMenuAccessControl(): MenuAccessControl = delegate.menuAccessControl
 
     override fun getI18NProvider(): I18NProvider? = delegate.i18NProvider
 
+    override fun getPageTitleGenerator(): PageTitleGenerator? = delegate.pageTitleGenerator
+
+    override fun getIndexHtmlRequestListeners(
+        indexHtmlRequestListeners: Stream<IndexHtmlRequestListener>
+    ): Stream<IndexHtmlRequestListener> =
+        delegate.getIndexHtmlRequestListeners(indexHtmlRequestListeners)
+
+    override fun getDependencyFilters(
+        serviceInitFilters: Stream<DependencyFilter>
+    ): Stream<DependencyFilter> = delegate.getDependencyFilters(serviceInitFilters)
+
+    override fun getApplicationClass(instance: Any): Class<*> =
+        delegate.getApplicationClass(instance)
+
+    override fun getApplicationClass(clazz: Class<*>): Class<*> =
+        delegate.getApplicationClass(clazz)
+
+    override fun <T : HasElement> createRouteTarget(
+        routeTargetType: Class<T>,
+        event: NavigationEvent
+    ): T = delegate.createRouteTarget(routeTargetType, event)
+
     companion object {
+        /**
+         * Returns [delegate] as is: wrapping it changes nothing, and a wrapper
+         * risks dropping methods added to [Instantiator] in the future.
+         */
         @JvmStatic
-        fun create(delegate: Instantiator): Instantiator {
-            return MockInstantiator(delegate)
-        }
+        fun create(delegate: Instantiator): Instantiator = delegate
     }
 }
-
-private object ByteBuddyUtils {
-    /**
-     * Subclasses [baseClass] and overrides [methodName] which will now return [withResult].
-     */
-    fun overrideMethod(baseClass: Class<*>, methodName: String, withResult: () -> Any?): Class<*> {
-        return ByteBuddy().subclass(baseClass)
-                .method(ElementMatchers.named(methodName))
-                .intercept(MethodCall.call(withResult))
-                .make()
-                .load(ByteBuddyUtils::class.java.classLoader)
-                .loaded
-    }
-}
-
-/*
-private object MockLitTemplateParserImpl : LitTemplateParserImpl() {
-    override fun getSourcesFromTemplate(tag: String, url: String): String =
-            MockNpmTemplateParser.mockGetSourcesFromTemplate(tag, url)
-
-    // Vaadin 22.0.0.beta2+ adds a new `service` parameter, need to override that function as well.
-    open fun getSourcesFromTemplate(service: VaadinService, tag: String, url: String): String =
-            MockNpmTemplateParser.mockGetSourcesFromTemplate(tag, url)
-}
-
-private object MockLitTemplateParserFactory : LitTemplateParser.LitTemplateParserFactory() {
-    override fun createParser() = MockLitTemplateParserImpl
-}
-
-*/

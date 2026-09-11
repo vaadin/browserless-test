@@ -44,6 +44,15 @@ import com.vaadin.flow.signals.SignalEnvironment;
  * </ul>
  *
  * <p>
+ * Shared signals ({@code SharedValueSignal}, {@code SharedListSignal} and
+ * friends) back onto a
+ * {@code com.vaadin.flow.signals.shared.impl.LocalAsynchronousSignalTree},
+ * which confirms submitted commands through the effect dispatcher. Their writes
+ * are therefore visible immediately, while the {@code SignalOperation} returned
+ * by the write is only completed once the queued confirmation task is executed
+ * by {@link #runPendingTasks(long, TimeUnit)}.
+ *
+ * <p>
  * Usage:
  *
  * <pre>
