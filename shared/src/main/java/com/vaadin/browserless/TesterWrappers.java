@@ -147,6 +147,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextFieldTester;
 import com.vaadin.flow.component.timepicker.TimePicker;
 import com.vaadin.flow.component.timepicker.TimePickerTester;
+import com.vaadin.flow.component.treegrid.TreeGrid;
+import com.vaadin.flow.component.treegrid.TreeGridTester;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.UploadTester;
 import com.vaadin.flow.component.virtuallist.VirtualList;
@@ -455,6 +457,15 @@ public interface TesterWrappers {
     default TimePickerTester<TimePicker> test(TimePicker timePicker) {
         return BaseBrowserlessTest.internalWrap(TimePickerTester.class,
                 timePicker);
+    }
+
+    default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid<V> treeGrid) {
+        return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
+    }
+
+    default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid treeGrid,
+            Class<V> itemType) {
+        return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
     }
 
     default UploadTester<Upload> test(Upload upload) {
