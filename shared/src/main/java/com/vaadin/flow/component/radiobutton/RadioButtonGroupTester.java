@@ -64,8 +64,7 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
      * Deselects item selection.
      */
     public void deselectItem() {
-        ensureComponentIsUsable();
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     /**
