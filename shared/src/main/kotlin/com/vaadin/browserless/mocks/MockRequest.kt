@@ -37,7 +37,7 @@ import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-open class MockRequest(private var session: HttpSession) : HttpServletRequest {
+open class MockRequest(private var session: MockHttpSession) : HttpServletRequest {
 
     override fun getInputStream(): ServletInputStream {
         throw UnsupportedOperationException("not implemented")
