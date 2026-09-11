@@ -34,6 +34,7 @@ import java.security.Principal
 import java.util.Collections
 import java.util.Enumeration
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 open class MockRequest(private var session: HttpSession) : HttpServletRequest {
@@ -175,7 +176,9 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
             ?: -1
 
     override fun changeSessionId(): String {
-        throw UnsupportedOperationException("not implemented")
+        val id = UUID.randomUUID().toString()
+        session.setId(id)
+        return id
     }
 
     override fun getAsyncContext(): AsyncContext {
