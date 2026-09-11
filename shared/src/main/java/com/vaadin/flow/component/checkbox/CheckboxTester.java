@@ -41,6 +41,33 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
         super(component);
     }
 
+    /**
+     * Checks whether the checkbox is currently checked.
+     *
+     * @return {@code true} if the checkbox is checked, {@code false} otherwise
+     */
+    public boolean isChecked() {
+        return getComponent().getValue();
+    }
+
+    /**
+     * Sets the checkbox to the given checked state, as a user clicking it
+     * would.
+     * <p>
+     * Does nothing if the checkbox is already in the requested state, but the
+     * checkbox must be usable in either case.
+     *
+     * @param checked
+     *            {@code true} to check the checkbox, {@code false} to uncheck
+     *            it
+     */
+    public void setChecked(boolean checked) {
+        ensureComponentIsUsable();
+        if (isChecked() != checked) {
+            click();
+        }
+    }
+
     @Override
     public boolean isUsable() {
         return super.isUsable() && !getComponent().isDisabledBoolean();
