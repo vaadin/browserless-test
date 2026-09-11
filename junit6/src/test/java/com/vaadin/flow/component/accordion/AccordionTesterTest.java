@@ -145,9 +145,12 @@ class AccordionTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void unknownSummary_closeAndToggle_throw() {
+    void unknownSummary_openCloseAndToggle_throw() {
         final AccordionTester<Accordion> wrap = test(view.accordion);
 
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> wrap.openDetails("Orange"),
+                "Opening a panel that does not exist should throw");
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> wrap.closeDetails("Orange"),
                 "Closing a panel that does not exist should throw");
