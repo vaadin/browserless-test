@@ -19,8 +19,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.internal.nodefeature.ElementPropertyMap;
-import com.vaadin.flow.internal.nodefeature.PropertyChangeDeniedException;
 
 /**
  * @since 1.0
@@ -47,7 +45,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      */
     public void openDetails(String summary) {
         ensureComponentIsUsable();
-        openPanel(requirePanelBySummary(summary), summary);
+        openPanel(requirePanelBySummary(summary));
     }
 
     /**
@@ -60,10 +58,10 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      */
     public void closeDetails() {
         ensureComponentIsUsable();
-        final AccordionPanel openedPanel = getComponent().getOpenedPanel()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No accordion panel is open"));
-        closePanel(openedPanel.getSummaryText());
+        if (getComponent().getOpenedPanel().isEmpty()) {
+            throw new IllegalStateException("No accordion panel is open");
+        }
+        closePanel();
     }
 
     /**
@@ -85,7 +83,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
             throw new IllegalStateException(
                     "Accordion panel '" + summary + "' is not open");
         }
-        closePanel(summary);
+        closePanel();
     }
 
     /**
@@ -106,9 +104,9 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
         ensureComponentIsUsable();
         final AccordionPanel childPanel = requirePanelBySummary(summary);
         if (isOpen(childPanel)) {
-            closePanel(summary);
+            closePanel();
         } else {
-            openPanel(childPanel, summary);
+            openPanel(childPanel);
         }
     }
 
@@ -153,34 +151,18 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
         return getPanelBySummary(summary) != null;
     }
 
-    private void openPanel(AccordionPanel childPanel, String summary) {
+    private void openPanel(AccordionPanel childPanel) {
         int index = getComponent().getElement()
                 .indexOfChild(childPanel.getElement());
-        updateOpenedFromClient((double) index,
-                "opening the accordion panel '" + summary + "'");
-    }
-
-    private void closePanel(String summary) {
-        updateOpenedFromClient(null,
-                "closing the accordion panel '" + summary + "'");
+        setPropertyAsUser("opened", (double) index);
     }
 
     /**
-     * Simulates a user opening or closing a panel, so that the resulting
-     * {@code OpenedChangeEvent} reports {@code isFromClient() == true},
-     * consistent with the other interaction testers. A {@code null} index
-     * closes the accordion, which is what the client sends when the summary of
-     * the open panel is clicked.
+     * A {@code null} index closes the accordion, which is what the client sends
+     * when the summary of the open panel is clicked.
      */
-    private void updateOpenedFromClient(@Nullable Double index, String action) {
-        try {
-            getComponent().getElement().getNode()
-                    .getFeature(ElementPropertyMap.class)
-                    .deferredUpdateFromClient("opened", index).run();
-        } catch (PropertyChangeDeniedException e) {
-            throw new IllegalStateException("Unable to simulate " + action, e);
-        }
-        roundTrip();
+    private void closePanel() {
+        setPropertyAsUser("opened", null);
     }
 
     private AccordionPanel requirePanelBySummary(String summary) {

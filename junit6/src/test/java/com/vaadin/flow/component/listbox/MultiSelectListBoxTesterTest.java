@@ -15,6 +15,9 @@
  */
 package com.vaadin.flow.component.listbox;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,12 @@ class MultiSelectListBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertFalse(test(view.multiSelectListBox).isUsable(),
                 "Read only MultiSelectListBox shouldn't be usable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).selectItems("one"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).deselectItems("one"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.multiSelectListBox).clearSelection());
     }
 
     @Test
@@ -87,6 +96,24 @@ class MultiSelectListBoxTesterTest extends BrowserlessTest {
         list_.selectItems("one");
 
         Assertions.assertIterableEquals(view.selection, list_.getSelected());
+    }
+
+    @Test
+    void selectDeselectAndClear_valueChangesLookLikeUserInteraction() {
+        final MultiSelectListBoxTester<MultiSelectListBox<String>, String> list_ = test(
+                view.multiSelectListBox);
+        List<Boolean> fromClient = new ArrayList<>();
+        view.multiSelectListBox.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        list_.selectItems("one", "two");
+        list_.deselectItems("one");
+        list_.clearSelection();
+
+        Assertions.assertEquals(3, fromClient.size(),
+                "Every interaction should fire a value change event");
+        Assertions.assertFalse(fromClient.contains(false),
+                "Tester driven value changes should report isFromClient() == true");
     }
 
     @Test

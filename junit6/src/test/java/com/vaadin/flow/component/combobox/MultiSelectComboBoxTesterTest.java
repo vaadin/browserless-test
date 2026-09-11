@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.combobox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +49,10 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
 
         Assertions.assertFalse(test(view.combo).isUsable(),
                 "Read only MultiSelectComboBox shouldn't be usable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
     }
 
     @Test
@@ -110,6 +115,32 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
 
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty(),
                 "Selecting null should clear selection");
+    }
+
+    @Test
+    void selectItem_valueChangesLookLikeUserInteraction() {
+        List<Boolean> fromClient = new ArrayList<>();
+        view.combo.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        test(view.combo).selectItem("test-foo");
+        test(view.combo).selectItem("test-bar");
+        test(view.combo).selectItem(null);
+
+        Assertions.assertEquals(3, fromClient.size(),
+                "Every interaction should fire a value change event");
+        Assertions.assertFalse(fromClient.contains(false),
+                "Tester driven value changes should report isFromClient() == true");
+    }
+
+    @Test
+    void selectItem_selectionModelStaysInSyncWithValue() {
+        test(view.combo).selectItem("test-bar");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                view.combo.getSelectedItems());
+        Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
+        Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
     }
 
     // As with ComboBox, emptying without a clear button is selectItem(null).

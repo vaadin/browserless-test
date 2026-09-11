@@ -91,7 +91,10 @@ public class DetailsTester<T extends Details> extends ComponentTester<T> {
             throw new IllegalStateException(
                     "Details are already " + (opened ? "open" : "close"));
         }
-        component.setOpened(opened);
+        // Simulate a user toggling the summary so that the resulting
+        // OpenedChangeEvent reports isFromClient() == true, consistent with
+        // AccordionTester and the other interaction testers.
+        setPropertyAsUser("opened", opened);
     }
 
 }
