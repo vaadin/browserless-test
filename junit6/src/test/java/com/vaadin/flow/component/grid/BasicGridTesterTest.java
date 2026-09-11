@@ -235,10 +235,6 @@ class BasicGridTesterTest extends BrowserlessTest {
                 "Deselect should only remove the targeted row");
         Assertions.assertEquals(1, rowToggles.get(),
                 "Unchecking a row should toggle that one row");
-
-        test(view.basicGrid).deselectAll();
-        Assertions.assertTrue(test(view.basicGrid).getSelected().isEmpty(),
-                "Deselect all should clear the selection");
     }
 
     @Test
@@ -270,7 +266,7 @@ class BasicGridTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void basicGrid_hiddenSelectAllCheckbox_deselectAllThrows() {
+    void basicGrid_hiddenSelectAllCheckbox_selectAllAndDeselectAllThrow() {
         // This is not normally appropriate for a test, but we are testing
         // features.
         view.basicGrid.setSelectionMode(Grid.SelectionMode.MULTI);
@@ -285,6 +281,12 @@ class BasicGridTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class, grid_::deselectAll,
                 "Deselect all shouldn't be available when the checkbox is hidden");
         Assertions.assertEquals(2, grid_.getSelected().size(),
+                "The selection should be untouched");
+
+        grid_.deselect(0);
+        Assertions.assertThrows(IllegalStateException.class, grid_::selectAll,
+                "Select all shouldn't be available when the checkbox is hidden");
+        Assertions.assertEquals(1, grid_.getSelected().size(),
                 "The selection should be untouched");
     }
 

@@ -222,12 +222,15 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     /**
-     * Select all items in grid.
+     * Select all items in grid, running the same code as when the select all
+     * checkbox is checked.
      * <p/>
-     * Only works for multi select.
+     * Only works for multi select, and only when the select all checkbox is
+     * actually shown - if it isn't, the user has no way to trigger this.
      *
      * @throws IllegalStateException
-     *             if not usable or not multi select
+     *             if not usable, not multi select or the select all checkbox is
+     *             hidden
      */
     public void selectAll() {
         ensureComponentIsUsable();
