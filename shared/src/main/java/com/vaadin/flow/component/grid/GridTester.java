@@ -222,16 +222,68 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     /**
-     * Select all items in grid.
+     * Select all items in grid, running the same code as when the select all
+     * checkbox is checked.
      * <p/>
-     * Only works for multi select.
+     * Only works for multi select, and only when the select all checkbox is
+     * actually shown - if it isn't, the user has no way to trigger this.
      *
      * @throws IllegalStateException
-     *             if not usable or not multi select
+     *             if not usable, not multi select or the select all checkbox is
+     *             hidden
      */
     public void selectAll() {
         ensureComponentIsUsable();
         GridKt._selectAll(getComponent());
+    }
+
+    /**
+     * Deselect the item on given row.
+     * <p/>
+     * The index is 0 based.
+     * <p/>
+     * Simulates the user deselecting a row: ctrl-clicking a selected row or
+     * unchecking the row's selection checkbox in multi select, clicking the
+     * selected row in single select.
+     * <p/>
+     * The row has to be selected. Deselecting a row that isn't selected is not
+     * a gesture the user has, so it fails instead of doing nothing.
+     * <p/>
+     * The call is ignored, exactly as the user's click would be, when the item
+     * is not selectable or when the grid is single select and deselecting is
+     * not allowed.
+     *
+     * @param row
+     *            row to deselect
+     * @throws IllegalStateException
+     *             if not usable, if the row is not selected or if the grid
+     *             doesn't support selection
+     */
+    public void deselect(int row) {
+        ensureComponentIsUsable();
+        final Y item = getRow(row);
+        GridKt._deselect(getComponent(), item);
+    }
+
+    /**
+     * Deselect all items in grid, running the same code as when the select all
+     * checkbox is unchecked.
+     * <p/>
+     * Only works for multi select, and only when the select all checkbox is
+     * actually shown - if it isn't, the user has no way to trigger this.
+     * <p/>
+     * This is the counterpart of {@link #selectAll()} and behaves like the
+     * checkbox does: the selection is dropped in one selection event, without
+     * the per row toggle events the user would cause by unchecking rows one by
+     * one. Call {@link #deselect(int)} per row to model that instead.
+     *
+     * @throws IllegalStateException
+     *             if not usable, not multi select or the select all checkbox is
+     *             hidden
+     */
+    public void deselectAll() {
+        ensureComponentIsUsable();
+        GridKt._deselectAll(getComponent());
     }
 
     /**

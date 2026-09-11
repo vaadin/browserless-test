@@ -27,6 +27,7 @@ import com.vaadin.flow.component.grid.ColumnPathRenderer
 import com.vaadin.flow.component.grid.FooterRow
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.grid.GridMultiSelectionModel
+import com.vaadin.flow.component.grid.GridNoneSelectionModel
 import com.vaadin.flow.component.grid.GridSingleSelectionModel
 import com.vaadin.flow.component.grid.GridSortOrder
 import com.vaadin.flow.component.grid.HeaderRow
@@ -800,6 +801,34 @@ private val _Column_getInternalId: Method by lazy(LazyThreadSafetyMode.PUBLICATI
     m.isAccessible = true
     m
 }
+private val _AbstractGridMultiSelectionModel_clientSelectAll: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
+    val m = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientSelectAll")
+    m.isAccessible = true
+    m
+}
+private val _AbstractGridMultiSelectionModel_clientDeselectAll: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
+    val m = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientDeselectAll")
+    m.isAccessible = true
+    m
+}
+
+/**
+ * The multi-select model of this Grid, ready for the "select all" checkbox code to be run on it.
+ * Fails if the grid is not multi-select or if the checkbox isn't shown, since then the user has
+ * no way to trigger it: both `clientSelectAll()` and `clientDeselectAll()` quietly return in
+ * that case.
+ */
+private fun <T> Grid<T>._selectAllCheckboxModel(action: String): GridMultiSelectionModel<T> {
+    val model = selectionModel
+    if(model !is GridMultiSelectionModel) {
+        throw IllegalStateException("$action requires multi selection mode")
+    }
+    if(!model.isSelectAllCheckboxVisible) {
+        throw IllegalStateException("$action requires the select all checkbox to be visible")
+    }
+    return model
+}
+
 /**
  * In single select clears the selection and select only given [item], for multiselect add to selection.
  */
@@ -818,12 +847,42 @@ public fun <T: Any> Grid<T>._select(item: T) {
  */
 public fun <T> Grid<T>._selectAll() {
     checkEditableByUser()
-    if(selectionModel !is GridMultiSelectionModel) {
-        throw IllegalStateException("Select all requires multi selection mode")
+    val model = _selectAllCheckboxModel("Select all")
+    _AbstractGridMultiSelectionModel_clientSelectAll.invoke(model)
+}
+
+/**
+ * Deselects given [item]: the same code that runs when the user ctrl-clicks a selected row or
+ * unchecks the row's selection checkbox in multi-select, or clicks the selected row in single select.
+ *
+ * The [item] must be selected; deselecting a row that isn't selected is not a gesture the user
+ * has, so it fails instead of doing nothing.
+ *
+ * The call is ignored - just like the user's click would be - if the item is not selectable
+ * ([Grid.setItemSelectableProvider]), or if the grid is single-select with
+ * [GridSingleSelectionModel.isDeselectAllowed] set to false.
+ */
+public fun <T: Any> Grid<T>._deselect(item: T) {
+    checkEditableByUser()
+    if(selectionModel !is GridNoneSelectionModel && !selectionModel.isSelected(item)) {
+        throw IllegalStateException("Can not deselect ${item}: the row is not selected")
     }
-    val clientSelectAllMethod = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientSelectAll")
-    clientSelectAllMethod.isAccessible = true
-    clientSelectAllMethod.invoke(selectionModel)
+    // fails properly if the Grid doesn't support selection.
+    selectionModel.deselectFromClient(item)
+}
+
+/**
+ * Deselects all items in the Grid; runs the same code as when the "select all" checkbox is unchecked.
+ * Fails if the grid is not multi-select or the "select all" checkbox is hidden.
+ *
+ * This is the counterpart of [_selectAll] and behaves like the checkbox does: the whole selection
+ * is dropped in one selection event, without the per-row `ClientItemToggleEvent`s the user would
+ * cause by unchecking rows one by one. Call [_deselect] per row to model that instead.
+ */
+public fun <T> Grid<T>._deselectAll() {
+    checkEditableByUser()
+    val model = _selectAllCheckboxModel("Deselect all")
+    _AbstractGridMultiSelectionModel_clientDeselectAll.invoke(model)
 }
 
 /**
