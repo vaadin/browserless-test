@@ -243,14 +243,18 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * unchecking the row's selection checkbox in multi select, clicking the
      * selected row in single select.
      * <p/>
-     * Does nothing if the row is not selected, if the item is not selectable
-     * or, in single select, if deselecting is not allowed - in the browser the
-     * user's click would be ignored in those cases as well.
+     * The row has to be selected. Deselecting a row that isn't selected is not
+     * a gesture the user has, so it fails instead of doing nothing.
+     * <p/>
+     * The call is ignored, exactly as the user's click would be, when the item
+     * is not selectable or when the grid is single select and deselecting is
+     * not allowed.
      *
      * @param row
      *            row to deselect
      * @throws IllegalStateException
-     *             if not usable or if the grid doesn't support selection
+     *             if not usable, if the row is not selected or if the grid
+     *             doesn't support selection
      */
     public void deselect(int row) {
         ensureComponentIsUsable();
@@ -259,19 +263,20 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     /**
-     * Clear the selection of the grid.
+     * Deselect all items in grid, running the same code as when the select all
+     * checkbox is unchecked.
      * <p/>
-     * Works for both single and multi select. The rows are deselected one by
-     * one instead of through the select-all checkbox, so this also works when
-     * that checkbox is hidden.
+     * Only works for multi select, and only when the select all checkbox is
+     * actually shown - if it isn't, the user has no way to trigger this.
      * <p/>
-     * Rows the user couldn't deselect stay selected, following the same rules
-     * as {@link #deselect(int)}: a row whose item is not selectable, or any row
-     * of a single select grid where deselecting is not allowed, is left as it
-     * is. The selection is not necessarily empty afterwards.
+     * This is the counterpart of {@link #selectAll()} and behaves like the
+     * checkbox does: the selection is dropped in one selection event, without
+     * the per row toggle events the user would cause by unchecking rows one by
+     * one. Call {@link #deselect(int)} per row to model that instead.
      *
      * @throws IllegalStateException
-     *             if not usable or if the grid doesn't support selection
+     *             if not usable, not multi select or the select all checkbox is
+     *             hidden
      */
     public void deselectAll() {
         ensureComponentIsUsable();

@@ -831,36 +831,42 @@ public fun <T> Grid<T>._selectAll() {
  * Deselects given [item]: the same code that runs when the user ctrl-clicks a selected row or
  * unchecks the row's selection checkbox in multi-select, or clicks the selected row in single select.
  *
- * Does nothing if the [item] is not selected, if the item is not selectable
+ * The [item] must be selected; deselecting a row that isn't selected is not a gesture the user
+ * has, so it fails instead of doing nothing.
+ *
+ * The call is ignored - just like the user's click would be - if the item is not selectable
  * ([Grid.setItemSelectableProvider]), or if the grid is single-select with
- * [GridSingleSelectionModel.isDeselectAllowed] set to false - in the browser the user's click
- * would be ignored in those cases as well.
+ * [GridSingleSelectionModel.isDeselectAllowed] set to false.
  */
 public fun <T: Any> Grid<T>._deselect(item: T) {
     checkEditableByUser()
+    if(selectionModel !is GridNoneSelectionModel && !selectionModel.isSelected(item)) {
+        throw IllegalStateException("Can not deselect ${item}: the row is not selected")
+    }
     // fails properly if the Grid doesn't support selection.
     selectionModel.deselectFromClient(item)
 }
 
 /**
- * Clears the selection, running the same code as when the user deselects every selected row.
- * Works both for single- and multi-select grids; fails if the grid doesn't support selection.
+ * Deselects all items in the Grid; runs the same code as when the "select all" checkbox is unchecked.
+ * Fails if the grid is not multi-select or the "select all" checkbox is hidden.
  *
- * Rows are deselected one by one rather than through the "select all" checkbox, so this also
- * works when the checkbox is hidden - unchecking rows individually is something the user can
- * always do.
- *
- * Rows the user couldn't deselect are left alone, following the same rules as [_deselect]:
- * items that are not selectable, or any row of a single-select grid with
- * [GridSingleSelectionModel.isDeselectAllowed] set to false. The selection is therefore not
- * guaranteed to be empty afterwards.
+ * This is the counterpart of [_selectAll] and behaves like the checkbox does: the whole selection
+ * is dropped in one selection event, without the per-row `ClientItemToggleEvent`s the user would
+ * cause by unchecking rows one by one. Call [_deselect] per row to model that instead.
  */
-public fun <T: Any> Grid<T>._deselectAll() {
+public fun <T> Grid<T>._deselectAll() {
     checkEditableByUser()
-    if(selectionModel is GridNoneSelectionModel) {
-        throw IllegalStateException("Deselect all requires a selection mode other than NONE")
+    val model = selectionModel
+    if(model !is GridMultiSelectionModel) {
+        throw IllegalStateException("Deselect all requires multi selection mode")
     }
-    selectedItems.toList().forEach { selectionModel.deselectFromClient(it) }
+    if(!model.isSelectAllCheckboxVisible) {
+        throw IllegalStateException("Deselect all requires the select all checkbox to be visible")
+    }
+    val clientDeselectAllMethod = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientDeselectAll")
+    clientDeselectAllMethod.isAccessible = true
+    clientDeselectAllMethod.invoke(model)
 }
 
 /**
