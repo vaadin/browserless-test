@@ -77,10 +77,13 @@ class ClearContractTest extends BrowserlessTest {
      * One field under test: how to build it with a value, and how to invoke
      * each emptying method on its tester. {@code clear} is {@code null} for
      * testers that do not offer {@code clear()}, {@code clickClearButton} for
-     * components that have no clear button.
+     * components that have no clear button, and {@code setEmptyValue} for
+     * testers whose {@code setValue} accepts the empty value even on a required
+     * field — there is no set-time check to bypass for those.
      */
     private record Field(String name, Supplier<Component> create,
-            Consumer<Component> clear, Consumer<Component> clickClearButton) {
+            Consumer<Component> clear, Consumer<Component> clickClearButton,
+            Consumer<Component> setEmptyValue) {
         @Override
         public String toString() {
             return name;
@@ -104,6 +107,22 @@ class ClearContractTest extends BrowserlessTest {
 
         Assertions.assertTrue(value(component).isEmpty(),
                 "clear() should have emptied the field");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("fieldsThatRefuseTheEmptyValue")
+    void clear_bypassesTheSetTimeValidityCheck(Field field) {
+        Component component = attach(field);
+        setClearButtonVisible(component, false);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> field.setEmptyValue().accept(component),
+                "setValue() should refuse the empty value on a required field");
+
+        field.clear().accept(component);
+
+        Assertions.assertTrue(value(component).isEmpty(),
+                "clear() should empty the field setValue() refuses to");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -189,6 +208,10 @@ class ClearContractTest extends BrowserlessTest {
         return fields().filter(field -> field.clear() != null);
     }
 
+    static Stream<Field> fieldsThatRefuseTheEmptyValue() {
+        return fieldsWithClear().filter(field -> field.setEmptyValue() != null);
+    }
+
     static Stream<Field> fieldsWithClearButton() {
         return fields().filter(field -> field.clickClearButton() != null);
     }
@@ -198,45 +221,58 @@ class ClearContractTest extends BrowserlessTest {
                 new Field("TextField", () -> filled(new TextField(), "text"),
                         c -> new TextFieldTester<>((TextField) c).clear(),
                         c -> new TextFieldTester<>((TextField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("PasswordField",
                         () -> filled(new PasswordField(), "secret"),
                         c -> new TextFieldTester<>((PasswordField) c).clear(),
                         c -> new TextFieldTester<>((PasswordField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("EmailField",
                         () -> filled(new EmailField(), "user@example.com"),
                         c -> new TextFieldTester<>((EmailField) c).clear(),
                         c -> new TextFieldTester<>((EmailField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("BigDecimalField",
                         () -> filled(new BigDecimalField(), BigDecimal.ONE),
                         c -> new TextFieldTester<>((BigDecimalField) c).clear(),
                         c -> new TextFieldTester<>((BigDecimalField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("TextArea", () -> filled(new TextArea(), "text"),
                         c -> new TextAreaTester<>((TextArea) c).clear(),
                         c -> new TextAreaTester<>((TextArea) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("NumberField", () -> filled(new NumberField(), 1d),
                         c -> new NumberFieldTester<>((NumberField) c).clear(),
                         c -> new NumberFieldTester<>((NumberField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        c -> new NumberFieldTester<>((NumberField) c)
+                                .setValue(((NumberField) c).getEmptyValue())),
                 new Field("IntegerField", () -> filled(new IntegerField(), 1),
                         c -> new NumberFieldTester<>((IntegerField) c).clear(),
                         c -> new NumberFieldTester<>((IntegerField) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        c -> new NumberFieldTester<>((IntegerField) c)
+                                .setValue(((IntegerField) c).getEmptyValue())),
                 new Field("DatePicker",
                         () -> filled(new DatePicker(),
                                 LocalDate.of(2026, 5, 28)),
                         c -> new DatePickerTester<>((DatePicker) c).clear(),
                         c -> new DatePickerTester<>((DatePicker) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        c -> new DatePickerTester<>((DatePicker) c)
+                                .setValue(((DatePicker) c).getEmptyValue())),
                 new Field("TimePicker",
                         () -> filled(new TimePicker(), LocalTime.NOON),
                         c -> new TimePickerTester<>((TimePicker) c).clear(),
                         c -> new TimePickerTester<>((TimePicker) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        c -> new TimePickerTester<>((TimePicker) c)
+                                .setValue(((TimePicker) c).getEmptyValue())),
                 // DateTimePicker does not implement HasClearButton, so it has
                 // no clickClearButton() to exercise.
                 new Field("DateTimePicker",
@@ -245,20 +281,25 @@ class ClearContractTest extends BrowserlessTest {
                                         LocalTime.NOON)),
                         c -> new DateTimePickerTester<>((DateTimePicker) c)
                                 .clear(),
-                        null),
+                        null,
+                        c -> new DateTimePickerTester<>((DateTimePicker) c)
+                                .setValue(
+                                        ((DateTimePicker) c).getEmptyValue())),
                 // Nor does the html Input.
                 new Field("Input", () -> filled(new Input(), "text"),
-                        c -> new InputTester((Input) c).clear(), null),
+                        c -> new InputTester((Input) c).clear(), null, null),
                 // The combo boxes model unconditional emptying through
                 // selectItem(null) instead of clear().
                 new Field("ComboBox", ClearContractTest::comboBox, null,
                         c -> new ComboBoxTester<>((ComboBox<String>) c)
-                                .clickClearButton()),
+                                .clickClearButton(),
+                        null),
                 new Field("MultiSelectComboBox",
                         ClearContractTest::multiSelectComboBox, null,
                         c -> new MultiSelectComboBoxTester<>(
                                 (MultiSelectComboBox<String>) c)
-                                .clickClearButton()));
+                                .clickClearButton(),
+                        null));
     }
 
     private static <C extends Component & HasValue<?, V>, V> C filled(C field,

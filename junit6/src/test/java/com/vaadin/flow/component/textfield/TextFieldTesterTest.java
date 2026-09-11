@@ -171,19 +171,6 @@ public class TextFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void textFieldWithClearButton_clear_valueIsCleared() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(true);
-        tf.setValue("Some value");
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-        tf_.clear();
-
-        Assertions.assertTrue(tf.isEmpty(), "Value should have cleared");
-    }
-
-    @Test
     void textFieldWithCustomEmptyValue_clear_valueIsCleared() {
         TextField tf = new TextField() {
             @Override
