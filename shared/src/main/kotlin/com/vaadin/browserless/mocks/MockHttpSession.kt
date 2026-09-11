@@ -31,7 +31,7 @@ import jakarta.servlet.http.HttpSession
  * A standalone implementation of the [HttpSession] interface.
  */
 open class MockHttpSession(
-        private val sessionId: String,
+        private var sessionId: String,
         private val servletContext: ServletContext,
         private val creationTime: Long,
         private var maxInactiveInterval: Int
