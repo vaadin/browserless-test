@@ -154,22 +154,15 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
     private void openPanel(AccordionPanel childPanel) {
         int index = getComponent().getElement()
                 .indexOfChild(childPanel.getElement());
-        updateOpenedFromClient((double) index);
-    }
-
-    private void closePanel() {
-        updateOpenedFromClient(null);
+        setPropertyAsUser("opened", (double) index);
     }
 
     /**
-     * Simulates a user opening or closing a panel, so that the resulting
-     * {@code OpenedChangeEvent} reports {@code isFromClient() == true},
-     * consistent with the other interaction testers. A {@code null} index
-     * closes the accordion, which is what the client sends when the summary of
-     * the open panel is clicked.
+     * A {@code null} index closes the accordion, which is what the client sends
+     * when the summary of the open panel is clicked.
      */
-    private void updateOpenedFromClient(@Nullable Double index) {
-        setPropertyAsUser("opened", index);
+    private void closePanel() {
+        setPropertyAsUser("opened", null);
     }
 
     private AccordionPanel requirePanelBySummary(String summary) {
