@@ -79,8 +79,11 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *
      * @param selection
      *            item representations as strings
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void selectItem(String... selection) {
+        ensureComponentIsUsable();
         if (selection == null) {
             getComponent().deselectAll();
             return;

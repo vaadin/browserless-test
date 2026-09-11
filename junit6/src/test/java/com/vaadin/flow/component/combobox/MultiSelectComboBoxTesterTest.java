@@ -59,6 +59,16 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
+    void notUsableComboBox_selectItem_throws() {
+        view.combo.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
+    }
+
+    @Test
     void getSuggestionItems_noFilter_allItemsReturned() {
         final List<MultiSelectComboBoxView.Name> suggestions = test(view.combo)
                 .getSuggestionItems();

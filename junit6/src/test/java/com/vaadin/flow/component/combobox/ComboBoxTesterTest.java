@@ -58,6 +58,16 @@ public class ComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
+    void notUsableComboBox_selectItem_throws() {
+        view.combo.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem(null));
+    }
+
+    @Test
     void getSuggestionItems_noFilter_allItemsReturned() {
         final List<ComboBoxView.Name> suggestions = test(view.combo)
                 .getSuggestionItems();
