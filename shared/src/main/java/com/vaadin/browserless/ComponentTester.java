@@ -34,6 +34,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.AbstractFieldSupport;
+import com.vaadin.flow.component.shared.HasClearButton;
 import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
@@ -448,6 +449,68 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Empties the field as the user would, by setting the component's empty
+     * value without running any tester-side validity check.
+     * <p>
+     * Emptying a field is always available to the user — select the contents,
+     * press Delete — and stays legal even when it leaves the field invalid, so
+     * the empty value is set unconditionally. This is the shared implementation
+     * behind the {@code clear()} methods of the value testers; each of them
+     * declares {@code clear()} itself so that the generated locators pick it
+     * up.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if the component does not hold a value
+     */
+    protected void clearAsUser() {
+        ensureComponentIsUsable();
+
+        setEmptyValueAsUser();
+    }
+
+    /**
+     * Empties the field by clicking its clear button, as the user would.
+     * <p>
+     * Unlike {@link #clearAsUser()}, which models the keyboard route and is
+     * therefore always available, this requires the clear button to actually be
+     * on screen: a hidden clear button is not something the user can click.
+     * Past that check the value is emptied exactly as {@link #clearAsUser()}
+     * does, bypassing the set-time validity check.
+     * <p>
+     * Testers for components implementing {@link HasClearButton} expose this as
+     * a public {@code clickClearButton()}; {@code LocatorProcessor} fails the
+     * build when one of them does not.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     * @throws IllegalArgumentException
+     *             if the component does not hold a value
+     */
+    protected void clickClearButtonAsUser() {
+        ensureComponentIsUsable();
+
+        if (!(component instanceof HasClearButton clearButton)
+                || !clearButton.isClearButtonVisible()) {
+            throw new IllegalStateException("Clear button is not visible");
+        }
+
+        setEmptyValueAsUser();
+    }
+
+    private void setEmptyValueAsUser() {
+        if (!(component instanceof HasValue<?, ?> field)) {
+            throw new IllegalArgumentException(
+                    "Parameter component: invalid value " + component
+                            + ": not a HasValue: " + component.getClass());
+        }
+
+        setValueAsUser(field.getEmptyValue());
     }
 
     /**

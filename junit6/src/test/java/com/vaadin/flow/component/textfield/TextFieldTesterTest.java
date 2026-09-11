@@ -23,13 +23,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.ClearContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.HasValue.ValueChangeListener;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-public class TextFieldTesterTest extends BrowserlessTest {
+public class TextFieldTesterTest extends BrowserlessTest
+        implements ClearContract, ClearButtonContract {
 
     TextFieldView view;
 
@@ -171,19 +175,6 @@ public class TextFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void textFieldWithClearButton_clear_valueIsCleared() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(true);
-        tf.setValue("Some value");
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-        tf_.clear();
-
-        Assertions.assertTrue(tf.isEmpty(), "Value should have cleared");
-    }
-
-    @Test
     void textFieldWithCustomEmptyValue_clear_valueIsCleared() {
         TextField tf = new TextField() {
             @Override
@@ -203,29 +194,19 @@ public class TextFieldTesterTest extends BrowserlessTest {
                 "Value should have cleared");
     }
 
-    @Test
-    void textFieldWithoutClearButton_clear_throws() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(false);
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-
-        Assertions.assertThrows(IllegalStateException.class, tf_::clear,
-                "Clear should not be usable when clear button is not visible");
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.textField.setValue("Some value");
+        return view.textField;
     }
 
-    @Test
-    void notUsableTextField_clear_throws() {
-        TextField tf = new TextField();
-        tf.setClearButtonVisible(true);
-        tf.setEnabled(false);
-        getCurrentView().getElement().appendChild(tf.getElement());
-
-        TextFieldTester<TextField, String> tf_ = test(tf);
-
-        Assertions.assertThrows(IllegalStateException.class, tf_::clear,
-                "Clear should not be usable when text field is not usable");
+    @Override
+    public void clear() {
+        test(view.textField).clear();
     }
 
+    @Override
+    public void clickClearButton() {
+        test(view.textField).clickClearButton();
+    }
 }

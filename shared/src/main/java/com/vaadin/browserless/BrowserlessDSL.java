@@ -59,6 +59,8 @@ final class BrowserlessDSL {
 
     static <T extends Component> T navigate(UI ui, String location,
             Class<T> expectedTarget) {
+        // UI.navigate parses a location that carries a query string or a
+        // fragment, so a test can spell it the way the address bar does
         ui.navigate(location);
         return validateNavigationTarget(ui, expectedTarget);
     }

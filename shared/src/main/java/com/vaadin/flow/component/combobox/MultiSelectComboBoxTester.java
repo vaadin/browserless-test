@@ -79,8 +79,11 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *
      * @param selection
      *            item representations as strings
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void selectItem(String... selection) {
+        ensureComponentIsUsable();
         if (selection == null) {
             getComponent().deselectAll();
             return;
@@ -97,6 +100,21 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
                     "No item found for '" + selection + "'");
         }
         getComponent().setValue(filtered);
+    }
+
+    /**
+     * Clears the selection by clicking the clear button, as the user would.
+     * <p/>
+     * Requires the clear button to be visible — a hidden clear button is not
+     * something the user can click. {@link #selectItem(String...)} with
+     * {@code null} clears the selection without that requirement.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     */
+    public void clickClearButton() {
+        clickClearButtonAsUser();
     }
 
     /**
