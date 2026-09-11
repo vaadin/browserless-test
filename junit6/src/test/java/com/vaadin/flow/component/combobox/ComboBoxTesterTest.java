@@ -23,11 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-public class ComboBoxTesterTest extends BrowserlessTest {
+public class ComboBoxTesterTest extends BrowserlessTest
+        implements ClearButtonContract {
 
     ComboBoxView view;
 
@@ -89,5 +92,19 @@ public class ComboBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertNull(test(view.combo).getSelected(),
                 "Selecting null should clear selection");
+    }
+
+    // ComboBoxTester models unconditional emptying as selectItem(null) rather
+    // than clear(), so only the clear-button contract applies.
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.combo.setValue(view.items.get(0));
+        return view.combo;
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.combo).clickClearButton();
     }
 }
