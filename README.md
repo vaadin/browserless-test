@@ -613,6 +613,12 @@ and `_blank`.
 - Same-user window switches don't touch the snapshot, so per-window UI state
   is preserved across interleaved operations within one user.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
+including the shared test contracts (`ClearContract`, `ClearButtonContract`,
+`RefusesEmptyValueContract`) that every value tester's test class implements.
+
 ## License
 
 This project is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
