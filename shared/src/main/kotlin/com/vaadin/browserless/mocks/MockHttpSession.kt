@@ -113,7 +113,7 @@ open class MockHttpSession(
     }
 
     fun setId(id: String) {
-        sessionId = id;
+        sessionId = id
     }
 
     override fun toString(): String =
