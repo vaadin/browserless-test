@@ -23,13 +23,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.ClearContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.HasValue.ValueChangeListener;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-public class TextFieldTesterTest extends BrowserlessTest {
+public class TextFieldTesterTest extends BrowserlessTest
+        implements ClearContract, ClearButtonContract {
 
     TextFieldView view;
 
@@ -201,5 +205,21 @@ public class TextFieldTesterTest extends BrowserlessTest {
 
         Assertions.assertThrows(IllegalStateException.class, tf_::clear,
                 "Clear should not be usable when text field is not usable");
+    }
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.textField.setValue("Some value");
+        return view.textField;
+    }
+
+    @Override
+    public void clear() {
+        test(view.textField).clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.textField).clickClearButton();
     }
 }

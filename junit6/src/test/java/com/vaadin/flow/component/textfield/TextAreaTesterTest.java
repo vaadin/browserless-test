@@ -22,13 +22,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.ClearContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-class TextAreaTesterTest extends BrowserlessTest {
+class TextAreaTesterTest extends BrowserlessTest
+        implements ClearContract, ClearButtonContract {
 
     private TextAreaView view;
 
@@ -162,5 +165,21 @@ class TextAreaTesterTest extends BrowserlessTest {
         Assertions.assertEquals("", ta.getValue(), "Value should have cleared");
         Assertions.assertEquals("", value.get(),
                 "Clearing should be seen as a client-side value change");
+    }
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.textArea.setValue("Some value");
+        return view.textArea;
+    }
+
+    @Override
+    public void clear() {
+        test(view.textArea).clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.textArea).clickClearButton();
     }
 }

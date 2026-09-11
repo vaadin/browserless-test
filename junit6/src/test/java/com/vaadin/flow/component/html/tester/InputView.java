@@ -13,18 +13,22 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless;
+package com.vaadin.flow.component.html.tester;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Input;
 import com.vaadin.flow.router.Route;
 
-/**
- * Empty host view that {@link ClearContractTest} attaches each field under test
- * to.
- */
 @Tag("div")
-@Route(value = "clear-contract", registerAtStartup = false)
-public class ClearContractView extends Component implements HasComponents {
+@Route(value = "input", registerAtStartup = false)
+public class InputView extends Component implements HasComponents {
+
+    Input input;
+
+    public InputView() {
+        input = new Input();
+        add(input);
+    }
 }
