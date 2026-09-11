@@ -62,28 +62,29 @@ interface TestingLifecycleHook {
 
     /**
      * Provides all children of given component. Provides workarounds for certain components:
-     * * For [Grid.Column] the function will also return cell components nested in all headers and footers for that particular column.
+     * * For [Grid] the function will also return the header and footer cell components of all of its columns, plus the column editor components.
      * * For [MenuItemBase] the function returns all items of a sub-menu.
      */
     fun getAllChildren(component: Component): List<Component> = when {
-        // TODO: uncomment when importing Grid stuff
-        /*
         component is Grid<*> -> {
-            // don't attach the header/footer components as a child of the Column component:
-            // that would make components in merged cells appear more than once.
+            // Header/footer components live as virtual children of the Column
+            // (or ColumnGroup) they belong to, and both of those branches drop
+            // virtual children on purpose: a component in a merged cell is a
+            // virtual child of every column it spans and would otherwise show
+            // up more than once. Collect them here instead, once per Grid.
             // see https://github.com/mvysny/karibu-testing/issues/52
             val headerComponents: List<Component> = component.headerRows
-                    .flatMap { it.cells.map { it.component } }
+                    .flatMap { row -> row.cells.map { it.component } }
                     .filterNotNull()
             val footerComponents: List<Component> = component.footerRows
-                    .flatMap { it.cells.map { it.component } }
+                    .flatMap { row -> row.cells.map { it.component } }
                     .filterNotNull()
             val editorComponents: List<Component> = component.columns
                     .mapNotNull { it.editorComponent }
-            val children = component.children.toList()
-            (headerComponents + footerComponents + editorComponents + children).distinct()
+            (headerComponents + footerComponents + editorComponents
+                    + component.children.toList()
+                    + ComponentUtil.getAllChildren(component).toList()).distinct()
         }
-         */
         component is MenuItemBase<*, *, *> -> {
             // also include component.children: https://github.com/mvysny/karibu-testing/issues/76
             (component.children.toList() + component.subMenu.items).distinct()
@@ -105,14 +106,14 @@ interface TestingLifecycleHook {
         }
 
         component.javaClass.name == "com.vaadin.flow.component.grid.ColumnGroup" -> {
-            // don't include virtual children since that would include the header/footer components
-            // which would clash with Grid.Column later on
+            // don't include virtual children since that would include the header/footer
+            // components, which the [Grid] branch already reports
             component.children.toList()
         }
 
         component is Grid.Column<*> -> {
-            // don't include virtual children since that would include the header/footer components
-            // which would clash with Grid.Column later on
+            // don't include virtual children since that would include the header/footer
+            // components, which the [Grid] branch already reports
             component.children.toList()
         }
         component is Composite<*> -> {
