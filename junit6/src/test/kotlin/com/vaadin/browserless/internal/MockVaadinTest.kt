@@ -55,7 +55,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 └── MockedUI[]
     └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
-""".trim()) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
+""".trim().withSortedThemeNames()) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
     }
     afterEach { MockVaadin.tearDown() }
 
@@ -299,7 +299,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 └── MockedUI[]
     └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
-""".trim()
+""".trim().withSortedThemeNames()
             ) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
         }
     }
