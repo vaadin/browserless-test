@@ -554,7 +554,6 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the field to set the value to, not {@literal null}.
      * @param value
      *            the new value, may be null.
-     * @since 1.2
      */
     protected <V> void setValueAsUser(HasValue<?, V> field, V value) {
         final AbstractFieldSupport<?, V> fs = getFieldSupport(field);
@@ -584,7 +583,6 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @param field
      *            the field to check, not {@literal null}.
      * @return {@literal true} if the value can be set as a user
-     * @since 1.2
      */
     protected boolean canSetValueAsUser(HasValue<?, ?> field) {
         return field instanceof AbstractField
@@ -606,7 +604,6 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the value as the client would send it, may be null.
      * @throws IllegalStateException
      *             if the property does not accept updates from the client
-     * @since 1.2
      */
     protected void setPropertyAsUser(String property, Serializable value) {
         try {
