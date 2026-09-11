@@ -67,6 +67,7 @@ class MockRequestTest : DynaTest({
 
     test("getSession(true) creates a new session when invalidated") {
         var session = request.session as MockHttpSession
+        val requestedId = request.requestedSessionId
         expect(true) { session.isValid }
         session.setAttribute("foo", "bar")
         session.invalidate()
@@ -75,6 +76,10 @@ class MockRequestTest : DynaTest({
         session = request.getSession(true) as MockHttpSession
         expect(true) { session.isValid }
         expect(null) { session.getAttribute("foo") }
+        // the replacement session has its own ID, but the ID the client asked
+        // for stays the same for the lifetime of the request
+        expect(true) { session.id != requestedId }
+        expect(requestedId) { request.requestedSessionId }
     }
 
     test("getSession() creates a new session when invalidated") {

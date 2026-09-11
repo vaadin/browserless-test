@@ -425,18 +425,21 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         test("changeSessionId() keeps the VaadinSession") {
             // How an app without Spring Security protects against session
             // fixation after a successful login. Unlike reinitializeSession()
-            // the very same session is kept, only its ID changes.
+            // the very same HttpSession is kept and only its ID changes, so
+            // the VaadinSession bound to it survives.
             val session = VaadinSession.getCurrent()
             val id = session.session.id
-            session.setAttribute("foo", "bar")
+            session.session.setAttribute("foo", "bar")
+            val vaadinSessionAttribute =
+                    VaadinSession::class.java.name + "." + VaadinService.getCurrent().serviceName
 
             val request = VaadinService.getCurrentRequest() as VaadinServletRequest
             val newId = request.httpServletRequest.changeSessionId()
 
             expect(true) { id != newId }
             expect(newId) { session.session.id }
-            expect(session) { VaadinSession.getCurrent() }
-            expect("bar") { session.getAttribute("foo") }
+            expect("bar") { session.session.getAttribute("foo") }
+            expect(session) { session.session.getAttribute(vaadinSessionAttribute) }
             expect(true) { session.hasLock() }
         }
         test("reinitializeSession()") {
