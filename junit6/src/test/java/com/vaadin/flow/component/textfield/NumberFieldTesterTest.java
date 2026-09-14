@@ -275,7 +275,7 @@ class NumberFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void stepMultipleTimes_oneClickExceedsBoundaries_earlierClicksAreKept() {
+    public void stepMultipleTimes_aClickWouldExceedBoundaries_throws_earlierClicksAreKept() {
         view.numberField.setStepButtonsVisible(true);
         view.numberField.setMin(0);
         view.numberField.setMax(10);
@@ -293,6 +293,17 @@ class NumberFieldTesterTest extends BrowserlessTest
         Assertions.assertEquals(9d, view.numberField.getValue(),
                 "The clicks performed before the failing one should be kept");
         Assertions.assertEquals(List.of(6d, 9d), values,
+                "Only the performed clicks should fire a value change event");
+
+        nf_.setValue(5d);
+        values.clear();
+
+        assertThrows(IllegalStateException.class, () -> nf_.stepDown(3),
+                "The third click should fail as it would go below min");
+
+        Assertions.assertEquals(0d, view.numberField.getValue(),
+                "The clicks performed before the failing one should be kept");
+        Assertions.assertEquals(List.of(3d, 0d), values,
                 "Only the performed clicks should fire a value change event");
     }
 
