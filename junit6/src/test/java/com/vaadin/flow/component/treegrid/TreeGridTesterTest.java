@@ -50,19 +50,28 @@ class TreeGridTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void expand_childRowsBecomeVisible_eventIsFromClient() {
-        List<ExpandEvent<String, TreeGrid<String>>> events = new ArrayList<>();
-        view.treeGrid.addExpandListener(events::add);
-
+    void expand_childRowsBecomeVisible() {
         Assertions.assertEquals(2, treeGrid_.size(),
                 "only the root items should be displayed initially");
+        Assertions.assertEquals(TreeGridView.ROOT_A, treeGrid_.getRow(0));
+        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(1));
 
         treeGrid_.expand(0);
 
         Assertions.assertEquals(4, treeGrid_.size());
+        Assertions.assertEquals(TreeGridView.ROOT_A, treeGrid_.getRow(0));
         Assertions.assertEquals(TreeGridView.CHILD_A1, treeGrid_.getRow(1));
         Assertions.assertEquals(TreeGridView.CHILD_A2, treeGrid_.getRow(2));
-        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(3));
+        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(3),
+                "the second root should follow the children of the first");
+    }
+
+    @Test
+    void expand_firesExpandEventFromClient() {
+        List<ExpandEvent<String, TreeGrid<String>>> events = new ArrayList<>();
+        view.treeGrid.addExpandListener(events::add);
+
+        treeGrid_.expand(0);
 
         Assertions.assertEquals(1, events.size());
         Assertions.assertTrue(events.get(0).isFromClient(),
@@ -80,18 +89,28 @@ class TreeGridTesterTest extends BrowserlessTest {
         Assertions.assertEquals(TreeGridView.GRANDCHILD_A1A,
                 treeGrid_.getRow(2));
         Assertions.assertEquals(TreeGridView.CHILD_A2, treeGrid_.getRow(3));
+        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(4));
     }
 
     @Test
-    void collapse_childRowsHidden_eventIsFromClient() {
+    void collapse_childRowsHidden() {
+        treeGrid_.expand(0);
+        Assertions.assertEquals(4, treeGrid_.size());
+
+        treeGrid_.collapse(0);
+
+        Assertions.assertEquals(2, treeGrid_.size());
+        Assertions.assertEquals(TreeGridView.ROOT_A, treeGrid_.getRow(0));
+        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(1));
+    }
+
+    @Test
+    void collapse_firesCollapseEventFromClient() {
         List<CollapseEvent<String, TreeGrid<String>>> events = new ArrayList<>();
         view.treeGrid.addCollapseListener(events::add);
 
         treeGrid_.expand(0);
         treeGrid_.collapse(0);
-
-        Assertions.assertEquals(2, treeGrid_.size());
-        Assertions.assertEquals(TreeGridView.ROOT_B, treeGrid_.getRow(1));
 
         Assertions.assertEquals(1, events.size());
         Assertions.assertTrue(events.get(0).isFromClient(),
@@ -153,6 +172,66 @@ class TreeGridTesterTest extends BrowserlessTest {
                 () -> treeGrid_.isExpanded(0));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> treeGrid_.hasChildren(0));
+    }
+
+    @Test
+    void withoutHierarchyColumn_expandAndCollapseThrow() {
+        TreeGridTester<TreeGrid<String>, String> noToggle_ = test(
+                view.noHierarchyColumnTreeGrid);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> noToggle_.expand(0),
+                "without a hierarchy column there is no toggle to click");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> noToggle_.collapse(0),
+                "without a hierarchy column there is no toggle to click");
+        Assertions.assertTrue(noToggle_.hasChildren(0),
+                "the hierarchy itself is unaffected by the missing column");
+    }
+
+    @Test
+    void hiddenHierarchyColumn_expandThrows() {
+        view.treeGrid.getColumnByKey(TreeGridView.NAME_KEY).setVisible(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> treeGrid_.expand(0),
+                "a hidden hierarchy column shows the user no toggle");
+    }
+
+    @Test
+    void multipleHierarchyColumns_expandWorksAndTogglesTheSameNode() {
+        TreeGridTester<TreeGrid<String>, String> multi_ = test(
+                view.multiHierarchyColumnTreeGrid);
+
+        multi_.expand(0);
+
+        Assertions.assertEquals(4, multi_.size());
+        Assertions.assertTrue(multi_.isExpanded(0));
+        Assertions.assertEquals(TreeGridView.CHILD_A1, multi_.getRow(1));
+    }
+
+    @Test
+    void getCellText_readsHierarchyAndPlainColumns() {
+        Assertions.assertEquals(TreeGridView.ROOT_A,
+                treeGrid_.getCellText(0, 0),
+                "the hierarchy column renders the item through a tree toggle");
+        Assertions.assertEquals("6", treeGrid_.getCellText(0, 1),
+                "a plain column should still be read by GridTester");
+
+        treeGrid_.expand(0);
+
+        Assertions.assertEquals(TreeGridView.CHILD_A1,
+                treeGrid_.getCellText(1, 0));
+    }
+
+    @Test
+    void getCellText_readsComponentHierarchyColumn() {
+        TreeGridTester<TreeGrid<String>, String> multi_ = test(
+                view.multiHierarchyColumnTreeGrid);
+
+        Assertions.assertEquals(TreeGridView.ROOT_A, multi_.getCellText(0, 0));
+        Assertions.assertEquals(TreeGridView.ROOT_A.toUpperCase(),
+                multi_.getCellText(0, 1));
     }
 
 }
