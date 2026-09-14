@@ -94,21 +94,24 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     /**
-     * Checks whether the current value of the field is valid, applying the same
-     * constraints as the component itself: required, {@literal min},
-     * {@literal max} and, when it is explicitly set, the {@literal step} scale.
+     * Checks whether the field is currently valid, applying the same
+     * constraints as the component itself — required, {@literal min},
+     * {@literal max} and, when it is explicitly set, the {@literal step} scale
+     * — and honouring an invalid state set from the outside, as a
+     * {@link com.vaadin.flow.data.binder.Binder} or a custom validator does.
      * <p>
      * A field can hold a value that does not satisfy its constraints, for
      * example when the value is set on the server or stepped from an unaligned
      * value, so a test asserting on validation state should check this instead
      * of assuming that a value that could be set is valid.
      *
-     * @return {@code true} if the current value satisfies the constraints of
-     *         the field
+     * @return {@code true} if the field is not marked invalid and its current
+     *         value satisfies the constraints of the field
      */
     public boolean isValid() {
         final V value = getComponent().getValue();
-        return isValid(value) && isAlignedWithStep(value);
+        return !getComponent().isInvalid() && isValid(value)
+                && isAlignedWithStep(value);
     }
 
     private boolean isValid(V value) {
@@ -131,8 +134,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      */
     private boolean isAlignedWithStep(V value) {
         if (value == null
-                || getComponent().getElement().getProperty("step") == null
-                || getComponent().getStepDouble() == 0) {
+                || getComponent().getElement().getProperty("step") == null) {
             return true;
         }
         return margin(BigDecimal.valueOf(value.doubleValue())).signum() == 0;

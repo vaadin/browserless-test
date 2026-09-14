@@ -200,7 +200,7 @@ class NumberFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void unalignedValue_isNotValid() {
+    public void isValid_reportsConstraintViolationsAndExternalInvalidState() {
         view.numberField.setMin(1);
         view.numberField.setMax(11);
         view.numberField.setStep(5);
@@ -215,10 +215,19 @@ class NumberFieldTesterTest extends BrowserlessTest
         Assertions.assertFalse(nf_.isValid(),
                 "A value that setValue accepts can still be off the step scale");
 
+        view.numberField.setValue(50d);
+        Assertions.assertFalse(nf_.isValid(),
+                "A value set on the server can be above max");
+
         view.numberField.setRequiredIndicatorVisible(true);
         view.numberField.clear();
         Assertions.assertFalse(nf_.isValid(),
                 "An empty required field should not be valid");
+
+        nf_.setValue(6d);
+        view.numberField.setInvalid(true);
+        Assertions.assertFalse(nf_.isValid(),
+                "A field marked invalid from the outside should not be valid");
     }
 
     @Test
@@ -263,6 +272,28 @@ class NumberFieldTesterTest extends BrowserlessTest
                 "Step down should fail when the step button would be disabled in the browser");
         Assertions.assertEquals(0d, view.numberField.getValue(),
                 "A failed step should not change the value");
+    }
+
+    @Test
+    public void stepMultipleTimes_oneClickExceedsBoundaries_earlierClicksAreKept() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(0);
+        view.numberField.setMax(10);
+        view.numberField.setStep(3);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(4d);
+        List<Double> values = new ArrayList<>();
+        view.numberField
+                .addValueChangeListener(event -> values.add(event.getValue()));
+
+        assertThrows(IllegalStateException.class, () -> nf_.stepUp(3),
+                "The third click should fail as it would exceed max");
+
+        Assertions.assertEquals(9d, view.numberField.getValue(),
+                "The clicks performed before the failing one should be kept");
+        Assertions.assertEquals(List.of(6d, 9d), values,
+                "Only the performed clicks should fire a value change event");
     }
 
     @Test
