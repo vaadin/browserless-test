@@ -91,19 +91,4 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
     public void clickClearButton() {
         clickClearButtonAsUser();
     }
-
-    private boolean hasValidation() {
-        return getValidationSupport() != null;
-    }
-
-    private TextFieldValidationSupport getValidationSupport() {
-        try {
-            return (TextFieldValidationSupport) getField("validationSupport")
-                    .get(getComponent());
-        } catch (IllegalAccessException | IllegalArgumentException e) {
-            // NO-OP Field didn't exist for given GeneratedVaadinTextField
-            // implementation
-        }
-        return null;
-    }
 }
