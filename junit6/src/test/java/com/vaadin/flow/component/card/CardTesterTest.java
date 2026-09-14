@@ -16,6 +16,7 @@
 package com.vaadin.flow.component.card;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,12 +97,34 @@ class CardTesterTest extends BrowserlessTest {
                 "A card without a subtitle has no subtitle text");
     }
 
+    /**
+     * A {@link Span} subtitle set as a component is stored exactly like one set
+     * as text, so both report text — unlike the title, where a component title
+     * and the {@code cardTitle} property are separate and
+     * {@link CardTester#getTitleAsText()} stays empty.
+     */
+    @Test
+    void getSubtitleAsText_subtitleSetAsSpan_readsTextUnlikeTitle() {
+        view.card.setSubtitle(new Span("Component subtitle"));
+        view.card.setTitle(new Span("Component title"));
+
+        assertEquals("Component subtitle", test(view.card).getSubtitleAsText());
+        assertEquals("", test(view.card).getTitleAsText(),
+                "A component title leaves the card's title property empty");
+    }
+
     @Test
     void find_searchesEverySlotOfTheCard() {
+        Button title = new Button("Title");
+        Button media = new Button("Media");
         Button dismiss = new Button("Dismiss");
+        Button content = new Button("Content");
         Button book = new Button("Book");
         Button elsewhere = new Button("Elsewhere");
+        view.card.setTitle(title);
+        view.card.setMedia(media);
         view.card.setHeaderSuffix(dismiss);
+        view.card.add(content);
         view.card.addToFooter(book);
         view.add(elsewhere);
 
@@ -110,8 +133,9 @@ class CardTesterTest extends BrowserlessTest {
                 tester.find(Button.class).withText("Dismiss").single(),
                 "find() should reach components in the card's slots");
         assertSame(book, tester.find(Button.class).withText("Book").single());
-        assertEquals(List.of(dismiss, book), tester.find(Button.class).all(),
-                "find() should be scoped to the card");
+        assertEquals(Set.of(title, media, dismiss, content, book),
+                Set.copyOf(tester.find(Button.class).all()),
+                "find() should reach every slot and be scoped to the card");
     }
 
     @Test

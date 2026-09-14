@@ -102,9 +102,16 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * Gets the subtitle text shown on the card.
      * <p>
      * {@link Card#setSubtitle(String)} wraps the text in a {@link Span}, so a
-     * subtitle set as text is reported here. A subtitle set as any other
-     * component is not text and reports {@code null}; use
+     * subtitle set as text is reported here, and so is the text of a
+     * {@link Span} set with {@link Card#setSubtitle(Component)} — the card
+     * stores the two the same way and cannot tell them apart. A subtitle set as
+     * any other component is not text and reports {@code null}; use
      * {@link #getSubtitle()} to get the component itself.
+     * <p>
+     * Note that this differs from {@link #getTitleAsText()}, which reports an
+     * empty string rather than {@code null} when the card shows no textual
+     * title, because a card keeps its title text in a property of its own
+     * instead of in a component.
      *
      * @return the subtitle text, or {@code null} if no subtitle is set or the
      *         subtitle is not a text subtitle
