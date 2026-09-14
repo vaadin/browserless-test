@@ -63,6 +63,24 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
         setValueAsUser(value);
     }
 
+    /**
+     * Checks whether the current value of the field is valid, applying the same
+     * constraints as the component itself: required, {@literal min},
+     * {@literal max} and, when it is explicitly set, the {@literal step} scale.
+     * <p>
+     * A field can hold a value that does not satisfy its constraints, for
+     * example when the value is set on the server or stepped from an unaligned
+     * value, so a test asserting on validation state should check this instead
+     * of assuming that a value that could be set is valid.
+     *
+     * @return {@code true} if the current value satisfies the constraints of
+     *         the field
+     */
+    public boolean isValid() {
+        final V value = getComponent().getValue();
+        return isValid(value) && isAlignedWithStep(value);
+    }
+
     private boolean isValid(V value) {
         final boolean isRequiredButEmpty = getComponent().isRequired()
                 && Objects.equals(getComponent().getEmptyValue(), value);
@@ -72,8 +90,22 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
                 && value.doubleValue() < getComponent().getMinDouble();
 
         return !(isRequiredButEmpty || isGreaterThanMax || isSmallerThanMin);
-        // TODO: Can we access the Generic isValidByStep
-        // || !isValidByStep(value);
+        // The step scale is deliberately not checked here: a value that is
+        // not aligned with the step can be committed from the browser too, so
+        // setValue refusing it would be wrong. Use isValid() to assert on it.
+    }
+
+    /**
+     * Mirrors the component's own step validation: the {@literal step} scale is
+     * only taken into account when the step is explicitly set.
+     */
+    private boolean isAlignedWithStep(V value) {
+        if (value == null
+                || getComponent().getElement().getProperty("step") == null
+                || getComponent().getStepDouble() == 0) {
+            return true;
+        }
+        return margin(BigDecimal.valueOf(value.doubleValue())).signum() == 0;
     }
 
     /**
@@ -95,14 +127,15 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     /**
      * Simulates the user clicking the step up button the given number of times.
      * <p>
-     * The value is set once, after all the steps have been applied, so a single
-     * value change event is fired.
+     * Each click sets the value on its own, so one value change event is fired
+     * per click, as in the browser. If a click cannot be performed, the value
+     * keeps the steps that were applied before it.
      *
      * @param times
      *            how many times the step up button is clicked, must be a
-     *            non-negative integer
+     *            positive integer
      * @throws IllegalArgumentException
-     *             if {@code times} is negative
+     *             if {@code times} is not positive
      * @throws IllegalStateException
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
@@ -132,14 +165,15 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      * Simulates the user clicking the step down button the given number of
      * times.
      * <p>
-     * The value is set once, after all the steps have been applied, so a single
-     * value change event is fired.
+     * Each click sets the value on its own, so one value change event is fired
+     * per click, as in the browser. If a click cannot be performed, the value
+     * keeps the steps that were applied before it.
      *
      * @param times
      *            how many times the step down button is clicked, must be a
-     *            non-negative integer
+     *            positive integer
      * @throws IllegalArgumentException
-     *             if {@code times} is negative
+     *             if {@code times} is not positive
      * @throws IllegalStateException
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
@@ -150,9 +184,9 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     private void step(int times, boolean up) {
-        if (times < 0) {
+        if (times <= 0) {
             throw new IllegalArgumentException(
-                    "The 'times' parameter must be a non-negative integer.");
+                    "The 'times' parameter must be a positive integer.");
         }
         ensureComponentIsUsable();
         if (!getComponent().isStepButtonsVisible()) {
@@ -161,16 +195,12 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
                             + "Call setStepButtonsVisible(true) on the component, "
                             + "or use setValue to type the value instead.");
         }
-        if (times == 0) {
-            return;
+        for (int i = 0; i < times; i++) {
+            final V currentValue = getComponent().getValue();
+            final double stepped = currentValue == null ? stepFromEmpty(up)
+                    : stepOnce(currentValue.doubleValue(), up);
+            setValueAsUser(toValue(stepped));
         }
-        final V currentValue = getComponent().getValue();
-        double value = currentValue == null ? stepFromEmpty(up)
-                : stepOnce(currentValue.doubleValue(), up);
-        for (int i = 1; i < times; i++) {
-            value = stepOnce(value, up);
-        }
-        setValueAsUser(toValue(value));
     }
 
     /**

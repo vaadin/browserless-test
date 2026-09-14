@@ -15,7 +15,8 @@
  */
 package com.vaadin.flow.component.textfield;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
@@ -153,20 +154,28 @@ class NumberFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    public void emptyNumberField_stepUp_oneStepIsSet_clientSideEventIsFired() {
+    public void emptyNumberField_step_oneStepIsSet_clientSideEventIsFired() {
         view.numberField.setStepButtonsVisible(true);
-        AtomicReference<Double> value = new AtomicReference<>(null);
+        List<Double> clientValues = new ArrayList<>();
         view.numberField.addValueChangeListener(event -> {
             if (event.isFromClient()) {
-                value.compareAndSet(null, event.getValue());
+                clientValues.add(event.getValue());
             }
         });
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
 
-        test(view.numberField).stepUp();
-
-        Assertions.assertEquals(1d, value.get(),
+        nf_.stepUp();
+        Assertions.assertEquals(1d, view.numberField.getValue(),
                 "Stepping up an empty field should set the first step");
-        Assertions.assertEquals(1d, view.numberField.getValue());
+
+        view.numberField.clear();
+        nf_.stepDown();
+        Assertions.assertEquals(-1d, view.numberField.getValue(),
+                "Stepping down an empty field should set the first step");
+
+        Assertions.assertEquals(List.of(1d, -1d), clientValues,
+                "Both steps should be seen as coming from the client");
     }
 
     @Test
@@ -188,6 +197,28 @@ class NumberFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
+    public void unalignedValue_isNotValid() {
+        view.numberField.setMin(1);
+        view.numberField.setMax(11);
+        view.numberField.setStep(5);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        nf_.setValue(6d);
+        Assertions.assertTrue(nf_.isValid(),
+                "A value on the step scale should be valid");
+
+        nf_.setValue(3d);
+        Assertions.assertFalse(nf_.isValid(),
+                "A value that setValue accepts can still be off the step scale");
+
+        view.numberField.setRequiredIndicatorVisible(true);
+        view.numberField.clear();
+        Assertions.assertFalse(nf_.isValid(),
+                "An empty required field should not be valid");
+    }
+
+    @Test
     public void decimalStep_step_doesNotLosePrecision() {
         view.numberField.setStepButtonsVisible(true);
         view.numberField.setStep(0.1);
@@ -198,7 +229,14 @@ class NumberFieldTesterTest extends BrowserlessTest {
         nf_.stepUp();
         Assertions.assertEquals(0.2, view.numberField.getValue());
 
+        nf_.stepUp(2);
+        Assertions.assertEquals(0.4, view.numberField.getValue(),
+                "Repeated steps should not accumulate rounding errors");
+
         nf_.stepDown();
+        Assertions.assertEquals(0.3, view.numberField.getValue());
+
+        nf_.stepDown(2);
         Assertions.assertEquals(0.1, view.numberField.getValue());
     }
 
@@ -225,19 +263,25 @@ class NumberFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    public void integerField_stepUpMultipleTimes_singleEventWithAllStepsApplied() {
+    public void integerField_stepMultipleTimes_oneEventPerClick() {
         view.integerField.setStepButtonsVisible(true);
         view.integerField.setStep(2);
-        AtomicInteger events = new AtomicInteger();
+        List<Integer> values = new ArrayList<>();
         view.integerField
-                .addValueChangeListener(event -> events.incrementAndGet());
+                .addValueChangeListener(event -> values.add(event.getValue()));
+        final NumberFieldTester<IntegerField, Integer> inf_ = test(
+                view.integerField);
 
-        test(view.integerField).stepUp(3);
-
+        inf_.stepUp(3);
         Assertions.assertEquals(6, view.integerField.getValue(),
                 "Each of the three clicks should apply one step");
-        Assertions.assertEquals(1, events.get(),
-                "The value should be set once, after all the steps");
+
+        inf_.stepDown(2);
+        Assertions.assertEquals(2, view.integerField.getValue(),
+                "Each of the two clicks should apply one step");
+
+        Assertions.assertEquals(List.of(2, 4, 6, 4, 2), values,
+                "Every click should fire its own value change event");
     }
 
     @Test
@@ -251,11 +295,14 @@ class NumberFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    public void negativeTimes_step_throws() {
+    public void nonPositiveTimes_step_throws() {
         view.numberField.setStepButtonsVisible(true);
         final NumberFieldTester<NumberField, Double> nf_ = test(
                 view.numberField);
 
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepUp(0),
+                "Clicking a step button zero times makes no sense");
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepDown(0));
         assertThrows(IllegalArgumentException.class, () -> nf_.stepUp(-1));
         assertThrows(IllegalArgumentException.class, () -> nf_.stepDown(-1));
     }
@@ -283,11 +330,6 @@ class NumberFieldTesterTest extends BrowserlessTest {
         test(negativeRange).stepDown();
         Assertions.assertEquals(-3d, negativeRange.getValue(),
                 "Stepping down an empty field should land on max, which the component commits as is");
-
-        view.numberField.setStepButtonsVisible(true);
-        test(view.numberField).stepDown();
-        Assertions.assertEquals(-1d, view.numberField.getValue(),
-                "Stepping down an empty field with no boundaries should start from zero");
     }
 
     @Test
@@ -315,24 +357,6 @@ class NumberFieldTesterTest extends BrowserlessTest {
         nf_.stepDown();
         Assertions.assertEquals(-3d, view.numberField.getValue(),
                 "With min set the step scale is measured from min");
-    }
-
-    @Test
-    public void stepZeroTimes_valueIsNotChanged_noEventIsFired() {
-        view.numberField.setStepButtonsVisible(true);
-        final NumberFieldTester<NumberField, Double> nf_ = test(
-                view.numberField);
-        nf_.setValue(5d);
-        AtomicInteger events = new AtomicInteger();
-        view.numberField
-                .addValueChangeListener(event -> events.incrementAndGet());
-
-        nf_.stepUp(0);
-        nf_.stepDown(0);
-
-        Assertions.assertEquals(5d, view.numberField.getValue());
-        Assertions.assertEquals(0, events.get(),
-                "Clicking a step button zero times should not change the value");
     }
 
 }
