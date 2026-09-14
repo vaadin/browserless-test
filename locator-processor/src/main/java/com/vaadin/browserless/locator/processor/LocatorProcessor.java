@@ -82,6 +82,7 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
+    private static final String HAS_CLEAR_BUTTON_FQN = "com.vaadin.flow.component.shared.HasClearButton";
 
     /**
      * Mapping from Vaadin {@code Has*} interface FQN to the locator-side
@@ -326,6 +327,7 @@ public class LocatorProcessor extends AbstractProcessor {
         DeclaredType testerType = (DeclaredType) tester.asType();
         LinkedHashMap<String, ExecutableElement> inherited = new LinkedHashMap<>();
         collectDelegateMethods(tester, componentTesterEl, inherited);
+        checkClearButtonCoverage(tester, target, inherited);
         for (ExecutableElement m : inherited.values()) {
             ExecutableType resolved = (ExecutableType) types
                     .asMemberOf(testerType, m);
@@ -799,6 +801,30 @@ public class LocatorProcessor extends AbstractProcessor {
                     (TypeElement) ((DeclaredType) sup).asElement(),
                     componentTesterEl, collected);
         }
+    }
+
+    /**
+     * Keep {@code clickClearButton()} coverage uniform: a component that
+     * implements {@code HasClearButton} has a clear button the user can click,
+     * so its tester must model that. Partial coverage is exactly the kind of
+     * gap you would otherwise only discover by compiling against the generated
+     * locator, so it is an error here rather than a warning.
+     */
+    private void checkClearButtonCoverage(TypeElement tester,
+            TypeElement target, Map<String, ExecutableElement> delegates) {
+        if (!indexSupertypes(target).containsKey(HAS_CLEAR_BUTTON_FQN)) {
+            return;
+        }
+        if (delegates.containsKey("clickClearButton()")) {
+            return;
+        }
+        note(Diagnostic.Kind.ERROR,
+                "Tester " + tester.getQualifiedName() + " targets "
+                        + target.getQualifiedName()
+                        + ", which implements HasClearButton, but declares no"
+                        + " public clickClearButton(). Add it (delegating to"
+                        + " ComponentTester#clickClearButtonAsUser()) so the"
+                        + " generated locator exposes it.");
     }
 
     private String erasedSignatureKey(ExecutableElement m) {

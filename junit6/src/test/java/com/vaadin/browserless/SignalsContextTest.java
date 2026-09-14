@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import com.vaadin.flow.signals.SignalEnvironment;
+import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 /**
  * Mirrors {@link SignalsTest} but drives the scenarios through the
@@ -134,6 +135,31 @@ class SignalsContextTest {
                 "Expected pending signals tasks to be run");
         Assertions.assertEquals("Counter: 10 (delayed)",
                 counterTester.getText());
+    }
+
+    @Test
+    void sharedValueSignal_set_operationConfirmedByRunPendingSignalsTasks() {
+        // The window's thread locals must be active so that the result
+        // notifier resolves to this window's UI instead of the service
+        // executor.
+        window.activate();
+        var signal = new SharedValueSignal<>("initial");
+
+        var operation = signal.set("changed");
+
+        // The change is applied optimistically right away, but the
+        // confirmation of a shared signal write is dispatched through the
+        // Signals task queue and therefore stays pending until the test
+        // drains it.
+        Assertions.assertEquals("changed", signal.peek());
+        Assertions.assertFalse(operation.result().isDone(),
+                "Operation should still be unconfirmed before pending "
+                        + "Signals tasks are run");
+
+        Assertions.assertTrue(window.runPendingSignalsTasks(),
+                "Expected a pending confirmation task to be run");
+        Assertions.assertTrue(operation.result().join().successful(),
+                "Set operation should have succeeded");
     }
 
     @Test

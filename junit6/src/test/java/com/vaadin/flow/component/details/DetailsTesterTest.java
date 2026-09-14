@@ -42,10 +42,16 @@ class DetailsTesterTest extends BrowserlessTest {
     @Test
     void openDetails_contentVisible() {
         AtomicBoolean listenerInvoked = new AtomicBoolean();
-        view.details.addOpenedChangeListener(ev -> listenerInvoked.set(true));
+        AtomicBoolean fromClient = new AtomicBoolean();
+        view.details.addOpenedChangeListener(ev -> {
+            listenerInvoked.set(true);
+            fromClient.set(ev.isFromClient());
+        });
 
         test(view.details).openDetails();
         Assertions.assertTrue(listenerInvoked.get());
+        Assertions.assertTrue(fromClient.get(),
+                "Opening details should look like a user interaction");
         Assertions.assertTrue(view.details.isOpened(),
                 "Contents should be visible after opening details");
     }
@@ -73,10 +79,16 @@ class DetailsTesterTest extends BrowserlessTest {
         view.details.setOpened(true);
 
         AtomicBoolean listenerInvoked = new AtomicBoolean();
-        view.details.addOpenedChangeListener(ev -> listenerInvoked.set(true));
+        AtomicBoolean fromClient = new AtomicBoolean();
+        view.details.addOpenedChangeListener(ev -> {
+            listenerInvoked.set(true);
+            fromClient.set(ev.isFromClient());
+        });
 
         test(view.details).closeDetails();
         Assertions.assertTrue(listenerInvoked.get());
+        Assertions.assertTrue(fromClient.get(),
+                "Closing details should look like a user interaction");
         Assertions.assertFalse(view.details.isOpened(),
                 "Contents should not be visible after closing details");
     }
@@ -108,8 +120,11 @@ class DetailsTesterTest extends BrowserlessTest {
     @Test
     void toggleDetails_detailsVisibilityChanges() {
         List<Boolean> stateChanges = new ArrayList<>();
-        view.details
-                .addOpenedChangeListener(ev -> stateChanges.add(ev.isOpened()));
+        view.details.addOpenedChangeListener(ev -> {
+            Assertions.assertTrue(ev.isFromClient(),
+                    "Toggling details should look like a user interaction");
+            stateChanges.add(ev.isOpened());
+        });
 
         test(view.details).toggleDetails();
         Assertions.assertIterableEquals(List.of(true), stateChanges);

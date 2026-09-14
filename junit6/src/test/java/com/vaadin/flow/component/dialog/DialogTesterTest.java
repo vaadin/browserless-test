@@ -15,6 +15,9 @@
  */
 package com.vaadin.flow.component.dialog;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +96,125 @@ class DialogTesterTest extends BrowserlessTest {
         ButtonTester<Button> button_ = test(view.button);
         Assertions.assertTrue(button_.isUsable(),
                 "Non-modal dialog should not block button");
+    }
+
+    @Test
+    void pressEscape_closesDialogAsUser() {
+        dialog_.open();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
+
+        dialog_.pressEscape();
+
+        Assertions.assertFalse(dialog_.isOpen(),
+                "Dialog should be closed by pressing Escape");
+        Assertions.assertEquals(Boolean.TRUE, closedFromClient.get(),
+                "Escape should fire a close event reported as client-side");
+    }
+
+    @Test
+    void pressEscape_closeOnEscDisabled_throws() {
+        view.dialog.setCloseOnEsc(false);
+        dialog_.open();
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.pressEscape(),
+                "Escape should not close a dialog with close-on-Esc disabled");
+        Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
+    }
+
+    @Test
+    void pressEscape_dialogNotOpen_throws() {
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.pressEscape(),
+                "Escape should not be possible on a closed dialog");
+    }
+
+    @Test
+    void pressEscape_closeActionListenerRegistered_firesEventWithoutClosing() {
+        AtomicInteger closeActions = new AtomicInteger();
+        view.dialog.addDialogCloseActionListener(
+                event -> closeActions.incrementAndGet());
+        dialog_.open();
+
+        dialog_.pressEscape();
+
+        Assertions.assertEquals(1, closeActions.get(),
+                "Escape should fire a DialogCloseActionEvent");
+        Assertions.assertTrue(dialog_.isOpen(),
+                "Dialog should stay open until the close action listener closes it");
+    }
+
+    @Test
+    void clickOutside_closesDialogAsUser() {
+        dialog_.open();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
+
+        dialog_.clickOutside();
+
+        Assertions.assertFalse(dialog_.isOpen(),
+                "Dialog should be closed by clicking outside");
+        Assertions.assertEquals(Boolean.TRUE, closedFromClient.get(),
+                "Clicking outside should fire a close event reported as client-side");
+    }
+
+    @Test
+    void clickOutside_closeOnOutsideClickDisabled_throws() {
+        view.dialog.setCloseOnOutsideClick(false);
+        dialog_.open();
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.clickOutside(),
+                "Clicking outside should not close a dialog with close-on-outside-click disabled");
+        Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
+    }
+
+    @Test
+    void close_closesFromServerIgnoringUserRestrictions() {
+        AtomicInteger closeActions = new AtomicInteger();
+        view.dialog.setCloseOnEsc(false);
+        view.dialog.setCloseOnOutsideClick(false);
+        view.dialog.addDialogCloseActionListener(
+                event -> closeActions.incrementAndGet());
+        dialog_.open();
+        AtomicReference<Boolean> closedFromClient = trackCloseSource();
+
+        dialog_.close();
+
+        Assertions.assertFalse(dialog_.isOpen(),
+                "close() should close the dialog from the server side");
+        Assertions.assertEquals(Boolean.FALSE, closedFromClient.get(),
+                "close() should fire a close event reported as server-side");
+        Assertions.assertEquals(0, closeActions.get(),
+                "close() should not fire a DialogCloseActionEvent");
+    }
+
+    @Test
+    void pressEscape_dialogBehindStrictModalDialog_throws() {
+        dialog_.open();
+        Dialog blocking = new Dialog();
+        blocking.setModality(ModalityMode.STRICT);
+        test(blocking).open();
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.pressEscape(),
+                "Escape should not reach a dialog behind a strict modal dialog");
+        Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
+    }
+
+    /**
+     * Records whether the dialog was closed from the client, as reported by
+     * {@link com.vaadin.flow.component.dialog.Dialog.OpenedChangeEvent}. Stays
+     * {@code null} when the dialog never fires a close event, so tests can tell
+     * a server-side close apart from no close at all.
+     */
+    private AtomicReference<Boolean> trackCloseSource() {
+        AtomicReference<Boolean> closedFromClient = new AtomicReference<>();
+        view.dialog.addOpenedChangeListener(event -> {
+            if (!event.isOpened()) {
+                closedFromClient.set(event.isFromClient());
+            }
+        });
+        return closedFromClient;
     }
 
 }

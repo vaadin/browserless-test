@@ -105,9 +105,12 @@ public class MultiSelectListBoxTester<T extends MultiSelectListBox<V>, V>
 
     /**
      * Clear all selected items from the component.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void clearSelection() {
-        getComponent().clear();
+        clearAsUser();
     }
 
     /**

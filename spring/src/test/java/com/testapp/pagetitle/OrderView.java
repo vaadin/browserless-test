@@ -13,24 +13,20 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.example;
+package com.testapp.pagetitle;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.QueryParameters;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-@Route("template/:param")
+/**
+ * A view whose {@link PageTitle} value is a key for the application-wide
+ * {@link OrderTitleGenerator} to resolve, as an application using a single
+ * generator for translated titles would do.
+ */
 @Tag("div")
-public class TemplatedParam extends Component implements BeforeEnterObserver {
-    public String parameter;
-    public QueryParameters queryParameters;
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        parameter = event.getRouteParameters().get("param").get();
-        queryParameters = event.getLocation().getQueryParameters();
-    }
+@Route(value = "order/:orderId", registerAtStartup = false)
+@PageTitle("order.title")
+public class OrderView extends Component {
 }

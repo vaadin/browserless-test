@@ -85,7 +85,13 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
                             + " is not usable because it is read only.");
                 }
                 fireCellEditStartedEvent(gridPro, editColumn, item);
-                field.setValue(value);
+                if (canSetValueAsUser(field)) {
+                    setValueAsUser(field, value);
+                } else {
+                    // A foreign HasValue implementation has no client value
+                    // path to simulate, so just set the value on it.
+                    field.setValue(value);
+                }
                 fireItemPropertyChangedEvent(gridPro, editColumn, item, value);
             } else {
                 fireCellEditStartedEvent(gridPro, editColumn, item);
