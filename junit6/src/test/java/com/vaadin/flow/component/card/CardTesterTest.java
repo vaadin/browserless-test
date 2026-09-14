@@ -142,14 +142,20 @@ class CardTesterTest extends BrowserlessTest {
     void find_withSlotAttribute_narrowsTheSearchToOneSlot() {
         Button dismiss = new Button("Dismiss");
         Button book = new Button("Book");
+        Button content = new Button("Content");
         view.card.setHeaderSuffix(dismiss);
         view.card.addToFooter(book);
+        view.card.add(content);
 
         var tester = test(view.card);
         assertEquals(List.of(book), tester.find(Button.class)
                 .withAttribute("slot", "footer").all());
         assertEquals(List.of(dismiss), tester.find(Button.class)
                 .withAttribute("slot", "header-suffix").all());
+        assertEquals(List.of(content),
+                tester.find(Button.class).withoutAttribute("slot").all(),
+                "Content added with add() sits in the unnamed default slot, so "
+                        + "no named-slot filter matches it");
     }
 
     @Test

@@ -213,11 +213,14 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * Button book = cardTester.find(Button.class).withText("Book").single();
      * </pre>
      * <p>
-     * To narrow the search to a single slot, filter on the {@code slot}
+     * To narrow the search to a single named slot, filter on the {@code slot}
      * attribute the card puts on the component it places in that slot, for
-     * example {@code find(Button.class).withAttribute("slot", "footer")}. The
-     * attribute is only on the component sitting directly in the slot, not on
-     * the ones nested inside it.
+     * example {@code find(Button.class).withAttribute("slot", "footer")}. Two
+     * limits are worth knowing: the attribute is only on the component sitting
+     * directly in the slot, not on the ones nested inside it, and components
+     * added with {@code Card.add(...)} sit in the unnamed default content slot
+     * and carry no {@code slot} attribute at all, so no named-slot filter
+     * matches them — use {@code withoutAttribute("slot")} to single those out.
      */
     @Override
     public <R extends Component> ComponentQuery<R> find(
