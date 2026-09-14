@@ -17,6 +17,7 @@ package com.vaadin.browserless.mocks
 
 import com.github.mvysny.dynatest.DynaTest
 import com.github.mvysny.dynatest.expectList
+import com.github.mvysny.dynatest.expectThrows
 import kotlin.test.expect
 
 /**
@@ -66,6 +67,7 @@ class MockRequestTest : DynaTest({
 
     test("getSession(true) creates a new session when invalidated") {
         var session = request.session as MockHttpSession
+        val requestedId = request.requestedSessionId
         expect(true) { session.isValid }
         session.setAttribute("foo", "bar")
         session.invalidate()
@@ -74,6 +76,10 @@ class MockRequestTest : DynaTest({
         session = request.getSession(true) as MockHttpSession
         expect(true) { session.isValid }
         expect(null) { session.getAttribute("foo") }
+        // the replacement session has its own ID, but the ID the client asked
+        // for stays the same for the lifetime of the request
+        expect(true) { session.id != requestedId }
+        expect(requestedId) { request.requestedSessionId }
     }
 
     test("getSession() creates a new session when invalidated") {
@@ -86,6 +92,32 @@ class MockRequestTest : DynaTest({
         session = request.session as MockHttpSession
         expect(true) { session.isValid }
         expect(null) { session.getAttribute("foo") }
+    }
+
+    test("changeSessionId() rotates the ID but keeps the session and its attributes") {
+        // Apps which do not use Spring Security do session-fixation protection
+        // themselves by calling changeSessionId() after a successful login; the
+        // session (and thus the VaadinSession stored in it) must survive that.
+        val session = request.session as MockHttpSession
+        val oldId = session.id
+        session.setAttribute("foo", "bar")
+
+        val newId = request.changeSessionId()
+
+        expect(true) { newId != oldId }
+        expect(newId) { session.id }
+        expect(session) { request.session }
+        expect("bar") { session.getAttribute("foo") }
+        // the client keeps sending the ID it was given until it picks up the
+        // new one, so the requested ID does not change
+        expect(oldId) { request.requestedSessionId }
+    }
+
+    test("changeSessionId() fails once the session is invalidated") {
+        (request.session as MockHttpSession).invalidate()
+        expectThrows(IllegalStateException::class) {
+            request.changeSessionId()
+        }
     }
 
     test("principal") {

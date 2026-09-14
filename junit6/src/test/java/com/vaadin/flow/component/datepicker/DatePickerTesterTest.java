@@ -23,6 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.RefusesEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -31,7 +33,8 @@ import com.vaadin.flow.router.RouteConfiguration;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
-class DatePickerTesterTest extends BrowserlessTest {
+class DatePickerTesterTest extends BrowserlessTest
+        implements RefusesEmptyValueContract, ClearButtonContract {
 
     DatePickerView view;
 
@@ -92,4 +95,24 @@ class DatePickerTesterTest extends BrowserlessTest {
         Assertions.assertEquals(newValue, value.get());
     }
 
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.picker.setValue(LocalDate.of(1995, 1, 5));
+        return view.picker;
+    }
+
+    @Override
+    public void clear() {
+        test(view.picker).clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.picker).clickClearButton();
+    }
+
+    @Override
+    public void setEmptyValue() {
+        test(view.picker).setValue(view.picker.getEmptyValue());
+    }
 }

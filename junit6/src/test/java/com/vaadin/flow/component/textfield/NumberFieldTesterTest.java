@@ -24,6 +24,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.RefusesEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -32,7 +34,8 @@ import com.vaadin.flow.router.RouteConfiguration;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
-class NumberFieldTesterTest extends BrowserlessTest {
+class NumberFieldTesterTest extends BrowserlessTest
+        implements RefusesEmptyValueContract, ClearButtonContract {
 
     private NumberFieldView view;
 
@@ -359,4 +362,24 @@ class NumberFieldTesterTest extends BrowserlessTest {
                 "With min set the step scale is measured from min");
     }
 
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.numberField.setValue(15d);
+        return view.numberField;
+    }
+
+    @Override
+    public void clear() {
+        test(view.numberField).clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.numberField).clickClearButton();
+    }
+
+    @Override
+    public void setEmptyValue() {
+        test(view.numberField).setValue(view.numberField.getEmptyValue());
+    }
 }

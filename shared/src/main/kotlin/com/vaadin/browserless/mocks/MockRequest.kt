@@ -38,6 +38,14 @@ import java.util.concurrent.ConcurrentHashMap
 
 open class MockRequest(private var session: HttpSession) : HttpServletRequest {
 
+    /**
+     * The ID of the session the client asked for. Just like in a servlet
+     * container it stays the same for the lifetime of the request, even if the
+     * session ID is rotated via [changeSessionId] or a new session is created
+     * after invalidation.
+     */
+    private val initiallyRequestedSessionId: String = session.id
+
     override fun getInputStream(): ServletInputStream {
         throw UnsupportedOperationException("not implemented")
     }
@@ -81,7 +89,7 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
      */
     override fun getServerPort(): Int = MockHttpEnvironment.serverPort
 
-    override fun getRequestedSessionId(): String = session.id
+    override fun getRequestedSessionId(): String = initiallyRequestedSessionId
 
     override fun getServletPath(): String = ""
 
@@ -175,7 +183,17 @@ open class MockRequest(private var session: HttpSession) : HttpServletRequest {
             ?: -1
 
     override fun changeSessionId(): String {
-        throw UnsupportedOperationException("not implemented")
+        // Mirrors the servlet container contract: the session keeps its
+        // identity and its attributes (in particular the VaadinSession), only
+        // the ID changes, and there has to be a session to begin with. Apps
+        // which are not backed by Spring Security implement session-fixation
+        // protection by calling this after a successful login.
+        val current: HttpSession = getSession(false)
+                ?: throw IllegalStateException("no session is associated with this request")
+        if (current !is MockHttpSession) {
+            throw UnsupportedOperationException("changeSessionId() is only supported for MockHttpSession but got ${current.javaClass}")
+        }
+        return current.changeSessionId()
     }
 
     override fun getAsyncContext(): AsyncContext {

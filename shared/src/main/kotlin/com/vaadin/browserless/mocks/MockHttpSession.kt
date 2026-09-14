@@ -30,7 +30,7 @@ import jakarta.servlet.http.HttpSession
  * A standalone implementation of the [HttpSession] interface.
  */
 open class MockHttpSession(
-        private val sessionId: String,
+        @Volatile private var sessionId: String,
         private val servletContext: ServletContext,
         private val creationTime: Long,
         private var maxInactiveInterval: Int
@@ -111,14 +111,33 @@ open class MockHttpSession(
         }
     }
 
+    /**
+     * Assigns a new ID to this session, keeping its identity and all of its
+     * attributes intact, and returns the new ID.
+     *
+     * This mirrors what a servlet container does for
+     * [jakarta.servlet.http.HttpServletRequest.changeSessionId]: apps which
+     * implement session-fixation protection themselves (vanilla and Java EE
+     * apps, i.e. those not relying on Spring Security) call it after a
+     * successful login.
+     */
+    fun changeSessionId(): String {
+        checkValid()
+        sessionId = newSessionId()
+        return sessionId
+    }
+
     override fun toString(): String =
         "MockHttpSession(sessionId='$sessionId', creationTime=$creationTime, maxInactiveInterval=$maxInactiveInterval, attributes=$attributes, isValid=$isValid)"
 
     companion object {
         private val sessionIdGenerator = AtomicInteger()
+
+        private fun newSessionId(): String = sessionIdGenerator.incrementAndGet().toString()
+
         fun create(ctx: ServletContext): MockHttpSession =
             MockHttpSession(
-                sessionIdGenerator.incrementAndGet().toString(),
+                newSessionId(),
                 ctx,
                 System.currentTimeMillis(),
                 30

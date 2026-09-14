@@ -13,24 +13,28 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.example;
+package com.example.failing;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 
-@Route("template/:param")
+/**
+ * A view failing an assertion while being entered, the way a view (or Flow
+ * itself) does when a test runs with assertions enabled. Errors are not routed
+ * to the error view, so this is what reaches the caller of a navigation.
+ */
+@Route("failing-assertion")
 @Tag("div")
-public class TemplatedParam extends Component implements BeforeEnterObserver {
-    public String parameter;
-    public QueryParameters queryParameters;
+public class FailingAssertionView extends Component
+        implements BeforeEnterObserver {
+
+    public static final String MESSAGE = "assertion failed while entering the view";
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        parameter = event.getRouteParameters().get("param").get();
-        queryParameters = event.getLocation().getQueryParameters();
+        throw new AssertionError(MESSAGE);
     }
 }
