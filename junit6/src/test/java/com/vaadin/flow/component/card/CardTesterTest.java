@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -78,6 +79,42 @@ class CardTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getSubtitleAsText_textualSubtitle_returnsText() {
+        assertEquals("Card subtitle", test(view.card).getSubtitleAsText());
+    }
+
+    @Test
+    void getSubtitleAsText_nonTextualSubtitle_returnsNull() {
+        view.card.setSubtitle(new Button("Subtitle button"));
+
+        assertNull(test(view.card).getSubtitleAsText(),
+                "A subtitle that is not a text subtitle has no text");
+
+        view.card.setSubtitle((Component) null);
+
+        assertNull(test(view.card).getSubtitleAsText(),
+                "A card without a subtitle has no subtitle text");
+    }
+
+    @Test
+    void find_searchesEverySlotOfTheCard() {
+        Button dismiss = new Button("Dismiss");
+        Button book = new Button("Book");
+        Button elsewhere = new Button("Elsewhere");
+        view.card.setHeaderSuffix(dismiss);
+        view.card.addToFooter(book);
+        view.add(elsewhere);
+
+        var tester = test(view.card);
+        assertSame(dismiss,
+                tester.find(Button.class).withText("Dismiss").single(),
+                "find() should reach components in the card's slots");
+        assertSame(book, tester.find(Button.class).withText("Book").single());
+        assertEquals(List.of(dismiss, book), tester.find(Button.class).all(),
+                "find() should be scoped to the card");
+    }
+
+    @Test
     void headerAccessors_returnHeaderComponents() {
         Span header = new Span("Header");
         view.card.setHeader(header);
@@ -101,6 +138,8 @@ class CardTesterTest extends BrowserlessTest {
                 "The header replaces the title, so it is not shown");
         assertThrows(IllegalStateException.class, test(view.card)::getTitle);
         assertThrows(IllegalStateException.class, test(view.card)::getSubtitle);
+        assertThrows(IllegalStateException.class,
+                test(view.card)::getSubtitleAsText);
     }
 
     @Test
@@ -133,6 +172,8 @@ class CardTesterTest extends BrowserlessTest {
                 test(view.card)::getTitleAsText);
         assertThrows(IllegalStateException.class, test(view.card)::getTitle);
         assertThrows(IllegalStateException.class, test(view.card)::getSubtitle);
+        assertThrows(IllegalStateException.class,
+                test(view.card)::getSubtitleAsText);
         assertThrows(IllegalStateException.class, test(view.card)::getHeader);
         assertThrows(IllegalStateException.class,
                 test(view.card)::getHeaderPrefix);
