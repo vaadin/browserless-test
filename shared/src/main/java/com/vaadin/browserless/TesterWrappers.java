@@ -459,10 +459,42 @@ public interface TesterWrappers {
                 timePicker);
     }
 
+    /**
+     * Create a tester for the given TreeGrid instance.
+     * <p/>
+     * This overload is more specific than {@link #test(Grid)}, so a
+     * {@code TreeGrid} argument now yields a {@link TreeGridTester} rather than
+     * a {@link GridTester}. Code that assigned the result to an explicitly
+     * typed {@code GridTester<Grid<V>, V>} no longer compiles and has to widen
+     * the declaration, use {@code var}, or chain the call directly.
+     *
+     * @param treeGrid
+     *            the TreeGrid instance to be tested
+     * @param <V>
+     *            the type of the items in the TreeGrid
+     * @return a TreeGridTester instance wrapping the given TreeGrid
+     */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid<V> treeGrid) {
         return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
     }
 
+    /**
+     * Create a tester for the given TreeGrid instance.
+     * <p/>
+     * This overload is more specific than {@link #test(Grid, Class)}, so a
+     * {@code TreeGrid} argument now yields a {@link TreeGridTester} rather than
+     * a {@link GridTester}. Code that assigned the result to an explicitly
+     * typed {@code GridTester<Grid<V>, V>} no longer compiles and has to widen
+     * the declaration, use {@code var}, or chain the call directly.
+     *
+     * @param treeGrid
+     *            the TreeGrid instance to be tested
+     * @param itemType
+     *            the type of the items in the TreeGrid
+     * @param <V>
+     *            the type of the items in the TreeGrid
+     * @return a TreeGridTester instance wrapping the given TreeGrid
+     */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid treeGrid,
             Class<V> itemType) {
         return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
