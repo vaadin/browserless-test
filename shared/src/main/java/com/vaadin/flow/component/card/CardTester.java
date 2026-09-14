@@ -212,6 +212,12 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * cardTester.find(Button.class).withText("Dismiss").single().click();
      * Button book = cardTester.find(Button.class).withText("Book").single();
      * </pre>
+     * <p>
+     * To narrow the search to a single slot, filter on the {@code slot}
+     * attribute the card puts on the component it places in that slot, for
+     * example {@code find(Button.class).withAttribute("slot", "footer")}. The
+     * attribute is only on the component sitting directly in the slot, not on
+     * the ones nested inside it.
      */
     @Override
     public <R extends Component> ComponentQuery<R> find(

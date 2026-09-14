@@ -139,6 +139,20 @@ class CardTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void find_withSlotAttribute_narrowsTheSearchToOneSlot() {
+        Button dismiss = new Button("Dismiss");
+        Button book = new Button("Book");
+        view.card.setHeaderSuffix(dismiss);
+        view.card.addToFooter(book);
+
+        var tester = test(view.card);
+        assertEquals(List.of(book), tester.find(Button.class)
+                .withAttribute("slot", "footer").all());
+        assertEquals(List.of(dismiss), tester.find(Button.class)
+                .withAttribute("slot", "header-suffix").all());
+    }
+
+    @Test
     void headerAccessors_returnHeaderComponents() {
         Span header = new Span("Header");
         view.card.setHeader(header);
