@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.RefusesEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -33,7 +34,8 @@ import com.vaadin.flow.router.RouteConfiguration;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
-class DateTimePickerTesterTest extends BrowserlessTest {
+class DateTimePickerTesterTest extends BrowserlessTest
+        implements RefusesEmptyValueContract {
 
     DateTimePickerView view;
 
@@ -98,5 +100,25 @@ class DateTimePickerTesterTest extends BrowserlessTest {
         test(view.picker).setValue(newValue);
 
         Assertions.assertEquals(newValue, value.get());
+    }
+
+    // DateTimePicker does not implement HasClearButton, so there is no
+    // ClearButtonContract to assert here.
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.picker.setValue(
+                LocalDateTime.of(LocalDate.of(1995, 1, 5), LocalTime.NOON));
+        return view.picker;
+    }
+
+    @Override
+    public void clear() {
+        test(view.picker).clear();
+    }
+
+    @Override
+    public void setEmptyValue() {
+        test(view.picker).setValue(view.picker.getEmptyValue());
     }
 }
