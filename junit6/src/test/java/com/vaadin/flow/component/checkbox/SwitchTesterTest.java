@@ -22,12 +22,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
-import com.vaadin.browserless.BrowserlessTestConfig;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-@BrowserlessTestConfig(featureFlags = "switchComponent")
 class SwitchTesterTest extends BrowserlessTest {
 
     SwitchView view;
