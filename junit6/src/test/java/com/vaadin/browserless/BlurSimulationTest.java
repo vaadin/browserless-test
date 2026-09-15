@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.BlurNotifier.BlurEvent;
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.FocusNotifier.FocusEvent;
 import com.vaadin.flow.component.FocusOption;
 import com.vaadin.flow.component.button.Button;
@@ -189,6 +188,40 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
+    public void serverSideBlurInValueChangeListener_blursFieldNotFromClient() {
+        // Focusable.blur() also only schedules a client-side JS call, which
+        // the framework picks up like a browser would
+        textField.addValueChangeListener(e -> textField.blur());
+
+        test(textField).setValue("100");
+
+        Assertions.assertNotNull(receivedBlur.get(),
+                "Server-side blur() should fire the blur listener");
+        Assertions.assertFalse(receivedBlur.get().isFromClient(),
+                "Focusable.blur() marks the resulting blur event as not from the client");
+        Assertions.assertFalse(test(textField).isFocused(),
+                "Server-side blur() should leave the field without focus");
+    }
+
+    @Test
+    public void serverSideFocusOutsideInteraction_appliedOnRoundTrip() {
+        AtomicReference<FocusEvent<TextField>> receivedFocus = new AtomicReference<>();
+        textField.addFocusListener(receivedFocus::set);
+
+        // Application code focusing a field outside of any user interaction,
+        // for example when building a view
+        textField.focus();
+
+        Assertions.assertNull(receivedFocus.get(),
+                "Focusable.focus() should not fire anything before the scheduled JS is processed");
+
+        roundTrip();
+
+        Assertions.assertNotNull(receivedFocus.get(),
+                "A round-trip should apply the scheduled focus, like the browser would");
+    }
+
+    @Test
     public void buttonClickOpensDialog_serverSideFocusOnDialogField_focusesImplicitly() {
         // knoobie's case from the PR review: a button click opens a dialog
         // and the field inside is focused server-side for fast text insertion
@@ -223,6 +256,24 @@ public class BlurSimulationTest extends BrowserlessTest {
 
         Assertions.assertNull(receivedBlur.get(),
                 "Blurring a component that does not have focus should be a no-op");
+    }
+
+    @Test
+    public void click_onNotFocusableComponent_blursFieldAndFocusesNothing() {
+        // A click on something that cannot take focus moves focus to the
+        // document body in a browser
+        Div plainDiv = new Div("Not focusable");
+        container.add(plainDiv);
+
+        test(textField).setValue("100");
+        test(plainDiv).click();
+
+        Assertions.assertNotNull(receivedBlur.get(),
+                "Clicking a component that cannot take focus should still blur the focused field");
+        Assertions.assertFalse(test(textField).isFocused(),
+                "The field should have lost focus");
+        Assertions.assertFalse(test(plainDiv).isFocused(),
+                "A component that is not focusable should never be reported as focused");
     }
 
     @Test
@@ -268,17 +319,4 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "A detached field should not accept focus");
     }
 
-    @Test
-    public void blur_workaroundBypassingTester_firesServerSideBlurEvent() {
-        test(textField).setValue("100");
-
-        // The workaround from the forum thread: works, but bypasses the
-        // tester abstraction and forces the test author to remember
-        // fromClient=true
-        ComponentUtil.fireEvent(textField, new BlurEvent<>(textField, true));
-
-        Assertions.assertNotNull(receivedBlur.get(),
-                "Blur listener should have been notified");
-        Assertions.assertTrue(receivedBlur.get().isFromClient());
-    }
 }
