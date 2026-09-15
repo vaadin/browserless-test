@@ -54,7 +54,7 @@ class DateTimePickerTesterTest extends BrowserlessTest
         test(view.picker).setValue(
                 LocalDateTime.of(LocalDate.of(1995, 1, 1), LocalTime.MIDNIGHT));
 
-        Assertions.assertFalse(test(view.picker).isInvalid(),
+        Assertions.assertTrue(test(view.picker).isValid(),
                 "a value within max should leave the field valid");
 
         final LocalDateTime newValue = LocalDateTime
@@ -63,7 +63,7 @@ class DateTimePickerTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(newValue, view.picker.getValue(),
                 "the value the user can type should have been committed");
-        Assertions.assertTrue(test(view.picker).isInvalid(),
+        Assertions.assertFalse(test(view.picker).isValid(),
                 "a value over max should leave the field invalid");
     }
 
@@ -78,7 +78,7 @@ class DateTimePickerTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(newValue, view.picker.getValue(),
                 "the value the user can type should have been committed");
-        Assertions.assertTrue(test(view.picker).isInvalid(),
+        Assertions.assertFalse(test(view.picker).isValid(),
                 "a value under min should leave the field invalid");
     }
 
@@ -139,7 +139,7 @@ class DateTimePickerTesterTest extends BrowserlessTest
     }
 
     @Override
-    public boolean isInvalid() {
-        return test(view.picker).isInvalid();
+    public boolean isValid() {
+        return test(view.picker).isValid();
     }
 }

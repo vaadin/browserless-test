@@ -22,7 +22,7 @@ import com.vaadin.flow.component.HasValue;
 
 /**
  * The {@link ClearContract} plus the set-time behaviour that sits next to it,
- * for the testers that expose {@code isInvalid()}: the number field and the
+ * for the testers that expose {@code isValid()}: the number field and the
  * picker testers.
  * <p>
  * Emptying a required field is something the user can always do, so
@@ -39,11 +39,11 @@ public interface CommitsEmptyValueContract extends ClearContract {
     void setEmptyValue();
 
     /**
-     * Invokes {@code isInvalid()} on the tester under test.
+     * Invokes {@code isValid()} on the tester under test.
      *
-     * @return whether the field under test reports itself invalid
+     * @return whether the field under test reports itself valid
      */
-    boolean isInvalid();
+    boolean isValid();
 
     @Test
     default void setEmptyValue_requiredField_isCommittedAndFieldIsInvalid() {
@@ -53,7 +53,7 @@ public interface CommitsEmptyValueContract extends ClearContract {
 
         Assertions.assertTrue(field.isEmpty(),
                 "setValue() should commit the empty value the user can type");
-        Assertions.assertTrue(isInvalid(),
+        Assertions.assertFalse(isValid(),
                 "emptying a required field should leave it invalid");
     }
 }

@@ -58,7 +58,7 @@ the browser would commit: a value outside `min` / `max`, off the `step` scale,
 or the empty value on a required field is set and simply leaves the field
 invalid, which is exactly the state a test about validation wants to reach.
 Validity is therefore *asserted* — the number field and picker testers expose
-`isInvalid()` for it — not enforced at set time. The exception is a control
+`isValid()` for it — not enforced at set time. The exception is a control
 that physically cannot produce the value: a slider clamps to its range and
 snaps to its step, so `RangeInputTester` and `NumberSliderTester` do refuse
 out-of-range and off-step values. Structural refusals stay too, such as `null`
@@ -85,10 +85,10 @@ apply — the compiler will ask you for the hooks.
   the button is hidden or the component is not usable. Hooks:
   `fieldUnderTest()` and `clickClearButton()`.
 - **`CommitsEmptyValueContract`** — extends `ClearContract`; implement it
-  *instead* when the tester exposes `isInvalid()`, as the number field and
+  *instead* when the tester exposes `isValid()`, as the number field and
   picker testers do. Adds the assertion that `setValue(emptyValue)` commits the
   empty value on a required field and leaves the field invalid, rather than
-  refusing it. Extra hooks: `setEmptyValue()` and `isInvalid()`.
+  refusing it. Extra hooks: `setEmptyValue()` and `isValid()`.
 
 `fieldUnderTest()` must return the component already attached and holding a
 non-empty value; it is called once per test, and the contract marks the field

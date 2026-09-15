@@ -29,7 +29,7 @@ import com.vaadin.flow.component.HasValue;
  * <p>
  * A tester's test class implements this to have the contract asserted against
  * it, so the expectations live in one place instead of drifting apart per
- * component. Testers that also expose {@code isInvalid()} implement
+ * component. Testers that also expose {@code isValid()} implement
  * {@link CommitsEmptyValueContract} instead, which adds the matching
  * {@code setValue(emptyValue)} assertion.
  */

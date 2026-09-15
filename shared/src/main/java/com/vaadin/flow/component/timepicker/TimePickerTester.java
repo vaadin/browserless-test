@@ -45,7 +45,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
      * A time that violates the component's constraints — outside
      * {@literal min - max}, or the empty value on a required field — is
      * committed all the same, because the browser commits it too and simply
-     * leaves the field invalid. Assert that outcome with {@link #isInvalid()}
+     * leaves the field invalid. Assert that outcome with {@link #isValid()}
      * instead of expecting this method to throw.
      *
      * @param time
@@ -60,13 +60,24 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
     }
 
     /**
-     * Checks whether the field is currently showing as invalid, as the browser
-     * would show it.
+     * Checks whether the field is currently valid, applying the same
+     * constraints as the component itself — required, {@literal min} and
+     * {@literal max} — and honouring an invalid state set from the outside, as
+     * a {@link com.vaadin.flow.data.binder.Binder} or a custom validator does.
+     * <p>
+     * A field can hold a value that does not satisfy its constraints — the user
+     * can type one, {@link #setValue(LocalTime)} commits it as the browser
+     * does, and the value can also be set on the server — so a test asserting
+     * on validation state checks this instead of expecting a value to be
+     * refused.
      *
-     * @return {@literal true} if the field is invalid
+     * @return {@code true} if the field is not marked invalid and its current
+     *         value satisfies the constraints of the field
      */
-    public boolean isInvalid() {
-        return getComponent().isInvalid();
+    public boolean isValid() {
+        final LocalTime time = getComponent().getValue();
+        return !getComponent().isInvalid() && !getComponent()
+                .getDefaultValidator().apply(time, null).isError();
     }
 
     /**

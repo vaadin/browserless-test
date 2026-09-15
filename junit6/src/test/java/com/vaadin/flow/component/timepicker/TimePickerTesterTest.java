@@ -53,7 +53,7 @@ class TimePickerTesterTest extends BrowserlessTest
 
         pick_.setValue(LocalTime.of(10, 0));
 
-        Assertions.assertFalse(pick_.isInvalid(),
+        Assertions.assertTrue(pick_.isValid(),
                 "a time within max should leave the field valid");
 
         final LocalTime newValue = LocalTime.of(13, 30);
@@ -61,7 +61,7 @@ class TimePickerTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(newValue, view.picker.getValue(),
                 "the time the user can type should have been committed");
-        Assertions.assertTrue(pick_.isInvalid(),
+        Assertions.assertFalse(pick_.isValid(),
                 "a time over max should leave the field invalid");
     }
 
@@ -74,7 +74,7 @@ class TimePickerTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(newValue, view.picker.getValue(),
                 "the time the user can type should have been committed");
-        Assertions.assertTrue(pick_.isInvalid(),
+        Assertions.assertFalse(pick_.isValid(),
                 "a time under min should leave the field invalid");
     }
 
@@ -134,7 +134,7 @@ class TimePickerTesterTest extends BrowserlessTest
     }
 
     @Override
-    public boolean isInvalid() {
-        return pick_.isInvalid();
+    public boolean isValid() {
+        return pick_.isValid();
     }
 }
