@@ -33,11 +33,13 @@ import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletService;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Application-level context for multi-user browserless testing.
@@ -83,6 +85,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final List<Runnable> closeHooks;
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private TestSignalEnvironment signalsTestEnvironment;
+    private Registration triggerArmingRegistration;
     private RequestContextHandler requestContextHandler;
     private boolean closed;
 
@@ -95,6 +98,11 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         // here so it covers session-init listeners fired by
         // BrowserlessUserContext.
         this.signalsTestEnvironment = TestSignalEnvironment.register();
+        // Observe trigger arming for this environment before any window/UI is
+        // created, so client-side triggers armed during navigation are recorded
+        // for simulation. Bound to this environment's service so it ignores
+        // armings from other (concurrent) environments. Removed in close().
+        this.triggerArmingRegistration = TriggerSimulation.install(service);
     }
 
     /**
@@ -267,6 +275,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
+        }
+        if (triggerArmingRegistration != null) {
+            triggerArmingRegistration.remove();
+            triggerArmingRegistration = null;
         }
         MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);

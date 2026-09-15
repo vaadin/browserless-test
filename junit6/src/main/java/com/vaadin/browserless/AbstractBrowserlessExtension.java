@@ -29,12 +29,15 @@ import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.locator.Locators;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.browserless.trigger.TriggerSimulation;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Abstract base for browserless JUnit 5 extensions. Holds all shared state and
@@ -50,6 +53,7 @@ abstract class AbstractBrowserlessExtension
 
     // Runtime state
     private TestSignalEnvironment signalsTestEnvironment;
+    private Registration triggerArmingRegistration;
     private Runnable cleanupAction;
 
     // --- Protected builder helpers ---
@@ -100,6 +104,10 @@ abstract class AbstractBrowserlessExtension
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
         }
+        if (triggerArmingRegistration != null) {
+            triggerArmingRegistration.remove();
+            triggerArmingRegistration = null;
+        }
         MockVaadin.tearDown();
     }
 
@@ -132,6 +140,8 @@ abstract class AbstractBrowserlessExtension
         Routes routes = RouteDiscovery.discover(packages);
         MockVaadin.setup(routes, MockedUI::new, services);
         signalsTestEnvironment = TestSignalEnvironment.register();
+        triggerArmingRegistration = TriggerSimulation
+                .install(VaadinService.getCurrent());
     }
 
     // --- Testing DSL ---
