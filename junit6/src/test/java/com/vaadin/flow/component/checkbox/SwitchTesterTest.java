@@ -17,9 +17,7 @@ package com.vaadin.flow.component.checkbox;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,16 +29,6 @@ import com.vaadin.flow.router.RouteConfiguration;
 class SwitchTesterTest extends BrowserlessTest {
 
     SwitchView view;
-
-    @BeforeAll
-    static void enableSwitchFeatureFlag() {
-        System.setProperty("vaadin.experimental.switchComponent", "true");
-    }
-
-    @AfterAll
-    static void clearSwitchFeatureFlag() {
-        System.clearProperty("vaadin.experimental.switchComponent");
-    }
 
     @BeforeEach
     void registerView() {

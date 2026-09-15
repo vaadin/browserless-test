@@ -15,9 +15,13 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+
+import com.vaadin.experimental.Feature;
 
 /**
  * JUnit 5 extension for browserless Vaadin testing with per-class lifecycle.
@@ -130,6 +134,123 @@ public class BrowserlessClassExtension extends AbstractBrowserlessExtension
     public BrowserlessClassExtension withComponentTesterPackages(
             Class<?>... classes) {
         addComponentTesterPackages(classes);
+        return this;
+    }
+
+    /**
+     * Sets a Vaadin application property (init parameter) for the tests using
+     * this extension.
+     *
+     * @param name
+     *            the property name
+     * @param value
+     *            the property value
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withApplicationProperty(String name,
+            String value) {
+        addApplicationProperty(name, value);
+        return this;
+    }
+
+    /**
+     * Sets Vaadin application properties (init parameters) for the tests using
+     * this extension.
+     *
+     * @param properties
+     *            the properties to set
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withApplicationProperties(
+            Map<String, String> properties) {
+        addApplicationProperties(properties);
+        return this;
+    }
+
+    /**
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
+     *
+     * @param featureIds
+     *            the identifiers of the features to enable
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withFeatureFlags(String... featureIds) {
+        addFeatureFlags(featureIds);
+        return this;
+    }
+
+    /**
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
+     *
+     * @param features
+     *            the features to enable
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withFeatureFlags(Feature... features) {
+        addFeatureFlags(features);
+        return this;
+    }
+
+    /**
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
+     *
+     * @param featureId
+     *            the identifier of the feature
+     * @param enabled
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withFeatureFlag(String featureId,
+            boolean enabled) {
+        addFeatureFlag(featureId, enabled);
+        return this;
+    }
+
+    /**
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
+     *
+     * @param feature
+     *            the feature
+     * @param enabled
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withFeatureFlag(Feature feature,
+            boolean enabled) {
+        addFeatureFlag(feature, enabled);
+        return this;
+    }
+
+    /**
+     * Applies the given custom Vaadin configuration to the tests using this
+     * extension.
+     * <p>
+     * The configuration wins over the one declared by a
+     * {@link BrowserlessTestConfig} annotation on the test class. Since the
+     * Vaadin environment is shared by all the tests in the class, a
+     * {@link BrowserlessTestConfig} annotation on a test method is not
+     * supported.
+     *
+     * @param configuration
+     *            the configuration to apply
+     * @return this extension instance
+     * @since 1.2
+     */
+    public BrowserlessClassExtension withConfiguration(
+            BrowserlessConfiguration configuration) {
+        addConfiguration(configuration);
         return this;
     }
 
