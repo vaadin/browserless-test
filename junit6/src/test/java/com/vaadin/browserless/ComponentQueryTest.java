@@ -658,21 +658,34 @@ class ComponentQueryTest extends BrowserlessTest {
 
     @Test
     void withinSlot_cardSlots_matchNestedContentUnlikeTheSlotAttribute() {
-        Button nested = new Button("Nested footer button");
-        Button direct = new Button("Direct footer button");
-        Button header = new Button("Header button");
+        // The component tree the withinSlot javadoc walks through, so the
+        // documented outcome stays pinned.
         Button content = new Button("Content button");
+        Button title = new Button("Title button");
+        Button save = new Button("Save button");
+        Button cancel = new Button("Cancel button");
+        Button open = new Button("Open button");
+        Button details = new Button("Details button");
+
+        Card inner = new Card();
+        inner.add(open);
+        inner.setHeader(details);
 
         Card card = new Card();
         card.add(content);
-        card.addToFooter(new Div(nested), direct);
-        card.setHeader(header);
+        card.setHeader(title);
+        card.addToFooter(new Div(save), cancel, inner);
         getCurrentView().getElement().appendChild(card.getElement());
 
         ComponentTester<Card> tester = new ComponentTester<>(card);
-        Assertions.assertIterableEquals(List.of(nested, direct),
+        // save is nested inside the slotted Div, cancel is the slot root
+        // itself, and open is default-slot content of the inner card, which is
+        // in the footer. details is left out: its own header slot is nearer.
+        Assertions.assertIterableEquals(List.of(save, cancel, open),
                 tester.find(Button.class).withinSlot("footer").all());
-        Assertions.assertIterableEquals(List.of(header),
+        // The same slot name at two nesting levels aggregates, for the very
+        // reason details is not in the footer.
+        Assertions.assertIterableEquals(List.of(title, details),
                 tester.find(Button.class).withinSlot("header").all());
         // The content button is in the card's default slot, which no slot name
         // matches.
@@ -683,12 +696,11 @@ class ComponentQueryTest extends BrowserlessTest {
                 .all().isEmpty());
 
         // Filters compose the usual way.
-        Assertions.assertSame(direct,
-                tester.find(Button.class).withinSlot("footer")
-                        .withText("Direct footer button").single());
+        Assertions.assertSame(cancel, tester.find(Button.class)
+                .withinSlot("footer").withText("Cancel button").single());
 
         // The attribute filter this replaces only ever matched the slot root.
-        Assertions.assertIterableEquals(List.of(direct), tester
+        Assertions.assertIterableEquals(List.of(cancel), tester
                 .find(Button.class).withAttribute("slot", "footer").all());
     }
 
@@ -735,40 +747,6 @@ class ComponentQueryTest extends BrowserlessTest {
                 tester.find(Button.class).withinSlot("footer").all().isEmpty());
         Assertions.assertIterableEquals(List.of(dialogHeaderButton),
                 tester.find(Button.class).withinSlot("header-content").all());
-    }
-
-    @Test
-    void withinSlot_nestedSlottedHost_resolvesToTheInnermostSlot() {
-        // Mirrors the component tree that the withinSlot javadoc walks
-        // through, so the documented outcome stays pinned: a card with a
-        // header, plain content, and a footer holding a layout, a button and
-        // an inner card that has a header of its own.
-        Button content = new Button("content");
-        Button title = new Button("title");
-        Button save = new Button("save");
-        Button cancel = new Button("cancel");
-        Button open = new Button("open");
-        Button details = new Button("details");
-
-        Card inner = new Card();
-        inner.add(open);
-        inner.setHeader(details);
-
-        Card card = new Card();
-        card.add(content);
-        card.setHeader(title);
-        card.addToFooter(new Div(save), cancel, inner);
-        getCurrentView().getElement().appendChild(card.getElement());
-
-        ComponentTester<Card> tester = new ComponentTester<>(card);
-        // #open is in the inner card's default slot, and the inner card is in
-        // the footer; #details is not, because its own header slot is nearer.
-        Assertions.assertIterableEquals(List.of(save, cancel, open),
-                tester.find(Button.class).withinSlot("footer").all());
-        // ... and for the same reason it is header content of the outer query,
-        // wherever the inner card itself is slotted.
-        Assertions.assertIterableEquals(List.of(title, details),
-                tester.find(Button.class).withinSlot("header").all());
     }
 
     @Test
