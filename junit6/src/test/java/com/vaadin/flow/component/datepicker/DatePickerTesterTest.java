@@ -46,10 +46,15 @@ class DatePickerTesterTest extends BrowserlessTest
     }
 
     @Test
-    void valueOverMaxDate_isCommitted_fieldIsInvalid() {
+    void dateWithinMax_isValid_dateOverMax_isCommittedAndInvalid() {
         view.picker.setMax(LocalDate.of(1995, 1, 1));
-        final LocalDate newValue = LocalDate.of(1995, 1, 5);
 
+        test(view.picker).setValue(LocalDate.of(1994, 12, 31));
+
+        Assertions.assertFalse(test(view.picker).isInvalid(),
+                "a date within max should leave the field valid");
+
+        final LocalDate newValue = LocalDate.of(1995, 1, 5);
         test(view.picker).setValue(newValue);
 
         Assertions.assertEquals(newValue, view.picker.getValue(),

@@ -118,19 +118,40 @@ class NumberFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void valueOverMax_isCommitted_fieldIsInvalid() {
+    public void valueWithinMax_isValid_valueOverMax_isCommittedAndInvalid() {
         view.numberField.setMax(10.0);
 
         final NumberFieldTester<NumberField, Double> nf_ = test(
                 view.numberField);
-        final Double newValue = 15d;
 
+        nf_.setValue(5d);
+
+        Assertions.assertFalse(nf_.isInvalid(),
+                "a value within max should leave the field valid");
+
+        final Double newValue = 15d;
         nf_.setValue(newValue);
 
         Assertions.assertEquals(newValue, view.numberField.getValue(),
                 "the value the user can type should have been committed");
         Assertions.assertTrue(nf_.isInvalid(),
                 "a value over max should leave the field invalid");
+    }
+
+    @Test
+    public void valueOffStepScale_isCommitted_fieldIsInvalid() {
+        view.numberField.setStep(5.0);
+
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        final Double newValue = 7d;
+
+        nf_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.numberField.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertTrue(nf_.isInvalid(),
+                "a value off the step scale should leave the field invalid");
     }
 
     @Test

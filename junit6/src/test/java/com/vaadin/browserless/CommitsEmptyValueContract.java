@@ -48,7 +48,6 @@ public interface CommitsEmptyValueContract extends ClearContract {
     @Test
     default void setEmptyValue_requiredField_isCommittedAndFieldIsInvalid() {
         HasValue<?, ?> field = ClearContracts.required(fieldUnderTest());
-        ClearContracts.setClearButtonVisible(field, false);
 
         setEmptyValue();
 

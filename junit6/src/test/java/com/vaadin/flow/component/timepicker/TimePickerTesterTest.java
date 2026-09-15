@@ -48,10 +48,15 @@ class TimePickerTesterTest extends BrowserlessTest
     }
 
     @Test
-    void valueOverMaxTime_isCommitted_fieldIsInvalid() {
+    void timeWithinMax_isValid_timeOverMax_isCommittedAndInvalid() {
         view.picker.setMax(LocalTime.NOON);
-        final LocalTime newValue = LocalTime.of(13, 30);
 
+        pick_.setValue(LocalTime.of(10, 0));
+
+        Assertions.assertFalse(pick_.isInvalid(),
+                "a time within max should leave the field valid");
+
+        final LocalTime newValue = LocalTime.of(13, 30);
         pick_.setValue(newValue);
 
         Assertions.assertEquals(newValue, view.picker.getValue(),
