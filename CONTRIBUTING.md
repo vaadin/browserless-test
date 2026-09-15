@@ -14,6 +14,42 @@ slip, changes get backported, etc.), so tags added during development are often
 wrong by the time the API is published. Deferring them to a pre-release pass
 keeps the tags accurate.
 
+## Commit messages and pull request descriptions
+
+These follow the same rules as
+[vaadin/flow](https://github.com/vaadin/flow/blob/main/.claude/skills/commit-and-pr/SKILL.md).
+The short version, because this repository squash-merges and the pull request
+description becomes the commit body verbatim:
+
+- Subject: `<type>: <summary>`, under 72 characters, imperative verb, one of
+  `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`, with `!` before
+  the colon for a breaking change. Run `mvn spotless:apply` before committing.
+- The description is plain markdown wrapped at about 75 characters — no HTML,
+  no `<details>`, no headings, about 25 lines — because all of it ends up in
+  `git log`. It follows a fixed order:
+
+```markdown
+Fixes #1234
+
+**<problem type>** · <module> · <who is affected>
+
+<Summary: at most 3 sentences, plain words, no class or method names>
+
+**Risks:**
+- ⚠️ <only the flags that are not empty: breaking, behaviour, public API,
+  security, memory, serialization, threading, performance, migration>
+- ✅ <one line for everything that is clean>
+
+**Context.** <why our code was like this, at most 3 sentences>
+
+- <What changed, one behaviour per bullet, identifiers in backticks>
+```
+
+- Everything that exists for the review rather than for the history — type of
+  change, how to test, the API delta, test coverage tables, screenshots — goes
+  into the first comment on the pull request, inside `<details>` blocks, not
+  into the description.
+
 ## Simulating the browser in testers
 
 A tester interaction has to be indistinguishable from the real one: the events
