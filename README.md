@@ -265,8 +265,8 @@ subclass to get the additional `find<Component>()` entries.
 
 Locators carry the common filters directly: `withId`, `withTestId`,
 `withClassName` / `withoutClassName`, `withAttribute` (with or without an
-expected value), `withoutAttribute`, and `withCondition` for an arbitrary
-typed predicate.
+expected value), `withoutAttribute`, `withinSlot` for content a component
+places in a named slot, and `withCondition` for an arbitrary typed predicate.
 
 Filters that depend on a component capability are mixed in only where the
 component actually supports them, so misuse is a compile error rather than a
@@ -314,6 +314,19 @@ window.findButton().atIndex(2).click();
 // only look inside a resolved parent
 window.findButton().inside(window.findButton().withId("toolbar")).click();
 ```
+
+Content a component places in a named slot — a card's footer, a dialog's
+header — is scoped with `withinSlot(name)`. It matches content nested inside
+the slot too, not only the component that is the slot root:
+
+```java
+// the Save button in the card's footer, however deeply it is nested there
+window.findButton().inside(card).withinSlot("footer").withText("Save").click();
+```
+
+Slot names are the ones the component uses in the browser and differ per
+component: a card's header slot is `header`, a dialog's is `header-content`.
+A name nothing is slotted under simply matches no components.
 
 Beyond the action methods, locators expose `component()` (the single match,
 cached), `components()` (all matches), `exists()` (true if anything matches),

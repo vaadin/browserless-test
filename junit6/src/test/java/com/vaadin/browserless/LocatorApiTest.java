@@ -28,7 +28,9 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 
 /**
@@ -312,6 +314,27 @@ class LocatorApiTest {
                     .click();
             Assertions.assertEquals("Saved: ",
                     window.findSpan().withId("echo").component().getText());
+        }
+    }
+
+    @Test
+    void filterChain_withinSlot_selectsSlottedContent() {
+        Button footerButton = new Button("Footer action");
+        Button contentButton = new Button("Content action");
+        Card card = new Card();
+        card.add(contentButton);
+        // Nested in a layout, so the match cannot come from the slot root
+        // itself.
+        card.addToFooter(new Div(footerButton));
+
+        // An ad-hoc component rather than the shared demo view, whose button
+        // count other tests here assert on.
+        try (var window = BrowserlessUIContext.forComponent(card)) {
+            Assertions.assertEquals(2, window.findButton().components().size());
+            Assertions.assertSame(footerButton,
+                    window.findButton().withinSlot("footer").component());
+            Assertions.assertSame(footerButton, window.findButton().inside(card)
+                    .withinSlot("footer").component());
         }
     }
 
