@@ -83,6 +83,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            file contents as an array of bytes
      * @throws UncheckedIOException
      *             if the upload component fails to handle file contents
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void upload(String fileName, String contentType,
             InputStream contents) {
@@ -102,6 +104,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            file contents as an array of bytes
      * @throws UncheckedIOException
      *             if the upload component fails to handle file contents
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void upload(String fileName, String contentType, byte[] contents) {
         doUpload(
@@ -118,6 +122,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            the file to upload
      * @throws UncheckedIOException
      *             if the upload component fails to handle file contents
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void upload(File file) {
         doUpload(List.of(new UploadItem(file.getName(),
@@ -130,6 +136,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param files
      *            files to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void uploadAll(File... files) {
         uploadAll(List.of(files));
@@ -140,8 +148,11 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param files
      *            files to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void uploadAll(Collection<File> files) {
+        ensureComponentIsUsable();
         Receiver receiver = getComponent().getReceiver();
         if (receiver != null && !(receiver instanceof MultiFileReceiver)) {
             throw new IllegalStateException(
@@ -234,6 +245,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     }
 
     private void doUpload(Collection<UploadItem> items) {
+        ensureComponentIsUsable();
         if (useLegacyAPI()) {
             doLegacyUpload(items);
         } else {
@@ -347,8 +359,6 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     }
 
     private void doLegacyUpload(Collection<UploadItem> items) {
-        ensureComponentIsUsable();
-
         try {
             StreamVariable streamVariable = getGetStreamVariable();
             AtomicReference<Exception> errorCollector = new AtomicReference<>();

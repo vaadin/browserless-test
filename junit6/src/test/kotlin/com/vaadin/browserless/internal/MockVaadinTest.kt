@@ -53,9 +53,9 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         MockVaadin.setup(routes)
         expect("""
 └── MockedUI[]
-    └── WelcomeView[@theme='padding spacing']
+    └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
-""".trim()) { UI.getCurrent().toPrettyTree().trim() }
+""".trim().withSortedThemeNames()) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
     }
     afterEach { MockVaadin.tearDown() }
 
@@ -297,10 +297,10 @@ internal fun DynaNodeGroup.mockVaadinTest() {
             expect(
                     """
 └── MockedUI[]
-    └── WelcomeView[@theme='padding spacing']
+    └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
-""".trim()
-            ) { UI.getCurrent().toPrettyTree().trim() }
+""".trim().withSortedThemeNames()
+            ) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
         }
     }
 
@@ -421,6 +421,26 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         test("attributes") {
             VaadinSession.getCurrent().session.setAttribute("foo", "bar")
             expect("bar") { VaadinSession.getCurrent().mock.getAttribute("foo") }
+        }
+        test("changeSessionId() keeps the VaadinSession") {
+            // How an app without Spring Security protects against session
+            // fixation after a successful login. Unlike reinitializeSession()
+            // the very same HttpSession is kept and only its ID changes, so
+            // the VaadinSession bound to it survives.
+            val session = VaadinSession.getCurrent()
+            val id = session.session.id
+            session.session.setAttribute("foo", "bar")
+            val vaadinSessionAttribute =
+                    VaadinSession::class.java.name + "." + VaadinService.getCurrent().serviceName
+
+            val request = VaadinService.getCurrentRequest() as VaadinServletRequest
+            val newId = request.httpServletRequest.changeSessionId()
+
+            expect(true) { id != newId }
+            expect(newId) { session.session.id }
+            expect("bar") { session.session.getAttribute("foo") }
+            expect(session) { session.session.getAttribute(vaadinSessionAttribute) }
+            expect(true) { session.hasLock() }
         }
         test("reinitializeSession()") {
             var id = VaadinSession.getCurrent().session.id
@@ -560,3 +580,15 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         }
     }
 }
+/**
+ * Sorts the names within every `@theme='...'` of a pretty printed component
+ * tree.
+ *
+ * A component's theme names are a set, so the order they are printed in is
+ * whatever order the component happened to add them in — nothing a test should
+ * assert on. Sorting both sides keeps a tree assertion about the tree.
+ */
+private fun String.withSortedThemeNames(): String =
+        Regex("@theme='([^']*)'").replace(this) { match ->
+            "@theme='" + match.groupValues[1].split(' ').sorted().joinToString(" ") + "'"
+        }

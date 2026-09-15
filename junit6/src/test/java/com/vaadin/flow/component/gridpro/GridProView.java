@@ -15,17 +15,26 @@
  */
 package com.vaadin.flow.component.gridpro;
 
+import com.vaadin.flow.component.AbstractCompositeField;
+import com.vaadin.flow.component.AbstractField.ComponentValueChangeEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
+import com.vaadin.flow.component.HasValue;
+import com.vaadin.flow.component.HasValueAndElement;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.gridpro.GridPro.EditColumn;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.shared.Registration;
 
 @Tag("div")
 @Route(value = "grid-pro", registerAtStartup = false)
 public class GridProView extends Component implements HasComponents {
+
+    TextField customEditor = new TextField();
+    CompositeEditor compositeEditor = new CompositeEditor();
+    ForeignEditor foreignEditor = new ForeignEditor();
 
     public GridProView() {
         var gridPro = new GridPro<Bean>();
@@ -37,8 +46,7 @@ public class GridProView extends Component implements HasComponents {
 
         gridPro.addEditColumn(Bean::getChecked).checkbox(Bean::setChecked);
         gridPro.addEditColumn(Bean::getName).text(Bean::setName);
-        var textField = new TextField();
-        gridPro.addEditColumn(Bean::getDescription).custom(textField,
+        gridPro.addEditColumn(Bean::getDescription).custom(customEditor,
                 Bean::setDescription);
         gridPro.addColumn(Bean::getName);
         gridPro.addEditColumn(Bean::getChecked).checkbox(Bean::setChecked)
@@ -57,6 +65,10 @@ public class GridProView extends Component implements HasComponents {
                 .setKey("uneditable");
         var column = (EditColumn<Bean>) gridPro.getColumnByKey("uneditable");
         column.setCellEditableProvider(item -> false);
+        gridPro.addEditColumn(Bean::getDescription).custom(compositeEditor,
+                Bean::setDescription);
+        gridPro.addEditColumn(Bean::getDescription).custom(foreignEditor,
+                Bean::setDescription);
         gridPro.setItems(beans);
         gridPro.addCellEditStartedListener(e -> {
             if (e.isFromClient()) {
@@ -66,6 +78,54 @@ public class GridProView extends Component implements HasComponents {
             }
         });
         add(gridPro);
+    }
+
+    /**
+     * A custom editor that is an AbstractCompositeField rather than an
+     * AbstractField.
+     */
+    public static class CompositeEditor
+            extends AbstractCompositeField<TextField, CompositeEditor, String> {
+
+        public CompositeEditor() {
+            super("");
+            getContent().addValueChangeListener(
+                    event -> setModelValue(event.getValue(), true));
+        }
+
+        @Override
+        protected void setPresentationValue(String newPresentationValue) {
+            getContent().setValue(
+                    newPresentationValue == null ? "" : newPresentationValue);
+        }
+    }
+
+    /**
+     * A custom editor implementing HasValueAndElement directly, so it has no
+     * AbstractFieldSupport backed client value path.
+     */
+    @Tag("div")
+    public static class ForeignEditor extends Component implements
+            HasValueAndElement<ComponentValueChangeEvent<ForeignEditor, String>, String> {
+
+        private String value = "";
+
+        @Override
+        public void setValue(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public Registration addValueChangeListener(
+                HasValue.ValueChangeListener<? super ComponentValueChangeEvent<ForeignEditor, String>> listener) {
+            return () -> {
+            };
+        }
     }
 
     public enum YesNo {
