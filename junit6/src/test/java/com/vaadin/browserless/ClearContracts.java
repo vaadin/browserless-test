@@ -22,7 +22,7 @@ import com.vaadin.flow.component.shared.HasClearButton;
 
 /**
  * Fixture helpers shared by {@link ClearContract}, {@link ClearButtonContract}
- * and {@link RefusesEmptyValueContract}.
+ * and {@link CommitsEmptyValueContract}.
  */
 final class ClearContracts {
 
@@ -31,9 +31,9 @@ final class ClearContracts {
 
     /**
      * Puts the field in the state the contracts assert against: holding a
-     * value, and required — which is exactly the state a tester's
-     * {@code setValue} refuses the empty value in, so every assertion below
-     * also exercises the validity-check bypass.
+     * value, and required — which is exactly the state that emptying the field
+     * leaves invalid, so every assertion below also covers that the testers
+     * empty it all the same.
      */
     static HasValue<?, ?> required(HasValue<?, ?> field) {
         field.setRequiredIndicatorVisible(true);

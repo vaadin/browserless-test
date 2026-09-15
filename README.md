@@ -617,7 +617,7 @@ and `_blank`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
 including the shared test contracts (`ClearContract`, `ClearButtonContract`,
-`RefusesEmptyValueContract`) that every value tester's test class implements.
+`CommitsEmptyValueContract`) that every value tester's test class implements.
 
 ## License
 

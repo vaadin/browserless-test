@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.textfield;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -45,21 +44,22 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     /**
-     * Set the given value for the component.
+     * Set the given value for the component, as the user would type it.
      * <p/>
-     * Throws if component is not usable or the value is invalid.
+     * A value that violates the component's constraints — outside
+     * {@literal min - max}, off the {@literal step} scale, or the empty value
+     * on a required field — is committed all the same, because the browser
+     * commits it too and simply leaves the field invalid. Assert that outcome
+     * with {@link #isValid()} instead of expecting this method to throw.
      *
      * @param value
      *            value to set
-     * @throws IllegalArgumentException
-     *             if given value is not valid
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void setValue(V value) {
         ensureComponentIsUsable();
-        if (!isValid(value)) {
-            throw new IllegalArgumentException(
-                    "Given value '" + value + "' is not valid");
-        }
+
         setValueAsUser(value);
     }
 
@@ -67,9 +67,9 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
      * <p/>
-     * Emptying is something the user can always do, so the empty value is set
-     * without running the set-time validity check: a field may legitimately end
-     * up invalid — a required field, for instance — once emptied.
+     * Emptying is something the user can always do, so it needs no clear
+     * button: a field may legitimately end up invalid — a required field, for
+     * instance — once emptied.
      *
      * @throws IllegalStateException
      *             if the component is not usable
@@ -94,50 +94,25 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     /**
-     * Checks whether the field is currently valid, applying the same
-     * constraints as the component itself — required, {@literal min},
-     * {@literal max} and, when it is explicitly set, the {@literal step} scale
-     * — and honouring an invalid state set from the outside, as a
+     * Checks whether the field is currently valid, running the component's own
+     * default validator — required, {@literal min}, {@literal max} and, when it
+     * is explicitly set, the {@literal step} scale — and honouring an invalid
+     * state set from the outside, as a
      * {@link com.vaadin.flow.data.binder.Binder} or a custom validator does.
      * <p>
-     * A field can hold a value that does not satisfy its constraints, for
-     * example when the value is set on the server or stepped from an unaligned
-     * value, so a test asserting on validation state should check this instead
-     * of assuming that a value that could be set is valid.
+     * A field can hold a value that does not satisfy its constraints — the user
+     * can type one, {@link #setValue(Number)} commits it as the browser does,
+     * and the value can also be set on the server or stepped from an unaligned
+     * value — so a test asserting on validation state checks this instead of
+     * expecting a value to be refused.
      *
      * @return {@code true} if the field is not marked invalid and its current
      *         value satisfies the constraints of the field
      */
     public boolean isValid() {
         final V value = getComponent().getValue();
-        return !getComponent().isInvalid() && isValid(value)
-                && isAlignedWithStep(value);
-    }
-
-    private boolean isValid(V value) {
-        final boolean isRequiredButEmpty = getComponent().isRequired()
-                && Objects.equals(getComponent().getEmptyValue(), value);
-        final boolean isGreaterThanMax = value != null
-                && value.doubleValue() > getComponent().getMaxDouble();
-        final boolean isSmallerThanMin = value != null
-                && value.doubleValue() < getComponent().getMinDouble();
-
-        return !(isRequiredButEmpty || isGreaterThanMax || isSmallerThanMin);
-        // The step scale is deliberately not checked here: a value that is
-        // not aligned with the step can be committed from the browser too, so
-        // setValue refusing it would be wrong. Use isValid() to assert on it.
-    }
-
-    /**
-     * Mirrors the component's own step validation: the {@literal step} scale is
-     * only taken into account when the step is explicitly set.
-     */
-    private boolean isAlignedWithStep(V value) {
-        if (value == null
-                || getComponent().getElement().getProperty("step") == null) {
-            return true;
-        }
-        return margin(BigDecimal.valueOf(value.doubleValue())).signum() == 0;
+        return !getComponent().isInvalid() && !getComponent()
+                .getDefaultValidator().apply(value, null).isError();
     }
 
     /**
