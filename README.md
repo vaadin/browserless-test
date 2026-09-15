@@ -615,9 +615,13 @@ and `_blank`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
-including the shared test contracts (`ClearContract`, `ClearButtonContract`,
-`CommitsEmptyValueContract`) that every value tester's test class implements.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and test the project and
+what a pull request is expected to look like, [CONVENTIONS.md](CONVENTIONS.md)
+for the canonical list of conventions, and
+[guidelines/](guidelines/overview.md) for the reasoning behind them — including
+how a tester simulates the browser and the shared test contracts
+(`ClearContract`, `ClearButtonContract`, `CommitsEmptyValueContract`) that
+every value tester's test class implements.
 
 ## License
 
