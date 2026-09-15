@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.slider;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 
 /**
@@ -215,19 +213,6 @@ abstract class NumberRangeSliderTester<T extends NumberRangeSlider<?, TValue, TN
      * @return the range value
      */
     protected abstract TValue createRange(TNumber start, TNumber end);
-
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
-    }
 
     private void validateRange(TNumber start, TNumber end) {
         double min = getComponent().getMin().doubleValue();

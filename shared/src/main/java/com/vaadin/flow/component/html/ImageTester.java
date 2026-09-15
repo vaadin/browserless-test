@@ -21,7 +21,7 @@ import com.vaadin.browserless.Tests;
  * @since 1.0
  */
 @Tests(Image.class)
-public class ImageTester extends HtmlClickContainer<Image> {
+public class ImageTester extends HtmlComponentTester<Image> {
     /**
      * Wrap given component for testing.
      *

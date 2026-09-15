@@ -124,12 +124,44 @@ jobs:
             **/target/surefire-reports/TEST-*.xml
           retention-days: 7
 
+  test-results:
+    name: Test Results
+    permissions:
+      contents: read
+      pull-requests: write
+    # Runs whether the tests passed or failed, but not when unit-tests was
+    # skipped (fork PR) — there is no artifact to publish in that case.
+    if: ${{ always() && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure') }}
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v8
+        with:
+          name: unit-test-results
+
+      # check_run is disabled on purpose: a check run created through the Checks
+      # API is attached to the oldest check suite for the head SHA, which for
+      # fork-validation PRs belongs to the earlier fork run, so the results would
+      # show up under that run instead of this one. This job is itself named
+      # "Test Results", so the run and the PR check list both stay correct, and
+      # the tables are written to this job's summary.
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/TEST-*.xml'
+          check_name: Test Results
+          check_run: false
+          job_summary: true
+          comment_mode: failures
+
   validation-status:
     name: Validation Status
     permissions:
       actions: write
       issues: read
-      checks: write
       pull-requests: write
     if: ${{ always() && !github.event.pull_request.head.repo.fork }}
     needs: [format-check, build, unit-tests]
@@ -204,18 +236,6 @@ jobs:
               issue_number: context.issue.number,
               body: body
             });
-
-      - name: Download test results
-        uses: actions/download-artifact@v8
-        with:
-          name: unit-test-results
-
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: '**/TEST-*.xml'
-          check_name: Test Results
-          comment_mode: failures
 
       - name: Check all jobs status
         run: |

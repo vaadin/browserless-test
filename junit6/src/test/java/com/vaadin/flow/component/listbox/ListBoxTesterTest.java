@@ -37,6 +37,14 @@ class ListBoxTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void readOnlyListBox_isNotUsable() {
+        view.listBox.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.listBox).isUsable(),
+                "Read only ListBox shouldn't be usable");
+    }
+
+    @Test
     void getSuggestionItems_returnsAllItems() {
         assertIterableEquals(view.selection,
                 test(view.listBox).getSuggestionItems());

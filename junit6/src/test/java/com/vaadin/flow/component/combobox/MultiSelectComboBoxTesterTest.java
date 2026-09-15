@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.combobox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -24,11 +25,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
-public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
+public class MultiSelectComboBoxTesterTest extends BrowserlessTest
+        implements ClearButtonContract {
 
     MultiSelectComboBoxView view;
 
@@ -37,6 +41,36 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(MultiSelectComboBoxView.class);
         view = navigate(MultiSelectComboBoxView.class);
+    }
+
+    @Test
+    void readOnlyComboBox_isNotUsable() {
+        view.combo.setReadOnly(true);
+
+        Assertions.assertFalse(test(view.combo).isUsable(),
+                "Read only MultiSelectComboBox shouldn't be usable");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
+    }
+
+    @Test
+    void readOnlyComboBox_setFilter_throws() {
+        view.combo.setReadOnly(true);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).setFilter("fo"));
+    }
+
+    @Test
+    void notUsableComboBox_selectItem_throws() {
+        view.combo.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItem((String[]) null));
     }
 
     @Test
@@ -81,5 +115,44 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest {
 
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty(),
                 "Selecting null should clear selection");
+    }
+
+    @Test
+    void selectItem_valueChangesLookLikeUserInteraction() {
+        List<Boolean> fromClient = new ArrayList<>();
+        view.combo.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        test(view.combo).selectItem("test-foo");
+        test(view.combo).selectItem("test-bar");
+        test(view.combo).selectItem(null);
+
+        Assertions.assertEquals(3, fromClient.size(),
+                "Every interaction should fire a value change event");
+        Assertions.assertFalse(fromClient.contains(false),
+                "Tester driven value changes should report isFromClient() == true");
+    }
+
+    @Test
+    void selectItem_selectionModelStaysInSyncWithValue() {
+        test(view.combo).selectItem("test-bar");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                view.combo.getSelectedItems());
+        Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
+        Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
+    }
+
+    // As with ComboBox, emptying without a clear button is selectItem(null).
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.combo.setValue(Set.of(view.items.get(0)));
+        return view.combo;
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.combo).clickClearButton();
     }
 }

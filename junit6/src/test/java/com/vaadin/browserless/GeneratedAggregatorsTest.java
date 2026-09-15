@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * so loading it does not require commercial Vaadin classes on the classpath.
  * <li>{@code GeneratedCommercialLocators} carries the commercial entries.
  * <li>{@code CommercialLocators} unions both via interface inheritance.
+ * <li>Internal tester helpers are not delegated onto the generated locators.
  * <li>The end-user-style aggregator emitted by junit6's test-compile
  * ({@code com.example.locator.AppLocators}) is scoped to this module's own
  * {@code @Tests}-annotated testers and does not regenerate shared.jar's.
@@ -49,6 +50,8 @@ class GeneratedAggregatorsTest {
                 "core aggregator should expose findButton, was: " + methods);
         assertFalse(methods.contains("findChart"),
                 "core aggregator must not expose findChart: " + methods);
+        assertFalse(methods.contains("findGridPro"),
+                "core aggregator must not expose findGridPro: " + methods);
     }
 
     @Test
@@ -58,6 +61,9 @@ class GeneratedAggregatorsTest {
         Set<String> methods = methodNames(agg.getDeclaredMethods());
         assertTrue(methods.contains("findChart"),
                 "commercial aggregator should expose findChart, was: "
+                        + methods);
+        assertTrue(methods.contains("findGridPro"),
+                "commercial aggregator should expose findGridPro, was: "
                         + methods);
         assertFalse(methods.contains("findButton"),
                 "commercial aggregator should not duplicate core entries: "
@@ -102,6 +108,21 @@ class GeneratedAggregatorsTest {
                         + methods);
         assertFalse(methods.contains("findChart"),
                 "downstream aggregator should not regenerate framework entries: "
+                        + methods);
+    }
+
+    @Test
+    void locatorDoesNotDelegateInternalTesterHelpers() throws Exception {
+        // Only public tester methods are delegated, so an internal helper has
+        // to stay private to be kept off the locator API.
+        Class<?> locator = Class.forName(
+                "com.vaadin.flow.component.checkbox.CheckboxGroupLocator");
+        Set<String> methods = methodNames(locator.getDeclaredMethods());
+        assertTrue(methods.contains("selectItems"),
+                "CheckboxGroupLocator should expose selectItems, was: "
+                        + methods);
+        assertFalse(methods.contains("updateSelection"),
+                "updateSelection is an internal helper and must not be delegated onto the locator: "
                         + methods);
     }
 

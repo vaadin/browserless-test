@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.radiobutton;
 
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,19 +49,6 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
         super(component);
     }
 
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
-    }
-
     /**
      * Selects an item by its client string representation.
      *
@@ -78,8 +64,7 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
      * Deselects item selection.
      */
     public void deselectItem() {
-        ensureComponentIsUsable();
-        setValueAsUser(getComponent().getEmptyValue());
+        clearAsUser();
     }
 
     /**

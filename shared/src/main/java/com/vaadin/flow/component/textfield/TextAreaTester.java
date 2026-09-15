@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.textfield;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
@@ -53,32 +51,33 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
         setValueAsUser(value);
     }
 
-    private boolean hasValidation() {
-        return getValidationSupport() != null;
+    /**
+     * Empties the field, as when the user deletes its contents (or clicks the
+     * clear button, where one is shown).
+     * <p/>
+     * Emptying is something the user can always do, so it needs no clear
+     * button: a field may legitimately end up invalid — a required field, for
+     * instance — once emptied.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void clear() {
+        clearAsUser();
     }
 
-    private TextFieldValidationSupport getValidationSupport() {
-        try {
-            return (TextFieldValidationSupport) getField("validationSupport")
-                    .get(getComponent());
-        } catch (IllegalAccessException | IllegalArgumentException e) {
-            // NO-OP Field didn't exist for given GeneratedVaadinTextField
-            // implementation
-        }
-        return null;
-    }
-
-    @Override
-    public boolean isUsable() {
-        // TextFields can be read only so the usable check needs extending
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
+    /**
+     * Empties the field by clicking its clear button, as the user would.
+     * <p/>
+     * Unlike {@link #clear()}, which models selecting the contents and deleting
+     * them and is therefore always available, this requires the clear button to
+     * be visible — a hidden clear button is not something the user can click.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     */
+    public void clickClearButton() {
+        clickClearButtonAsUser();
     }
 }

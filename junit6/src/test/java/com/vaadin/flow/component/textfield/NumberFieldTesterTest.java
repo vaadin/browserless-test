@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.textfield;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
@@ -22,6 +24,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.ClearButtonContract;
+import com.vaadin.browserless.CommitsEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -30,7 +34,8 @@ import com.vaadin.flow.router.RouteConfiguration;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
-class NumberFieldTesterTest extends BrowserlessTest {
+class NumberFieldTesterTest extends BrowserlessTest
+        implements CommitsEmptyValueContract, ClearButtonContract {
 
     private NumberFieldView view;
 
@@ -117,27 +122,326 @@ class NumberFieldTesterTest extends BrowserlessTest {
     }
 
     @Test
-    public void maxValue_throwsExceptionForTooSmallValue() {
+    public void valueWithinMax_isValid_valueOverMax_isCommittedAndInvalid() {
         view.numberField.setMax(10.0);
 
         final NumberFieldTester<NumberField, Double> nf_ = test(
                 view.numberField);
-        final Double newValue = 15d;
 
-        assertThrows(IllegalArgumentException.class,
-                () -> nf_.setValue(newValue));
+        nf_.setValue(5d);
+
+        Assertions.assertTrue(nf_.isValid(),
+                "a value within max should leave the field valid");
+
+        final Double newValue = 15d;
+        nf_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.numberField.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertFalse(nf_.isValid(),
+                "a value over max should leave the field invalid");
     }
 
     @Test
-    public void minValue_throwsExceptionForTooSmallValue() {
-        view.numberField.setMin(20.0);
+    public void valueUnderMin_isCommitted_fieldIsInvalid() {
+        view.integerField.setMin(20);
 
-        final NumberFieldTester<NumberField, Double> nf_ = test(
-                view.numberField);
-        final Double newValue = 15d;
+        final NumberFieldTester<IntegerField, Integer> inf_ = test(
+                view.integerField);
+        final Integer newValue = 15;
 
-        assertThrows(IllegalArgumentException.class,
-                () -> nf_.setValue(newValue));
+        inf_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.integerField.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertFalse(inf_.isValid(),
+                "a value under min should leave the field invalid");
     }
 
+    @Test
+    public void stepButtonsNotVisible_step_throws() {
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        assertThrows(IllegalStateException.class, nf_::stepUp,
+                "Stepping a field without step buttons should fail");
+        assertThrows(IllegalStateException.class, nf_::stepDown,
+                "Stepping a field without step buttons should fail");
+    }
+
+    @Test
+    public void emptyNumberField_step_oneStepIsSet_clientSideEventIsFired() {
+        view.numberField.setStepButtonsVisible(true);
+        List<Double> clientValues = new ArrayList<>();
+        view.numberField.addValueChangeListener(event -> {
+            if (event.isFromClient()) {
+                clientValues.add(event.getValue());
+            }
+        });
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        nf_.stepUp();
+        Assertions.assertEquals(1d, view.numberField.getValue(),
+                "Stepping up an empty field should set the first step");
+
+        view.numberField.clear();
+        nf_.stepDown();
+        Assertions.assertEquals(-1d, view.numberField.getValue(),
+                "Stepping down an empty field should set the first step");
+
+        Assertions.assertEquals(List.of(1d, -1d), clientValues,
+                "Both steps should be seen as coming from the client");
+    }
+
+    @Test
+    public void unalignedValue_step_movesToTheClosestValueAlignedWithStep() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(1);
+        view.numberField.setStep(5);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(3d);
+
+        nf_.stepUp();
+        Assertions.assertEquals(6d, view.numberField.getValue(),
+                "Step up should align the value with the step scale");
+
+        nf_.stepDown();
+        Assertions.assertEquals(1d, view.numberField.getValue(),
+                "Step down from an aligned value should apply a full step");
+    }
+
+    @Test
+    public void isValid_reportsConstraintViolationsAndExternalInvalidState() {
+        view.numberField.setMin(1);
+        view.numberField.setMax(11);
+        view.numberField.setStep(5);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        nf_.setValue(6d);
+        Assertions.assertTrue(nf_.isValid(),
+                "A value on the step scale should be valid");
+
+        nf_.setValue(3d);
+        Assertions.assertEquals(3d, view.numberField.getValue(),
+                "setValue should commit a value off the step scale, as the browser does");
+        Assertions.assertFalse(nf_.isValid(),
+                "A value off the step scale should not be valid");
+
+        view.numberField.setValue(50d);
+        Assertions.assertFalse(nf_.isValid(),
+                "A value set on the server can be above max");
+
+        view.numberField.setRequiredIndicatorVisible(true);
+        view.numberField.clear();
+        Assertions.assertFalse(nf_.isValid(),
+                "An empty required field should not be valid");
+
+        nf_.setValue(6d);
+        view.numberField.setInvalid(true);
+        Assertions.assertFalse(nf_.isValid(),
+                "A field marked invalid from the outside should not be valid");
+    }
+
+    @Test
+    public void decimalStep_step_doesNotLosePrecision() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setStep(0.1);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(0.1);
+
+        nf_.stepUp();
+        Assertions.assertEquals(0.2, view.numberField.getValue());
+
+        nf_.stepUp(2);
+        Assertions.assertEquals(0.4, view.numberField.getValue(),
+                "Repeated steps should not accumulate rounding errors");
+
+        nf_.stepDown();
+        Assertions.assertEquals(0.3, view.numberField.getValue());
+
+        nf_.stepDown(2);
+        Assertions.assertEquals(0.1, view.numberField.getValue());
+    }
+
+    @Test
+    public void stepWouldExceedBoundaries_throws_valueIsNotChanged() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(0);
+        view.numberField.setMax(10);
+        view.numberField.setStep(3);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(9d);
+
+        assertThrows(IllegalStateException.class, nf_::stepUp,
+                "Step up should fail when the step button would be disabled in the browser");
+        Assertions.assertEquals(9d, view.numberField.getValue(),
+                "A failed step should not change the value");
+
+        nf_.setValue(0d);
+        assertThrows(IllegalStateException.class, nf_::stepDown,
+                "Step down should fail when the step button would be disabled in the browser");
+        Assertions.assertEquals(0d, view.numberField.getValue(),
+                "A failed step should not change the value");
+    }
+
+    @Test
+    public void stepMultipleTimes_aClickWouldExceedBoundaries_throws_earlierClicksAreKept() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setMin(0);
+        view.numberField.setMax(10);
+        view.numberField.setStep(3);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(4d);
+        List<Double> values = new ArrayList<>();
+        view.numberField
+                .addValueChangeListener(event -> values.add(event.getValue()));
+
+        assertThrows(IllegalStateException.class, () -> nf_.stepUp(3),
+                "The third click should fail as it would exceed max");
+
+        Assertions.assertEquals(9d, view.numberField.getValue(),
+                "The clicks performed before the failing one should be kept");
+        Assertions.assertEquals(List.of(6d, 9d), values,
+                "Only the performed clicks should fire a value change event");
+
+        nf_.setValue(5d);
+        values.clear();
+
+        assertThrows(IllegalStateException.class, () -> nf_.stepDown(3),
+                "The third click should fail as it would go below min");
+
+        Assertions.assertEquals(0d, view.numberField.getValue(),
+                "The clicks performed before the failing one should be kept");
+        Assertions.assertEquals(List.of(3d, 0d), values,
+                "Only the performed clicks should fire a value change event");
+    }
+
+    @Test
+    public void integerField_stepMultipleTimes_oneEventPerClick() {
+        view.integerField.setStepButtonsVisible(true);
+        view.integerField.setStep(2);
+        List<Integer> values = new ArrayList<>();
+        view.integerField
+                .addValueChangeListener(event -> values.add(event.getValue()));
+        final NumberFieldTester<IntegerField, Integer> inf_ = test(
+                view.integerField);
+
+        inf_.stepUp(3);
+        Assertions.assertEquals(6, view.integerField.getValue(),
+                "Each of the three clicks should apply one step");
+
+        inf_.stepDown(2);
+        Assertions.assertEquals(2, view.integerField.getValue(),
+                "Each of the two clicks should apply one step");
+
+        Assertions.assertEquals(List.of(2, 4, 6, 4, 2), values,
+                "Every click should fire its own value change event");
+    }
+
+    @Test
+    public void nonUsableField_step_throws() {
+        view.numberField.setStepButtonsVisible(true);
+        view.numberField.setReadOnly(true);
+
+        assertThrows(IllegalStateException.class,
+                () -> test(view.numberField).stepUp(),
+                "Stepping a read only field should fail");
+    }
+
+    @Test
+    public void nonPositiveTimes_step_throws() {
+        view.numberField.setStepButtonsVisible(true);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepUp(0),
+                "Clicking a step button zero times makes no sense");
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepDown(0));
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepUp(-1));
+        assertThrows(IllegalArgumentException.class, () -> nf_.stepDown(-1));
+    }
+
+    @Test
+    public void emptyField_step_startsFromZeroOrTheClosestBoundary() {
+        final NumberField positiveRange = new NumberField();
+        positiveRange.setStepButtonsVisible(true);
+        positiveRange.setMin(5);
+        final NumberField negativeRange = new NumberField();
+        negativeRange.setStepButtonsVisible(true);
+        negativeRange.setMax(-3);
+        negativeRange.setStep(2);
+        view.add(positiveRange, negativeRange);
+
+        test(positiveRange).stepUp();
+        Assertions.assertEquals(5d, positiveRange.getValue(),
+                "An empty field should first land on min when zero is below the range");
+
+        test(negativeRange).stepUp();
+        Assertions.assertEquals(-4d, negativeRange.getValue(),
+                "An empty field should first land on the greatest aligned value when zero is above the range");
+
+        negativeRange.clear();
+        test(negativeRange).stepDown();
+        Assertions.assertEquals(-3d, negativeRange.getValue(),
+                "Stepping down an empty field should land on max, which the component commits as is");
+    }
+
+    @Test
+    public void negativeValue_step_movesTowardsTheStepBasis() {
+        // A value below the step basis keeps the sign of its margin, exactly
+        // like the remainder in the web component, so both step directions move
+        // towards the basis. Verified against the real component algorithm.
+        view.numberField.setStepButtonsVisible(true);
+        final NumberFieldTester<NumberField, Double> nf_ = test(
+                view.numberField);
+        nf_.setValue(-2.5);
+
+        nf_.stepDown();
+        Assertions.assertEquals(-2d, view.numberField.getValue(),
+                "Stepping down below the step basis aligns towards the basis");
+
+        nf_.setValue(-2.5);
+        nf_.stepUp();
+        Assertions.assertEquals(-1d, view.numberField.getValue(),
+                "Stepping up below the step basis aligns towards the basis");
+
+        // With min set, the step scale is measured from min instead of zero.
+        view.numberField.setMin(-10);
+        nf_.setValue(-2.5);
+        nf_.stepDown();
+        Assertions.assertEquals(-3d, view.numberField.getValue(),
+                "With min set the step scale is measured from min");
+    }
+
+    @Override
+    public HasValue<?, ?> fieldUnderTest() {
+        view.numberField.setValue(15d);
+        return view.numberField;
+    }
+
+    @Override
+    public void clear() {
+        test(view.numberField).clear();
+    }
+
+    @Override
+    public void clickClearButton() {
+        test(view.numberField).clickClearButton();
+    }
+
+    @Override
+    public void setEmptyValue() {
+        test(view.numberField).setValue(view.numberField.getEmptyValue());
+    }
+
+    @Override
+    public boolean isValid() {
+        return test(view.numberField).isValid();
+    }
 }

@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.slider;
 
-import java.util.function.Consumer;
-
 import com.vaadin.browserless.ComponentTester;
 
 /**
@@ -133,17 +131,4 @@ abstract class NumberSliderTester<T extends NumberSlider<?, TValue>, TValue exte
      * @return the converted value
      */
     protected abstract TValue fromDouble(double value);
-
-    @Override
-    public boolean isUsable() {
-        return super.isUsable() && !getComponent().isReadOnly();
-    }
-
-    @Override
-    protected void notUsableReasons(Consumer<String> collector) {
-        super.notUsableReasons(collector);
-        if (getComponent().isReadOnly()) {
-            collector.accept("read only");
-        }
-    }
 }
