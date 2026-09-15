@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.textfield;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -95,10 +94,10 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     /**
-     * Checks whether the field is currently valid, applying the same
-     * constraints as the component itself — required, {@literal min},
-     * {@literal max} and, when it is explicitly set, the {@literal step} scale
-     * — and honouring an invalid state set from the outside, as a
+     * Checks whether the field is currently valid, running the component's own
+     * default validator — required, {@literal min}, {@literal max} and, when it
+     * is explicitly set, the {@literal step} scale — and honouring an invalid
+     * state set from the outside, as a
      * {@link com.vaadin.flow.data.binder.Binder} or a custom validator does.
      * <p>
      * A field can hold a value that does not satisfy its constraints — the user
@@ -112,31 +111,8 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      */
     public boolean isValid() {
         final V value = getComponent().getValue();
-        return !getComponent().isInvalid() && isValid(value)
-                && isAlignedWithStep(value);
-    }
-
-    private boolean isValid(V value) {
-        final boolean isRequiredButEmpty = getComponent().isRequired()
-                && Objects.equals(getComponent().getEmptyValue(), value);
-        final boolean isGreaterThanMax = value != null
-                && value.doubleValue() > getComponent().getMaxDouble();
-        final boolean isSmallerThanMin = value != null
-                && value.doubleValue() < getComponent().getMinDouble();
-
-        return !(isRequiredButEmpty || isGreaterThanMax || isSmallerThanMin);
-    }
-
-    /**
-     * Mirrors the component's own step validation: the {@literal step} scale is
-     * only taken into account when the step is explicitly set.
-     */
-    private boolean isAlignedWithStep(V value) {
-        if (value == null
-                || getComponent().getElement().getProperty("step") == null) {
-            return true;
-        }
-        return margin(BigDecimal.valueOf(value.doubleValue())).signum() == 0;
+        return !getComponent().isInvalid() && !getComponent()
+                .getDefaultValidator().apply(value, null).isError();
     }
 
     /**

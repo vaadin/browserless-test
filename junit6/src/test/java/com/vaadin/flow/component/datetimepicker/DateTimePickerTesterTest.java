@@ -83,6 +83,26 @@ class DateTimePickerTesterTest extends BrowserlessTest
     }
 
     @Test
+    void isValid_reportsAStaleValidStateAndAnExternalInvalidState() {
+        test(view.picker).setValue(
+                LocalDateTime.of(LocalDate.of(1995, 1, 5), LocalTime.NOON));
+        view.picker.setMax(
+                LocalDateTime.of(LocalDate.of(1995, 1, 1), LocalTime.NOON));
+
+        Assertions.assertFalse(test(view.picker).isValid(),
+                "a value violating a constraint set after it was committed "
+                        + "should not be valid, although the component has not "
+                        + "re-run its own validation");
+
+        view.picker.setMax(
+                LocalDateTime.of(LocalDate.of(1995, 1, 5), LocalTime.NOON));
+        view.picker.setInvalid(true);
+
+        Assertions.assertFalse(test(view.picker).isValid(),
+                "a field marked invalid from the outside should not be valid");
+    }
+
+    @Test
     void readOnlyPicker_isNotUsable() {
         view.picker.setReadOnly(true);
 

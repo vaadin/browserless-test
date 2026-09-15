@@ -79,6 +79,23 @@ class TimePickerTesterTest extends BrowserlessTest
     }
 
     @Test
+    void isValid_reportsAStaleValidStateAndAnExternalInvalidState() {
+        pick_.setValue(LocalTime.of(13, 30));
+        view.picker.setMax(LocalTime.NOON);
+
+        Assertions.assertFalse(pick_.isValid(),
+                "a time violating a constraint set after it was committed "
+                        + "should not be valid, although the component has not "
+                        + "re-run its own validation");
+
+        view.picker.setMax(LocalTime.of(13, 30));
+        view.picker.setInvalid(true);
+
+        Assertions.assertFalse(pick_.isValid(),
+                "a field marked invalid from the outside should not be valid");
+    }
+
+    @Test
     void readOnlyPicker_isNotUsable() {
         view.picker.setReadOnly(true);
 
