@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
-import com.vaadin.browserless.RefusesEmptyValueContract;
+import com.vaadin.browserless.CommitsEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
 class DateTimePickerTesterTest extends BrowserlessTest
-        implements RefusesEmptyValueContract {
+        implements CommitsEmptyValueContract {
 
     DateTimePickerView view;
 
@@ -47,23 +47,33 @@ class DateTimePickerTesterTest extends BrowserlessTest
     }
 
     @Test
-    void invalidValue_overMaxDate_throwsIllegalArgument() {
+    void valueOverMaxDate_isCommitted_fieldIsInvalid() {
         view.picker.setMax(
                 LocalDateTime.of(LocalDate.of(1995, 1, 1), LocalTime.NOON));
+        final LocalDateTime newValue = LocalDateTime
+                .of(LocalDate.of(1995, 1, 5), LocalTime.MIDNIGHT);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> test(view.picker).setValue(LocalDateTime
-                        .of(LocalDate.of(1995, 1, 5), LocalTime.MIDNIGHT)));
+        test(view.picker).setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertTrue(test(view.picker).isInvalid(),
+                "a value over max should leave the field invalid");
     }
 
     @Test
-    void invalidValue_underMinDate_throwsIllegalArgument() {
+    void valueUnderMinDate_isCommitted_fieldIsInvalid() {
         view.picker.setMin(
                 LocalDateTime.of(LocalDate.of(1995, 1, 5), LocalTime.NOON));
+        final LocalDateTime newValue = LocalDateTime
+                .of(LocalDate.of(1995, 1, 1), LocalTime.MIDNIGHT);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> test(view.picker).setValue(LocalDateTime
-                        .of(LocalDate.of(1995, 1, 1), LocalTime.MIDNIGHT)));
+        test(view.picker).setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertTrue(test(view.picker).isInvalid(),
+                "a value under min should leave the field invalid");
     }
 
     @Test
@@ -120,5 +130,10 @@ class DateTimePickerTesterTest extends BrowserlessTest
     @Override
     public void setEmptyValue() {
         test(view.picker).setValue(view.picker.getEmptyValue());
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return test(view.picker).isInvalid();
     }
 }

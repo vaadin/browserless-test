@@ -15,9 +15,6 @@
  */
 package com.vaadin.flow.component.datetimepicker;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.vaadin.browserless.ComponentTester;
@@ -44,58 +41,48 @@ public class DateTimePickerTester<T extends DateTimePicker>
     }
 
     /**
-     * Set the date to the component.
+     * Set the date to the component, as the user would enter it.
      * <p/>
-     * Will throw if component is not enabled or value is not valid.
+     * A value that violates the component's constraints — outside
+     * {@literal min - max}, or the empty value on a required field — is
+     * committed all the same, because the browser commits it too and simply
+     * leaves the field invalid. Assert that outcome with {@link #isInvalid()}
+     * instead of expecting this method to throw.
      *
      * @param dateTime
      *            date time to set to component
-     * @throws IllegalArgumentException
-     *             if value is invalid
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void setValue(LocalDateTime dateTime) {
         ensureComponentIsUsable();
 
-        try {
-            if (isInvalid(dateTime)) {
-                throw new IllegalArgumentException(
-                        "Given date is not a valid value");
-            }
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-
         setValueAsUser(dateTime);
+    }
+
+    /**
+     * Checks whether the field is currently showing as invalid, as the browser
+     * would show it.
+     *
+     * @return {@literal true} if the field is invalid
+     */
+    public boolean isInvalid() {
+        return getComponent().isInvalid();
     }
 
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
      * <p/>
-     * Emptying is something the user can always do, so the empty value is set
-     * without running the set-time validity check: a field may legitimately end
-     * up invalid — a required field, for instance — once emptied.
+     * Emptying is something the user can always do, so it needs no clear
+     * button: a field may legitimately end up invalid — a required field, for
+     * instance — once emptied.
      *
      * @throws IllegalStateException
      *             if the component is not usable
      */
     public void clear() {
         clearAsUser();
-    }
-
-    private boolean isInvalid(LocalDateTime date)
-            throws InvocationTargetException, IllegalAccessException {
-        try {
-            // Vaadin 24.4
-            final Method isInvalid = getMethod("isInvalid", LocalDate.class);
-            return (boolean) isInvalid.invoke(getComponent(), date);
-        } catch (RuntimeException ex) {
-            if (!(ex.getCause() instanceof NoSuchMethodException)) {
-                throw ex;
-            }
-        }
-        // Vaadin 24.5+
-        return getComponent().getDefaultValidator().apply(date, null).isError();
     }
 
 }

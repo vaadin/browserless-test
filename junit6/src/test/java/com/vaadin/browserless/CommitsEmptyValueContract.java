@@ -21,34 +21,40 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.HasValue;
 
 /**
- * The {@link ClearContract} plus the bypass that motivates it, for testers
- * whose {@code setValue} refuses the empty value on a required field.
+ * The {@link ClearContract} plus the set-time behaviour that sits next to it,
+ * for the testers that expose {@code isInvalid()}: the number field and the
+ * picker testers.
  * <p>
- * Implemented by the number field and picker testers. The text field testers
- * and the html {@code Input} accept the empty value outright, so they have no
- * set-time check to bypass and implement plain {@link ClearContract}.
+ * Emptying a required field is something the user can always do, so
+ * {@code setValue(emptyValue)} commits the empty value and leaves the field
+ * invalid instead of refusing it — the same reasoning that gives
+ * {@code clear()} its unconditional behaviour. {@code clear()} remains the
+ * explicit way to say it; both end in the same state.
  */
-public interface RefusesEmptyValueContract extends ClearContract {
+public interface CommitsEmptyValueContract extends ClearContract {
 
     /**
      * Invokes {@code setValue(emptyValue)} on the tester under test.
      */
     void setEmptyValue();
 
+    /**
+     * Invokes {@code isInvalid()} on the tester under test.
+     *
+     * @return whether the field under test reports itself invalid
+     */
+    boolean isInvalid();
+
     @Test
-    default void clear_bypassesTheSetTimeValidityCheck() {
+    default void setEmptyValue_requiredField_isCommittedAndFieldIsInvalid() {
         HasValue<?, ?> field = ClearContracts.required(fieldUnderTest());
         ClearContracts.setClearButtonVisible(field, false);
 
-        Assertions.assertThrows(IllegalArgumentException.class,
-                this::setEmptyValue,
-                "setValue() should refuse the empty value on a required field");
-        Assertions.assertFalse(field.isEmpty(),
-                "a refused setValue() should not have changed the value");
-
-        clear();
+        setEmptyValue();
 
         Assertions.assertTrue(field.isEmpty(),
-                "clear() should empty the field setValue() refuses to");
+                "setValue() should commit the empty value the user can type");
+        Assertions.assertTrue(isInvalid(),
+                "emptying a required field should leave it invalid");
     }
 }

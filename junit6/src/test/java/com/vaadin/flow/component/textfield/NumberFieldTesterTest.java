@@ -23,17 +23,15 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ClearButtonContract;
-import com.vaadin.browserless.RefusesEmptyValueContract;
+import com.vaadin.browserless.CommitsEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.router.RouteConfiguration;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 @ViewPackages
 class NumberFieldTesterTest extends BrowserlessTest
-        implements RefusesEmptyValueContract, ClearButtonContract {
+        implements CommitsEmptyValueContract, ClearButtonContract {
 
     private NumberFieldView view;
 
@@ -120,27 +118,35 @@ class NumberFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void maxValue_throwsExceptionForTooSmallValue() {
+    public void valueOverMax_isCommitted_fieldIsInvalid() {
         view.numberField.setMax(10.0);
 
         final NumberFieldTester<NumberField, Double> nf_ = test(
                 view.numberField);
         final Double newValue = 15d;
 
-        assertThrows(IllegalArgumentException.class,
-                () -> nf_.setValue(newValue));
+        nf_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.numberField.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertTrue(nf_.isInvalid(),
+                "a value over max should leave the field invalid");
     }
 
     @Test
-    public void minValue_throwsExceptionForTooSmallValue() {
-        view.numberField.setMin(20.0);
+    public void valueUnderMin_isCommitted_fieldIsInvalid() {
+        view.integerField.setMin(20);
 
-        final NumberFieldTester<NumberField, Double> nf_ = test(
-                view.numberField);
-        final Double newValue = 15d;
+        final NumberFieldTester<IntegerField, Integer> inf_ = test(
+                view.integerField);
+        final Integer newValue = 15;
 
-        assertThrows(IllegalArgumentException.class,
-                () -> nf_.setValue(newValue));
+        inf_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.integerField.getValue(),
+                "the value the user can type should have been committed");
+        Assertions.assertTrue(inf_.isInvalid(),
+                "a value under min should leave the field invalid");
     }
 
     @Override
@@ -162,5 +168,10 @@ class NumberFieldTesterTest extends BrowserlessTest
     @Override
     public void setEmptyValue() {
         test(view.numberField).setValue(view.numberField.getEmptyValue());
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return test(view.numberField).isInvalid();
     }
 }

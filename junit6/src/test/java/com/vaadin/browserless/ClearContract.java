@@ -24,14 +24,14 @@ import com.vaadin.flow.component.HasValue;
  * The {@code clear()} contract, shared by every value tester that offers it.
  * <p>
  * {@code clear()} models deleting the field contents from the keyboard. That is
- * always available to the user, so it needs no clear button and it bypasses the
- * set-time validity check — a field may legitimately end up invalid once
- * emptied. It does require a usable component.
+ * always available to the user, so it needs no clear button — a field may
+ * legitimately end up invalid once emptied. It does require a usable component.
  * <p>
  * A tester's test class implements this to have the contract asserted against
  * it, so the expectations live in one place instead of drifting apart per
- * component. Testers whose {@code setValue} actually refuses the empty value
- * implement {@link RefusesEmptyValueContract} instead.
+ * component. Testers that also expose {@code isInvalid()} implement
+ * {@link CommitsEmptyValueContract} instead, which adds the matching
+ * {@code setValue(emptyValue)} assertion.
  */
 public interface ClearContract {
 

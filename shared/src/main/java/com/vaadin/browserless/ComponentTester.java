@@ -465,7 +465,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
 
     /**
      * Empties the field as the user would, by setting the component's empty
-     * value without running any tester-side validity check.
+     * value.
      * <p>
      * Emptying a field is always available to the user — select the contents,
      * press Delete — and stays legal even when it leaves the field invalid, so
@@ -492,7 +492,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * therefore always available, this requires the clear button to actually be
      * on screen: a hidden clear button is not something the user can click.
      * Past that check the value is emptied exactly as {@link #clearAsUser()}
-     * does, bypassing the set-time validity check.
+     * does.
      * <p>
      * Testers for components implementing {@link HasClearButton} expose this as
      * a public {@code clickClearButton()}; {@code LocatorProcessor} fails the

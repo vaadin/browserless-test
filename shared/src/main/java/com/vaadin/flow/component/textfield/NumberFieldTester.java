@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.textfield;
 
-import java.util.Objects;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
@@ -44,31 +42,42 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
     }
 
     /**
-     * Set the given value for the component.
+     * Set the given value for the component, as the user would type it.
      * <p/>
-     * Throws if component is not usable or the value is invalid.
+     * A value that violates the component's constraints — outside
+     * {@literal min - max}, off the {@literal step} scale, or the empty value
+     * on a required field — is committed all the same, because the browser
+     * commits it too and simply leaves the field invalid. Assert that outcome
+     * with {@link #isInvalid()} instead of expecting this method to throw.
      *
      * @param value
      *            value to set
-     * @throws IllegalArgumentException
-     *             if given value is not valid
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void setValue(V value) {
         ensureComponentIsUsable();
-        if (!isValid(value)) {
-            throw new IllegalArgumentException(
-                    "Given value '" + value + "' is not valid");
-        }
+
         setValueAsUser(value);
+    }
+
+    /**
+     * Checks whether the field is currently showing as invalid, as the browser
+     * would show it.
+     *
+     * @return {@literal true} if the field is invalid
+     */
+    public boolean isInvalid() {
+        return getComponent().isInvalid();
     }
 
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
      * <p/>
-     * Emptying is something the user can always do, so the empty value is set
-     * without running the set-time validity check: a field may legitimately end
-     * up invalid — a required field, for instance — once emptied.
+     * Emptying is something the user can always do, so it needs no clear
+     * button: a field may legitimately end up invalid — a required field, for
+     * instance — once emptied.
      *
      * @throws IllegalStateException
      *             if the component is not usable
@@ -90,19 +99,6 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      */
     public void clickClearButton() {
         clickClearButtonAsUser();
-    }
-
-    private boolean isValid(V value) {
-        final boolean isRequiredButEmpty = getComponent().isRequired()
-                && Objects.equals(getComponent().getEmptyValue(), value);
-        final boolean isGreaterThanMax = value != null
-                && value.doubleValue() > getComponent().getMaxDouble();
-        final boolean isSmallerThanMin = value != null
-                && value.doubleValue() < getComponent().getMinDouble();
-
-        return !(isRequiredButEmpty || isGreaterThanMax || isSmallerThanMin);
-        // TODO: Can we access the Generic isValidByStep
-        // || !isValidByStep(value);
     }
 
     // TODO: support stepUp/stepDown if controls are visible.

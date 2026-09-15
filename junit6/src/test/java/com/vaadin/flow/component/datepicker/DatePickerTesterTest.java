@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ClearButtonContract;
-import com.vaadin.browserless.RefusesEmptyValueContract;
+import com.vaadin.browserless.CommitsEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
 class DatePickerTesterTest extends BrowserlessTest
-        implements RefusesEmptyValueContract, ClearButtonContract {
+        implements CommitsEmptyValueContract, ClearButtonContract {
 
     DatePickerView view;
 
@@ -46,19 +46,29 @@ class DatePickerTesterTest extends BrowserlessTest
     }
 
     @Test
-    void invalidValue_overMaxDate_throwsIllegalArgument() {
+    void valueOverMaxDate_isCommitted_fieldIsInvalid() {
         view.picker.setMax(LocalDate.of(1995, 1, 1));
+        final LocalDate newValue = LocalDate.of(1995, 1, 5);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> test(view.picker).setValue(LocalDate.of(1995, 1, 5)));
+        test(view.picker).setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the date the user can type should have been committed");
+        Assertions.assertTrue(test(view.picker).isInvalid(),
+                "a date over max should leave the field invalid");
     }
 
     @Test
-    void invalidValue_underMinDate_throwsIllegalArgument() {
+    void valueUnderMinDate_isCommitted_fieldIsInvalid() {
         view.picker.setMin(LocalDate.of(1995, 1, 5));
+        final LocalDate newValue = LocalDate.of(1995, 1, 1);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> test(view.picker).setValue(LocalDate.of(1995, 1, 1)));
+        test(view.picker).setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the date the user can type should have been committed");
+        Assertions.assertTrue(test(view.picker).isInvalid(),
+                "a date under min should leave the field invalid");
     }
 
     @Test
@@ -114,5 +124,10 @@ class DatePickerTesterTest extends BrowserlessTest
     @Override
     public void setEmptyValue() {
         test(view.picker).setValue(view.picker.getEmptyValue());
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return test(view.picker).isInvalid();
     }
 }
