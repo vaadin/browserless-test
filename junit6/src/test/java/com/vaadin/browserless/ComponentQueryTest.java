@@ -32,6 +32,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
@@ -653,6 +654,129 @@ class ComponentQueryTest extends BrowserlessTest {
             return value > 1 && value < 3;
         }).all();
         Assertions.assertIterableEquals(List.of(div2, div3), result);
+    }
+
+    @Test
+    void withinSlot_cardSlots_matchNestedContentUnlikeTheSlotAttribute() {
+        // The component tree the withinSlot javadoc walks through, so the
+        // documented outcome stays pinned.
+        Button content = new Button("Content button");
+        Button title = new Button("Title button");
+        Button save = new Button("Save button");
+        Button cancel = new Button("Cancel button");
+        Button open = new Button("Open button");
+        Button details = new Button("Details button");
+
+        Card inner = new Card();
+        inner.add(open);
+        inner.setHeader(details);
+
+        Card card = new Card();
+        card.add(content);
+        card.setHeader(title);
+        card.addToFooter(new Div(save), cancel, inner);
+        getCurrentView().getElement().appendChild(card.getElement());
+
+        ComponentTester<Card> tester = new ComponentTester<>(card);
+        // save is nested inside the slotted Div, cancel is the slot root
+        // itself, and open is default-slot content of the inner card, which is
+        // in the footer. details is left out: its own header slot is nearer.
+        Assertions.assertIterableEquals(List.of(save, cancel, open),
+                tester.find(Button.class).withinSlot("footer").all());
+        // The same slot name at two nesting levels aggregates, for the very
+        // reason details is not in the footer.
+        Assertions.assertIterableEquals(List.of(title, details),
+                tester.find(Button.class).withinSlot("header").all());
+        // The content button is in the card's default slot, which no slot name
+        // matches.
+        Assertions.assertTrue(tester.find(Button.class).withinSlot("content")
+                .all().isEmpty());
+        // A slot the card does not have, e.g. a typo, simply finds nothing.
+        Assertions.assertTrue(tester.find(Button.class).withinSlot("fooooter")
+                .all().isEmpty());
+
+        // Filters compose the usual way.
+        Assertions.assertSame(cancel, tester.find(Button.class)
+                .withinSlot("footer").withText("Cancel button").single());
+
+        // The attribute filter this replaces only ever matched the slot root.
+        Assertions.assertIterableEquals(List.of(cancel), tester
+                .find(Button.class).withAttribute("slot", "footer").all());
+    }
+
+    @Test
+    void withinSlot_dialogSlots_matchThroughTheComponentlessWrapper() {
+        Button headerButton = new Button("Header button");
+        Button footerButton = new Button("Footer button");
+        Button contentButton = new Button("Content button");
+
+        Dialog dialog = new Dialog();
+        dialog.getHeader().add(new Div(headerButton));
+        dialog.getFooter().add(footerButton);
+        dialog.add(contentButton);
+        dialog.open();
+
+        // A dialog slots its header and footer into wrapper elements that have
+        // no component, so the attribute filter cannot see them at all while
+        // the slot filter can. Note the browser-level slot name: a dialog
+        // header is "header-content", not "header".
+        ComponentTester<Dialog> tester = new ComponentTester<>(dialog);
+        Assertions.assertIterableEquals(List.of(headerButton),
+                tester.find(Button.class).withinSlot("header-content").all());
+        Assertions.assertIterableEquals(List.of(footerButton),
+                tester.find(Button.class).withinSlot("footer").all());
+        Assertions.assertTrue(tester.find(Button.class)
+                .withAttribute("slot", "footer").all().isEmpty());
+    }
+
+    @Test
+    void withinSlot_nestedSlots_nearestSlotWins() {
+        Button dialogHeaderButton = new Button("Dialog header button");
+        Dialog dialog = new Dialog();
+        dialog.getHeader().add(dialogHeaderButton);
+
+        Card card = new Card();
+        card.addToFooter(dialog);
+        getCurrentView().getElement().appendChild(card.getElement());
+        dialog.open();
+
+        // The button sits in the card's footer subtree, but its nearest slot
+        // is the dialog's header, so that is the slot it belongs to.
+        ComponentTester<Card> tester = new ComponentTester<>(card);
+        Assertions.assertTrue(
+                tester.find(Button.class).withinSlot("footer").all().isEmpty());
+        Assertions.assertIterableEquals(List.of(dialogHeaderButton),
+                tester.find(Button.class).withinSlot("header-content").all());
+    }
+
+    @Test
+    void withinSlot_slottedContext_lookupStopsAtTheSearchContext() {
+        Button contentButton = new Button("Content button");
+        Card card = new Card();
+        card.add(contentButton);
+
+        Dialog dialog = new Dialog();
+        dialog.getFooter().add(card);
+        dialog.open();
+
+        // Scoped to the card: the card's own slot in the dialog is above the
+        // search context and must not make its content look slotted.
+        Assertions.assertTrue(new ComponentTester<>(card).find(Button.class)
+                .withinSlot("footer").all().isEmpty());
+
+        // Unscoped: with no search context the whole ancestor chain counts, so
+        // the same button is in the dialog's footer.
+        Assertions.assertIterableEquals(List.of(contentButton),
+                find(Button.class).withinSlot("footer").all());
+    }
+
+    @Test
+    void withinSlot_nullOrBlank_throws() {
+        ComponentQuery<Button> query = find(Button.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withinSlot(null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withinSlot(" "));
     }
 
     @Test

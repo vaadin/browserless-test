@@ -169,6 +169,24 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
+    /**
+     * Requires the matched component to sit in the given named slot of the
+     * component that hosts it, nested content included.
+     * <p>
+     * The slot is resolved relative to the locator's search context, so pair it
+     * with {@link #inside(Component)} or {@link #inside(Locator)} to target one
+     * specific host. Nested slots resolve to the innermost one, and slot names
+     * are component specific — see {@link ComponentQuery#withinSlot(String)}
+     * for annotated component trees of both.
+     *
+     * @see ComponentQuery#withinSlot(String)
+     */
+    public SELF withinSlot(String slot) {
+        resetCache();
+        query.withinSlot(slot);
+        return self();
+    }
+
     /** Requires the matched component to satisfy the given predicate. */
     public SELF withCondition(Predicate<C> condition) {
         resetCache();
