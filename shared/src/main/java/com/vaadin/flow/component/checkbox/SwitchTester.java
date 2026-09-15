@@ -49,6 +49,22 @@ public class SwitchTester<T extends Switch> extends ComponentTester<T> {
         return getComponent().getValue();
     }
 
+    /**
+     * Sets the switch to the given state, as a user clicking it would.
+     * <p>
+     * Does nothing if the switch is already in the requested state, but the
+     * switch must be usable in either case.
+     *
+     * @param on
+     *            {@code true} to switch on, {@code false} to switch off
+     */
+    public void setOn(boolean on) {
+        ensureComponentIsUsable();
+        if (isOn() != on) {
+            click();
+        }
+    }
+
     @Override
     public boolean isUsable() {
         return super.isUsable() && !getComponent().isReadOnly();

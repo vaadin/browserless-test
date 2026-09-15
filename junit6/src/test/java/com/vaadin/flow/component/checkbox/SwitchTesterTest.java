@@ -16,6 +16,7 @@
 package com.vaadin.flow.component.checkbox;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -78,6 +79,47 @@ class SwitchTesterTest extends BrowserlessTest {
         test(view.field).click();
         Assertions.assertTrue(test(view.field).isOn(),
                 "Expecting switch to be on after click");
+    }
+
+    @Test
+    void setOn_onlyChangesStateWhenNeeded() {
+        AtomicInteger changes = new AtomicInteger();
+        AtomicBoolean fromClient = new AtomicBoolean();
+        view.field.addValueChangeListener(ev -> {
+            changes.incrementAndGet();
+            fromClient.set(ev.isFromClient());
+        });
+
+        test(view.field).setOn(true);
+        Assertions.assertTrue(view.field.getValue(),
+                "Expecting switch to be on, but was not");
+        Assertions.assertEquals(1, changes.get(),
+                "Expecting a single value change event");
+        Assertions.assertTrue(fromClient.get(),
+                "Expecting the value change to come from the client");
+
+        test(view.field).setOn(true);
+        Assertions.assertTrue(view.field.getValue(),
+                "Expecting switch to stay on, but was not");
+        Assertions.assertEquals(1, changes.get(),
+                "Expecting no value change event when already on");
+
+        test(view.field).setOn(false);
+        Assertions.assertFalse(view.field.getValue(),
+                "Expecting switch not to be on, but was");
+        Assertions.assertEquals(2, changes.get(),
+                "Expecting a value change event when switching off");
+    }
+
+    @Test
+    void setOn_notUsableAndAlreadyInRequestedState_throws() {
+        test(view.field).setOn(true);
+        view.field.setReadOnly(true);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.field).setOn(true),
+                "Expecting a read-only switch not to be settable, "
+                        + "even to the state it is already in");
     }
 
     @Test
