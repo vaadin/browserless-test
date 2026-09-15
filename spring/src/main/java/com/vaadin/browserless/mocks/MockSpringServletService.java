@@ -21,7 +21,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.di.Instantiator;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinSession;
@@ -74,10 +73,5 @@ public class MockSpringServletService extends SpringVaadinServletService {
     @Override
     protected VaadinSession createVaadinSession(VaadinRequest request) {
         return new MockSpringVaadinSession(this, uiFactory);
-    }
-
-    @Override
-    public Instantiator getInstantiator() {
-        return MockInstantiator.create(super.getInstantiator());
     }
 }

@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -79,24 +80,42 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *
      * @param selection
      *            item representations as strings
+     * @throws IllegalStateException
+     *             if the component is not usable
      */
     public void selectItem(String... selection) {
+        ensureComponentIsUsable();
         if (selection == null) {
-            getComponent().deselectAll();
+            setValueAsUser(getComponent().getEmptyValue());
             return;
         }
         List<String> toBeSelected = Arrays.asList(selection);
         final List<Y> suggestionItems = getSuggestionItems();
         final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
                 .getItemLabelGenerator();
-        final List<Y> filtered = suggestionItems.stream().filter(
+        final Set<Y> filtered = suggestionItems.stream().filter(
                 item -> toBeSelected.contains(itemLabelGenerator.apply(item)))
-                .collect(Collectors.toList());
-        if (filtered.size() < 1) {
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (filtered.isEmpty()) {
             throw new IllegalArgumentException(
-                    "No item found for '" + selection + "'");
+                    "No item found for '" + Arrays.toString(selection) + "'");
         }
-        getComponent().setValue(filtered);
+        setValueAsUser(filtered);
+    }
+
+    /**
+     * Clears the selection by clicking the clear button, as the user would.
+     * <p/>
+     * Requires the clear button to be visible — a hidden clear button is not
+     * something the user can click. {@link #selectItem(String...)} with
+     * {@code null} clears the selection without that requirement.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     */
+    public void clickClearButton() {
+        clickClearButtonAsUser();
     }
 
     /**
