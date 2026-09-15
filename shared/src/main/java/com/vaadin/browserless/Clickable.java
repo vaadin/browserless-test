@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.UI;
 
 /**
  * Mixin interface for component testers that support click simulation.
@@ -109,13 +110,13 @@ public interface Clickable<T extends Component> {
         T component = getComponent();
         // A click moves focus like in a browser, blurring the previously
         // focused component before the click is handled
-        FocusTracker.moveFocusTo(component);
+        UI ui = FocusTracker.moveFocusTo(component);
         ComponentUtil.fireEvent(component,
                 new ClickEvent<>(component, true, 0, 0, 0, 0, 0, button,
                         metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                         metaKeys.isMeta()));
         // Click listeners may have called Focusable.focus(), e.g. for a field
         // in a freshly opened dialog
-        FocusTracker.flush(component);
+        FocusTracker.flush(ui);
     }
 }

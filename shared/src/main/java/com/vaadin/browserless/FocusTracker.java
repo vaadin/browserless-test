@@ -15,10 +15,12 @@
  */
 package com.vaadin.browserless;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Focusable;
@@ -47,10 +49,8 @@ import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
  * the pending JavaScript queue and reacts like a browser would, firing the
  * corresponding focus/blur DOM events back. This happens at the end of each
  * simulated user interaction and on server round-trips.
- *
- * @since 1.3
  */
-public final class FocusTracker {
+public final class FocusTracker implements Serializable {
 
     private Component focused;
 
@@ -83,15 +83,17 @@ public final class FocusTracker {
      *
      * @param component
      *            the component the user interacts with, not null
+     * @return the UI the component is attached to, to be used for a subsequent
+     *         {@link #flush(UI)} even if the interaction detaches the component
+     * @throws IllegalStateException
+     *             if the component is not attached to a UI
      */
-    static void moveFocusTo(Component component) {
+    static UI moveFocusTo(Component component) {
         UI ui = uiOf(component);
-        if (ui == null) {
-            return;
-        }
         FocusTracker tracker = getOrCreate(ui);
         tracker.flushServerInitiatedFocus(ui);
         tracker.doMoveFocusTo(component, false);
+        return ui;
     }
 
     private void doMoveFocusTo(Component component, boolean serverInitiated) {
@@ -101,42 +103,47 @@ public final class FocusTracker {
         Component previous = focused;
         // Browsers only give keyboard focus to focusable elements; for
         // anything else focus falls back to the document body
-        focused = component instanceof Focusable ? component : null;
+        Component next = component instanceof Focusable ? component : null;
         if (previous != null && previous.isAttached()) {
             // The blur on the previously focused element is a plain browser
             // reaction even when the focus change was server-initiated
             fireDomEvent(previous, "blur", JacksonUtils.createObjectNode());
         }
-        if (focused != null) {
+        if (next != null) {
             ObjectNode eventData = JacksonUtils.createObjectNode();
             if (serverInitiated) {
                 // Focusable.focus() sets this marker on the element so that
                 // the FocusEvent reports isFromClient() == false; mirror it
                 eventData.put("event.target._nextFocusIsFromClient", false);
             }
-            fireDomEvent(component, "focus", eventData);
+            fireDomEvent(next, "focus", eventData);
         }
+        // Recorded only once the events have been delivered, so that a failing
+        // listener does not leave a wrong component marked as focused
+        updateFocused(previous, next);
     }
 
     /**
      * Simulates the given component losing keyboard focus, firing a
-     * {@code blur} DOM event as if it came from the client.
+     * {@code blur} DOM event as if it came from the client. Blurring a
+     * component that does not have focus is a no-op, as in a browser.
      *
      * @param component
      *            the component to blur, not null
+     * @return the UI the component is attached to, to be used for a subsequent
+     *         {@link #flush(UI)} even if a listener detaches the component
+     * @throws IllegalStateException
+     *             if the component is not attached to a UI
      */
-    static void blur(Component component) {
+    static UI blur(Component component) {
         UI ui = uiOf(component);
-        if (ui != null) {
-            FocusTracker tracker = getOrCreate(ui);
-            tracker.flushServerInitiatedFocus(ui);
-            if (tracker.focused == component) {
-                tracker.focused = null;
-            }
-        }
-        if (component.isAttached()) {
+        FocusTracker tracker = getOrCreate(ui);
+        tracker.flushServerInitiatedFocus(ui);
+        if (tracker.focused == component) {
             fireDomEvent(component, "blur");
+            tracker.updateFocused(component, null);
         }
+        return ui;
     }
 
     /**
@@ -152,16 +159,6 @@ public final class FocusTracker {
         if (ui != null) {
             getOrCreate(ui).flushServerInitiatedFocus(ui);
         }
-    }
-
-    /**
-     * Same as {@link #flush(UI)}, resolving the UI from the given component.
-     *
-     * @param component
-     *            the component that was interacted with, not null
-     */
-    static void flush(Component component) {
-        flush(uiOf(component));
     }
 
     private void flushServerInitiatedFocus(UI ui) {
@@ -197,18 +194,15 @@ public final class FocusTracker {
                 }
                 if (focusCall) {
                     doMoveFocusTo(target, true);
-                } else if (focused == target) {
+                } else if (focused == target && target.isAttached()) {
                     // blurring an element that does not have focus is a no-op
                     // in a browser
-                    focused = null;
-                    if (target.isAttached()) {
-                        // Focusable.blur() sets this marker on the element so
-                        // that the BlurEvent reports isFromClient() == false
-                        ObjectNode eventData = JacksonUtils.createObjectNode();
-                        eventData.put("event.target._nextBlurIsFromClient",
-                                false);
-                        fireDomEvent(target, "blur", eventData);
-                    }
+                    // Focusable.blur() sets this marker on the element so
+                    // that the BlurEvent reports isFromClient() == false
+                    ObjectNode eventData = JacksonUtils.createObjectNode();
+                    eventData.put("event.target._nextBlurIsFromClient", false);
+                    fireDomEvent(target, "blur", eventData);
+                    updateFocused(target, null);
                 }
             }
         } finally {
@@ -216,8 +210,19 @@ public final class FocusTracker {
         }
     }
 
+    private void updateFocused(Component expected, Component next) {
+        // A listener may have moved focus elsewhere while the events were
+        // being delivered; in that case the newer focus wins
+        if (focused == expected) {
+            focused = next;
+        }
+    }
+
     private static UI uiOf(Component component) {
-        return component.getUI().orElseGet(UI::getCurrent);
+        return component.getUI()
+                .orElseThrow(() -> new IllegalStateException(PrettyPrintTreeKt
+                        .toPrettyString(component)
+                        + " is not attached to a UI, so it cannot take or lose focus"));
     }
 
     private static FocusTracker getOrCreate(UI ui) {

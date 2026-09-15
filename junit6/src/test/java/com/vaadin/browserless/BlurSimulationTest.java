@@ -217,6 +217,58 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
+    public void blur_componentNotFocused_doesNotFireBlurEvent() {
+        // In a browser blur only happens to the element that has focus
+        test(textField).blur();
+
+        Assertions.assertNull(receivedBlur.get(),
+                "Blurring a component that does not have focus should be a no-op");
+    }
+
+    @Test
+    public void focusAndBlur_notFocusableComponent_failFast() {
+        Div plainDiv = new Div();
+        container.add(plainDiv);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(plainDiv).focus(),
+                "Focusing a component that is not Focusable should fail fast");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(plainDiv).blur(),
+                "Blurring a component that is not Focusable should fail fast");
+    }
+
+    @Test
+    public void focus_readOnlyField_isFocusable() {
+        textField.setReadOnly(true);
+
+        test(textField).focus();
+
+        Assertions.assertTrue(test(textField).isFocused(),
+                "A read-only field cannot be edited but can still be focused");
+    }
+
+    @Test
+    public void focus_disabledField_fails() {
+        textField.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(textField).focus(),
+                "A disabled field should not accept focus");
+    }
+
+    @Test
+    public void focus_detachedField_fails() {
+        TextFieldTester<TextField, String> tester = test(textField);
+        container.remove(textField);
+
+        Assertions.assertFalse(tester.isFocused(),
+                "A detached field cannot be focused");
+        Assertions.assertThrows(IllegalStateException.class, tester::focus,
+                "A detached field should not accept focus");
+    }
+
+    @Test
     public void blur_workaroundBypassingTester_firesServerSideBlurEvent() {
         test(textField).setValue("100");
 

@@ -33,6 +33,7 @@ import com.vaadin.browserless.internal.PrettyPrintTreeKt;
 import com.vaadin.flow.component.AbstractCompositeField;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.AbstractFieldSupport;
@@ -277,40 +278,60 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * when interacting with components through testers, so calling this is
      * rarely needed.
      *
+     * @throws IllegalArgumentException
+     *             if the component cannot be focused because it is not a
+     *             {@link Focusable}
      * @throws IllegalStateException
-     *             if the component is not usable
+     *             if the component cannot accept focus in its current state,
+     *             for example because it is disabled or not attached
      */
     public void focus() {
-        ensureComponentIsUsable();
-        FocusTracker.moveFocusTo(component);
-        FocusTracker.flush(component);
+        ensureComponentCanBeFocused();
+        FocusTracker.flush(FocusTracker.moveFocusTo(component));
     }
 
     /**
      * Checks whether the wrapped component currently has keyboard focus in the
      * simulated browser, including focus given with server-side
-     * {@link com.vaadin.flow.component.Focusable#focus()} calls.
+     * {@link Focusable#focus()} calls.
      *
      * @return {@code true} if the component is focused
      */
     public boolean isFocused() {
-        UI ui = component.getUI().orElseGet(UI::getCurrent);
-        return ui != null && FocusTracker.getFocusedComponent(ui)
+        return component.getUI().flatMap(FocusTracker::getFocusedComponent)
                 .filter(focused -> focused == component).isPresent();
     }
 
     /**
      * Simulates the wrapped component losing keyboard focus, firing a blur
-     * event as if it came from the client.
+     * event as if it came from the client. Blurring a component that does not
+     * have focus is a no-op, as in a browser.
      * <p>
      * Focus also moves implicitly when interacting with other components
      * through testers, so calling this is only needed when nothing else is
      * interacted with after this component.
+     *
+     * @throws IllegalArgumentException
+     *             if the component cannot be focused because it is not a
+     *             {@link Focusable}
+     * @throws IllegalStateException
+     *             if the component cannot accept focus in its current state,
+     *             for example because it is disabled or not attached
      */
     public void blur() {
-        ensureVisible();
-        FocusTracker.blur(component);
-        FocusTracker.flush(component);
+        ensureComponentCanBeFocused();
+        FocusTracker.flush(FocusTracker.blur(component));
+    }
+
+    private void ensureComponentCanBeFocused() {
+        if (!(component instanceof Focusable)) {
+            throw new IllegalArgumentException(
+                    "Parameter component: invalid value " + component
+                            + ": not a Focusable: " + component.getClass());
+        }
+        // Unlike other interactions, focus does not care about read-only: a
+        // read-only field can still be focused, a disabled one cannot
+        ensureComponentIsUsable(component, c -> isUsable(c));
     }
 
     /**
@@ -580,10 +601,10 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     protected <V> void setValueAsUser(V value) {
         final HasValue<?, V> field = asHasValue();
-        FocusTracker.moveFocusTo(component);
+        UI ui = FocusTracker.moveFocusTo(component);
         setValueAsUser(field, value);
         // Value change listeners may have called Focusable.focus()
-        FocusTracker.flush(component);
+        FocusTracker.flush(ui);
     }
 
     /**
