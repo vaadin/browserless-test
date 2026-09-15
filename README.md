@@ -328,6 +328,11 @@ Slot names are the ones the component uses in the browser and differ per
 component: a card's header slot is `header`, a dialog's is `header-content`.
 A name nothing is slotted under simply matches no components.
 
+When slots nest, the innermost one wins: a button in the header of a card
+that itself sits in another card's footer is in `header`, not in `footer`.
+The `withinSlot` javadoc walks through annotated component trees for both
+that case and components that slot content into wrapper elements.
+
 Beyond the action methods, locators expose `component()` (the single match,
 cached), `components()` (all matches), `exists()` (true if anything matches),
 and `invalidate()` (drop the cached resolution and the `atIndex` pick so the

@@ -738,6 +738,40 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void withinSlot_nestedSlottedHost_resolvesToTheInnermostSlot() {
+        // Mirrors the component tree that the withinSlot javadoc walks
+        // through, so the documented outcome stays pinned: a card with a
+        // header, plain content, and a footer holding a layout, a button and
+        // an inner card that has a header of its own.
+        Button content = new Button("content");
+        Button title = new Button("title");
+        Button save = new Button("save");
+        Button cancel = new Button("cancel");
+        Button open = new Button("open");
+        Button details = new Button("details");
+
+        Card inner = new Card();
+        inner.add(open);
+        inner.setHeader(details);
+
+        Card card = new Card();
+        card.add(content);
+        card.setHeader(title);
+        card.addToFooter(new Div(save), cancel, inner);
+        getCurrentView().getElement().appendChild(card.getElement());
+
+        ComponentTester<Card> tester = new ComponentTester<>(card);
+        // #open is in the inner card's default slot, and the inner card is in
+        // the footer; #details is not, because its own header slot is nearer.
+        Assertions.assertIterableEquals(List.of(save, cancel, open),
+                tester.find(Button.class).withinSlot("footer").all());
+        // ... and for the same reason it is header content of the outer query,
+        // wherever the inner card itself is slotted.
+        Assertions.assertIterableEquals(List.of(title, details),
+                tester.find(Button.class).withinSlot("header").all());
+    }
+
+    @Test
     void withinSlot_slottedContext_lookupStopsAtTheSearchContext() {
         Button contentButton = new Button("Content button");
         Card card = new Card();
