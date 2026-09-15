@@ -374,15 +374,17 @@ on locators. Use whichever fits — they search the same component tree.
 
 `find(Class)`, `findInView(Class)` and the typed locators all walk the same
 thing: the server-side component tree. A component that another component
-renders per item, or that only materialises when a client opens an overlay, is
-not in it — reach it through that component's tester instead. The lookup
+renders per item does not exist until something renders it, and the content of
+an overlay is attached only while the overlay is open. Neither is in the tree
+until then — reach it through that component's tester instead. The lookup
 returns an empty result rather than an error, so the failure reads as "the
 component was never created".
 
 ### Components rendered per item
 
 ```java
-grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()));
+grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
+        .setKey("subscriber");
 ```
 
 No checkbox exists until the renderer is asked to render a *specific* item, so
@@ -395,8 +397,10 @@ test(checkbox).click();
 
 - `getCellComponent(int row, int column)` / `getCellComponent(int row, String
   columnKey)` — the component a `ComponentRenderer` column renders for a row.
-  Every call renders the cell again and returns a new instance, so hold on to
-  the returned component instead of asking for it twice.
+  Every call renders the cell again and attaches the new instance to the grid,
+  so asking twice for the same cell leaves two instances behind, and a later
+  `find()` reports both. Hold on to the component the tester returns instead of
+  asking for it again.
 - `getCellText(int row, int column)` — the text the cell sends to the client,
   for both value and component renderers.
 - `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for

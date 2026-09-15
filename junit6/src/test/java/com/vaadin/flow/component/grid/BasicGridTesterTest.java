@@ -374,8 +374,14 @@ class BasicGridTesterTest extends BrowserlessTest {
 
         final Component cellComponent = test(view.basicGrid).getCellComponent(1,
                 BasicGridView.BUTTON_KEY);
+        final Component renderedAgain = test(view.basicGrid).getCellComponent(1,
+                BasicGridView.BUTTON_KEY);
 
         Assertions.assertInstanceOf(Button.class, cellComponent);
+        Assertions.assertNotSame(cellComponent, renderedAgain,
+                "every call should render the cell anew");
+        Assertions.assertEquals(2, find(Button.class).all().size(),
+                "every rendered instance is attached to the grid and found from then on");
     }
 
     @Test
