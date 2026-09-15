@@ -54,12 +54,8 @@ modules that declare testers.
 
 ## Build
 
-```bash
-mvn clean install              # everything
-mvn clean install -DskipTests  # faster
-mvn test -pl junit6            # the tests that matter for most changes
-mvn spotless:apply             # before every commit
-```
+The commands live in [`CLAUDE.md`](../CLAUDE.md); what is worth knowing beyond
+them is how the modules interact.
 
 The `locator-processor` module has to be installed before `shared` compiles,
 which `mvn install` at the root handles. When you build `shared` alone, include

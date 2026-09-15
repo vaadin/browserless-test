@@ -50,9 +50,10 @@ mapped in `guidelines/overview.md` selectively for the topics your work
 touches. Two of them apply to almost every change:
 
 - `guidelines/flow-version.md` — one Browserless Test version targets exactly
-  one Flow version. **There is no backwards compatibility with older Flow
-  releases**, so a missing hook can be added to Flow first and used directly
-  here, and version-branching code should be deleted rather than kept.
+  one Flow version (the branch's `flow.version`). **There is no backwards
+  compatibility with older Flow releases**, so a missing hook can be added to
+  Flow first and used directly here, and version-branching code should be
+  deleted rather than kept.
 - `guidelines/testers.md` — a tester interaction must be indistinguishable from
   a real user interaction.
 
@@ -66,8 +67,6 @@ mvn clean install
 
 # Build without tests (faster)
 mvn clean install -DskipTests
-
-# Note: to run tests, omit -DskipTests entirely (not -DskipTests=false)
 
 # Build a single module and what it needs
 mvn clean install -pl shared -am

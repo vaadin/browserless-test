@@ -18,36 +18,34 @@ guidelines live.
 ## Building and testing
 
 ```bash
-mvn clean install              # build everything
-mvn clean install -DskipTests  # faster
-mvn test -pl junit6            # the tests most changes need
-mvn spotless:apply             # before every commit
+mvn clean install   # build everything and run the tests
+mvn spotless:apply  # before every commit
 ```
 
-Most tests live in the `junit6` module rather than next to the code they cover
-— see [Testing](guidelines/testing.md).
+[`CLAUDE.md`](CLAUDE.md) has the rest — building one module, running a single
+test class or method, and the Javadoc profile CI uses. Most tests live in the
+`junit6` module rather than next to the code they cover, see
+[Testing](guidelines/testing.md).
 
 ## One Flow version per branch
 
-A Browserless Test version targets exactly one Vaadin/Flow version (`1.0` →
-25.1, `1.1` → 25.2, `main` → 25.3). There is no backwards compatibility with
-older Flow releases, so when a tester needs something Flow does not expose, the
-preferred fix is to add it to Flow first and use it directly here — and code
-that branches on a Flow version should be deleted rather than extended. See
-[Flow Version](guidelines/flow-version.md).
+A Browserless Test version targets exactly one Vaadin/Flow version. There is no
+backwards compatibility with older Flow releases, so when a tester needs
+something Flow does not expose, the preferred fix is to add it to Flow first and
+use it directly here — and code that branches on a Flow version should be
+deleted rather than extended. The branch-to-version mapping and the reasoning
+are in [Flow Version](guidelines/flow-version.md).
 
 ## Commits and pull requests
 
-- Commit subjects follow Conventional Commits: `<type>: <summary>`, under 72
-  characters, imperative verb, `!` before the colon for a breaking change.
-  Types in use: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`.
-- Branch names follow the type: `feat/…`, `fix/…`, `docs/…`, `chore/…`.
-- Run `mvn spotless:apply` before committing. If the `Format Check` job fails
-  anyway, comment `/format` on the pull request and the formatting is applied
-  for you.
-- A pull request description uses `## Summary`, `## What changed`,
-  `## Use case` (when the change adds API), `## API Changes` (when the public
-  API changes) and `## Test summary`, omitting what does not apply.
+Commit subjects follow Conventional Commits, branch names follow the commit
+type, and a pull request description uses the sections this repository already
+uses. The full rules are in the Commit & PR Hygiene section of
+[`CONVENTIONS.md`](CONVENTIONS.md#commit--pr-hygiene).
+
+One practical note: run `mvn spotless:apply` before committing, and if the
+`Format Check` job fails anyway, comment `/format` on the pull request and the
+formatting is applied and pushed for you.
 
 ## Javadoc `@since` tags
 
@@ -74,8 +72,8 @@ are documented in [Testers](guidelines/testers.md).
 ## Test contracts for value testers
 
 `clear()` and `clickClearButton()` behave the same on every value tester, so
-their expectations are asserted once, as `default` methods on `ClearContract`,
-`ClearButtonContract` and `CommitsEmptyValueContract` in
-`junit6/src/test/java/com/vaadin/browserless/`. If you add or change a value
-tester, implement the ones that apply — the compiler will ask you for the
-hooks. See [Testing](guidelines/testing.md) for which contract applies when.
+their expectations are asserted once, as `default` methods on shared contract
+interfaces that each tester's test class implements. If you add or change a
+value tester, implement the ones that apply — the compiler will ask you for the
+hooks. Which contract applies when, and what each one asserts, is in
+[Testing](guidelines/testing.md).

@@ -7,11 +7,12 @@ several of these rules lives in `guidelines/` — see
 
 ## Flow Version Coupling
 
-One Browserless Test version targets exactly one Flow version — `1.0` → Vaadin
-25.1, `1.1` → 25.2, `main` (`1.2`) → 25.3. Do not write code that keeps working
-against an older Flow release. No reflective fallbacks, no `Class.forName`
-probes, no "if this method exists" branches, no deprecation cycles for the sake
-of an older Flow.
+One Browserless Test version targets exactly one Flow version — the branch's
+`flow.version` in the root `pom.xml`, mapped per branch in
+[`guidelines/flow-version.md`](guidelines/flow-version.md). Do not write code
+that keeps working against an older Flow release. No reflective fallbacks, no
+`Class.forName` probes, no "if this method exists" branches, no deprecation
+cycles for the sake of an older Flow.
 
 When Flow does not expose what a tester needs, add it to Flow first and use it
 directly here. That is the preferred fix, not a workaround built on reflection.

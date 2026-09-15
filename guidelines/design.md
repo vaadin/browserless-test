@@ -46,13 +46,13 @@ before an interaction, not a second vocabulary for the same condition.
 
 - `public` on a tester = published API of the tester *and* of the locator.
   Deliberate only.
-- `protected` for helpers meant for tester subclasses, including everything
-  that exists so other testers can reuse it (`setValueAsUser`,
-  `ensureComponentIsUsable`, `getField`).
+- `protected` for helpers meant for tester subclasses — the machinery a tester
+  reuses rather than something a test calls (`setValueAsUser`,
+  `setPropertyAsUser`, `roundTrip`, `getField`).
 - package-private or `private` for anything the framework alone needs.
-- `final` on a method whose contract must not be weakened —
-  `ensureComponentIsUsable()` is `final` so a subclass cannot make an
-  interaction silently pass.
+- `final` on a method whose contract must not be weakened.
+  `ensureComponentIsUsable()` is `public final`: public because a test may
+  assert on it, final so a subclass cannot make an interaction silently pass.
 
 ## Method shape
 
