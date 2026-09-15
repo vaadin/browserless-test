@@ -305,6 +305,17 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component inside the UI
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, or that only
+     * materialises when a client opens an overlay, such as the content of a
+     * closed context menu, is not in that tree. The lookup then returns an
+     * empty result rather than failing, so reach those components through the
+     * owning component tester instead:
+     * {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            the type of the component(s) to search for
      * @param <T>
@@ -320,6 +331,10 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component nested inside the given
      * component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of the component(s) to search for
@@ -337,6 +352,10 @@ public abstract class BaseBrowserlessTest {
 
     /**
      * Gets a query object for finding a component inside the current view
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of the component(s) to search for

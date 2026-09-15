@@ -151,6 +151,17 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Gets a {@link ComponentQuery} to search for component of the given type
      * nested inside the wrapped component.
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, or that only
+     * materialises when a client opens an overlay, such as the content of a
+     * closed context menu, is not in that tree. The lookup then returns an
+     * empty result rather than failing, so reach those components through the
+     * owning component tester instead:
+     * {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            type of the component to search.
      * @param <R>
