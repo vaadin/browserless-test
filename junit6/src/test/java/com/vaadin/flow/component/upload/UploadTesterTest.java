@@ -21,12 +21,14 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,6 +58,8 @@ class UploadTesterTest extends BrowserlessTest {
     UploadView view;
     UploadTester<Upload> single_;
     UploadTester<Upload> multi_;
+    final List<String> rejected = new ArrayList<>();
+    final List<String> removed = new ArrayList<>();
 
     @BeforeAll
     static void setupTestFiles() throws IOException {
@@ -74,6 +78,11 @@ class UploadTesterTest extends BrowserlessTest {
         view = navigate(UploadView.class);
         single_ = test(view.uploadSingle);
         multi_ = test(view.uploadMulti);
+        Stream.of(view.uploadSingle, view.uploadMulti).forEach(upload -> {
+            upload.addFileRejectedListener(ev -> rejected
+                    .add(ev.getFileName() + ":" + ev.getErrorMessage()));
+            upload.addFileRemovedListener(ev -> removed.add(ev.getFileName()));
+        });
     }
 
     @Test
@@ -95,6 +104,8 @@ class UploadTesterTest extends BrowserlessTest {
                 () -> single_.uploadAborted(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.uploadFailed(file1));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.removeFile(file1));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> multi_.uploadAll(file1, file2));
         // not being usable is reported before the file count is validated
@@ -146,7 +157,10 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertNotCompleted();
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
-
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
     }
 
     @Test
@@ -205,6 +219,8 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertNotStarted();
         Assertions.assertTrue(listener.uploadedData.isEmpty(),
                 "Rejected file should not have been received by the handler");
+        Assertions.assertEquals(List.of("image.png:Incorrect File Type."),
+                rejected);
     }
 
     @Test
@@ -238,6 +254,8 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertNotStarted();
         Assertions.assertTrue(listener.uploadedData.isEmpty(),
                 "Rejected file should not have been received by the handler");
+        Assertions.assertEquals(
+                List.of(file1.getName() + ":Incorrect File Type."), rejected);
     }
 
     @Test
@@ -258,10 +276,337 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void upload_fileCountExceeded_throws() {
-        view.uploadMulti.setMaxFiles(2);
+    void getLastUploadStatus_reportsOutcomePerFileInOrder() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFileSize(FIRST_FILE_CONTENTS.length());
+
+        Assertions.assertEquals(List.of(), multi_.getLastUploadStatus(),
+                "Nothing has been uploaded yet");
+
+        // file3 has the shortest contents, file2 the longest
+        multi_.uploadAll(file1, file2, file3);
+
+        Assertions.assertEquals(List.of(
+                new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null),
+                new UploadTester.FileStatus(file2.getName(),
+                        UploadTester.UploadStatus.REJECTED, "File is Too Big."),
+                new UploadTester.FileStatus(file3.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                multi_.getLastUploadStatus());
         Assertions.assertThrows(IllegalStateException.class,
-                () -> multi_.uploadAll(file1, file2, file3));
+                () -> multi_.ensureUploaded(),
+                "ensureUploaded should fail for a rejected file");
+
+        // the status only covers the most recent upload
+        multi_.upload(file3);
+
+        Assertions.assertEquals(List.of(file3.getName()),
+                multi_.getLastUploadStatus().stream()
+                        .map(UploadTester.FileStatus::fileName).toList());
+        multi_.ensureUploaded();
+    }
+
+    @Test
+    void uploadFailed_handlerIgnoringTheStream_stillReportedAsFailed() {
+        List<String> handled = new ArrayList<>();
+        // a handler that only looks at the metadata never trips over the
+        // broken stream the simulated failure hands it
+        view.uploadSingle
+                .setUploadHandler(event -> handled.add(event.getFileName()));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.uploadFailed(file1);
+
+        Assertions.assertEquals(List.of(file1.getName()), handled,
+                "The handler should have seen the file");
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+        // the failed file stays in the file list, as it does in the browser
+        Assertions.assertTrue(removed.isEmpty());
+    }
+
+    @Test
+    void uploadAborted_rejectedByTheClientSideGate_fileListUntouched() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        // the file list is full, so the browser would refuse this file
+        // outright, leaving the already uploaded one alone
+        single_.uploadAborted(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+        Assertions.assertTrue(removed.isEmpty(),
+                "A rejected file cannot remove the file already in the list");
+        Assertions.assertEquals(UploadTester.UploadStatus.REJECTED,
+                single_.getLastUploadStatus().get(0).status());
+
+        single_.upload(file2);
+
+        Assertions.assertEquals(2, rejected.size(),
+                "The slot taken by the first file should still be taken");
+    }
+
+    @Test
+    void getLastUploadStatus_filesAfterAFailingOneStayPending() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(listener.asFailingHandler());
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> multi_.uploadAll(file1, file2));
+
+        Assertions.assertEquals(
+                List.of(UploadTester.UploadStatus.FAILED,
+                        UploadTester.UploadStatus.PENDING),
+                multi_.getLastUploadStatus().stream()
+                        .map(UploadTester.FileStatus::status).toList(),
+                "The upload never got to the file following the failing one");
+    }
+
+    @Test
+    void ensureUploaded_noUploadSimulated_throws() {
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+    }
+
+    @Test
+    void upload_acceptedByClientButNotByServer_notReceived() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setAcceptedMimeTypes("image/*");
+        view.uploadSingle.setAcceptedFileExtensions(".png");
+
+        // The client side gate accepts the file because its content type
+        // matches, but Flow requires the extension to match as well
+        single_.upload("notes.txt", "image/png",
+                "not an image".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "Server side validation does not reject files on the client, but got "
+                        + rejected);
+        listener.assertNotStarted();
+        Assertions.assertTrue(listener.uploadedData.isEmpty(),
+                "File failing server side validation should not have been received");
+
+        // the silent server side rejection is still visible to the test
+        UploadTester.FileStatus status = single_.getLastUploadStatus().get(0);
+        Assertions.assertEquals(UploadTester.UploadStatus.REJECTED,
+                status.status());
+        Assertions.assertTrue(
+                status.errorMessage() != null
+                        && status.errorMessage().contains("notes.txt"),
+                "Expected the server side rejection message, but got "
+                        + status.errorMessage());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+    }
+
+    @Test
+    void upload_maxFilesSetToZero_everyFileRejected() {
+        view.uploadMulti.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        view.uploadMulti.setMaxFiles(0);
+
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected,
+                "An explicit maxFiles of zero should reject every file");
+    }
+
+    @Test
+    void uploadAll_fileCountExceeded_extraFilesRejected() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.uploadAll(file1, file2, file3);
+
+        Assertions.assertEquals(List.of(file3.getName() + ":Too Many Files."),
+                rejected,
+                "The file exceeding maxFiles should have been rejected");
+        Assertions.assertEquals(Set.of(file1.getName(), file2.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName())
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
+    void upload_fileCountExceededOverSeparateUploads_extraFilesRejected() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.upload(file1);
+        multi_.upload(file2);
+        multi_.upload(file3);
+
+        Assertions.assertEquals(List.of(file3.getName() + ":Too Many Files."),
+                rejected,
+                "Files already in the file list should count towards maxFiles");
+        listener.assertFilesReceived(2);
+    }
+
+    @Test
+    void upload_exceedsMaxFileSize_rejected() {
+        AtomicBoolean allFinished = new AtomicBoolean();
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.addAllFinishedListener(ev -> allFinished.set(true));
+        view.uploadSingle.setMaxFileSize(5);
+
+        single_.upload("big.txt", "text/plain",
+                "0123456789".getBytes(StandardCharsets.UTF_8));
+
+        listener.assertNotStarted();
+        Assertions.assertEquals(List.of("big.txt:File is Too Big."), rejected);
+        Assertions.assertFalse(allFinished.get(),
+                "All Finished should not be notified when nothing is uploaded");
+
+        // A file of exactly the maximum size still goes through
+        single_.upload("small.txt", "text/plain",
+                "01234".getBytes(StandardCharsets.UTF_8));
+
+        listener.assertStarted();
+        Assertions.assertEquals("small.txt",
+                listener.assertFileReceived().metadata().fileName());
+    }
+
+    @Test
+    void upload_acceptedFileTypes_onlyMatchingFilesAccepted() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setAcceptedFileTypes(".txt", "image/*");
+
+        multi_.upload("report.pdf", "application/pdf",
+                "not accepted".getBytes(StandardCharsets.UTF_8));
+        // matches by mime type wildcard
+        multi_.upload("photo.png", "image/png",
+                "fake image".getBytes(StandardCharsets.UTF_8));
+        // matches by file name extension
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of("report.pdf:Incorrect File Type."),
+                rejected);
+        Assertions.assertEquals(Set.of("photo.png", file1.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName())
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
+    void upload_customI18n_rejectionUsesConfiguredMessage() {
+        view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        view.uploadSingle
+                .setI18n(new UploadI18N().setError(new UploadI18N.Error()
+                        .setFileIsTooBig("Tiedosto on liian iso")));
+        view.uploadSingle.setMaxFileSize(1);
+
+        single_.upload("big.txt", "text/plain",
+                "0123456789".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertEquals(List.of("big.txt:Tiedosto on liian iso"),
+                rejected);
+    }
+
+    @Test
+    void removeFile_fileRemovedNotifiedAndSlotFreed() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        single_.upload(file2);
+        Assertions.assertEquals(List.of(file2.getName() + ":Too Many Files."),
+                rejected, "The file list should be full");
+
+        single_.removeFile(file1);
+
+        Assertions.assertEquals(List.of(file1.getName()), removed);
+
+        single_.upload(file2);
+
+        Assertions.assertEquals(Set.of(file1.getName(), file2.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName())
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
+    void removeFile_fileNotInFileList_throws() {
+        view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> single_.removeFile(file1));
+    }
+
+    @Test
+    void clearFileList_slotsFreed() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        view.uploadSingle.clearFileList();
+        single_.upload(file2);
+        // every clearFileList() has to be picked up, not only the first one
+        view.uploadSingle.clearFileList();
+        single_.upload(file3);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(3);
+    }
+
+    @Test
+    void uploadAborted_fileRemovedFromFileList() {
+        view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.uploadAborted(file1);
+
+        Assertions.assertEquals(List.of(file1.getName()), removed,
+                "An aborted file should be removed from the file list");
+
+        single_.upload(file2);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "The aborted file should not occupy a slot, but got "
+                        + rejected);
+    }
+
+    @Test
+    void uploadFailed_fileKeptInFileList() {
+        view.uploadSingle.setUploadHandler(
+                new AssertingTransferProgressListener().asFailingHandler());
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.uploadFailed(file1);
+
+        Assertions.assertTrue(removed.isEmpty(),
+                "A failed file should stay in the file list");
+
+        single_.upload(file2);
+
+        Assertions.assertEquals(List.of(file2.getName() + ":Too Many Files."),
+                rejected);
     }
 
     void assertFailedUpload(BiConsumer<String, String> wrapperAction) {
@@ -280,6 +625,8 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertFailed();
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
     }
 
     private String uploadedDataToString(UploadedData uploadedData) {
