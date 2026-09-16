@@ -307,6 +307,17 @@ public class BrowserlessUIContext
      * Gets a query object for finding components of the given type in this
      * window's UI.
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            the type of component to search for
      * @param <T>
@@ -322,6 +333,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type nested
      * inside the specified component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for
@@ -340,6 +355,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type inside the
      * current view.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for

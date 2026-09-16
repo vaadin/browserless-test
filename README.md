@@ -374,6 +374,60 @@ Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
 
+## What `find()` can and cannot see
+
+`find(Class)`, `findInView(Class)` and the typed locators all walk the same
+thing: the server-side component tree. A component that another component
+renders per item does not exist until something renders it, and the content of
+an overlay is attached only while the overlay is open. Neither is in the tree
+until then — reach it through that component's tester instead. The lookup
+returns an empty result rather than an error, so the failure reads as "the
+component was never created".
+
+### Components rendered per item
+
+```java
+grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
+        .setKey("subscriber");
+```
+
+No checkbox exists until the renderer is asked to render a *specific* item, so
+`find(Checkbox.class)` finds none. `GridTester` renders the cell on demand:
+
+```java
+var checkbox = (Checkbox) test(grid).getCellComponent(0, "subscriber");
+test(checkbox).click();
+```
+
+- `getCellComponent(int row, int column)` / `getCellComponent(int row, String
+  columnKey)` — the component a `ComponentRenderer` column renders for a row.
+  Every call renders the cell again and attaches the new instance to the grid,
+  so asking twice for the same cell leaves two instances behind, and a later
+  `find()` reports both. Hold on to the component the tester returns instead of
+  asking for it again.
+- `getCellText(int row, int column)` — the text the cell sends to the client,
+  for both value and component renderers.
+- `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for
+  `LitRenderer` columns, which have no server-side component at all.
+
+### Overlay content
+
+A context menu's content is not attached to the UI until a client opens the
+overlay, so a top-level `find()` does not see it:
+
+```java
+find(Div.class).withText("Rename").all(); // empty while the menu is closed
+
+test(menu).open();
+
+find(Div.class).withText("Rename").all(); // one match
+```
+
+`ContextMenuTester` works either way: `clickItem("Rename")` and
+`test(menu).find(Div.class)` read the server-side menu state and need no
+`open()` at all; `open()` additionally attaches the menu to the UI, which is
+what makes a top-level `find()` see the items.
+
 ## Per-test Vaadin configuration
 
 Some tests need a Vaadin environment configured differently from the rest of
@@ -726,9 +780,13 @@ and `_blank`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
-including the shared test contracts (`ClearContract`, `ClearButtonContract`,
-`CommitsEmptyValueContract`) that every value tester's test class implements.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and test the project and
+what a pull request is expected to look like, [CONVENTIONS.md](CONVENTIONS.md)
+for the canonical list of conventions, and
+[guidelines/](guidelines/overview.md) for the reasoning behind them — including
+how a tester simulates the browser and the shared test contracts
+(`ClearContract`, `ClearButtonContract`, `CommitsEmptyValueContract`) that
+every value tester's test class implements.
 
 ## License
 
