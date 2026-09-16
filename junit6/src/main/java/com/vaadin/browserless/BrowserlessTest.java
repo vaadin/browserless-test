@@ -68,17 +68,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * &#64;Override
  * protected void initVaadinEnvironment() {
  *     scanTesters();
- *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, allLookupServices(),
- *             testConfiguration());
+ *     BrowserlessConfiguration configuration = testConfiguration();
+ *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet,
+ *             allLookupServices(configuration), configuration);
  * }
  * }
  * </pre>
  *
  * <p>
- * Passing {@link #allLookupServices()} and {@link #testConfiguration()} to
+ * Passing the lookup services and the configuration to
  * {@code MockVaadin.setup()} is what makes the overriding test honor
  * {@link BrowserlessTestConfig}; an override dropping them silently ignores the
- * annotation.
+ * annotation. Resolve {@link #testConfiguration()} once into a local and hand
+ * it to {@link #allLookupServices(BrowserlessConfiguration)} as well, so that
+ * an override of the hook is not evaluated twice.
  *
  * <p>
  * To provide custom Flow service implementations via the

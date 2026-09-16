@@ -474,12 +474,30 @@ class CartViewTest extends BrowserlessTest {
 All of them are scoped to the Vaadin environment created for the test, so there
 is nothing to reset afterwards and nothing leaks into other tests.
 
-Class level and method level annotations are merged, with the method winning;
-for a `@Nested` test, the enclosing class configuration is merged in as well.
+Every annotation a test inherits is merged in, rather than shadowed by the
+nearest one. The closer a declaration is to the test method, the higher it
+ranks: method, then test class, then superclasses from the nearest up, then —
+for a `@Nested` test — enclosing classes from the innermost out. So a shared
+abstract base test can declare part of the configuration and a subclass refines
+it:
+
+```java
+@BrowserlessTestConfig(applicationProperties = "base.property=fromBase")
+abstract class AbstractViewTest extends BrowserlessTest {
+}
+
+@BrowserlessTestConfig(featureFlags = "myExperimentalFeature")
+class CartViewTest extends AbstractViewTest {
+    // both base.property and myExperimentalFeature apply
+}
+```
+
 Lookup services are the exception: they **accumulate** instead of being
 replaced, so a test method can add a service but cannot remove one declared by
 its class. Services required by the Spring and Quarkus integrations are always
-registered and are never affected by the test configuration.
+registered and are never affected by the test configuration — since 1.2 they
+come from `frameworkLookupServices()`, so an override of the deprecated
+`lookupServices()` adds to them and can no longer replace one.
 A method level annotation cannot be honored when the Vaadin environment is
 shared by all the tests in a class (`BrowserlessClassExtension`), and is
 rejected with an error.

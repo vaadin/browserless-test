@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.vaadin.browserless.BaseBrowserlessTest;
+import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestConfigExtension;
 import com.vaadin.browserless.TesterWrappers;
 import com.vaadin.browserless.internal.MockVaadin;
@@ -97,8 +98,9 @@ public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         scanTesters();
         MockQuarkusServlet servlet = new MockQuarkusServlet(discoverRoutes(),
                 CDI.current().getBeanManager(), MockedUI::new);
-        MockVaadin.setup(MockedUI::new, servlet, allLookupServices(),
-                testConfiguration());
+        BrowserlessConfiguration configuration = testConfiguration();
+        MockVaadin.setup(MockedUI::new, servlet,
+                allLookupServices(configuration), configuration);
         initSignalsSupport();
     }
 

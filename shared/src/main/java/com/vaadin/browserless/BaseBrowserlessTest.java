@@ -78,8 +78,9 @@ public abstract class BaseBrowserlessTest {
      */
     protected void initVaadinEnvironment() {
         scanTesters();
-        MockVaadin.setup(discoverRoutes(), MockedUI::new, allLookupServices(),
-                testConfiguration());
+        BrowserlessConfiguration configuration = testConfiguration();
+        MockVaadin.setup(discoverRoutes(), MockedUI::new,
+                allLookupServices(configuration), configuration);
         initSignalsSupport();
     }
 
@@ -94,11 +95,35 @@ public abstract class BaseBrowserlessTest {
      * @return the set of services implementation classes, never
      *         {@literal null}.
      */
-    @SuppressWarnings("deprecation")
     protected final Set<Class<?>> allLookupServices() {
+        return allLookupServices(testConfiguration());
+    }
+
+    /**
+     * Same as {@link #allLookupServices()}, but for a configuration that has
+     * already been resolved.
+     *
+     * {@link #testConfiguration()} is an overridable hook, so an override
+     * rebuilding the configuration on every call would otherwise do the work
+     * twice, and a non deterministic one could register services that do not
+     * belong to the configuration actually applied to the environment. Resolve
+     * the configuration once and pass it to both this method and
+     * {@code MockVaadin.setup()}.
+     *
+     * For internal use only.
+     *
+     * @param configuration
+     *            the configuration to read the lookup services from, not
+     *            {@literal null}
+     * @return the set of services implementation classes, never
+     *         {@literal null}.
+     */
+    @SuppressWarnings("deprecation")
+    protected final Set<Class<?>> allLookupServices(
+            BrowserlessConfiguration configuration) {
         Set<Class<?>> services = new LinkedHashSet<>(frameworkLookupServices());
         services.addAll(lookupServices());
-        services.addAll(testConfiguration().getLookupServices());
+        services.addAll(configuration.getLookupServices());
         return services;
     }
 
@@ -157,6 +182,14 @@ public abstract class BaseBrowserlessTest {
      * provide custom Vaadin services, such as
      * {@link com.vaadin.flow.di.InstantiatorFactory},
      * {@link com.vaadin.flow.di.ResourceProvider}, etc.
+     *
+     * Since 1.2 the services required by the Spring and Quarkus integrations
+     * are contributed by {@link #frameworkLookupServices()} instead, and are
+     * always registered. An override of this method therefore adds to them and
+     * can no longer replace one of them, for example to swap the Spring
+     * {@code SpringSecurityRequestCustomizer}; override
+     * {@link #frameworkLookupServices()} in a framework specific base class for
+     * that.
      *
      * @return set of services implementation classes, never {@literal null}.
      * @deprecated since 1.2, declare the services with

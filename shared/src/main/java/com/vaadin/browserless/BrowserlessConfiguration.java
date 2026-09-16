@@ -144,7 +144,7 @@ public final class BrowserlessConfiguration implements Serializable {
     }
 
     private static int indexOfSeparator(String entry, String attribute) {
-        int separator = entry == null ? -1 : entry.indexOf('=');
+        int separator = entry.indexOf('=');
         if (separator < 0) {
             throw new IllegalArgumentException("Invalid " + attribute
                     + " entry '" + entry

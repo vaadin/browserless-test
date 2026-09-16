@@ -41,6 +41,25 @@ import java.lang.annotation.Target;
  * that case the two configurations are merged, and values declared on the
  * method win over the ones declared on the class.
  * <p>
+ * Every annotation the test inherits is merged in as well, rather than being
+ * shadowed by the nearest one: a superclass declaring part of the configuration
+ * for a family of tests keeps contributing it, and so does the enclosing class
+ * of a {@code @Nested} test. The closer the declaration is to the test method,
+ * the higher it ranks, so the order is method, test class, superclasses from
+ * the nearest up, then enclosing classes from the innermost out. Lookup
+ * services are the exception: they accumulate instead of being replaced.
+ *
+ * <pre>
+ * &#64;BrowserlessTestConfig(applicationProperties = "base.property=fromBase")
+ * abstract class AbstractViewTest extends BrowserlessTest {
+ * }
+ *
+ * &#64;BrowserlessTestConfig(featureFlags = "myExperimentalFeature")
+ * class CartViewTest extends AbstractViewTest {
+ *     // both base.property and myExperimentalFeature apply
+ * }
+ * </pre>
+ * <p>
  * Method level configuration requires an environment that is created for each
  * test method. It is therefore not supported when the Vaadin environment is
  * shared by all the tests in the class, for example with

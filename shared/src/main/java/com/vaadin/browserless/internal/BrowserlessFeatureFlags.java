@@ -46,7 +46,7 @@ public class BrowserlessFeatureFlags extends FeatureFlags {
      * NOTE: assigned only after the super constructor completes, so it is null
      * while the super constructor invokes loadProperties().
      */
-    private Map<String, Boolean> overrides;
+    private final Map<String, Boolean> overrides;
 
     private BrowserlessFeatureFlags(Lookup lookup,
             Map<String, Boolean> overrides) {
