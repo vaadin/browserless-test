@@ -273,6 +273,60 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getLastUploadStatus_reportsOutcomePerFileInOrder() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFileSize(FIRST_FILE_CONTENTS.length());
+
+        Assertions.assertEquals(List.of(), multi_.getLastUploadStatus(),
+                "Nothing has been uploaded yet");
+
+        // file3 has the shortest contents, file2 the longest
+        multi_.uploadAll(file1, file2, file3);
+
+        Assertions.assertEquals(List.of(
+                new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null),
+                new UploadTester.FileStatus(file2.getName(),
+                        UploadTester.UploadStatus.REJECTED, "File is Too Big."),
+                new UploadTester.FileStatus(file3.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                multi_.getLastUploadStatus());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> multi_.ensureUploaded(),
+                "ensureUploaded should fail for a rejected file");
+
+        // the status only covers the most recent upload
+        multi_.upload(file3);
+
+        Assertions.assertEquals(List.of(file3.getName()),
+                multi_.getLastUploadStatus().stream()
+                        .map(UploadTester.FileStatus::fileName).toList());
+        multi_.ensureUploaded();
+    }
+
+    @Test
+    void getLastUploadStatus_failedUploadReported() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(listener.asFailingHandler());
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> single_.upload(file1));
+
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+    }
+
+    @Test
+    void ensureUploaded_noUploadSimulated_throws() {
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+    }
+
+    @Test
     void upload_acceptedByClientButNotByServer_notReceived() {
         AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
         view.uploadSingle.setUploadHandler(
@@ -291,6 +345,18 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertNotStarted();
         Assertions.assertTrue(listener.uploadedData.isEmpty(),
                 "File failing server side validation should not have been received");
+
+        // the silent server side rejection is still visible to the test
+        UploadTester.FileStatus status = single_.getLastUploadStatus().get(0);
+        Assertions.assertEquals(UploadTester.UploadStatus.REJECTED,
+                status.status());
+        Assertions.assertTrue(
+                status.errorMessage() != null
+                        && status.errorMessage().contains("notes.txt"),
+                "Expected the server side rejection message, but got "
+                        + status.errorMessage());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
     }
 
     @Test
