@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,14 +30,18 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.flow.component.AbstractCompositeField;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.AbstractFieldSupport;
+import com.vaadin.flow.component.shared.HasClearButton;
 import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
+import com.vaadin.flow.internal.nodefeature.ElementPropertyMap;
+import com.vaadin.flow.internal.nodefeature.PropertyChangeDeniedException;
 
 /**
  * Test wrapper for components with helpful methods for testing a component.
@@ -145,6 +150,17 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     /**
      * Gets a {@link ComponentQuery} to search for component of the given type
      * nested inside the wrapped component.
+     *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
      *
      * @param componentType
      *            type of the component to search.
@@ -439,15 +455,85 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         return query.all();
     }
 
-    private <V> AbstractFieldSupport<?, V> getFieldSupport() {
+    private <V> AbstractFieldSupport<?, V> getFieldSupport(Object target) {
+        final Class<?> declaringClass;
+        if (target instanceof AbstractField) {
+            declaringClass = AbstractField.class;
+        } else if (target instanceof AbstractCompositeField) {
+            declaringClass = AbstractCompositeField.class;
+        } else {
+            return null;
+        }
         try {
-            final Field javaField = AbstractField.class
+            final Field javaField = declaringClass
                     .getDeclaredField("fieldSupport");
             javaField.setAccessible(true);
-            return (AbstractFieldSupport<?, V>) javaField.get(component);
+            return (AbstractFieldSupport<?, V>) javaField.get(target);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Empties the field as the user would, by setting the component's empty
+     * value.
+     * <p>
+     * Emptying a field is always available to the user — select the contents,
+     * press Delete — and stays legal even when it leaves the field invalid, so
+     * the empty value is set unconditionally. This is the shared implementation
+     * behind the {@code clear()} methods of the value testers; each of them
+     * declares {@code clear()} itself so that the generated locators pick it
+     * up.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if the component does not hold a value
+     */
+    protected void clearAsUser() {
+        ensureComponentIsUsable();
+
+        setEmptyValueAsUser();
+    }
+
+    /**
+     * Empties the field by clicking its clear button, as the user would.
+     * <p>
+     * Unlike {@link #clearAsUser()}, which models the keyboard route and is
+     * therefore always available, this requires the clear button to actually be
+     * on screen: a hidden clear button is not something the user can click.
+     * Past that check the value is emptied exactly as {@link #clearAsUser()}
+     * does.
+     * <p>
+     * Testers for components implementing {@link HasClearButton} expose this as
+     * a public {@code clickClearButton()}; {@code LocatorProcessor} fails the
+     * build when one of them does not.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, or its clear button is not
+     *             visible
+     * @throws IllegalArgumentException
+     *             if the component does not hold a value
+     */
+    protected void clickClearButtonAsUser() {
+        ensureComponentIsUsable();
+
+        if (!(component instanceof HasClearButton clearButton)
+                || !clearButton.isClearButtonVisible()) {
+            throw new IllegalStateException("Clear button is not visible");
+        }
+
+        setEmptyValueAsUser();
+    }
+
+    private void setEmptyValueAsUser() {
+        if (!(component instanceof HasValue<?, ?> field)) {
+            throw new IllegalArgumentException(
+                    "Parameter component: invalid value " + component
+                            + ": not a HasValue: " + component.getClass());
+        }
+
+        setValueAsUser(field.getEmptyValue());
     }
 
     /**
@@ -460,18 +546,95 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the new value, may be null.
      */
     protected <V> void setValueAsUser(V value) {
-        if (component instanceof AbstractField) {
-            final AbstractFieldSupport<?, V> fs = getFieldSupport();
-            try {
-                final Method m = AbstractFieldSupport.class.getDeclaredMethod(
-                        "setValue", Object.class, boolean.class, boolean.class);
-                m.setAccessible(true);
-                m.invoke(fs, value, false, true);
-            } catch (NoSuchMethodException | IllegalAccessException
-                    | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
-            return;
+        setValueAsUser(asHasValue(), value);
+    }
+
+    /**
+     * Sets the value to the given field, pretending that the value came from
+     * the browser, so that the fired value change event reports
+     * {@code isFromClient() == true}. Will throw an exception if the field is
+     * not backed by an {@link AbstractField} or an
+     * {@link AbstractCompositeField}; use {@link #canSetValueAsUser(HasValue)}
+     * to check up front.
+     * <p>
+     * This method is purposed for internal use and when creating custom testers
+     * extending ComponentTesters, for fields other than the wrapped component,
+     * such as an editor field owned by the wrapped component.
+     *
+     * @param field
+     *            the field to set the value to, not {@literal null}.
+     * @param value
+     *            the new value, may be null.
+     */
+    protected <V> void setValueAsUser(HasValue<?, V> field, V value) {
+        final AbstractFieldSupport<?, V> fs = getFieldSupport(field);
+        if (fs == null) {
+            throw new IllegalArgumentException("Parameter field: invalid value "
+                    + field + ": unsupported type of HasValue: "
+                    + field.getClass());
+        }
+        try {
+            final Method m = AbstractFieldSupport.class.getDeclaredMethod(
+                    "setValue", Object.class, boolean.class, boolean.class);
+            m.setAccessible(true);
+            m.invoke(fs, value, false, true);
+        } catch (NoSuchMethodException | IllegalAccessException
+                | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Checks whether {@link #setValueAsUser(HasValue, Object)} can simulate a
+     * client side value change on the given field. Only fields backed by
+     * {@link AbstractField} or {@link AbstractCompositeField} have such a path;
+     * a tester driving a foreign {@link HasValue} implementation has to fall
+     * back to {@link HasValue#setValue(Object)}.
+     *
+     * @param field
+     *            the field to check, not {@literal null}.
+     * @return {@literal true} if the value can be set as a user
+     */
+    protected boolean canSetValueAsUser(HasValue<?, ?> field) {
+        return field instanceof AbstractField
+                || field instanceof AbstractCompositeField;
+    }
+
+    /**
+     * Updates an element property of the wrapped component as if the update was
+     * sent by the browser, so that events derived from the property change
+     * report {@code isFromClient() == true}. Ends with a {@link #roundTrip()}.
+     * <p>
+     * Use this for components that expose state as a synchronized element
+     * property rather than as a field value, such as the {@code opened}
+     * property of Details and Accordion.
+     *
+     * @param property
+     *            name of the property to update, not {@literal null}.
+     * @param value
+     *            the value as the client would send it, may be null.
+     * @throws IllegalStateException
+     *             if the property does not accept updates from the client
+     */
+    protected void setPropertyAsUser(String property, Serializable value) {
+        try {
+            component.getElement().getNode()
+                    .getFeature(ElementPropertyMap.class)
+                    .deferredUpdateFromClient(property, value).run();
+        } catch (PropertyChangeDeniedException e) {
+            throw new IllegalStateException(
+                    "Unable to simulate a client side update of property '"
+                            + property + "' on "
+                            + component.getClass().getSimpleName(),
+                    e);
+        }
+        roundTrip();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <V> HasValue<?, V> asHasValue() {
+        if (component instanceof HasValue) {
+            return (HasValue<?, V>) component;
         }
         throw new IllegalArgumentException("Parameter component: invalid value "
                 + component + ": unsupported type of HasValue: "

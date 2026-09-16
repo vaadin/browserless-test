@@ -18,9 +18,7 @@ package com.vaadin.browserless.quarkus.mocks;
 import jakarta.enterprise.inject.spi.BeanManager;
 
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.browserless.mocks.MockInstantiator;
 import com.vaadin.browserless.mocks.MockVaadinSession;
-import com.vaadin.flow.di.Instantiator;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinSession;
@@ -78,10 +76,4 @@ public class MockQuarkusServletService extends QuarkusVaadinServletService {
     protected VaadinSession createVaadinSession(VaadinRequest request) {
         return new MockVaadinSession(this, uiFactory);
     }
-
-    @Override
-    public Instantiator getInstantiator() {
-        return MockInstantiator.create(super.getInstantiator());
-    }
-
 }

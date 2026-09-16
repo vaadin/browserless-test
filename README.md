@@ -14,7 +14,7 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 
 ## Features
 
-- **65+ built-in component testers** — ready-made wrappers for Grid, Button,
+- **70+ built-in component testers** — ready-made wrappers for Grid, Button,
   TextField, ComboBox, Dialog, DatePicker, Upload, Charts, and many more
 - **View navigation** — navigate to `@Route`-annotated views with path, query,
   and template parameters
@@ -24,7 +24,8 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   `findTextField()` entry points that combine query filters with tester
   actions
 - **Keyboard shortcut simulation** — fire shortcuts with modifier keys
-- **Signals / reactive state** — process pending signal tasks in tests
+- **Signals / reactive state** — process pending signal tasks in tests,
+  including the confirmation of shared-signal writes
 - **Round-trip simulation** — flush pending server-side changes
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
@@ -369,6 +370,102 @@ Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
 
+## What `find()` can and cannot see
+
+`find(Class)`, `findInView(Class)` and the typed locators all walk the same
+thing: the server-side component tree. A component that another component
+renders per item does not exist until something renders it, and the content of
+an overlay is attached only while the overlay is open. Neither is in the tree
+until then — reach it through that component's tester instead. The lookup
+returns an empty result rather than an error, so the failure reads as "the
+component was never created".
+
+### Components rendered per item
+
+```java
+grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
+        .setKey("subscriber");
+```
+
+No checkbox exists until the renderer is asked to render a *specific* item, so
+`find(Checkbox.class)` finds none. `GridTester` renders the cell on demand:
+
+```java
+var checkbox = (Checkbox) test(grid).getCellComponent(0, "subscriber");
+test(checkbox).click();
+```
+
+- `getCellComponent(int row, int column)` / `getCellComponent(int row, String
+  columnKey)` — the component a `ComponentRenderer` column renders for a row.
+  Every call renders the cell again and attaches the new instance to the grid,
+  so asking twice for the same cell leaves two instances behind, and a later
+  `find()` reports both. Hold on to the component the tester returns instead of
+  asking for it again.
+- `getCellText(int row, int column)` — the text the cell sends to the client,
+  for both value and component renderers.
+- `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for
+  `LitRenderer` columns, which have no server-side component at all.
+
+### Overlay content
+
+A context menu's content is not attached to the UI until a client opens the
+overlay, so a top-level `find()` does not see it:
+
+```java
+find(Div.class).withText("Rename").all(); // empty while the menu is closed
+
+test(menu).open();
+
+find(Div.class).withText("Rename").all(); // one match
+```
+
+`ContextMenuTester` works either way: `clickItem("Rename")` and
+`test(menu).find(Div.class)` read the server-side menu state and need no
+`open()` at all; `open()` additionally attaches the menu to the UI, which is
+what makes a top-level `find()` see the items.
+
+## Signals
+
+Signal effects and shared-signal confirmations are not executed on a background
+thread pool in a browserless test. They are queued, so that a test can decide
+when they run, and are executed on the test thread by
+`runPendingSignalsTasks()` (also available as
+`window.runPendingSignalsTasks()` in the multi-window API and on the JUnit
+extension).
+
+### Effects triggered outside the UI thread
+
+```java
+CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0));
+runPendingSignalsTasks(); // waits up to 100 ms for the first task
+assertEquals("Counter: 10", test(view.counter).getText());
+```
+
+### Writes to shared signals
+
+A write to a `SharedValueSignal`, `SharedListSignal`,
+`SharedMapSignal` or `SharedNumberSignal` is applied optimistically and
+is visible through `peek()` straight away. The `SignalOperation`
+returned by the write is completed only when the underlying signal tree
+confirms the command, and that confirmation is dispatched through the same
+queue — so it completes on the next `runPendingSignalsTasks()`:
+
+```java
+var operation = tickets.insertLast("a ticket");
+
+assertEquals(1, tickets.peek().size()); // already applied
+assertFalse(operation.result().isDone()); // not confirmed yet
+
+runPendingSignalsTasks();
+
+assertTrue(operation.result().join().successful());
+```
+
+Blocking on the operation before draining the queue —
+`operation.result().get(5, SECONDS)` — always times out: the confirmation
+task can only run on the thread that is blocked waiting for it. A timeout there
+means the queue has not been drained, not that the write was lost.
+
 ## Multi-user and multi-window testing
 
 For tests that need to drive multiple users — or multiple browser windows for
@@ -569,6 +666,12 @@ and `_blank`.
   subsequent activation.
 - Same-user window switches don't touch the snapshot, so per-window UI state
   is preserved across interleaved operations within one user.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
+including the shared test contracts (`ClearContract`, `ClearButtonContract`,
+`CommitsEmptyValueContract`) that every value tester's test class implements.
 
 ## License
 

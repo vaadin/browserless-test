@@ -186,11 +186,17 @@ public class BrowserlessUIContext
 
     /**
      * Navigates this window to the given view class with route parameters.
+     * <p>
+     * These are the parameters of the route template, such as {@code orderId}
+     * of {@code @Route("order/:orderId")} — not query parameters. To navigate
+     * with a query string, write it into the location given to
+     * {@link #navigate(String, Class)}.
      *
      * @param navigationTarget
      *            the view class to navigate to
      * @param parameters
-     *            the route parameters
+     *            the route parameters of the target's route template, keyed by
+     *            parameter name
      * @param <T>
      *            the view type
      * @return the instantiated view
@@ -204,9 +210,15 @@ public class BrowserlessUIContext
     /**
      * Navigates this window to the given location and validates the resulting
      * view.
+     * <p>
+     * The location is written the way it appears in the browser's address bar,
+     * so it may carry a query string and a fragment — for example
+     * {@code "order/ORD-1?tab=history"}, whose query parameters the view reads
+     * from the navigation event.
      *
      * @param location
-     *            the navigation location string
+     *            the navigation location string, optionally with a query string
+     *            and a fragment
      * @param expectedTarget
      *            the expected view class
      * @param <T>
@@ -295,6 +307,17 @@ public class BrowserlessUIContext
      * Gets a query object for finding components of the given type in this
      * window's UI.
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            the type of component to search for
      * @param <T>
@@ -310,6 +333,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type nested
      * inside the specified component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for
@@ -328,6 +355,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type inside the
      * current view.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for
@@ -420,6 +451,22 @@ public class BrowserlessUIContext
      * If this window's {@link VaadinSession} lock is held by the current
      * thread, it is temporarily released during the wait to allow background
      * threads to acquire the lock and enqueue tasks.
+     *
+     * <p>
+     * Confirmation of a write to a shared signal (for example
+     * {@code SharedValueSignal} or {@code SharedListSignal}) is dispatched
+     * through the same queue. The new value is visible immediately through
+     * {@code peek()}, but the {@code SignalOperation} returned by the write
+     * only completes once the queued confirmation task has been run by this
+     * method. Blocking on {@code operation.result().get()} without draining the
+     * queue first never completes, because the confirmation task can only run
+     * on the thread that calls this method:
+     *
+     * <pre>{@code
+     * var operation = tickets.insertLast("a ticket");
+     * window.runPendingSignalsTasks();
+     * assertTrue(operation.result().join().successful());
+     * }</pre>
      *
      * @return {@code true} if any pending Signals tasks were processed
      * @see #runPendingSignalsTasks(long, TimeUnit)
