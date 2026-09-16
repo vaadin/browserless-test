@@ -153,6 +153,12 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
                 view.receiver.getFileData().getMimeType());
         Assertions.assertEquals(FIRST_FILE_CONTENTS,
                 inputStreamToString(view.receiver.getInputStream()));
+
+        Assertions.assertEquals(
+                List.of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                single_.getLastUploadStatus());
+        single_.ensureUploaded();
     }
 
     @Test
@@ -361,6 +367,10 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
                 "Finished listener was not notified");
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
     }
 
     private String inputStreamToString(InputStream inputStream) {

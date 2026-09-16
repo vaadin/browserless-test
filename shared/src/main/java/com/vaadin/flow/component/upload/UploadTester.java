@@ -405,12 +405,14 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         List<UploadItem> items = List
                 .of(new UploadItem(fileName, contentType, null));
         List<UploadItem> accepted = acceptFiles(items);
+        if (accepted.isEmpty()) {
+            // the file never entered the file list, so there is nothing to
+            // fail and nothing to remove from it
+            recordUploadStatus(items);
+            return;
+        }
         try {
-            if (accepted.isEmpty()) {
-                return;
-            }
             if (useLegacyAPI()) {
-                accepted.forEach(item -> item.status = UploadStatus.FAILED);
                 StreamVariable streamVariable = getGetStreamVariable();
                 try {
                     streamVariable.streamingStarted(new StreamingStartEventImpl(
@@ -428,6 +430,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
                 }
             }
         } finally {
+            // the upload is a simulated failure whatever the handler or the
+            // receiver made of the broken stream
+            accepted.forEach(item -> item.status = UploadStatus.FAILED);
             recordUploadStatus(items);
             if (removeFromFileList && state().fileNames.remove(fileName)) {
                 fireFileRemoved(fileName);
@@ -916,16 +921,6 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     public record FileStatus(String fileName, UploadStatus status,
             String errorMessage) implements Serializable {
-
-        /**
-         * Returns whether the file was consumed by the upload handler or
-         * receiver.
-         *
-         * @return {@code true} if the file was uploaded
-         */
-        public boolean isUploaded() {
-            return status == UploadStatus.UPLOADED;
-        }
 
         private String describe() {
             return fileName + " (" + status

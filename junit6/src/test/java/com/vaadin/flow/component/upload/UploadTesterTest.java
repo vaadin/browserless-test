@@ -157,7 +157,10 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertNotCompleted();
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
-
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
     }
 
     @Test
@@ -307,17 +310,65 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void getLastUploadStatus_failedUploadReported() {
-        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
-        view.uploadSingle.setUploadHandler(listener.asFailingHandler());
+    void uploadFailed_handlerIgnoringTheStream_stillReportedAsFailed() {
+        List<String> handled = new ArrayList<>();
+        // a handler that only looks at the metadata never trips over the
+        // broken stream the simulated failure hands it
+        view.uploadSingle
+                .setUploadHandler(event -> handled.add(event.getFileName()));
+        view.uploadSingle.setMaxFiles(1);
 
-        Assertions.assertThrows(UncheckedIOException.class,
-                () -> single_.upload(file1));
+        single_.uploadFailed(file1);
 
+        Assertions.assertEquals(List.of(file1.getName()), handled,
+                "The handler should have seen the file");
         Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
                 single_.getLastUploadStatus().get(0).status());
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        // the failed file stays in the file list, as it does in the browser
+        Assertions.assertTrue(removed.isEmpty());
+    }
+
+    @Test
+    void uploadAborted_rejectedByTheClientSideGate_fileListUntouched() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        // the file list is full, so the browser would refuse this file
+        // outright, leaving the already uploaded one alone
+        single_.uploadAborted(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+        Assertions.assertTrue(removed.isEmpty(),
+                "A rejected file cannot remove the file already in the list");
+        Assertions.assertEquals(UploadTester.UploadStatus.REJECTED,
+                single_.getLastUploadStatus().get(0).status());
+
+        single_.upload(file2);
+
+        Assertions.assertEquals(2, rejected.size(),
+                "The slot taken by the first file should still be taken");
+    }
+
+    @Test
+    void getLastUploadStatus_filesAfterAFailingOneStayPending() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(listener.asFailingHandler());
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> multi_.uploadAll(file1, file2));
+
+        Assertions.assertEquals(
+                List.of(UploadTester.UploadStatus.FAILED,
+                        UploadTester.UploadStatus.PENDING),
+                multi_.getLastUploadStatus().stream()
+                        .map(UploadTester.FileStatus::status).toList(),
+                "The upload never got to the file following the failing one");
     }
 
     @Test
@@ -574,6 +625,8 @@ class UploadTesterTest extends BrowserlessTest {
         listener.assertFailed();
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
     }
 
     private String uploadedDataToString(UploadedData uploadedData) {
