@@ -373,8 +373,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
                 // declared further up the hierarchy, if at all
             }
         }
+        // the signature is part of the message, as a lookup usually fails on
+        // the parameter types rather than on the name
         throw new RuntimeException(
-                new NoSuchMethodException(target.getName() + "." + methodName));
+                new NoSuchMethodException(target.getName() + "." + methodName
+                        + Stream.of(parameterTypes).map(Class::getTypeName)
+                                .collect(Collectors.joining(",", "(", ")"))));
     }
 
     /**

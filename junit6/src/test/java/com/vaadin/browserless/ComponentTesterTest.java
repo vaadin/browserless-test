@@ -39,6 +39,7 @@ import com.vaadin.flow.internal.JacksonUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -382,6 +383,26 @@ public class ComponentTesterTest extends BrowserlessTest {
         home.add(div);
 
         assertEquals("INTERNAL", new ReflectingTester<>(div).callStateGetter());
+    }
+
+    @Test
+    void getFieldAndGetMethod_memberNotInHierarchy_throwWithDetails() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        ReflectingTester<InheritingDiv> div_ = new ReflectingTester<>(div);
+
+        IllegalArgumentException fieldFailure = assertThrows(
+                IllegalArgumentException.class, () -> div_.getField("missing"));
+        assertInstanceOf(NoSuchFieldException.class, fieldFailure.getCause());
+
+        RuntimeException methodFailure = assertThrows(RuntimeException.class,
+                () -> div_.getMethod("missing", String.class));
+        Throwable cause = methodFailure.getCause();
+        assertInstanceOf(NoSuchMethodException.class, cause);
+        assertTrue(cause.getMessage().contains("(java.lang.String)"),
+                "Message should report the looked up signature: "
+                        + cause.getMessage());
     }
 
     @Tag("div")
