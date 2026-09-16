@@ -101,10 +101,18 @@ public class BrowserlessFeatureFlags extends FeatureFlags {
      * implementation, it neither requires development mode nor stores the new
      * state into the {@literal vaadin-featureflags.properties} file of the
      * project.
+     * <p>
+     * The new state is recorded among the overrides, so that it survives a
+     * later reload of the feature flags, exactly like the states declared by
+     * the test configuration.
      */
     @Override
     public void setEnabled(String featureId, boolean enabled) {
-        feature(featureId).setEnabled(enabled);
+        Feature feature = feature(featureId);
+        if (overrides != null) {
+            overrides.put(featureId, enabled);
+        }
+        feature.setEnabled(enabled);
     }
 
     private void applyOverrides() {

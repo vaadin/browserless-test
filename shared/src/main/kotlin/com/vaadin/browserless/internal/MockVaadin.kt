@@ -46,6 +46,7 @@ import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
 import com.vaadin.browserless.BrowserlessConfiguration
+import com.vaadin.browserless.BrowserlessTestSetupException
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -184,6 +185,18 @@ object MockVaadin {
             // Enforced by the browserless environment, so it wins over test configuration
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)
+        } else if (!configuration.isEmpty) {
+            // Application properties, feature flags and lookup services are all
+            // read while the servlet is initialized, so there is no way to apply
+            // them afterwards. Failing here beats silently running the test
+            // against an environment that never saw its own configuration.
+            throw BrowserlessTestSetupException(
+                    "Cannot apply a custom Vaadin configuration to ${servlet.javaClass.name}, " +
+                            "because the servlet has already been initialized. The configuration " +
+                            "is read while the servlet initializes, so it must be provided to the " +
+                            "setup creating the servlet. Provide a servlet factory returning a new, " +
+                            "uninitialized servlet instance, or move the configuration to the setup " +
+                            "that initializes it. Discarded configuration: $configuration")
         }
         val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }

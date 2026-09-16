@@ -16,6 +16,8 @@
 package com.vaadin.browserless;
 
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -64,9 +66,10 @@ public class BrowserlessTestConfigExtension
      * test class and by the current test method, if any.
      * <p>
      * Meta annotations, superclasses and, for nested tests, enclosing classes
-     * are taken into account. Values declared on the test method win over the
-     * ones declared on the test class, which in turn win over the ones declared
-     * on an enclosing test class.
+     * are taken into account, and are merged rather than shadowed. Values
+     * declared on the test method win over the ones declared on the test class,
+     * which in turn win over the ones declared on a superclass or on an
+     * enclosing test class.
      *
      * @param context
      *            the current extension context, not {@literal null}
@@ -121,10 +124,25 @@ public class BrowserlessTestConfigExtension
     }
 
     private static BrowserlessConfiguration forClass(Class<?> testClass) {
-        return AnnotationSupport
-                .findAnnotation(testClass, BrowserlessTestConfig.class)
-                .map(BrowserlessConfiguration::from)
-                .orElseGet(BrowserlessConfiguration::empty);
+        // A superclass can declare part of the configuration, so the hierarchy
+        // is merged from the topmost superclass down to the test class itself,
+        // exactly like the enclosing classes of a nested test. Resolving only
+        // the nearest annotation would instead make a subclass replace, rather
+        // than refine, what its base class declared.
+        Deque<Class<?>> hierarchy = new ArrayDeque<>();
+        for (Class<?> type = testClass; type != null
+                && type != Object.class; type = type.getSuperclass()) {
+            hierarchy.addFirst(type);
+        }
+        BrowserlessConfiguration configuration = BrowserlessConfiguration
+                .empty();
+        for (Class<?> type : hierarchy) {
+            configuration = configuration.merge(AnnotationSupport
+                    .findAnnotation(type, BrowserlessTestConfig.class)
+                    .map(BrowserlessConfiguration::from)
+                    .orElseGet(BrowserlessConfiguration::empty));
+        }
+        return configuration;
     }
 
     /**

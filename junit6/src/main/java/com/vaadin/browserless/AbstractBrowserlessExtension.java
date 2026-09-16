@@ -111,17 +111,33 @@ abstract class AbstractBrowserlessExtension
     protected void doInit(Object testInstance, ExtensionContext ctx) {
         BrowserlessConfiguration effectiveConfiguration = BrowserlessTestConfigExtension
                 .resolveConfiguration(ctx, configuration.build());
+        // The cleanup action is armed before the environment is created, so
+        // that a setup failing halfway through, for example on an unknown
+        // feature flag, does not leave Vaadin thread locals behind for the
+        // next test to trip over.
         if (testInstance instanceof BaseBrowserlessTest base) {
-            base.setResolvedConfiguration(effectiveConfiguration);
-            base.initVaadinEnvironment();
+            boolean classScoped = isClassScoped();
             cleanupAction = () -> {
                 base.cleanVaadinEnvironment();
-                base.setResolvedConfiguration(null);
+                base.setResolvedConfiguration(null, classScoped);
             };
+            base.setResolvedConfiguration(effectiveConfiguration, classScoped);
+            base.initVaadinEnvironment();
         } else {
-            standaloneInit(ctx.getRequiredTestClass(), effectiveConfiguration);
             cleanupAction = this::standaloneCleanup;
+            standaloneInit(ctx.getRequiredTestClass(), effectiveConfiguration);
         }
+    }
+
+    /**
+     * Tells whether this extension creates a single Vaadin environment shared
+     * by all the tests in the class, rather than one per test method.
+     *
+     * @return {@literal true} if the Vaadin environment is scoped to the test
+     *         class, {@literal false} otherwise
+     */
+    protected boolean isClassScoped() {
+        return false;
     }
 
     protected void doCleanup() {

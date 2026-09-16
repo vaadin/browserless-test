@@ -68,20 +68,27 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * &#64;Override
  * protected void initVaadinEnvironment() {
  *     scanTesters();
- *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, lookupServices());
+ *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, allLookupServices(),
+ *             testConfiguration());
  * }
  * }
  * </pre>
  *
  * <p>
+ * Passing {@link #allLookupServices()} and {@link #testConfiguration()} to
+ * {@code MockVaadin.setup()} is what makes the overriding test honor
+ * {@link BrowserlessTestConfig}; an override dropping them silently ignores the
+ * annotation.
+ *
+ * <p>
  * To provide custom Flow service implementations via the
- * {@link com.vaadin.flow.di.Lookup} SPI, override {@link #lookupServices()}:
+ * {@link com.vaadin.flow.di.Lookup} SPI, declare them with
+ * {@link BrowserlessTestConfig#lookupServices()}:
  *
  * <pre>
  * {@code
- * &#64;Override
- * protected Set<Class<?>> lookupServices() {
- *     return Set.of(CustomInstantiatorFactory.class);
+ * &#64;BrowserlessTestConfig(lookupServices = CustomInstantiatorFactory.class)
+ * class CartViewTest extends BrowserlessTest {
  * }
  * }
  * </pre>

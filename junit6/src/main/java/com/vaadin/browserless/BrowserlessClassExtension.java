@@ -255,6 +255,11 @@ public class BrowserlessClassExtension extends AbstractBrowserlessExtension
     }
 
     @Override
+    protected boolean isClassScoped() {
+        return true;
+    }
+
+    @Override
     public void beforeAll(ExtensionContext ctx) {
         doInit(ctx.getTestInstance().orElse(null), ctx);
     }

@@ -44,10 +44,14 @@ import java.lang.annotation.Target;
  * Method level configuration requires an environment that is created for each
  * test method. It is therefore not supported when the Vaadin environment is
  * shared by all the tests in the class, for example with
- * {@link BrowserlessTestConfig} on a class using
- * {@code @TestInstance(Lifecycle.PER_CLASS)} or
- * {@code BrowserlessClassExtension}; in those cases the annotation must be
- * placed on the test class.
+ * {@code BrowserlessClassExtension}, or with a base class test whose
+ * {@code initVaadinEnvironment()} override is not a {@code @BeforeEach}; in
+ * those cases the annotation must be placed on the test class.
+ * <p>
+ * {@code @TestInstance(Lifecycle.PER_CLASS)} alone only changes how the test
+ * instance is created, not when the Vaadin environment is: a base class test
+ * still builds it in a {@code @BeforeEach}, so method level configuration keeps
+ * working.
  *
  * @see BrowserlessConfiguration
  * @since 1.2

@@ -55,6 +55,7 @@ public abstract class BaseBrowserlessTest {
 
     private TestSignalEnvironment signalsTestEnvironment;
     private BrowserlessConfiguration resolvedConfiguration;
+    private boolean classScopedConfiguration;
 
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
@@ -223,7 +224,26 @@ public abstract class BaseBrowserlessTest {
      * current test method are taken into account as well.
      */
     void setResolvedConfiguration(BrowserlessConfiguration configuration) {
+        setResolvedConfiguration(configuration, false);
+    }
+
+    /**
+     * Same as {@link #setResolvedConfiguration(BrowserlessConfiguration)}, but
+     * telling whether the configuration is scoped to the whole test class.
+     *
+     * A class scoped configuration is installed once, before the shared Vaadin
+     * environment is created, and owns the field until it is cleared. Per
+     * method resolution, which runs later and knows nothing about the
+     * programmatic configuration of the class scoped extension, must not
+     * replace nor clear it while that environment is alive.
+     */
+    void setResolvedConfiguration(BrowserlessConfiguration configuration,
+            boolean classScoped) {
+        if (classScopedConfiguration && !classScoped) {
+            return;
+        }
         this.resolvedConfiguration = configuration;
+        this.classScopedConfiguration = classScoped && configuration != null;
     }
 
     /**

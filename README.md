@@ -462,8 +462,16 @@ protected BrowserlessConfiguration testConfiguration() {
 }
 ```
 
-When both are used, the programmatic configuration wins over the class level
-annotation, and loses against the method level one.
+When both are used, a configuration defined on an extension or on the
+application context builder wins over the class level annotation, and loses
+against the method level one.
+
+A `testConfiguration()` override behaves differently: `super.testConfiguration()`
+returns the configuration already resolved from the annotations, so whatever the
+override adds on top of it wins over **all** of them, the method level one
+included. Build on `super.testConfiguration()` to refine the declared
+configuration, and leave out the values a test method should be able to
+override.
 
 > [!NOTE]
 > With Spring, a Vaadin property defined in the Spring environment (e.g.

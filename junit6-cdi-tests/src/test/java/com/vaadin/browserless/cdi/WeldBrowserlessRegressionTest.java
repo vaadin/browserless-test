@@ -85,7 +85,8 @@ class WeldBrowserlessRegressionTest extends BrowserlessTest {
         scanTesters();
         // Use the CDI servlet/service so the Vaadin Instantiator is the
         // CdiInstantiator backed by the running Weld container.
-        MockVaadin.setup(MockedUI::new, vaadinServlet, lookupServices());
+        MockVaadin.setup(MockedUI::new, vaadinServlet, allLookupServices(),
+                testConfiguration());
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(GreetingView.class);
     }
