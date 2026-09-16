@@ -50,10 +50,11 @@ mapped in `guidelines/overview.md` selectively for the topics your work
 touches. Two of them apply to almost every change:
 
 - `guidelines/flow-version.md` — one Browserless Test version targets exactly
-  one Flow version (the branch's `flow.version`). **There is no backwards
-  compatibility with older Flow releases**, so a missing hook can be added to
-  Flow first and used directly here, and version-branching code should be
-  deleted rather than kept.
+  one Vaadin version: the branch's `flow.version` / `vaadin.version`, meaning
+  one Flow version and the components that ship with it. **There is no
+  backwards compatibility with older releases**, so a missing hook can be added
+  upstream first — to `vaadin/flow-components` or to `vaadin/flow` — and used
+  directly here, and version-branching code should be deleted rather than kept.
 - `guidelines/testers.md` — a tester interaction must be indistinguishable from
   a real user interaction.
 
@@ -104,17 +105,18 @@ There is no checkstyle in this repository; Spotless (Eclipse formatter, import
 order, license headers, no wildcard imports) is the whole of the automated
 style check, and the `Format Check` CI job fails on unformatted code.
 
-### Depending on a Flow change
+### Depending on an upstream change
 
-Flow is consumed as a snapshot from `maven.vaadin.com/vaadin-prereleases`. To
-use an unreleased Flow change, build it locally and point this repository at
-it:
+Flow and the Vaadin components are consumed as snapshots from
+`maven.vaadin.com/vaadin-prereleases`. To use an unreleased change from either,
+build it locally and this repository picks the snapshot up:
 
 ```bash
-# in a vaadin/flow checkout, on the branch that matches flow.version here
-mvn clean install -DskipTests -pl flow-server -am
+# in a vaadin/flow or vaadin/flow-components checkout, on the branch that
+# matches flow.version / vaadin.version here
+mvn clean install -DskipTests -pl <the-module-you-changed> -am
 
-# back here — the local snapshot is picked up automatically
+# back here — the local snapshot is resolved instead of the remote one
 mvn clean install
 ```
 

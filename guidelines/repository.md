@@ -46,7 +46,7 @@ modules that declare testers.
   `target/generated-sources/annotations`.
 - **The mocks** live in `com.vaadin.browserless.mocks` (Kotlin):
   `MockService`, `MockVaadinServlet`, `MockRequest`, `MockResponse`,
-  `MockHttpSession`, `MockedUI`, `MockInstantiator`.
+  `MockHttpSession`, `MockedUI`.
 - **Internal helpers** live in `com.vaadin.browserless.internal` (Kotlin):
   `MockVaadin`, `Routes`, `Locator`, `PrettyPrintTree`, `Shortcuts`.
 - **Tests** live in `junit6/src/test/java`, mirroring the package of the code

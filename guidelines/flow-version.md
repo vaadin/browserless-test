@@ -1,9 +1,9 @@
 # Flow Version
 
 The single most important difference between this repository and most Vaadin
-repositories: **one Browserless Test version targets exactly one Flow
-version.** There is no need — and no wish — to keep working against older Flow
-releases.
+repositories: **one Browserless Test version targets exactly one Vaadin
+version** — one Flow version and the components that ship with it. There is no
+need — and no wish — to keep working against older releases of either.
 
 ## The mapping
 
@@ -24,35 +24,49 @@ and Vaadin to 25.3-SNAPSHOT`), not something an individual change does.
 
 ## What follows from it
 
-### Fix it in Flow first
+### Fix it upstream first
 
-When a tester needs state or behavior that Flow does not expose, the preferred
-fix is to **add it to Flow and use it directly here**. Both changes ship in the
-same release train, so there is never a window where the hook is missing.
+When a tester needs state or behavior that is not exposed, the preferred fix is
+to **add it upstream and use it directly here**. Everything ships in the same
+release train, so there is never a window where the hook is missing.
 
-That is nearly always better than the alternatives:
+Upstream is not always Flow. Pick the repository that owns the gap:
 
-- reflection into a private field, which breaks silently on the next Flow
+- `vaadin/flow` — the core server-side API a tester builds on: `Element`,
+  `ComponentUtil`, `AbstractField` / `AbstractFieldSupport`,
+  `ElementPropertyMap`, the router, `Instantiator` and `Lookup`.
+- `vaadin/flow-components` — the Java component the tester wraps. A missing
+  getter on `Grid`, a validator a picker does not expose, state a component
+  keeps private: that belongs there, not in a reflective workaround here. It is
+  frequently the right place, because most testers are blocked by their own
+  component rather than by core Flow.
+
+Either is nearly always better than the alternatives:
+
+- reflection into a private field, which breaks silently on the next upstream
   refactor and hides the fact that the API gap exists;
-- copying Flow logic into a tester, which drifts from the component the moment
-  the component changes;
+- copying component logic into a tester, which drifts from the component the
+  moment the component changes;
 - asking the user to reach around the tester.
 
-The practical shape of the work is: open the Flow pull request, build the Flow
-branch locally (`mvn clean install -DskipTests -pl flow-server -am` in a Flow
-checkout), write the Browserless Test change against the local snapshot, and
-land the Flow side first. Mention the Flow pull request in the Browserless Test
-one so a reviewer can see the pair.
+The practical shape of the work is: open the upstream pull request, build that
+branch locally so its snapshot lands in the local repository (`mvn clean
+install -DskipTests` in the module you changed, plus `-am`), write the
+Browserless Test change against it, and land the upstream side first. Mention
+the upstream pull request in the Browserless Test one so a reviewer can see the
+pair.
 
 ### No compatibility branches
 
-Do not write code whose purpose is to work against more than one Flow version:
+Do not write code whose purpose is to work against more than one Vaadin
+version:
 
 - no `Class.forName` / `try { getMethod(…) }` probes to detect whether an API
   exists;
-- no `if` on a Flow version number or on the presence of a class;
+- no `if` on a version number or on the presence of a class;
 - no reflective fallback "for older Vaadin";
-- no deprecation cycle kept alive because an older Flow needed it.
+- no deprecation cycle kept alive because an older Flow or an older component
+  needed it.
 
 When you touch code that still has such a branch, delete the branch instead of
 extending it. Pull request #211 is the model: adding `isValid()` to the picker
@@ -64,20 +78,23 @@ and the testers now call `getDefaultValidator()` directly.
 `ComponentTester` has `getField(…)` / `getMethod(…)` helpers, and a handful of
 testers still use them (`ComboBoxTester`, `UploadTester`, `TreeGridTester`,
 `VirtualListTester` and a few others). Before adding another one, check whether
-Flow can expose the state properly. If reflection really is the only way for
-now, say in a comment which Flow API is missing, so the next person knows what
-to ask Flow for.
+the component — or Flow — can expose the state properly. If reflection really
+is the only way for now, say in a comment which upstream API is missing and in
+which repository, so the next person knows what to ask for.
 
-### Deprecated Flow API
+### Deprecated upstream API
 
-Because the Flow version is pinned, Flow deprecations are a signal to act, not
-to wait. When Flow deprecates something a tester uses, move to the replacement
-on the branch that first sees the deprecation, rather than carrying the old
-call until it is removed.
+Because the version is pinned, an upstream deprecation is a signal to act, not
+to wait. When Flow or a component deprecates something a tester uses, move to
+the replacement on the branch that first sees the deprecation, rather than
+carrying the old call until it is removed. The same applies to this
+repository's own deprecations — `MockInstantiator`, for instance, is scheduled
+for removal and nothing new should build on it.
 
 ## What this does *not* license
 
-The version coupling is about Flow, not about this framework's own users.
+The version coupling is about Flow and the components, not about this
+framework's own users.
 Applications compile against `ComponentTester`, the testers, the locators and
 the `BrowserlessTest` base classes, so those remain real public API — see
 [Design](design.md) and the Public API section of

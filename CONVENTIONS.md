@@ -5,27 +5,30 @@ full when authoring or reviewing code. The design-level reasoning behind
 several of these rules lives in `guidelines/` — see
 [`guidelines/overview.md`](guidelines/overview.md).
 
-## Flow Version Coupling
+## Vaadin Version Coupling
 
-One Browserless Test version targets exactly one Flow version — the branch's
-`flow.version` in the root `pom.xml`, mapped per branch in
+One Browserless Test version targets exactly one Vaadin version — the branch's
+`flow.version` / `vaadin.version` in the root `pom.xml`, mapped per branch in
 [`guidelines/flow-version.md`](guidelines/flow-version.md). Do not write code
-that keeps working against an older Flow release. No reflective fallbacks, no
+that keeps working against an older release. No reflective fallbacks, no
 `Class.forName` probes, no "if this method exists" branches, no deprecation
-cycles for the sake of an older Flow.
+cycles for the sake of an older Flow or an older component.
 
-When Flow does not expose what a tester needs, add it to Flow first and use it
+When what a tester needs is not exposed, add it upstream first and use it
 directly here. That is the preferred fix, not a workaround built on reflection.
-Both changes land in the same release train, so there is no window in which the
+Upstream is `vaadin/flow` for core server-side API and `vaadin/flow-components`
+for the component being wrapped — the component is frequently the right place.
+Everything lands in the same release train, so there is no window in which the
 hook is missing.
 
-When you touch code that still branches on a Flow version, delete the branch
-instead of extending it.
+When you touch code that still branches on a version, delete the branch instead
+of extending it.
 
-Reflection into Flow internals is a last resort, and it needs a comment saying
-which Flow API is missing. `ComponentTester` has `getField(...)` /
-`getMethod(...)` helpers for the cases that are already there; do not add new
-ones without first checking whether Flow can expose the state properly.
+Reflection into Flow or component internals is a last resort, and it needs a
+comment saying which upstream API is missing and where it belongs.
+`ComponentTester` has `getField(...)` / `getMethod(...)` helpers for the cases
+that are already there; do not add new ones without first checking whether the
+state can be exposed properly instead.
 
 See [`guidelines/flow-version.md`](guidelines/flow-version.md).
 

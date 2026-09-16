@@ -10,8 +10,13 @@ uiFactory, lookupServices)` builds the objects Flow expects and installs them
 as thread-locals:
 
 - `MockVaadinServlet` / `MockService` — a `VaadinServletService` that resolves
-  routes from a `Routes` instance instead of from a real deployment, and that
-  uses `MockInstantiator` so views can still be created by a DI container.
+  routes from a `Routes` instance instead of from a real deployment. Object
+  creation is *not* mocked: the service uses whatever `Instantiator` the
+  environment's `Lookup` provides, seeded by `BrowserlessLookupInitializer` and
+  by the Spring and Quarkus lookup initializers, which is how views and beans
+  still come from the real container.
+  (`MockInstantiator` is deprecated and scheduled for removal — it forwards
+  every call to that same instantiator and mocks nothing. Do not build on it.)
 - `MockHttpSession` + `MockRequest` / `MockResponse` — the servlet API surface
   a `VaadinSession` needs. IDs come from a sequential counter, so test output
   stays readable.

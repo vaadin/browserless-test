@@ -18,7 +18,7 @@ test, format) see [`CLAUDE.md`](../CLAUDE.md).
 | Chapter                            | Topic                                                                                   |
 | ---------------------------------- | --------------------------------------------------------------------------------------- |
 | [Repository](repository.md)        | Tech stack, module layout, where things live, Maven and the annotation processor.        |
-| [Flow Version](flow-version.md)    | One version per Flow release: no back-compatibility, fix Flow first, delete old branches. |
+| [Flow Version](flow-version.md)    | One version per Vaadin release: no back-compatibility, fix upstream first, delete old branches. |
 | [Architecture](architecture.md)    | The mocked Vaadin environment, round trips, signals, contexts, tester resolution.        |
 | [Testers](testers.md)              | Writing a tester so its interactions are indistinguishable from a real user's.           |
 | [Locators](locators.md)            | The typed locator API and what the annotation processor generates and enforces.          |

@@ -120,12 +120,14 @@ the one the old hand-rolled check never covered).
 
 Prefer the component's public API. When that is not enough:
 
-- Ask whether Flow should expose it, and add it to Flow — the Flow version is
-  pinned, so there is no waiting period. This is the preferred route, see
+- Ask whether the gap belongs upstream, and fix it there — the version is
+  pinned, so there is no waiting period. Often that is the component itself in
+  `vaadin/flow-components` (a missing getter, a validator it does not expose)
+  rather than core Flow. This is the preferred route, see
   [Flow Version](flow-version.md).
 - `ComponentTester` has `getField(…)` / `getMethod(…)` reflection helpers for
   the cases that already exist. A new use needs a comment naming the missing
-  Flow API.
+  upstream API and where it belongs.
 - For renderer-produced content, use `LitRendererTestUtil` and the renderer
   helpers rather than re-implementing rendering.
 - Tree traversal goes through `ComponentUtil.getAllChildren` so slotted and

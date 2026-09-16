@@ -27,14 +27,16 @@ test class or method, and the Javadoc profile CI uses. Most tests live in the
 `junit6` module rather than next to the code they cover, see
 [Testing](guidelines/testing.md).
 
-## One Flow version per branch
+## One Vaadin version per branch
 
-A Browserless Test version targets exactly one Vaadin/Flow version. There is no
-backwards compatibility with older Flow releases, so when a tester needs
-something Flow does not expose, the preferred fix is to add it to Flow first and
-use it directly here — and code that branches on a Flow version should be
-deleted rather than extended. The branch-to-version mapping and the reasoning
-are in [Flow Version](guidelines/flow-version.md).
+A Browserless Test version targets exactly one Vaadin version — one Flow
+version and the components that ship with it. There is no backwards
+compatibility with older releases, so when a tester needs something that is not
+exposed, the preferred fix is to add it upstream first (often to the component
+in `vaadin/flow-components`, sometimes to `vaadin/flow`) and use it directly
+here — and code that branches on a version should be deleted rather than
+extended. The branch-to-version mapping and the reasoning are in
+[Flow Version](guidelines/flow-version.md).
 
 ## Commits and pull requests
 
