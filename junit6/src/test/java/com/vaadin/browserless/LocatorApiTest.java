@@ -189,7 +189,7 @@ class LocatorApiTest {
     }
 
     @Test
-    void checkbox_checkAndIsChecked_reachableFromLocator() {
+    void checkbox_checkUncheckAndIsChecked_reachableFromLocator() {
         // check()/uncheck()/isChecked() are declared on CheckboxTester so
         // that LocatorProcessor picks them up as locator delegates.
         try (var app = createApplicationContext()) {
@@ -209,6 +209,11 @@ class LocatorApiTest {
             Assertions.assertTrue(
                     window.findCheckbox().withId("accept").isChecked(),
                     "Expecting checkbox to stay checked, but was not");
+
+            window.findCheckbox().withId("accept").uncheck();
+            Assertions.assertFalse(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox not to be checked, but was");
         }
     }
 

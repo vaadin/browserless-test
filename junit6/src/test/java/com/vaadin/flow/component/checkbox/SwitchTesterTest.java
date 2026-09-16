@@ -109,6 +109,12 @@ class SwitchTesterTest extends BrowserlessTest {
                 "Expecting switch not to be on, but was");
         Assertions.assertEquals(2, changes.get(),
                 "Expecting a value change event when switching off");
+
+        test(view.field).switchOff();
+        Assertions.assertFalse(view.field.getValue(),
+                "Expecting switch to stay off, but was not");
+        Assertions.assertEquals(2, changes.get(),
+                "Expecting no value change event when already off");
     }
 
     @Test
