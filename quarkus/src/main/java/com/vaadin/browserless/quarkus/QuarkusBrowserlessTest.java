@@ -21,8 +21,11 @@ import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.vaadin.browserless.BaseBrowserlessTest;
+import com.vaadin.browserless.BrowserlessConfiguration;
+import com.vaadin.browserless.BrowserlessTestConfigExtension;
 import com.vaadin.browserless.TesterWrappers;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.mocks.MockedUI;
@@ -80,6 +83,7 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
  *
  * @since 1.0
  */
+@ExtendWith(BrowserlessTestConfigExtension.class)
 public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
@@ -94,7 +98,9 @@ public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         scanTesters();
         MockQuarkusServlet servlet = new MockQuarkusServlet(discoverRoutes(),
                 CDI.current().getBeanManager(), MockedUI::new);
-        MockVaadin.setup(MockedUI::new, servlet, lookupServices());
+        BrowserlessConfiguration configuration = testConfiguration();
+        MockVaadin.setup(MockedUI::new, servlet,
+                allLookupServices(configuration), configuration);
         initSignalsSupport();
     }
 
@@ -105,7 +111,7 @@ public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
     }
 
     @Override
-    protected Set<Class<?>> lookupServices() {
+    protected Set<Class<?>> frameworkLookupServices() {
         return Set.of(QuarkusTestLookupInitializer.class);
     }
 }

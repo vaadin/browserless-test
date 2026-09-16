@@ -40,10 +40,13 @@ import com.vaadin.flow.server.VaadinService
 import com.vaadin.flow.server.VaadinServiceEventBus
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.VaadinServlet
+import com.vaadin.flow.server.VaadinServletContext
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
+import com.vaadin.browserless.BrowserlessConfiguration
+import com.vaadin.browserless.BrowserlessTestSetupException
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -100,15 +103,18 @@ object MockVaadin {
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
      * @param uiFactory produces [UI] instances and sets them as current, by default simply instantiates [MockedUI] class.
      * @param lookupServices service classes to be provided to the lookup initializer
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment.
      */
     @JvmStatic
     @JvmOverloads
     fun setup(routes: Routes = Routes(),
               uiFactory: UIFactory = UIFactory { MockedUI() },
-              lookupServices: Set<Class<*>> = emptySet()) {
+              lookupServices: Set<Class<*>> = emptySet(),
+              configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()) {
         // init servlet
         val servlet = MockVaadinServlet(routes)
-        setup(uiFactory, servlet, lookupServices)
+        setup(uiFactory, servlet, lookupServices, configuration)
     }
 
     /**
@@ -127,12 +133,16 @@ object MockVaadin {
      * Please consult [com.vaadin.browserless.mocks.MockService]
      * on what methods you must override in your custom service.
      * @param lookupServices service classes to be provided to the lookup initializer
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment.
      */
     @JvmStatic
+    @JvmOverloads
     fun setup(uiFactory: UIFactory = UIFactory { MockedUI() }, servlet: VaadinServlet,
-              lookupServices: Set<Class<*>> = emptySet()
+              lookupServices: Set<Class<*>> = emptySet(),
+              configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()
     ) {
-        val service = setupServlet(servlet, lookupServices)
+        val service = setupServlet(servlet, lookupServices, configuration)
         VaadinService.setCurrent(service)
 
         // init Vaadin Session
@@ -144,17 +154,49 @@ object MockVaadin {
      * session, UI, or set any thread-locals. Call this when you need to share
      * a single service across multiple independent sessions (multi-user testing).
      *
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment. Lookup services defined by the
+     * configuration are used in addition to the ones given by [lookupServices].
      * @return the initialized [VaadinServletService]
      */
     @JvmStatic
+    @JvmOverloads
     fun setupServlet(servlet: VaadinServlet,
-                     lookupServices: Set<Class<*>> = emptySet()
+                     lookupServices: Set<Class<*>> = emptySet(),
+                     configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()
     ): VaadinServletService {
         if (!servlet.isInitialized) {
-            val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
+            // Lookup services can be given both explicitly and through the configuration
+            // (e.g. by a @BrowserlessTestConfig annotation); they accumulate.
+            val ctx: ServletContext = MockVaadinHelper.createMockContext(
+                    lookupServices + configuration.lookupServices)
+            // Context init parameters are read by ApplicationConfiguration, which is
+            // created and cached on first access, so they must be set before anything
+            // else touches the context.
+            configuration.applicationProperties.forEach { (name, value) -> ctx.setInitParameter(name, value) }
+            // Installed before the servlet is initialized, so that feature flags read
+            // during startup (e.g. by a VaadinServiceInitListener) already observe the
+            // test configuration. Installed even without overrides, so that tests
+            // toggling feature flags at runtime don't write them into the project
+            // resources folder, from where other tests would then read them.
+            BrowserlessFeatureFlags.install(VaadinServletContext(ctx), configuration.featureFlags)
             val config = MockServletConfig(ctx)
+            config.servletInitParams.putAll(configuration.applicationProperties)
+            // Enforced by the browserless environment, so it wins over test configuration
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)
+        } else if (!configuration.isEmpty) {
+            // Application properties, feature flags and lookup services are all
+            // read while the servlet is initialized, so there is no way to apply
+            // them afterwards. Failing here beats silently running the test
+            // against an environment that never saw its own configuration.
+            throw BrowserlessTestSetupException(
+                    "Cannot apply a custom Vaadin configuration to ${servlet.javaClass.name}, " +
+                            "because the servlet has already been initialized. The configuration " +
+                            "is read while the servlet initializes, so it must be provided to the " +
+                            "setup creating the servlet. Provide a servlet factory returning a new, " +
+                            "uninitialized servlet instance, or move the configuration to the setup " +
+                            "that initializes it. Discarded configuration: $configuration")
         }
         val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
