@@ -51,17 +51,26 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
     }
 
     /**
-     * Sets the checkbox to the given checked state, as a user clicking it
-     * would.
+     * Checks the checkbox by clicking it, as a user would.
      * <p>
-     * Does nothing if the checkbox is already in the requested state, but the
-     * checkbox must be usable in either case.
-     *
-     * @param checked
-     *            {@code true} to check the checkbox, {@code false} to uncheck
-     *            it
+     * Does nothing if the checkbox is already checked, since a user would not
+     * click it in that case. The checkbox must be usable either way.
      */
-    public void setChecked(boolean checked) {
+    public void check() {
+        clickIfNot(true);
+    }
+
+    /**
+     * Unchecks the checkbox by clicking it, as a user would.
+     * <p>
+     * Does nothing if the checkbox is already unchecked, since a user would not
+     * click it in that case. The checkbox must be usable either way.
+     */
+    public void uncheck() {
+        clickIfNot(false);
+    }
+
+    private void clickIfNot(boolean checked) {
         ensureComponentIsUsable();
         if (isChecked() != checked) {
             click();

@@ -50,15 +50,26 @@ public class SwitchTester<T extends Switch> extends ComponentTester<T> {
     }
 
     /**
-     * Sets the switch to the given state, as a user clicking it would.
+     * Switches the switch on by clicking it, as a user would.
      * <p>
-     * Does nothing if the switch is already in the requested state, but the
-     * switch must be usable in either case.
-     *
-     * @param on
-     *            {@code true} to switch on, {@code false} to switch off
+     * Does nothing if the switch is already on, since a user would not click it
+     * in that case. The switch must be usable either way.
      */
-    public void setOn(boolean on) {
+    public void switchOn() {
+        clickIfNot(true);
+    }
+
+    /**
+     * Switches the switch off by clicking it, as a user would.
+     * <p>
+     * Does nothing if the switch is already off, since a user would not click
+     * it in that case. The switch must be usable either way.
+     */
+    public void switchOff() {
+        clickIfNot(false);
+    }
+
+    private void clickIfNot(boolean on) {
         ensureComponentIsUsable();
         if (isOn() != on) {
             click();

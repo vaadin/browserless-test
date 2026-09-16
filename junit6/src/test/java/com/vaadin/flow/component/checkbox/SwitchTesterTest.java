@@ -82,7 +82,7 @@ class SwitchTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void setOn_onlyChangesStateWhenNeeded() {
+    void switchOnAndOff_onlyClickWhenNeeded() {
         AtomicInteger changes = new AtomicInteger();
         AtomicBoolean fromClient = new AtomicBoolean();
         view.field.addValueChangeListener(ev -> {
@@ -90,7 +90,7 @@ class SwitchTesterTest extends BrowserlessTest {
             fromClient.set(ev.isFromClient());
         });
 
-        test(view.field).setOn(true);
+        test(view.field).switchOn();
         Assertions.assertTrue(view.field.getValue(),
                 "Expecting switch to be on, but was not");
         Assertions.assertEquals(1, changes.get(),
@@ -98,13 +98,13 @@ class SwitchTesterTest extends BrowserlessTest {
         Assertions.assertTrue(fromClient.get(),
                 "Expecting the value change to come from the client");
 
-        test(view.field).setOn(true);
+        test(view.field).switchOn();
         Assertions.assertTrue(view.field.getValue(),
                 "Expecting switch to stay on, but was not");
         Assertions.assertEquals(1, changes.get(),
                 "Expecting no value change event when already on");
 
-        test(view.field).setOn(false);
+        test(view.field).switchOff();
         Assertions.assertFalse(view.field.getValue(),
                 "Expecting switch not to be on, but was");
         Assertions.assertEquals(2, changes.get(),
@@ -112,14 +112,14 @@ class SwitchTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void setOn_notUsableAndAlreadyInRequestedState_throws() {
-        test(view.field).setOn(true);
+    void switchOn_notUsableAndAlreadyOn_throws() {
+        test(view.field).switchOn();
         view.field.setReadOnly(true);
 
         Assertions.assertThrows(IllegalStateException.class,
-                () -> test(view.field).setOn(true),
-                "Expecting a read-only switch not to be settable, "
-                        + "even to the state it is already in");
+                () -> test(view.field).switchOn(),
+                "Expecting a read-only switch not to be switchable, "
+                        + "even when it is already on");
     }
 
     @Test
