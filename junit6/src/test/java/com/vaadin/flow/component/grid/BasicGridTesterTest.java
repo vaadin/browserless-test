@@ -365,6 +365,26 @@ class BasicGridTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void find_componentRenderedIntoCell_notInTreeButReachableThroughTester() {
+        // A ComponentRenderer component does not exist until the renderer is
+        // asked to render a specific item, so there is nothing for find() to
+        // walk into.
+        Assertions.assertEquals(0, find(Button.class).all().size(),
+                "a component rendered into a grid cell should not be reachable through find()");
+
+        final Component cellComponent = test(view.basicGrid).getCellComponent(1,
+                BasicGridView.BUTTON_KEY);
+        final Component renderedAgain = test(view.basicGrid).getCellComponent(1,
+                BasicGridView.BUTTON_KEY);
+
+        Assertions.assertInstanceOf(Button.class, cellComponent);
+        Assertions.assertNotSame(cellComponent, renderedAgain,
+                "every call should render the cell anew");
+        Assertions.assertEquals(2, find(Button.class).all().size(),
+                "every rendered instance is attached to the grid and found from then on");
+    }
+
+    @Test
     void getCellComponentByFaultyKey_throwsException() {
         GridTester<Grid<Person>, Person> grid_ = test(view.basicGrid);
 
