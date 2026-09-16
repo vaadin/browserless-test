@@ -15,7 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -364,6 +366,58 @@ public class ComponentTesterTest extends BrowserlessTest {
         new ExposedTester<>(div).fireDomEvent("custom-event");
 
         assertTrue(called.get(), "DOM event listener should have been called");
+    }
+
+    @Test
+    void getField_declaredOnSuperclass_isFound() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        assertEquals("internal", new ReflectingTester<>(div).readState());
+    }
+
+    @Test
+    void getMethod_declaredOnSuperclass_isFound() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        assertEquals("INTERNAL", new ReflectingTester<>(div).callStateGetter());
+    }
+
+    @Tag("div")
+    public static class DivWithInternals extends Component {
+        private final String state = "internal";
+
+        private String getStateUpperCase() {
+            return state.toUpperCase(Locale.ROOT);
+        }
+    }
+
+    public static class InheritingDiv extends DivWithInternals {
+    }
+
+    static class ReflectingTester<T extends Component>
+            extends ComponentTester<T> {
+        public ReflectingTester(T component) {
+            super(component);
+        }
+
+        String readState() {
+            try {
+                return (String) getField("state").get(getComponent());
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        String callStateGetter() {
+            try {
+                return (String) getMethod("getStateUpperCase")
+                        .invoke(getComponent());
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 }
