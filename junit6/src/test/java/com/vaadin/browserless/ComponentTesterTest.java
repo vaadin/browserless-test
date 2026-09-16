@@ -15,7 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +39,7 @@ import com.vaadin.flow.internal.JacksonUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -364,6 +367,78 @@ public class ComponentTesterTest extends BrowserlessTest {
         new ExposedTester<>(div).fireDomEvent("custom-event");
 
         assertTrue(called.get(), "DOM event listener should have been called");
+    }
+
+    @Test
+    void getField_declaredOnSuperclass_isFound() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        assertEquals("internal", new ReflectingTester<>(div).readState());
+    }
+
+    @Test
+    void getMethod_declaredOnSuperclass_isFound() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        assertEquals("INTERNAL", new ReflectingTester<>(div).callStateGetter());
+    }
+
+    @Test
+    void getFieldAndGetMethod_memberNotInHierarchy_throwWithDetails() {
+        InheritingDiv div = new InheritingDiv();
+        home.add(div);
+
+        ReflectingTester<InheritingDiv> div_ = new ReflectingTester<>(div);
+
+        IllegalArgumentException fieldFailure = assertThrows(
+                IllegalArgumentException.class, () -> div_.getField("missing"));
+        assertInstanceOf(NoSuchFieldException.class, fieldFailure.getCause());
+
+        RuntimeException methodFailure = assertThrows(RuntimeException.class,
+                () -> div_.getMethod("missing", String.class));
+        Throwable cause = methodFailure.getCause();
+        assertInstanceOf(NoSuchMethodException.class, cause);
+        assertTrue(cause.getMessage().contains("(java.lang.String)"),
+                "Message should report the looked up signature: "
+                        + cause.getMessage());
+    }
+
+    @Tag("div")
+    public static class DivWithInternals extends Component {
+        private final String state = "internal";
+
+        private String getStateUpperCase() {
+            return state.toUpperCase(Locale.ROOT);
+        }
+    }
+
+    public static class InheritingDiv extends DivWithInternals {
+    }
+
+    static class ReflectingTester<T extends Component>
+            extends ComponentTester<T> {
+        public ReflectingTester(T component) {
+            super(component);
+        }
+
+        String readState() {
+            try {
+                return (String) getField("state").get(getComponent());
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        String callStateGetter() {
+            try {
+                return (String) getMethod("getStateUpperCase")
+                        .invoke(getComponent());
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 }
