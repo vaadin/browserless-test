@@ -131,13 +131,20 @@ class GeneratedAggregatorsTest {
     @Test
     void locatorDoesNotDelegateComponentQueryReturningMethods()
             throws Exception {
-        // A ComponentQuery hands the caller off the locator chain, so the
-        // slot-scoped finders stay tester-only API however they are named.
+        // A ComponentQuery hands the caller off the locator chain, so a
+        // tester method returning one stays tester-only API however it is
+        // named. CardTester is the case that pins the rule: it declares both
+        // an override of find(Class) and the slot-scoped finders, so neither
+        // is kept off the locator by the supertype walk stopping at
+        // ComponentTester.
         Class<?> locator = Class
-                .forName("com.vaadin.flow.component.dialog.DialogLocator");
+                .forName("com.vaadin.flow.component.card.CardLocator");
         Set<String> methods = methodNames(locator.getDeclaredMethods());
-        assertTrue(methods.contains("open"),
-                "DialogLocator should expose open, was: " + methods);
+        assertTrue(methods.contains("getTitleAsText"),
+                "CardLocator should expose getTitleAsText, was: " + methods);
+        assertFalse(methods.contains("find"),
+                "CardTester.find is an override returning a ComponentQuery and must not be delegated onto the locator: "
+                        + methods);
         assertFalse(methods.contains("findInHeader"),
                 "findInHeader returns a ComponentQuery and must not be delegated onto the locator: "
                         + methods);
