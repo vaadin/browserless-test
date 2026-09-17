@@ -201,6 +201,29 @@ class DialogTesterTest extends BrowserlessTest {
         Assertions.assertTrue(dialog_.isOpen(), "Dialog should stay open");
     }
 
+    @Test
+    void findInHeaderAndFooter_reachSlottedContentThroughTheWrapper() {
+        dialog_.open();
+
+        Assertions.assertSame(view.headerClose,
+                dialog_.findInHeader(Button.class).single(),
+                "The header button is nested in a Div inside a componentless "
+                        + "wrapper, and should still be found");
+        Assertions.assertSame(view.footerOk,
+                dialog_.findInFooter(Button.class).single());
+        Assertions.assertEquals(3, dialog_.find(Button.class).all().size(),
+                "An unscoped find() should still see the dialog content too");
+    }
+
+    @Test
+    void findInHeaderAndFooter_dialogNotOpen_throw() {
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.findInHeader(Button.class),
+                "A closed dialog shows no header content");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dialog_.findInFooter(Button.class));
+    }
+
     /**
      * Records whether the dialog was closed from the client, as reported by
      * {@link com.vaadin.flow.component.dialog.Dialog.OpenedChangeEvent}. Stays

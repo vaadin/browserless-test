@@ -17,14 +17,29 @@ package com.vaadin.flow.component.dialog;
 
 import java.util.function.Consumer;
 
+import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 
 /**
  * @since 1.0
  */
 @Tests(Dialog.class)
 public class DialogTester extends ComponentTester<Dialog> {
+
+    /**
+     * The slot a dialog puts the content of its {@link Dialog#getHeader()
+     * header} in.
+     */
+    private static final String HEADER_SLOT = "header-content";
+
+    /**
+     * The slot a dialog puts the content of its {@link Dialog#getFooter()
+     * footer} in.
+     */
+    private static final String FOOTER_SLOT = "footer";
+
     /**
      * Wrap given component for testing.
      *
@@ -118,6 +133,50 @@ public class DialogTester extends ComponentTester<Dialog> {
         if (!isOpen()) {
             collector.accept("not opened");
         }
+    }
+
+    /**
+     * Searches the dialog's header for components of the given type.
+     * <p>
+     * The header is the area above the dialog content, filled with
+     * {@code dialog.getHeader().add(...)}. Components nested inside the header
+     * content are found too, so a button inside a header layout is reached as
+     * well as a button added to the header directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the dialog's header
+     * @throws IllegalStateException
+     *             if the dialog is not usable, e.g. not open
+     */
+    public <R extends Component> ComponentQuery<R> findInHeader(
+            Class<R> componentType) {
+        ensureComponentIsUsable();
+        return find(componentType).withinSlot(HEADER_SLOT);
+    }
+
+    /**
+     * Searches the dialog's footer for components of the given type.
+     * <p>
+     * The footer is the area below the dialog content, filled with
+     * {@code dialog.getFooter().add(...)}. Components nested inside the footer
+     * content are found too, so a button inside a footer layout is reached as
+     * well as a button added to the footer directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the dialog's footer
+     * @throws IllegalStateException
+     *             if the dialog is not usable, e.g. not open
+     */
+    public <R extends Component> ComponentQuery<R> findInFooter(
+            Class<R> componentType) {
+        ensureComponentIsUsable();
+        return find(componentType).withinSlot(FOOTER_SLOT);
     }
 
     private void closeFromClient() {
