@@ -105,6 +105,32 @@ class ReloadMultiWindowTest {
     }
 
     @Test
+    void reloadingTheUIOfAnotherWindow_isRejected() {
+        var user = app.newUser();
+        var window1 = user.newWindow();
+        var window2 = user.newWindow();
+
+        var view1 = window1.navigate(PreservedCounterView.class);
+        UI ui1 = window1.getUI();
+        // window2 is the current window from here on.
+        var view2 = window2.navigate(PreservedCounterView.class);
+
+        // Reloading recreates the current UI, so reloading a window that is
+        // not current would detach the wrong one.
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> ui1.getPage().reload(),
+                "Reloading the page of a UI that is not current must fail");
+
+        // Nothing was reloaded: both windows are untouched.
+        Assertions.assertSame(ui1, window1.getUI(),
+                "The rejected reload must leave window1 on its UI");
+        Assertions.assertSame(view1, window1.getCurrentView(),
+                "The rejected reload must leave window1's view in place");
+        Assertions.assertSame(view2, window2.getCurrentView(),
+                "The rejected reload must leave window2 untouched");
+    }
+
+    @Test
     void closingWindowRightAfterAViewTriggeredReload_detachesTheLiveUI() {
         var user = app.newUser();
         var window = user.newWindow();

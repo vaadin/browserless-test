@@ -647,7 +647,7 @@ internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEven
     eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
-internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
+internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
 
     private companion object {
         private val SELF_NAMES = setOf("_self", "_parent", "_top", "")
@@ -676,9 +676,22 @@ internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val se
     }
 
     override fun reload() {
+        // Recreating the UI runs on the thread-locals of the current UI, so
+        // reloading a window other than the current one would detach and
+        // recreate the wrong window. Fail instead, before anything is
+        // changed: the caller has to make this window current first (a
+        // BrowserlessUIContext DSL call does that, as does UI.access()).
+        val current: UI? = UI.getCurrent()
+        check(current === ui) {
+            "Cannot reload the page of UI $ui, because the current UI is " +
+                    (current?.let { "$it" } ?: "not set") +
+                    ". Reloading recreates the current UI, so the reloaded " +
+                    "window must be the current one: activate that window " +
+                    "first, e.g. through its BrowserlessUIContext or UI.access()."
+        }
+
         // recreate the UI on reload(), to simulate browser's F5
         super.reload()
-        val detached: UI? = UI.getCurrent()
         MockVaadin.closeCurrentUI(true)
         MockVaadin.createUI(uiFactory, session)
         // Record the swap so holders of the detached UI (BrowserlessUIContext)
@@ -686,8 +699,8 @@ internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val se
         // application code calls Page.reload() itself, not only from the
         // reload() DSL.
         val created: UI? = UI.getCurrent()
-        if (detached != null && created != null && detached !== created) {
-            MockVaadin.recordReloadReplacement(detached, created)
+        if (created != null && created !== ui) {
+            MockVaadin.recordReloadReplacement(ui, created)
         }
     }
 
