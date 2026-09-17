@@ -36,7 +36,7 @@ import org.junit.platform.commons.support.HierarchyTraversalMode;
  * Registered by the browserless base test classes; there is no need to add it
  * to a test explicitly.
  *
- * @since 1.2
+ * @since 25.3
  */
 public class BrowserlessTestConfigExtension
         implements BeforeEachCallback, AfterEachCallback {

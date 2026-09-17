@@ -516,7 +516,7 @@ class CartViewTest extends AbstractViewTest {
 Lookup services are the exception: they **accumulate** instead of being
 replaced, so a test method can add a service but cannot remove one declared by
 its class. Services required by the Spring and Quarkus integrations are always
-registered and are never affected by the test configuration — since 1.2 they
+registered and are never affected by the test configuration — since 25.3 they
 come from `frameworkLookupServices()`, so an override of the deprecated
 `lookupServices()` adds to them and can no longer replace one.
 A method level annotation cannot be honored when the Vaadin environment is

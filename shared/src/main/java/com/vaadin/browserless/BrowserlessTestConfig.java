@@ -73,7 +73,7 @@ import java.lang.annotation.Target;
  * working.
  *
  * @see BrowserlessConfiguration
- * @since 1.2
+ * @since 25.3
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })

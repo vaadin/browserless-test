@@ -139,7 +139,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      * @param value
      *            the property value
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withApplicationProperty(String name,
             String value) {
@@ -154,7 +154,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      * @param properties
      *            the properties to set
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withApplicationProperties(
             Map<String, String> properties) {
@@ -169,7 +169,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      * @param featureIds
      *            the identifiers of the features to enable
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withFeatureFlags(String... featureIds) {
         addFeatureFlags(featureIds);
@@ -183,7 +183,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      * @param features
      *            the features to enable
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withFeatureFlags(Feature... features) {
         addFeatureFlags(features);
@@ -200,7 +200,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      *            {@code true} to enable the feature, {@code false} to disable
      *            it
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withFeatureFlag(String featureId,
             boolean enabled) {
@@ -218,7 +218,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      *            {@code true} to enable the feature, {@code false} to disable
      *            it
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withFeatureFlag(Feature feature,
             boolean enabled) {
@@ -237,7 +237,7 @@ public class BrowserlessExtension extends AbstractBrowserlessExtension
      * @param configuration
      *            the configuration to apply
      * @return this extension instance
-     * @since 1.2
+     * @since 25.3
      */
     public BrowserlessExtension withConfiguration(
             BrowserlessConfiguration configuration) {

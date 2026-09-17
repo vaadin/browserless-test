@@ -216,7 +216,7 @@ public abstract class BaseBrowserlessTest {
      * {@link BrowserlessTestConfig#lookupServices()}.
      *
      * @return set of services implementation classes, never {@literal null}.
-     * @since 1.2
+     * @since 25.3
      */
     protected Set<Class<?>> frameworkLookupServices() {
         return Collections.emptySet();
@@ -242,7 +242,7 @@ public abstract class BaseBrowserlessTest {
      *
      * @return the configuration to apply, never {@literal null}.
      * @see BrowserlessTestConfig
-     * @since 1.2
+     * @since 25.3
      */
     protected BrowserlessConfiguration testConfiguration() {
         if (resolvedConfiguration != null) {
