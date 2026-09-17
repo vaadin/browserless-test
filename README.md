@@ -683,9 +683,9 @@ assertTrue(test(quickAdd).isFocused());
 - Detecting server-side `Focusable` calls relies on matching the JavaScript that
   Flow generates for them, and reading the pending JavaScript queue consumes it:
   when a focus or blur call is pending, other JavaScript queued at the same time
-  is dropped. What was dropped is listed in a debug log under
-  `com.vaadin.browserless.FocusTracker`. Handling the queue centrally is
-  tracked in
+  is dropped. Everything the simulation takes off the queue is listed in a
+  debug log under `com.vaadin.browserless.FocusTracker`. Handling the queue
+  centrally is tracked in
   [#221](https://github.com/vaadin/browserless-test/issues/221).
 
 ## Multi-user and multi-window testing

@@ -199,14 +199,14 @@ final class FocusTracker implements Serializable {
             // pending JavaScript is dropped along with the focus and blur
             // calls; handling the queue centrally instead is tracked in
             // https://github.com/vaadin/browserless-test/issues/221
-            List<String> discarded = new ArrayList<>();
+            List<String> consumed = new ArrayList<>();
             for (PendingJavaScriptInvocation invocation : ui.getInternals()
                     .dumpPendingJavaScriptInvocations()) {
                 String expression = invocation.getInvocation().getExpression();
+                consumed.add(expression);
                 boolean focusCall = expression.contains(FOCUS_CALL);
                 boolean blurCall = expression.contains(BLUR_CALL);
                 if (!focusCall && !blurCall) {
-                    discarded.add(expression);
                     continue;
                 }
                 Component target = Element.get(invocation.getOwner())
@@ -227,25 +227,14 @@ final class FocusTracker implements Serializable {
                     updateFocused(target, null);
                 }
             }
-            logDiscarded(discarded);
+            // Everything read above is gone from the queue now, so leave a
+            // trace: JavaScript disappearing in a test can be tracked down to
+            // here instead of looking like a framework bug
+            LoggerFactory.getLogger(FocusTracker.class).debug(
+                    "Consumed {} pending JavaScript invocation(s) while simulating server-side focus and blur calls: {}",
+                    consumed.size(), consumed);
         } finally {
             flushing = false;
-        }
-    }
-
-    /**
-     * Logs the JavaScript that was consumed together with the simulated focus
-     * and blur calls, so that JavaScript disappearing from the queue can be
-     * traced back here instead of looking like a framework bug.
-     *
-     * @param discarded
-     *            the expressions that were dropped, may be empty
-     */
-    private static void logDiscarded(List<String> discarded) {
-        if (!discarded.isEmpty()) {
-            LoggerFactory.getLogger(FocusTracker.class).debug(
-                    "Dropped {} pending JavaScript invocation(s) while simulating a server-side focus or blur call: {}",
-                    discarded.size(), discarded);
         }
     }
 
