@@ -175,9 +175,10 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * <p>
      * The slot is resolved relative to the locator's search context, so pair it
      * with {@link #inside(Component)} or {@link #inside(Locator)} to target one
-     * specific host. Nested slots resolve to the innermost one, and slot names
-     * are component specific — see {@link ComponentQuery#withinSlot(String)}
-     * for annotated component trees of both.
+     * specific host. Everything below that host's slot matches, whatever slots
+     * the nested components define themselves, and slot names are component
+     * specific — see {@link ComponentQuery#withinSlot(String)} for annotated
+     * component trees of both.
      *
      * @see ComponentQuery#withinSlot(String)
      */
