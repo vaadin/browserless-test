@@ -49,6 +49,33 @@ public class SwitchTester<T extends Switch> extends ComponentTester<T> {
         return getComponent().getValue();
     }
 
+    /**
+     * Switches the switch on by clicking it, as a user would.
+     * <p>
+     * Does nothing if the switch is already on, since a user would not click it
+     * in that case. The switch must be usable either way.
+     */
+    public void switchOn() {
+        clickIfNot(true);
+    }
+
+    /**
+     * Switches the switch off by clicking it, as a user would.
+     * <p>
+     * Does nothing if the switch is already off, since a user would not click
+     * it in that case. The switch must be usable either way.
+     */
+    public void switchOff() {
+        clickIfNot(false);
+    }
+
+    private void clickIfNot(boolean on) {
+        ensureComponentIsUsable();
+        if (isOn() != on) {
+            click();
+        }
+    }
+
     @Override
     public boolean isUsable() {
         return super.isUsable() && !getComponent().isReadOnly();

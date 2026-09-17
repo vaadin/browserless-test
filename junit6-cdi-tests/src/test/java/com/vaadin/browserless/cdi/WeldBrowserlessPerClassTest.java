@@ -31,6 +31,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.vaadin.browserless.BrowserlessClassExtension;
+import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.MockVaadin;
@@ -105,7 +106,9 @@ class WeldBrowserlessPerClassTest extends BrowserlessTest {
         scanTesters();
         // Use the CDI servlet/service so the Vaadin Instantiator is the
         // CdiInstantiator backed by the running Weld container.
-        MockVaadin.setup(MockedUI::new, vaadinServlet, lookupServices());
+        BrowserlessConfiguration configuration = testConfiguration();
+        MockVaadin.setup(MockedUI::new, vaadinServlet,
+                allLookupServices(configuration), configuration);
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(GreetingView.class);
         classUI = UI.getCurrent();

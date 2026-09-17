@@ -14,7 +14,7 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 
 ## Features
 
-- **65+ built-in component testers** — ready-made wrappers for Grid, Button,
+- **70+ built-in component testers** — ready-made wrappers for Grid, Button,
   TextField, ComboBox, Dialog, DatePicker, Upload, Charts, and many more
 - **View navigation** — navigate to `@Route`-annotated views with path, query,
   and template parameters
@@ -37,6 +37,10 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   browser windows per user against a shared application within a single test;
   Vaadin thread-locals and per-user security context are switched
   automatically as you interact with each window
+- **Per-test Vaadin configuration** — apply application properties, feature
+  flags, and `Lookup` services to a single test class or method with
+  `@BrowserlessTestConfig`, without touching system properties or leaking into
+  other tests
 - **External navigation capture** — assert URLs triggered by
   `Page.setLocation()` and `Page.open()` (including `_blank`, named, and
   `_self` / `_parent` / `_top` targets) without leaving the test
@@ -391,6 +395,185 @@ Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
 
+## What `find()` can and cannot see
+
+`find(Class)`, `findInView(Class)` and the typed locators all walk the same
+thing: the server-side component tree. A component that another component
+renders per item does not exist until something renders it, and the content of
+an overlay is attached only while the overlay is open. Neither is in the tree
+until then — reach it through that component's tester instead. The lookup
+returns an empty result rather than an error, so the failure reads as "the
+component was never created".
+
+### Components rendered per item
+
+```java
+grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
+        .setKey("subscriber");
+```
+
+No checkbox exists until the renderer is asked to render a *specific* item, so
+`find(Checkbox.class)` finds none. `GridTester` renders the cell on demand:
+
+```java
+var checkbox = (Checkbox) test(grid).getCellComponent(0, "subscriber");
+test(checkbox).click();
+```
+
+- `getCellComponent(int row, int column)` / `getCellComponent(int row, String
+  columnKey)` — the component a `ComponentRenderer` column renders for a row.
+  Every call renders the cell again and attaches the new instance to the grid,
+  so asking twice for the same cell leaves two instances behind, and a later
+  `find()` reports both. Hold on to the component the tester returns instead of
+  asking for it again.
+- `getCellText(int row, int column)` — the text the cell sends to the client,
+  for both value and component renderers.
+- `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for
+  `LitRenderer` columns, which have no server-side component at all.
+
+### Overlay content
+
+A context menu's content is not attached to the UI until a client opens the
+overlay, so a top-level `find()` does not see it:
+
+```java
+find(Div.class).withText("Rename").all(); // empty while the menu is closed
+
+test(menu).open();
+
+find(Div.class).withText("Rename").all(); // one match
+```
+
+`ContextMenuTester` works either way: `clickItem("Rename")` and
+`test(menu).find(Div.class)` read the server-side menu state and need no
+`open()` at all; `open()` additionally attaches the menu to the UI, which is
+what makes a top-level `find()` see the items.
+
+## Per-test Vaadin configuration
+
+Some tests need a Vaadin environment configured differently from the rest of
+the suite — a view behind a feature flag, or a setting such as
+`devmode.sessionSerialization.enabled`. Annotate the test class or the test
+method with `@BrowserlessTestConfig`:
+
+```java
+@ViewPackages(classes = CartView.class)
+@BrowserlessTestConfig(
+        applicationProperties = "devmode.sessionSerialization.enabled=true",
+        featureFlags = "myExperimentalFeature")
+class CartViewTest extends BrowserlessTest {
+
+    @Test
+    void experimentalFeatureIsAvailable() {
+        // the feature flag is enabled for this test only
+    }
+
+    @Test
+    @BrowserlessTestConfig(featureFlags = "myExperimentalFeature=false")
+    void fallbackWhenFeatureIsDisabled() {
+        // method level configuration wins over the class level one
+    }
+}
+```
+
+- `applicationProperties` entries are `name=value` pairs, applied to the Vaadin
+  deployment configuration of the mock environment. The value is everything
+  after the first `=`.
+- `featureFlags` entries are either a feature identifier, to enable it, or an
+  `id=true|false` pair. They override whatever
+  `vaadin-featureflags.properties` or the `vaadin.experimental.*` system
+  properties declare.
+- `lookupServices` are implementation classes registered with the Vaadin
+  `Lookup` — an `InstantiatorFactory`, a `ResourceProvider`, and so on:
+
+  ```java
+  @BrowserlessTestConfig(lookupServices = MyInstantiatorFactory.class)
+  class MyViewTest extends BrowserlessTest {
+  }
+  ```
+
+All of them are scoped to the Vaadin environment created for the test, so there
+is nothing to reset afterwards and nothing leaks into other tests.
+
+Every annotation a test inherits is merged in, rather than shadowed by the
+nearest one. The closer a declaration is to the test method, the higher it
+ranks: method, then test class, then superclasses from the nearest up, then —
+for a `@Nested` test — enclosing classes from the innermost out. So a shared
+abstract base test can declare part of the configuration and a subclass refines
+it:
+
+```java
+@BrowserlessTestConfig(applicationProperties = "base.property=fromBase")
+abstract class AbstractViewTest extends BrowserlessTest {
+}
+
+@BrowserlessTestConfig(featureFlags = "myExperimentalFeature")
+class CartViewTest extends AbstractViewTest {
+    // both base.property and myExperimentalFeature apply
+}
+```
+
+Lookup services are the exception: they **accumulate** instead of being
+replaced, so a test method can add a service but cannot remove one declared by
+its class. Services required by the Spring and Quarkus integrations are always
+registered and are never affected by the test configuration — since 1.2 they
+come from `frameworkLookupServices()`, so an override of the deprecated
+`lookupServices()` adds to them and can no longer replace one.
+A method level annotation cannot be honored when the Vaadin environment is
+shared by all the tests in a class (`BrowserlessClassExtension`), and is
+rejected with an error.
+
+The same configuration can be defined programmatically, without annotations,
+on the extensions:
+
+```java
+@RegisterExtension
+BrowserlessExtension extension = new BrowserlessExtension()
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags(FeatureFlags.COLLABORATION_ENGINE_BACKEND);
+```
+
+on the application context builder, for multi-user tests:
+
+```java
+try (var app = BrowserlessApplicationContext.create(builder -> builder
+        .withViewPackages(CartView.class)
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags("myExperimentalFeature"))) {
+    // ...
+}
+```
+
+or by overriding `testConfiguration()` on a base class based test:
+
+```java
+@Override
+protected BrowserlessConfiguration testConfiguration() {
+    return BrowserlessConfiguration.builder()
+            .withConfiguration(super.testConfiguration())
+            .withFeatureFlags("myExperimentalFeature").build();
+}
+```
+
+When both are used, a configuration defined on an extension or on the
+application context builder wins over the class level annotation, and loses
+against the method level one.
+
+A `testConfiguration()` override behaves differently: `super.testConfiguration()`
+returns the configuration already resolved from the annotations, so whatever the
+override adds on top of it wins over **all** of them, the method level one
+included. Build on `super.testConfiguration()` to refine the declared
+configuration, and leave out the values a test method should be able to
+override.
+
+> [!NOTE]
+> With Spring, a Vaadin property defined in the Spring environment (e.g.
+> `vaadin.devmode.sessionSerialization.enabled` in `application.properties`) is
+> applied by `SpringServlet` on top of the test configuration, and therefore
+> wins over `@BrowserlessTestConfig`. Use `@TestPropertySource` to override
+> such a property for a test. Properties that are not Vaadin init parameters
+> are not affected.
+
 ## Signals
 
 Signal effects and shared-signal confirmations are not executed on a background
@@ -636,9 +819,13 @@ and `_blank`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
-including the shared test contracts (`ClearContract`, `ClearButtonContract`,
-`RefusesEmptyValueContract`) that every value tester's test class implements.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and test the project and
+what a pull request is expected to look like, [CONVENTIONS.md](CONVENTIONS.md)
+for the canonical list of conventions, and
+[guidelines/](guidelines/overview.md) for the reasoning behind them — including
+how a tester simulates the browser and the shared test contracts
+(`ClearContract`, `ClearButtonContract`, `CommitsEmptyValueContract`) that
+every value tester's test class implements.
 
 ## License
 

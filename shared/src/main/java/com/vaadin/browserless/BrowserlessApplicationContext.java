@@ -16,9 +16,9 @@
 package com.vaadin.browserless;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,6 +33,7 @@ import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.experimental.Feature;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
@@ -341,7 +342,8 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private Routes routes;
         private BiFunction<Routes, UIFactory, VaadinServlet> servletFactory;
         private UIFactory uiFactory = () -> new MockedUI();
-        private Set<Class<?>> lookupServices = Collections.emptySet();
+        private final BrowserlessConfiguration.Builder configuration = BrowserlessConfiguration
+                .builder();
         private final Set<String> viewPackages = new LinkedHashSet<>();
         private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
@@ -532,20 +534,136 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          *             {@code null}
          */
         public Builder withLookupServices(Class<?>... services) {
-            Objects.requireNonNull(services);
-            if (services.length == 0) {
-                return this;
-            }
-            Set<Class<?>> updated = new LinkedHashSet<>(this.lookupServices);
-            for (Class<?> service : services) {
-                updated.add(Objects.requireNonNull(service));
-            }
-            this.lookupServices = updated;
+            configuration.withLookupServices(services);
             return this;
         }
 
         Set<Class<?>> getLookupServices() {
-            return lookupServices;
+            return configuration.build().getLookupServices();
+        }
+
+        /**
+         * Sets a Vaadin application property (init parameter) for this
+         * application. A previously set value for the same name is replaced.
+         *
+         * @param name
+         *            the property name; must not be {@code null}
+         * @param value
+         *            the property value; must not be {@code null}
+         * @return this builder
+         * @throws IllegalArgumentException
+         *             if the name is blank or reserved by the browserless
+         *             environment
+         */
+        public Builder withApplicationProperty(String name, String value) {
+            configuration.withApplicationProperty(name, value);
+            return this;
+        }
+
+        /**
+         * Sets Vaadin application properties (init parameters) for this
+         * application. Previously set values for the same names are replaced.
+         *
+         * @param properties
+         *            the properties to set; must not be {@code null}
+         * @return this builder
+         * @throws IllegalArgumentException
+         *             if a name is blank or reserved by the browserless
+         *             environment
+         */
+        public Builder withApplicationProperties(
+                Map<String, String> properties) {
+            configuration.withApplicationProperties(properties);
+            return this;
+        }
+
+        /**
+         * Enables the given Vaadin feature flags for this application,
+         * overriding the values potentially defined in the
+         * {@literal vaadin-featureflags.properties} file or in system
+         * properties.
+         *
+         * @param featureIds
+         *            the identifiers of the features to enable; must not be
+         *            {@code null}
+         * @return this builder
+         */
+        public Builder withFeatureFlags(String... featureIds) {
+            configuration.withFeatureFlags(featureIds);
+            return this;
+        }
+
+        /**
+         * Enables the given Vaadin feature flags for this application,
+         * overriding the values potentially defined in the
+         * {@literal vaadin-featureflags.properties} file or in system
+         * properties.
+         *
+         * @param features
+         *            the features to enable; must not be {@code null}
+         * @return this builder
+         */
+        public Builder withFeatureFlags(Feature... features) {
+            configuration.withFeatureFlags(features);
+            return this;
+        }
+
+        /**
+         * Enables or disables the given Vaadin feature flag for this
+         * application, overriding the value potentially defined in the
+         * {@literal vaadin-featureflags.properties} file or in system
+         * properties.
+         *
+         * @param featureId
+         *            the identifier of the feature; must not be {@code null}
+         * @param enabled
+         *            {@code true} to enable the feature, {@code false} to
+         *            disable it
+         * @return this builder
+         */
+        public Builder withFeatureFlag(String featureId, boolean enabled) {
+            configuration.withFeatureFlag(featureId, enabled);
+            return this;
+        }
+
+        /**
+         * Enables or disables the given Vaadin feature flag for this
+         * application, overriding the value potentially defined in the
+         * {@literal vaadin-featureflags.properties} file or in system
+         * properties.
+         *
+         * @param feature
+         *            the feature; must not be {@code null}
+         * @param enabled
+         *            {@code true} to enable the feature, {@code false} to
+         *            disable it
+         * @return this builder
+         */
+        public Builder withFeatureFlag(Feature feature, boolean enabled) {
+            configuration.withFeatureFlag(feature, enabled);
+            return this;
+        }
+
+        /**
+         * Applies the given custom Vaadin configuration to this builder,
+         * replacing previously set entries with the same names.
+         * <p>
+         * Useful to reuse a configuration declared with
+         * {@link BrowserlessTestConfig} on a test class:
+         *
+         * <pre>
+         * BrowserlessApplicationContext.create(b -&gt; b.withViewPackages(MyView.class)
+         *         .withConfiguration(BrowserlessConfiguration.from(getClass())));
+         * </pre>
+         *
+         * @param testConfiguration
+         *            the configuration to apply; must not be {@code null}
+         * @return this builder
+         */
+        public Builder withConfiguration(
+                BrowserlessConfiguration testConfiguration) {
+            configuration.withConfiguration(testConfiguration);
+            return this;
         }
 
         /**
@@ -611,7 +729,8 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             VaadinServlet servlet = servletFactory != null
                     ? servletFactory.apply(resolvedRoutes, uiFactory)
                     : new MockVaadinServlet(resolvedRoutes, uiFactory);
-            return MockVaadin.setupServlet(servlet, lookupServices);
+            return MockVaadin.setupServlet(servlet, Set.of(),
+                    configuration.build());
         }
 
         UIFactory uiFactory() {
