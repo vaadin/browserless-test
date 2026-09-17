@@ -15,6 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.util.List;
+
+import com.example.reload.ParameterizedCounterView;
 import com.example.reload.PlainCounterView;
 import com.example.reload.PreservedCounterView;
 import org.junit.jupiter.api.Assertions;
@@ -60,6 +63,25 @@ class ReloadPreserveOnRefreshTest extends BrowserlessTest {
                 "A plain view must be recreated on reload");
         Assertions.assertEquals(0, afterReload.getCount(),
                 "A plain view's state must reset on reload");
+    }
+
+    @Test
+    void reload_replaysRouteParameterAndQueryString() {
+        ParameterizedCounterView view = navigate(
+                "param-counter/order-1?tab=history",
+                ParameterizedCounterView.class);
+        Assertions.assertEquals("order-1", view.getParameter());
+
+        ParameterizedCounterView afterReload = reload(
+                ParameterizedCounterView.class);
+
+        Assertions.assertNotSame(view, afterReload,
+                "A plain view must be recreated on reload");
+        Assertions.assertEquals("order-1", afterReload.getParameter(),
+                "The route parameter must be replayed on reload");
+        Assertions.assertEquals(List.of("history"),
+                afterReload.getQueryParameters().getParameters().get("tab"),
+                "The query string must be replayed on reload");
     }
 
     @Test

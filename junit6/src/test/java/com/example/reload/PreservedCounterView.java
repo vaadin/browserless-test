@@ -15,35 +15,15 @@
  */
 package com.example.reload;
 
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 
 /**
- * A {@link PreserveOnRefresh} view whose instance state (the counter) must
- * survive a browser refresh: the same component instance is expected to be
- * reused across the reload.
+ * A {@link PreserveOnRefresh} counter view whose instance state must survive a
+ * browser refresh: the same component instance is expected to be reused across
+ * the reload.
  */
 @Route("preserved-counter")
 @PreserveOnRefresh
-public class PreservedCounterView extends VerticalLayout {
-
-    private int count;
-    private final Span label = new Span("0");
-
-    public PreservedCounterView() {
-        Button increment = new Button("Increment", e -> {
-            count++;
-            label.setText(String.valueOf(count));
-        });
-        increment.setId("increment");
-        label.setId("count");
-        add(label, increment);
-    }
-
-    public int getCount() {
-        return count;
-    }
+public class PreservedCounterView extends CounterViewBase {
 }

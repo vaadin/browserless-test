@@ -71,6 +71,33 @@ class ReloadMultiWindowTest {
     }
 
     @Test
+    void closingWindow_doesNotLeakItsPreservedInstanceToANewWindow() {
+        var user = app.newUser();
+        var window1 = user.newWindow();
+
+        var view1 = window1.navigate(PreservedCounterView.class);
+        window1.test(window1.find(Button.class).withId("increment").single())
+                .click();
+        Assertions.assertEquals(1, view1.getCount());
+        window1.close();
+
+        var window2 = user.newWindow();
+        var view2 = window2.navigate(PreservedCounterView.class);
+
+        // A new window must get a new window name: inheriting the closed
+        // window's name would resurrect its preserved instance and state.
+        Assertions.assertNotSame(view1, view2,
+                "A new window must not reuse the closed window's preserved instance");
+        Assertions.assertEquals(0, view2.getCount(),
+                "A new window must start from a fresh view state");
+
+        // That new name is stable, so the new window's own instance survives
+        // its own reload.
+        Assertions.assertSame(view2, window2.reload(),
+                "The new window must keep its preserved instance across a reload");
+    }
+
+    @Test
     void reloadWithUnexpectedTarget_throws_andWindowKeepsUsingTheNewUI() {
         var user = app.newUser();
         var window = user.newWindow();

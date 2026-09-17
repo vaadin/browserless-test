@@ -15,9 +15,6 @@
  */
 package com.example.reload;
 
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 
 /**
@@ -25,22 +22,5 @@ import com.vaadin.flow.router.Route;
  * is expected and its state must reset.
  */
 @Route("plain-counter")
-public class PlainCounterView extends VerticalLayout {
-
-    private int count;
-    private final Span label = new Span("0");
-
-    public PlainCounterView() {
-        Button increment = new Button("Increment", e -> {
-            count++;
-            label.setText(String.valueOf(count));
-        });
-        increment.setId("increment");
-        label.setId("count");
-        add(label, increment);
-    }
-
-    public int getCount() {
-        return count;
-    }
+public class PlainCounterView extends CounterViewBase {
 }

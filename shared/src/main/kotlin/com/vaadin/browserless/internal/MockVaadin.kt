@@ -391,13 +391,15 @@ object MockVaadin {
         // name in lastWindowName; a brand-new window gets a fresh unique name.
         // The name is consumed before the UI is initialized, so a failing
         // initialization cannot leak it into the next createUI on this thread.
-        // screenWidth is set to a real value so retrieveExtendedClientDetails
-        // resolves synchronously rather than waiting for a client round-trip.
+        // Every other detail stays at its placeholder default, exactly as in
+        // the instance Flow would have created lazily: the window name is all
+        // the router reads, so the mock does not fabricate a screen or
+        // viewport geometry it has no way to know.
         val windowName = lastWindowName.get()
             ?: "window-${windowNameCounter.incrementAndGet()}"
         lastWindowName.remove()
         ui.internals.setExtendedClientDetails(
-            ExtendedClientDetails(ui, "1920", "1080", null, null, null, null,
+            ExtendedClientDetails(ui, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, windowName,
                 null, null, null))
 
