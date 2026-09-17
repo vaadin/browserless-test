@@ -383,18 +383,14 @@ object MockVaadin {
             set(ui, MockPage(ui, uiFactory, session))
         }
         ui.internals.session = session
-        UI.setCurrent(ui)
-        ui.doInit(request, 1, "ROOT")
-        strongRefUI.set(ui)
-
-        session.addUI(ui)
-        session.service.eventBus.fireEvent(UIInitEvent(ui, session.service), rethrowListenerFailure)
 
         // Assign a stable, non-null window name via ExtendedClientDetails so
         // @PreserveOnRefresh works. Flow keys its preserved-component cache on
         // window.name, and the name must (a) be non-null and (b) stay constant
         // across reloads of the same window. A reload carries the previous UI's
         // name in lastWindowName; a brand-new window gets a fresh unique name.
+        // The name is consumed before the UI is initialized, so a failing
+        // initialization cannot leak it into the next createUI on this thread.
         // screenWidth is set to a real value so retrieveExtendedClientDetails
         // resolves synchronously rather than waiting for a client round-trip.
         val windowName = lastWindowName.get()
@@ -404,6 +400,13 @@ object MockVaadin {
             ExtendedClientDetails(ui, "1920", "1080", null, null, null, null,
                 null, null, null, null, null, null, null, null, windowName,
                 null, null, null))
+
+        UI.setCurrent(ui)
+        ui.doInit(request, 1, "ROOT")
+        strongRefUI.set(ui)
+
+        session.addUI(ui)
+        session.service.eventBus.fireEvent(UIInitEvent(ui, session.service), rethrowListenerFailure)
 
         // navigate to the initial page
         if (lastNavigation.get() != null) {

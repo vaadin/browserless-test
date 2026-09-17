@@ -69,4 +69,29 @@ class ReloadMultiWindowTest {
         Assertions.assertSame(view2, window2.getCurrentView(),
                 "window2 must be untouched by window1's reload");
     }
+
+    @Test
+    void reloadWithUnexpectedTarget_throws_andWindowKeepsUsingTheNewUI() {
+        var user = app.newUser();
+        var window = user.newWindow();
+
+        var view = window.navigate(PreservedCounterView.class);
+        window.test(window.find(Button.class).withId("increment").single())
+                .click();
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> window.reload(Button.class),
+                "Reloading into an unexpected target type must fail");
+
+        // The reload swapped in a fresh UI before the target type was
+        // validated, so the failure must not leave the window bound to the UI
+        // that was detached: the window, and the preserved view on it, stay
+        // usable.
+        Assertions.assertSame(view, window.getCurrentView(),
+                "The preserved view must still be the current view");
+        window.test(window.find(Button.class).withId("increment").single())
+                .click();
+        Assertions.assertEquals(2, view.getCount(),
+                "The window must still interact with the live UI");
+    }
 }

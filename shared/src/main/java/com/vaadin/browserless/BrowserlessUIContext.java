@@ -433,11 +433,11 @@ public class BrowserlessUIContext
      */
     public HasElement reload() {
         activate();
-        HasElement view = BrowserlessDSL.reload(ui);
-        // reload() swapped in a fresh UI; re-capture it so later operations on
-        // this window act on the live UI rather than the detached one.
-        this.ui = UI.getCurrent();
-        return view;
+        try {
+            return BrowserlessDSL.reload(ui);
+        } finally {
+            recaptureUI();
+        }
     }
 
     /**
@@ -452,9 +452,26 @@ public class BrowserlessUIContext
      */
     public <T extends Component> T reload(Class<T> expectedTarget) {
         activate();
-        T view = BrowserlessDSL.reload(ui, expectedTarget);
-        this.ui = UI.getCurrent();
-        return view;
+        try {
+            return BrowserlessDSL.reload(ui, expectedTarget);
+        } finally {
+            recaptureUI();
+        }
+    }
+
+    /**
+     * Re-captures the live UI of this window after a reload swapped in a fresh
+     * instance, so later operations act on it rather than on the detached one.
+     * Called from a {@code finally} block: even when the reload fails (for
+     * example because the resulting view is not of the expected type) the new
+     * UI is already in place, and keeping the closed one would make every
+     * subsequent operation on this window fail.
+     */
+    private void recaptureUI() {
+        UI current = UI.getCurrent();
+        if (current != null) {
+            this.ui = current;
+        }
     }
 
     /**
