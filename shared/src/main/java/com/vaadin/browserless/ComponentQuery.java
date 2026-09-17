@@ -594,6 +594,12 @@ public class ComponentQuery<T extends Component> {
      * that <em>is</em> the footer. When slots nest, the outermost one — the one
      * closest to the search context — decides.
      * <p>
+     * This filter narrows an already slot-aware search rather than widening
+     * one: an unfiltered {@code find(Class)} on a component returns matches
+     * from every one of its slots, and from the slots of the components nested
+     * in them, so {@code withinSlot} only drops what sits outside the named
+     * slot.
+     * <p>
      * Take this card, dumped with {@code toPrettyTree()} (the same tree
      * {@code TreeOnFailureExtension} prints on failure), where the slotted
      * elements show up as {@code @slot='...'}:
