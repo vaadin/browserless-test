@@ -675,7 +675,8 @@ class ComponentQueryTest extends BrowserlessTest {
         card.add(content);
         card.setHeader(title);
         card.addToFooter(new Div(save), cancel, inner);
-        getCurrentView().getElement().appendChild(card.getElement());
+        Div layout = new Div(card);
+        getCurrentView().getElement().appendChild(layout.getElement());
 
         ComponentTester<Card> tester = new ComponentTester<>(card);
         // cancel is the slot root itself, save is nested inside the slotted
@@ -691,9 +692,17 @@ class ComponentQueryTest extends BrowserlessTest {
         Assertions.assertIterableEquals(List.of(details),
                 new ComponentTester<>(inner).find(Button.class)
                         .withinSlot("header").all());
-        // Unscoped there is no host to anchor the slot to, so both header
-        // slots count.
-        Assertions.assertIterableEquals(List.of(title, details),
+        // A search context above the card, and no search context at all, see
+        // the same slots: the card is the outermost slotted host either way,
+        // so widening the search must not silently empty the result.
+        ComponentTester<Div> layoutTester = new ComponentTester<>(layout);
+        Assertions.assertIterableEquals(List.of(save, cancel, open, details),
+                layoutTester.find(Button.class).withinSlot("footer").all());
+        Assertions.assertIterableEquals(List.of(title),
+                layoutTester.find(Button.class).withinSlot("header").all());
+        Assertions.assertIterableEquals(List.of(save, cancel, open, details),
+                find(Button.class).withinSlot("footer").all());
+        Assertions.assertIterableEquals(List.of(title),
                 find(Button.class).withinSlot("header").all());
         // The content button is in the card's default slot, which no slot name
         // matches.
@@ -738,7 +747,7 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
-    void withinSlot_nestedSlots_hostSlotWins() {
+    void withinSlot_nestedSlots_outermostSlotWins() {
         Button dialogHeaderButton = new Button("Dialog header button");
         Dialog dialog = new Dialog();
         dialog.getHeader().add(dialogHeaderButton);
@@ -749,9 +758,9 @@ class ComponentQueryTest extends BrowserlessTest {
         dialog.open();
 
         // The button is in the dialog's header, but the card put that dialog
-        // in its footer, so from the card it is footer content. Only slots the
-        // card fills itself are matchable here, and "header-content" is the
-        // dialog's own slot.
+        // in its footer, so from the card the footer is the outer slot and it
+        // is footer content. The dialog's own "header-content" slot is the
+        // inner one and loses.
         ComponentTester<Card> tester = new ComponentTester<>(card);
         Assertions.assertIterableEquals(List.of(dialogHeaderButton),
                 tester.find(Button.class).withinSlot("footer").all());
@@ -778,9 +787,9 @@ class ComponentQueryTest extends BrowserlessTest {
         Assertions.assertTrue(new ComponentTester<>(card).find(Button.class)
                 .withinSlot("footer").all().isEmpty());
 
-        // Unscoped: with no search context to anchor the slot to, any
-        // enclosing slot of that name counts, so the same button is in the
-        // dialog's footer.
+        // Unscoped: the walk continues past the card up to the UI root, where
+        // the dialog's footer is the outermost enclosing slot, so the same
+        // button is footer content there.
         Assertions.assertIterableEquals(List.of(contentButton),
                 find(Button.class).withinSlot("footer").all());
     }

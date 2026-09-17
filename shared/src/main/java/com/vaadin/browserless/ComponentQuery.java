@@ -587,11 +587,12 @@ public class ComponentQuery<T extends Component> {
      * Requires the components to sit in the given named slot of the component
      * that hosts them.
      * <p>
-     * A component is in slot {@code name} when the element that the queried
-     * component placed in that slot is one of its ancestors. The whole subtree
-     * below the slot belongs to it, however deeply nested: a button inside a
-     * footer {@code Div} is in the footer just like a button that <em>is</em>
-     * the footer.
+     * A component is in slot {@code name} when an element carrying
+     * {@code slot="name"} is one of its ancestors, or is the component itself.
+     * The whole subtree below a slot belongs to it, however deeply nested: a
+     * button inside a footer {@code Div} is in the footer just like a button
+     * that <em>is</em> the footer. When slots nest, the outermost one — the one
+     * closest to the search context — decides.
      * <p>
      * Take this card, dumped with {@code toPrettyTree()} (the same tree
      * {@code TreeOnFailureExtension} prints on failure), where the slotted
@@ -623,10 +624,11 @@ public class ComponentQuery<T extends Component> {
      * and no slot name matches a component that is not slotted.</li>
      * </ul>
      *
-     * The slot that decides is always one of the queried component's own, so
-     * repeated slot names at different nesting levels stay separate. The outer
-     * card's {@code header} holds only {@code #title}; {@code #details} counts
-     * as header content when the inner card is the one being queried:
+     * Because the outer slot wins, repeated slot names at different nesting
+     * levels stay separate: the card's {@code header} holds only
+     * {@code #title}, and {@code #details} counts as header content only once
+     * the inner card is itself the search context, which puts its
+     * {@code header} slot outermost:
      *
      * <pre>{@code
      * // [#save, #cancel, #open, #details]
@@ -659,15 +661,15 @@ public class ComponentQuery<T extends Component> {
      * slots: {@code withinSlot("header-content")} matches {@code #close} and
      * {@code withinSlot("footer")} matches {@code #ok} and {@code #content}.
      * <p>
-     * The slot has to belong to the query's search context (see
-     * {@link #from(Component)}), so a slot the context itself is placed in does
-     * not leak into the result. Scoped to the card above,
+     * The search context (see {@link #from(Component)}) bounds the walk, so a
+     * slot the context itself is placed in does not leak into the result.
+     * Scoped to the card above,
      * {@code test(card).find(Button.class).withinSlot("footer").all()} is
      * therefore empty — the {@code footer} slot the card sits in belongs to the
-     * dialog, not to the card. A query with no search context has no such
-     * anchor, and there any enclosing slot of the given name matches, so
-     * {@code find(Button.class).withinSlot("footer")} does return
-     * {@code #content}.
+     * dialog, not to the card — while the same query scoped to the dialog, to
+     * any component in between, or to nothing at all does return
+     * {@code #content}. Widening the search context never drops matches: it can
+     * only bring further slots into view.
      * <p>
      * Slot names are the ones the component uses in the browser, and they are
      * component specific: {@code Card} and {@code ConfirmDialog} name their
@@ -696,11 +698,12 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
-     * Checks whether the given component sits inside the named slot, as seen
-     * from the search context: the slot has to be one the search context itself
-     * fills, and everything below that slot counts, however deeply nested and
-     * whatever slots the components in between define. Without a search context
-     * any enclosing slot of the given name qualifies.
+     * Checks whether the given component sits inside the named slot. Of the
+     * slots enclosing the component, the one closest to the search context
+     * decides, so the whole subtree below a slot belongs to it however deeply
+     * nested and whatever slots the components in between define themselves.
+     * The walk stops at the search context, or at the UI root when the query
+     * has none.
      *
      * @param component
      *            the component to inspect
@@ -710,29 +713,15 @@ public class ComponentQuery<T extends Component> {
      */
     private boolean isInSlot(Component component, String slot) {
         Element scope = context != null ? context.getElement() : null;
-        Element element = component.getElement();
-        if (element.equals(scope)) {
-            // The search context itself is not inside its own slots.
-            return false;
-        }
-        if (scope == null) {
-            for (Element current = element; current != null; current = current
-                    .getParent()) {
-                if (slot.equals(current.getAttribute("slot"))) {
-                    return true;
-                }
+        String outermost = null;
+        for (Element element = component.getElement(); element != null
+                && !element.equals(scope); element = element.getParent()) {
+            String name = element.getAttribute("slot");
+            if (name != null) {
+                outermost = name;
             }
-            return false;
         }
-        // Walk up to the element the search context placed in one of its
-        // slots; that element decides, no matter how far below it the
-        // component sits.
-        Element parent = element.getParent();
-        while (parent != null && !parent.equals(scope)) {
-            element = parent;
-            parent = element.getParent();
-        }
-        return parent != null && slot.equals(element.getAttribute("slot"));
+        return slot.equals(outermost);
     }
 
     /**

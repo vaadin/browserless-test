@@ -328,10 +328,11 @@ Slot names are the ones the component uses in the browser and differ per
 component: a card's header slot is `header`, a dialog's is `header-content`.
 A name nothing is slotted under simply matches no components.
 
-The slot that decides is the one belonging to the component being searched,
-and everything below it matches: a button in the header of a card that the
-searched card placed in *its* footer is footer content here, because that is
-where the searched card put it. The `withinSlot` javadoc walks through
+When slots nest, the outermost one wins, so everything below a slot matches:
+a button in the header of a card that another card placed in *its* footer is
+footer content, because that footer is the outer slot. Only the search context
+bounds the walk, so scoping to the slot's host, to a layout above it, or to
+nothing at all all see the same slots. The `withinSlot` javadoc walks through
 annotated component trees for that case and for components that slot content
 into wrapper elements.
 
