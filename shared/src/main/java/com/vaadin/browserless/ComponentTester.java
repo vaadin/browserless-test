@@ -337,8 +337,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     private void ensureComponentCanBeFocused() {
         if (!(component instanceof Focusable)) {
             throw new IllegalArgumentException(
-                    "Parameter component: invalid value " + component
-                            + ": not a Focusable: " + component.getClass());
+                    PrettyPrintTreeKt.toPrettyString(component)
+                            + " is not Focusable");
         }
         // Unlike other interactions, focus does not care about read-only: a
         // read-only field can still be focused, a disabled one cannot

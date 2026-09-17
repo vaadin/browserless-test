@@ -281,9 +281,14 @@ public class BlurSimulationTest extends BrowserlessTest {
         Div plainDiv = new Div();
         container.add(plainDiv);
 
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(plainDiv).focus(),
+        IllegalArgumentException focusFailure = Assertions.assertThrows(
+                IllegalArgumentException.class, () -> test(plainDiv).focus(),
                 "Focusing a component that is not Focusable should fail fast");
+        Assertions.assertTrue(
+                focusFailure.getMessage().contains("Div")
+                        && focusFailure.getMessage().contains("not Focusable"),
+                "The failure should name the component and the reason, was: "
+                        + focusFailure.getMessage());
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(plainDiv).blur(),
                 "Blurring a component that is not Focusable should fail fast");
