@@ -439,11 +439,7 @@ public class BrowserlessUIContext
      */
     public HasElement reload() {
         activate();
-        try {
-            return BrowserlessDSL.reload(ui);
-        } finally {
-            this.ui = MockVaadin.liveUI(ui);
-        }
+        return BrowserlessDSL.reload(ui);
     }
 
     /**
@@ -458,11 +454,7 @@ public class BrowserlessUIContext
      */
     public <T extends Component> T reload(Class<T> expectedTarget) {
         activate();
-        try {
-            return BrowserlessDSL.reload(ui, expectedTarget);
-        } finally {
-            this.ui = MockVaadin.liveUI(ui);
-        }
+        return BrowserlessDSL.reload(ui, expectedTarget);
     }
 
     /**

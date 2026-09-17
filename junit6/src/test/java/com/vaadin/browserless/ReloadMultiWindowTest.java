@@ -15,12 +15,15 @@
  */
 package com.vaadin.browserless;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.example.reload.PreservedCounterView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 
 /**
@@ -99,6 +102,28 @@ class ReloadMultiWindowTest {
                 "The window must interact with the live UI");
         Assertions.assertSame(view2, window2.getCurrentView(),
                 "window2 must be untouched by window1's refresh");
+    }
+
+    @Test
+    void closingWindowRightAfterAViewTriggeredReload_detachesTheLiveUI() {
+        var user = app.newUser();
+        var window = user.newWindow();
+
+        var view = window.navigate(PreservedCounterView.class);
+        window.test(window.find(Button.class).withId("self-reload").single())
+                .click();
+
+        // Read the live UI off the view, not off the window: any call on the
+        // window would resolve the reloaded UI and hide a stale one from
+        // close().
+        UI liveUI = view.getUI().orElseThrow();
+        AtomicBoolean detached = new AtomicBoolean();
+        liveUI.addDetachListener(e -> detached.set(true));
+
+        window.close();
+
+        Assertions.assertTrue(detached.get(),
+                "close() must detach the UI the window ended up on, not the one the reload discarded");
     }
 
     @Test
