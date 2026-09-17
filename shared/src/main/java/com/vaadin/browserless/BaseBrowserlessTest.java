@@ -515,8 +515,8 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in a future release; use
-     *             {@link #find(Class)} instead.
+     * @deprecated since 1.1, for removal in 26.0; use {@link #find(Class)}
+     *             instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
     public <T extends Component> ComponentQuery<T> $(Class<T> componentType) {
@@ -534,7 +534,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in a future release; use
+     * @deprecated since 1.1, for removal in 26.0; use
      *             {@link #find(Class, Component)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
@@ -551,7 +551,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in a future release; use
+     * @deprecated since 1.1, for removal in 26.0; use
      *             {@link #findInView(Class)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
