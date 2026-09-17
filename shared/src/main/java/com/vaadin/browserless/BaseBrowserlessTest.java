@@ -183,7 +183,7 @@ public abstract class BaseBrowserlessTest {
      * {@link com.vaadin.flow.di.InstantiatorFactory},
      * {@link com.vaadin.flow.di.ResourceProvider}, etc.
      *
-     * Since 1.2 the services required by the Spring and Quarkus integrations
+     * Since 25.3 the services required by the Spring and Quarkus integrations
      * are contributed by {@link #frameworkLookupServices()} instead, and are
      * always registered. An override of this method therefore adds to them and
      * can no longer replace one of them, for example to swap the Spring
@@ -192,12 +192,12 @@ public abstract class BaseBrowserlessTest {
      * that.
      *
      * @return set of services implementation classes, never {@literal null}.
-     * @deprecated since 1.2, declare the services with
+     * @deprecated since 25.3, declare the services with
      *             {@link BrowserlessTestConfig#lookupServices()} or by
      *             overriding {@link #testConfiguration()} instead. Overrides of
      *             this method are still honored.
      */
-    @Deprecated(since = "1.2")
+    @Deprecated(since = "25.3")
     protected Set<Class<?>> lookupServices() {
         return Collections.emptySet();
     }
@@ -216,7 +216,7 @@ public abstract class BaseBrowserlessTest {
      * {@link BrowserlessTestConfig#lookupServices()}.
      *
      * @return set of services implementation classes, never {@literal null}.
-     * @since 1.2
+     * @since 25.3
      */
     protected Set<Class<?>> frameworkLookupServices() {
         return Collections.emptySet();
@@ -242,7 +242,7 @@ public abstract class BaseBrowserlessTest {
      *
      * @return the configuration to apply, never {@literal null}.
      * @see BrowserlessTestConfig
-     * @since 1.2
+     * @since 25.3
      */
     protected BrowserlessConfiguration testConfiguration() {
         if (resolvedConfiguration != null) {
@@ -515,7 +515,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use {@link #find(Class)}
+     * @deprecated since 1.1, for removal in 26.0; use {@link #find(Class)}
      *             instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
@@ -534,7 +534,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use
+     * @deprecated since 1.1, for removal in 26.0; use
      *             {@link #find(Class, Component)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
@@ -551,8 +551,8 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use {@link #findInView(Class)}
-     *             instead.
+     * @deprecated since 1.1, for removal in 26.0; use
+     *             {@link #findInView(Class)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
     public <T extends Component> ComponentQuery<T> $view(

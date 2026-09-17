@@ -7,11 +7,16 @@ need — and no wish — to keep working against older releases of either.
 
 ## The mapping
 
-| Branch | Version       | Vaadin / Flow |
-| ------ | ------------- | ------------- |
-| `1.0`  | `1.0.x`       | 25.1          |
-| `1.1`  | `1.1.x`       | 25.2          |
-| `main` | `1.2-SNAPSHOT`| 25.3          |
+| Branch | Version        | Vaadin / Flow |
+| ------ | -------------- | ------------- |
+| `1.0`  | `1.0.x`        | 25.1          |
+| `1.1`  | `1.1.x`        | 25.2          |
+| `main` | `25.3-SNAPSHOT`| 25.3          |
+
+From 25.3 on the version *is* the Vaadin version it targets: the separate
+`1.x` numbering is gone, so the branch developing against Vaadin `x.y` carries
+`x.y-SNAPSHOT` and releases `x.y.z`. The older `1.0` and `1.1` branches keep
+their own numbers.
 
 `flow.version` and `vaadin.version` in the root `pom.xml` hold the target, and
 Flow is a `provided` dependency resolved from
@@ -19,8 +24,8 @@ Flow is a `provided` dependency resolved from
 snapshot for its whole development cycle, so `main` always builds against the
 in-development Flow, not against a released one.
 
-Bumping those properties is a release activity (`chore: bump to 1.2-SNAPSHOT
-and Vaadin to 25.3-SNAPSHOT`), not something an individual change does.
+Bumping those properties is a release activity (`chore: bump to 25.4-SNAPSHOT
+and Vaadin to 25.4-SNAPSHOT`), not something an individual change does.
 
 ## What follows from it
 
