@@ -327,6 +327,15 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     /**
      * Get component for item in cell.
      *
+     * <p>
+     * A component renderer only produces a component when it is asked to render
+     * a specific item, so until this method is called there is nothing in the
+     * component tree that {@code find(...)} walks, and this method is the way
+     * to reach it. Every call renders the cell again and attaches the new
+     * instance to the grid, so asking twice for the same cell leaves two
+     * instances behind and a later {@code find(...)} reports both. Hold on to
+     * the component this method returns instead of asking for it again.
+     *
      * @param row
      *            item row
      * @param column
@@ -344,6 +353,15 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Get component for item in column.
+     *
+     * <p>
+     * A component renderer only produces a component when it is asked to render
+     * a specific item, so until this method is called there is nothing in the
+     * component tree that {@code find(...)} walks, and this method is the way
+     * to reach it. Every call renders the cell again and attaches the new
+     * instance to the grid, so asking twice for the same cell leaves two
+     * instances behind and a later {@code find(...)} reports both. Hold on to
+     * the component this method returns instead of asking for it again.
      *
      * @param row
      *            item row

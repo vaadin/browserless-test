@@ -1,7 +1,53 @@
 # Contributing
 
-Thanks for contributing to Vaadin Browserless Test! A few conventions to keep in
-mind when opening a pull request.
+Thanks for contributing to Vaadin Browserless Test! This page is the entry
+point: what to run, what the conventions are, and where the detailed
+guidelines live.
+
+## Where things are written down
+
+- [`CONVENTIONS.md`](CONVENTIONS.md) — the canonical list of checkable
+  conventions. Read it in full before opening a pull request.
+- [`guidelines/`](guidelines/overview.md) — the reasoning behind the
+  conventions, one chapter per topic. The two that apply to almost every
+  change are [Flow Version](guidelines/flow-version.md) and
+  [Testers](guidelines/testers.md).
+- [`CLAUDE.md`](CLAUDE.md) — repository overview and the build, test and
+  format commands, for both people and coding agents.
+
+## Building and testing
+
+```bash
+mvn clean install   # build everything and run the tests
+mvn spotless:apply  # before every commit
+```
+
+[`CLAUDE.md`](CLAUDE.md) has the rest — building one module, running a single
+test class or method, and the Javadoc profile CI uses. Most tests live in the
+`junit6` module rather than next to the code they cover, see
+[Testing](guidelines/testing.md).
+
+## One Vaadin version per branch
+
+A Browserless Test version targets exactly one Vaadin version — one Flow
+version and the components that ship with it. There is no backwards
+compatibility with older releases, so when a tester needs something that is not
+exposed, the preferred fix is to add it upstream first (often to the component
+in `vaadin/flow-components`, sometimes to `vaadin/flow`) and use it directly
+here — and code that branches on a version should be deleted rather than
+extended. The branch-to-version mapping and the reasoning are in
+[Flow Version](guidelines/flow-version.md).
+
+## Commits and pull requests
+
+Commit subjects follow Conventional Commits, branch names follow the commit
+type, and a pull request description uses the sections this repository already
+uses. The full rules are in the Commit & PR Hygiene section of
+[`CONVENTIONS.md`](CONVENTIONS.md#commit--pr-hygiene).
+
+One practical note: run `mvn spotless:apply` before committing, and if the
+`Format Check` job fails anyway, comment `/format` on the pull request and the
+formatting is applied and pushed for you.
 
 ## Javadoc `@since` tags
 
@@ -17,84 +63,19 @@ keeps the tags accurate.
 ## Simulating the browser in testers
 
 A tester interaction has to be indistinguishable from the real one: the events
-an application observes must report `isFromClient() == true`, because
-application code routinely branches on it to tell "the user did this" from "we
-set it programmatically". So never drive a component through its plain
-server-side setter from a tester — use the shared `ComponentTester` helpers.
+an application observes must report `isFromClient() == true`. Never drive a
+component through its plain server-side setter from a tester — use the shared
+`ComponentTester` helpers, and call `ensureComponentIsUsable()` first in any
+method that changes state.
 
-- **`setValueAsUser(value)`** — sets the wrapped component's value as if the
-  browser had sent it, so the `ValueChangeEvent` reports
-  `isFromClient() == true`. This is the default for any tester action that
-  changes a field value. It goes straight to `AbstractFieldSupport` and
-  therefore bypasses the component's own `setValue`; when that setter does
-  more than store the value — `CheckboxGroup.setValue` also refreshes the
-  child check boxes, for instance — the tester has to do the rest itself.
-- **`setValueAsUser(field, value)`** — the same, for a field other than the
-  wrapped component, such as an editor field owned by it (as `GridProTester`
-  does for `custom()` editors). Guard it with
-  **`canSetValueAsUser(field)`**: only `AbstractField` and
-  `AbstractCompositeField` based fields have a client value path, so a
-  foreign `HasValue` implementation has to fall back to a plain
-  `setValue`.
-- **`setPropertyAsUser(property, value)`** — for state a component exposes as
-  a synchronized element property rather than as a field value, such as the
-  `opened` property of `Details` and `Accordion`. It pushes the update
-  through `ElementPropertyMap.deferredUpdateFromClient` and then round-trips,
-  so the derived event (`OpenedChangeEvent`) reports
-  `isFromClient() == true`. The property has to be `@Synchronize`d, or the
-  call throws.
-- **`clearAsUser()` / `clickClearButtonAsUser()`** — build on
-  `setValueAsUser` and empty the field unconditionally, because emptying it
-  stays legal even when that leaves the field invalid. See the contracts
-  below.
-
-One consequence to keep in mind: a value change that claims to come from the
-client is silently dropped on a read-only field. Any tester method built on
-these helpers must therefore call `ensureComponentIsUsable()` first, or the
-call quietly does nothing instead of throwing.
-
-The same principle decides what a `setValue` may refuse. It commits whatever
-the browser would commit: a value outside `min` / `max`, off the `step` scale,
-or the empty value on a required field is set and simply leaves the field
-invalid, which is exactly the state a test about validation wants to reach.
-Validity is therefore *asserted* — the number field and picker testers expose
-`isValid()` for it — not enforced at set time. The exception is a control
-that physically cannot produce the value: a slider clamps to its range and
-snaps to its step, so `RangeInputTester` and `NumberSliderTester` do refuse
-out-of-range and off-step values. Structural refusals stay too, such as `null`
-on a field whose empty value is not `null`.
+The helpers, what a `setValue` may refuse, and the steps for adding a tester
+are documented in [Testers](guidelines/testers.md).
 
 ## Test contracts for value testers
 
-`clear()` and `clickClearButton()` behave the same on every value tester,
-because both delegate to shared `ComponentTester` helpers
-(`clearAsUser()` / `clickClearButtonAsUser()`). Their expectations are
-therefore asserted once, as `default` test methods on three interfaces in
-`junit6/src/test/java/com/vaadin/browserless/`, which each tester's own test
-class implements. If you add or change a value tester, implement the ones that
-apply — the compiler will ask you for the hooks.
-
-- **`ClearContract`** — implement when the tester declares `clear()`. Asserts
-  that `clear()` empties the field with no clear button present, and that it
-  refuses to run on a component that is not usable. Hooks: `fieldUnderTest()`
-  and `clear()`.
-- **`ClearButtonContract`** — implement when the tested component implements
-  `HasClearButton`, which is exactly when the tester must declare
-  `clickClearButton()` (`LocatorProcessor` fails the build otherwise). Asserts
-  that it empties the field when the clear button is visible, and throws when
-  the button is hidden or the component is not usable. Hooks:
-  `fieldUnderTest()` and `clickClearButton()`.
-- **`CommitsEmptyValueContract`** — extends `ClearContract`; implement it
-  *instead* when the tester exposes `isValid()`, as the number field and
-  picker testers do. Adds the assertion that `setValue(emptyValue)` commits the
-  empty value on a required field and leaves the field invalid, rather than
-  refusing it. Extra hooks: `setEmptyValue()` and `isValid()`.
-
-`fieldUnderTest()` must return the component already attached and holding a
-non-empty value; it is called once per test, and the contract marks the field
-required itself.
-
-Testers whose component has no clear button (`DateTimePicker`, the html
-`Input`) implement only the `clear()` side; the combo box testers model
-unconditional emptying as `selectItem(null)` rather than `clear()`, so they
-implement only `ClearButtonContract`.
+`clear()` and `clickClearButton()` behave the same on every value tester, so
+their expectations are asserted once, as `default` methods on shared contract
+interfaces that each tester's test class implements. If you add or change a
+value tester, implement the ones that apply — the compiler will ask you for the
+hooks. Which contract applies when, and what each one asserts, is in
+[Testing](guidelines/testing.md).

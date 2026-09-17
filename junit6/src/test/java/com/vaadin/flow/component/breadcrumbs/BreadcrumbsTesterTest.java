@@ -18,9 +18,7 @@ package com.vaadin.flow.component.breadcrumbs;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,16 +31,6 @@ import com.vaadin.flow.router.RouteConfiguration;
 class BreadcrumbsTesterTest extends BrowserlessTest {
 
     BreadcrumbsView view;
-
-    @BeforeAll
-    static void enableBreadcrumbsFeatureFlag() {
-        System.setProperty("vaadin.experimental.breadcrumbsComponent", "true");
-    }
-
-    @AfterAll
-    static void clearBreadcrumbsFeatureFlag() {
-        System.clearProperty("vaadin.experimental.breadcrumbsComponent");
-    }
 
     @BeforeEach
     void init() {

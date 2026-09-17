@@ -33,11 +33,17 @@ public class ComponentRendererVirtualListView
         extends Composite<HorizontalLayout> {
 
     final VirtualList<User> componentRendererVirtualList;
+    final VirtualList<User> subclassedVirtualList;
 
     public ComponentRendererVirtualListView() {
         // virtual list using component renderer
         componentRendererVirtualList = new VirtualList<>();
         componentRendererVirtualList
+                .setRenderer(new ComponentRenderer<>(this::userComponent));
+
+        // an application's own subclass of VirtualList
+        subclassedVirtualList = new UserVirtualList();
+        subclassedVirtualList
                 .setRenderer(new ComponentRenderer<>(this::userComponent));
 
         var title = new Div("Component Renderer Virtual List");
@@ -52,6 +58,7 @@ public class ComponentRendererVirtualListView
                 LumoUtility.BorderRadius.LARGE);
         block.add(title);
         block.add(componentRendererVirtualList);
+        block.add(subclassedVirtualList);
 
         var content = getContent();
         content.setPadding(true);
@@ -59,6 +66,10 @@ public class ComponentRendererVirtualListView
         content.add(block);
 
         componentRendererVirtualList.setItems(UserData.all());
+        subclassedVirtualList.setItems(UserData.all());
+    }
+
+    public static class UserVirtualList extends VirtualList<User> {
     }
 
     private Component userComponent(User user) {

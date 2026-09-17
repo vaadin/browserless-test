@@ -29,6 +29,7 @@ import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.locator.Locators;
 import com.vaadin.browserless.mocks.MockedUI;
+import com.vaadin.experimental.Feature;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.Key;
@@ -45,8 +46,9 @@ abstract class AbstractBrowserlessExtension
 
     // Programmatic config (builder-style)
     private final Set<String> viewPackages = new HashSet<>();
-    private final Set<Class<?>> services = new HashSet<>();
     private final Set<String> componentTesterPackages = new HashSet<>();
+    private final BrowserlessConfiguration.Builder configuration = BrowserlessConfiguration
+            .builder();
 
     // Runtime state
     private TestSignalEnvironment signalsTestEnvironment;
@@ -64,7 +66,7 @@ abstract class AbstractBrowserlessExtension
     }
 
     protected void addServices(Class<?>... serviceClasses) {
-        services.addAll(Arrays.asList(serviceClasses));
+        configuration.withLookupServices(serviceClasses);
     }
 
     protected void addComponentTesterPackages(String... packages) {
@@ -76,16 +78,66 @@ abstract class AbstractBrowserlessExtension
                 .forEach(componentTesterPackages::add);
     }
 
+    protected void addApplicationProperty(String name, String value) {
+        configuration.withApplicationProperty(name, value);
+    }
+
+    protected void addApplicationProperties(Map<String, String> properties) {
+        configuration.withApplicationProperties(properties);
+    }
+
+    protected void addFeatureFlags(String... featureIds) {
+        configuration.withFeatureFlags(featureIds);
+    }
+
+    protected void addFeatureFlags(Feature... features) {
+        configuration.withFeatureFlags(features);
+    }
+
+    protected void addFeatureFlag(String featureId, boolean enabled) {
+        configuration.withFeatureFlag(featureId, enabled);
+    }
+
+    protected void addFeatureFlag(Feature feature, boolean enabled) {
+        configuration.withFeatureFlag(feature, enabled);
+    }
+
+    protected void addConfiguration(BrowserlessConfiguration configuration) {
+        this.configuration.withConfiguration(configuration);
+    }
+
     // --- Lifecycle callbacks ---
 
     protected void doInit(Object testInstance, ExtensionContext ctx) {
+        BrowserlessConfiguration effectiveConfiguration = BrowserlessTestConfigExtension
+                .resolveConfiguration(ctx, configuration.build());
+        // The cleanup action is armed before the environment is created, so
+        // that a setup failing halfway through, for example on an unknown
+        // feature flag, does not leave Vaadin thread locals behind for the
+        // next test to trip over.
         if (testInstance instanceof BaseBrowserlessTest base) {
+            boolean classScoped = isClassScoped();
+            cleanupAction = () -> {
+                base.cleanVaadinEnvironment();
+                base.setResolvedConfiguration(null, classScoped);
+            };
+            base.setResolvedConfiguration(effectiveConfiguration, classScoped);
             base.initVaadinEnvironment();
-            cleanupAction = base::cleanVaadinEnvironment;
         } else {
-            standaloneInit(ctx.getRequiredTestClass());
             cleanupAction = this::standaloneCleanup;
+            standaloneInit(ctx.getRequiredTestClass(), effectiveConfiguration);
         }
+    }
+
+    /**
+     * Tells whether this extension creates a single Vaadin environment shared
+     * by all the tests in the class, rather than one per test method.
+     *
+     * @return {@literal true} if the Vaadin environment is scoped to the test
+     *         class, {@literal false} otherwise
+     */
+    protected boolean isClassScoped() {
+        return false;
     }
 
     protected void doCleanup() {
@@ -103,7 +155,8 @@ abstract class AbstractBrowserlessExtension
         MockVaadin.tearDown();
     }
 
-    private void standaloneInit(Class<?> testClass) {
+    private void standaloneInit(Class<?> testClass,
+            BrowserlessConfiguration configuration) {
         // Scan for additional component testers
         Set<String> testerPkgs = new HashSet<>(componentTesterPackages);
         ComponentTesterPackages testerAnnotation = testClass
@@ -130,7 +183,7 @@ abstract class AbstractBrowserlessExtension
         packages.removeIf(Objects::isNull);
 
         Routes routes = RouteDiscovery.discover(packages);
-        MockVaadin.setup(routes, MockedUI::new, services);
+        MockVaadin.setup(routes, MockedUI::new, Set.of(), configuration);
         signalsTestEnvironment = TestSignalEnvironment.register();
     }
 
@@ -214,6 +267,17 @@ abstract class AbstractBrowserlessExtension
     /**
      * Gets a query object for finding components of the given type in the UI.
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param type
      *            component type to search for
      * @param <T>
@@ -227,6 +291,10 @@ abstract class AbstractBrowserlessExtension
     /**
      * Gets a query object for finding components nested inside a given
      * component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param type
      *            component type to search for
@@ -243,6 +311,10 @@ abstract class AbstractBrowserlessExtension
 
     /**
      * Gets a query object for finding components inside the current view.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param type
      *            component type to search for
