@@ -38,7 +38,7 @@ import com.vaadin.flow.server.VaadinContext;
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  *
- * @since 1.2
+ * @since 25.3
  */
 public class BrowserlessFeatureFlags extends FeatureFlags {
 

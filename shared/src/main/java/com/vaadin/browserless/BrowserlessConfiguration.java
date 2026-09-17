@@ -48,7 +48,7 @@ import com.vaadin.flow.server.InitParameters;
  * </pre>
  *
  * @see BrowserlessTestConfig
- * @since 1.2
+ * @since 25.3
  */
 public final class BrowserlessConfiguration implements Serializable {
 
