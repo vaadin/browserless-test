@@ -18,9 +18,8 @@
     </description>
 
     <properties>
-        <!-- Newest published vaadin-cdi addon (Weld 6 / CDI 4.1); it tracks
-             Flow 25.3, there is no 25.4 aligned release yet. -->
-        <vaadin.cdi.version>16.1-SNAPSHOT</vaadin.cdi.version>
+        <!-- The vaadin-cdi addon follows the Flow version (Weld 6 / CDI 4.1). -->
+        <vaadin.cdi.version>${flow.version}</vaadin.cdi.version>
         <weld.junit5.version>5.0.3.Final</weld.junit5.version>
         <!-- Internal test module: never deploy or attach artifacts. -->
         <maven.deploy.skip>true</maven.deploy.skip>
