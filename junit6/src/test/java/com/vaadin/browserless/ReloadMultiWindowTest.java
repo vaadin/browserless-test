@@ -71,6 +71,37 @@ class ReloadMultiWindowTest {
     }
 
     @Test
+    void reloadTriggeredByTheView_windowFollowsTheNewUI() {
+        var user = app.newUser();
+        var window1 = user.newWindow();
+        var window2 = user.newWindow();
+
+        var view1 = window1.navigate(PreservedCounterView.class);
+        var view2 = window2.navigate(PreservedCounterView.class);
+        window1.test(window1.find(Button.class).withId("increment").single())
+                .click();
+        var uiBefore = window1.getUI();
+
+        // The view itself asks the browser to refresh, without going through
+        // the reload() DSL.
+        window1.test(window1.find(Button.class).withId("self-reload").single())
+                .click();
+
+        Assertions.assertNotSame(uiBefore, window1.getUI(),
+                "Page.reload() from application code must create a fresh UI");
+        Assertions.assertSame(view1, window1.getCurrentView(),
+                "The preserved instance must survive the refresh");
+
+        // The window must operate on the new UI, not on the detached one.
+        window1.test(window1.find(Button.class).withId("increment").single())
+                .click();
+        Assertions.assertEquals(2, view1.getCount(),
+                "The window must interact with the live UI");
+        Assertions.assertSame(view2, window2.getCurrentView(),
+                "window2 must be untouched by window1's refresh");
+    }
+
+    @Test
     void closingWindow_doesNotLeakItsPreservedInstanceToANewWindow() {
         var user = app.newUser();
         var window1 = user.newWindow();

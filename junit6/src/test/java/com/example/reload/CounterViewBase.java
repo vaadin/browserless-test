@@ -21,8 +21,9 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 /**
  * Shared body of the reload counter fixtures: a counter that is incremented by
- * clicking the {@code increment} button. The subclasses differ only in their
- * route and in whether they are annotated with
+ * clicking the {@code increment} button, plus a {@code self-reload} button
+ * through which the view asks the browser to refresh itself. The subclasses
+ * differ only in their route and in whether they are annotated with
  * {@link com.vaadin.flow.router.PreserveOnRefresh}, so a reload test compares
  * the two behaviors against identical views.
  */
@@ -38,7 +39,10 @@ public abstract class CounterViewBase extends VerticalLayout {
         });
         increment.setId("increment");
         label.setId("count");
-        add(label, increment);
+        Button selfReload = new Button("Reload",
+                e -> getUI().ifPresent(ui -> ui.getPage().reload()));
+        selfReload.setId("self-reload");
+        add(label, increment, selfReload);
     }
 
     public int getCount() {
