@@ -142,6 +142,12 @@ public class BrowserlessUIContext
             previous.user.saveSecurityContext();
         }
 
+        // A page reload detaches this window's UI and creates a fresh one, so
+        // resolve the live UI before installing it. Doing it here rather than
+        // only in reload() also covers a reload that application code
+        // triggered itself through Page.reload().
+        this.ui = MockVaadin.liveUI(ui);
+
         // Install this user's Vaadin thread-locals and UI, restoring the
         // user's security snapshot. On same-user re-entry the snapshot is
         // intentionally not restored, so a logout (or any security mutation)
@@ -421,6 +427,37 @@ public class BrowserlessUIContext
     }
 
     /**
+     * Simulates the user reloading this window (pressing F5): the window's UI
+     * is detached and a fresh one is created in the same Vaadin session, then
+     * the current location is rendered again. Session-scoped state (session
+     * attributes, security context) survives, and sibling windows are
+     * unaffected. Views annotated with
+     * {@link com.vaadin.flow.router.PreserveOnRefresh @PreserveOnRefresh} keep
+     * their component instance and state; other views are recreated.
+     *
+     * @return the view shown after the reload
+     */
+    public HasElement reload() {
+        activate();
+        return BrowserlessDSL.reload(ui);
+    }
+
+    /**
+     * Simulates a page reload (see {@link #reload()}) and verifies the
+     * resulting view is of the expected type.
+     *
+     * @param expectedTarget
+     *            the expected view class after reload
+     * @param <T>
+     *            the view type
+     * @return the view shown after the reload
+     */
+    public <T extends Component> T reload(Class<T> expectedTarget) {
+        activate();
+        return BrowserlessDSL.reload(ui, expectedTarget);
+    }
+
+    /**
      * Simulates a server round-trip, flushing pending component changes.
      */
     public void roundTrip() {
@@ -566,6 +603,9 @@ public class BrowserlessUIContext
      * @return the UI instance
      */
     public UI getUI() {
+        if (ui != null) {
+            this.ui = MockVaadin.liveUI(ui);
+        }
         return ui;
     }
 
@@ -598,6 +638,9 @@ public class BrowserlessUIContext
             stillActive.user.saveSecurityContext();
         }
         if (ui != null) {
+            // Detach the UI that is live now: a reload may have replaced the
+            // one captured here, and the detached one needs no closing.
+            this.ui = MockVaadin.liveUI(ui);
             // Set thread-locals so detach listeners see this user's identity
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.

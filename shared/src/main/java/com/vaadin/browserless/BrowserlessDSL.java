@@ -65,6 +65,20 @@ final class BrowserlessDSL {
         return validateNavigationTarget(ui, expectedTarget);
     }
 
+    // The reload recreates the UI on the current thread-locals, so the mock
+    // page rejects a UI that is not the current one; the entry points activate
+    // their window before getting here. The UI that replaces the reloaded one
+    // is only reachable as the new current UI.
+    static HasElement reload(UI ui) {
+        ui.getPage().reload();
+        return getCurrentView(UI.getCurrent());
+    }
+
+    static <T extends Component> T reload(UI ui, Class<T> expectedTarget) {
+        ui.getPage().reload();
+        return validateNavigationTarget(UI.getCurrent(), expectedTarget);
+    }
+
     static <T extends Component> T validateNavigationTarget(UI ui,
             Class<T> target) {
         HasElement currentView = getCurrentView(ui);

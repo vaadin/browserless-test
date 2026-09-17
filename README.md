@@ -27,6 +27,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 - **Signals / reactive state** — process pending signal tasks in tests,
   including the confirmation of shared-signal writes
 - **Round-trip simulation** — flush pending server-side changes
+- **Page reload simulation** — simulate a browser refresh (F5): the UI is
+  recreated in the same Vaadin session, session-scoped state survives, and
+  `@PreserveOnRefresh` views keep their instance and state
 - **Focus and blur simulation** — clicks and value changes made through testers
   move focus like a real user would, firing focus and blur listeners in browser
   order; server-side `Focusable.focus()` and `blur()` calls are applied as well
@@ -701,12 +704,12 @@ layered context API that mirrors the Vaadin hierarchy:
 | `BrowserlessUIContext`             | one `UI` (one browser window)    | `user.newWindow()`                                                                         |
 
 `BrowserlessUIContext` exposes the same DSL as `BrowserlessTest` (`navigate`,
-`find`, `findInView`, `test`, `roundTrip`). Every DSL call automatically activates the
-context: Vaadin thread-locals (`VaadinService`, `VaadinSession`, `UI`,
-`VaadinRequest`, `VaadinResponse`) are switched to the target window, and on a
-user-switch the outgoing user's security context is saved and the incoming
-user's snapshot is restored. You can interleave operations on different
-windows freely without manual context switching.
+`find`, `findInView`, `test`, `roundTrip`, `reload`). Every DSL call
+automatically activates the context: Vaadin thread-locals (`VaadinService`,
+`VaadinSession`, `UI`, `VaadinRequest`, `VaadinResponse`) are switched to the
+target window, and on a user-switch the outgoing user's security context is
+saved and the incoming user's snapshot is restored. You can interleave
+operations on different windows freely without manual context switching.
 
 The application context is `AutoCloseable`: closing it (typically via
 `try-with-resources`) closes every user and every window in the right order,
@@ -848,6 +851,29 @@ class MultiUserSecurityTest {
 
 For a hand-built identity, pass it directly:
 `app.newUser(QuarkusSecurityIdentity.builder()...build())`.
+
+### Reloading a window
+
+`reload()` simulates the user pressing F5 on one window: that window's `UI` is
+detached and a fresh one is created in the same `VaadinSession`, and the
+current location — route parameters and query string included — is rendered
+again. Session-scoped state survives and sibling windows are untouched.
+
+```java
+var w = app.newUser().newWindow();
+var cart = w.navigate(CartView.class); // @PreserveOnRefresh
+
+w.test(w.find(Button.class).withId("add").single()).click();
+
+// Same instance and state: @PreserveOnRefresh survives the refresh
+assertSame(cart, w.reload(CartView.class));
+```
+
+A view without `@PreserveOnRefresh` is recreated, so its state resets — the
+same distinction a real browser refresh makes. The no-argument `reload()`
+returns the resulting view as a `HasElement`; `reload(Class)` additionally
+asserts the expected view type. Both are also available on `BrowserlessTest`
+and on `BrowserlessExtension`.
 
 ### Capturing external navigation
 
