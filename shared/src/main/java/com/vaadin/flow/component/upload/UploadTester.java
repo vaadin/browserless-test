@@ -15,7 +15,6 @@
  */
 package com.vaadin.flow.component.upload;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +22,6 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -32,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -44,25 +41,19 @@ import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.browserless.internal.UploadSimulation;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 import com.vaadin.flow.component.internal.UIInternals;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.StateNode;
-import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.StreamVariable;
 import com.vaadin.flow.server.VaadinRequest;
-import com.vaadin.flow.server.VaadinResponse;
-import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.server.communication.TransferUtil;
 import com.vaadin.flow.server.communication.streaming.StreamingEndEventImpl;
 import com.vaadin.flow.server.communication.streaming.StreamingErrorEventImpl;
 import com.vaadin.flow.server.communication.streaming.StreamingStartEventImpl;
-import com.vaadin.flow.server.streams.UploadEvent;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.vaadin.flow.server.streams.UploadResult;
 
 /**
  * Tester for Upload components.
@@ -462,30 +453,18 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         if (useLegacyAPI()) {
             doLegacyUpload(items);
         } else {
-            var target = getComponent().getElement().getAttribute("target");
-            StreamResourceRegistry.ElementStreamResource resource = VaadinSession
-                    .getCurrent().getResourceRegistry()
-                    .getResource(
-                            StreamResourceRegistry.ElementStreamResource.class,
-                            URI.create(target))
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Upload handler is not registered"));
-            if (resource
-                    .getElementRequestHandler() instanceof UploadHandler uploadHandler) {
-                RuntimeException caughtException;
-                try {
-                    items.forEach(item -> doUpload(item, uploadHandler));
-                } finally {
-                    caughtException = runUIQueue();
-                    fireAllFinish();
-                }
-                if (caughtException != null) {
-                    throw caughtException;
-                }
-            } else {
-                throw new IllegalStateException(
-                        "Invalid or null upload handler "
-                                + resource.getElementRequestHandler());
+            String target = getComponent().getElement().getAttribute("target");
+            UploadHandler uploadHandler = UploadSimulation
+                    .resolveUploadHandler(target);
+            RuntimeException caughtException;
+            try {
+                items.forEach(item -> doUpload(item, uploadHandler));
+            } finally {
+                caughtException = UploadSimulation.runUIQueue();
+                fireAllFinish();
+            }
+            if (caughtException != null) {
+                throw caughtException;
             }
         }
     }
@@ -676,88 +655,27 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         return getComponent().getReceiver() != null;
     }
 
-    private RuntimeException runUIQueue() {
-        try {
-            MockVaadin.runUIQueue();
-        } catch (RuntimeException ex) {
-            return ex;
-        } catch (Exception ex) {
-            // upload callbacks are executed in UI.access blocks.
-            // we need to purge the queue to ensure listeners are
-            // invoked
-            // runUIQueue throws ExecutionException in case of failure
-            // but the method does not declare any thrown exception
-            // (kotlin magic)
-            if (ex instanceof ExecutionException) {
-                if (ex.getCause() instanceof RuntimeException re) {
-                    throw re;
-                } else {
-                    throw new RuntimeException(ex.getCause());
-                }
-            }
-            return new RuntimeException(ex);
-        }
-        return null;
-    }
-
     private void doUpload(UploadItem item, UploadHandler uploadHandler) {
-        long contentLength;
-        InputStream inputStream;
-        if (item.contentsProducer == null) {
-            contentLength = 0L;
-            inputStream = new InputStream() {
-                @Override
-                public int read() throws IOException {
-                    throw new IOException("Simulated upload failure");
-                }
-            };
-        } else {
-            byte[] content = getUploadedItemContent(item.contentsProducer);
-            contentLength = content.length;
-            inputStream = new ByteArrayInputStream(content);
-        }
-
-        UploadEvent event = new UploadEvent(VaadinRequest.getCurrent(),
-                VaadinResponse.getCurrent(), VaadinSession.getCurrent(),
-                item.fileName, contentLength, item.contentType,
-                getComponent().getElement(), null) {
-            @Override
-            public InputStream getInputStream() {
-                return inputStream;
-            }
-        };
         try {
-            Method method = TransferUtil.class.getDeclaredMethod(
-                    "handleUploadRequest", UploadHandler.class,
-                    UploadEvent.class);
-            method.setAccessible(true);
-            method.invoke(null, uploadHandler, event);
+            UploadSimulation.UploadOutcome outcome = UploadSimulation
+                    .invokeUpload(uploadHandler, getComponent().getElement(),
+                            VaadinRequest.getCurrent(), item.fileName,
+                            item.contentType,
+                            item.contentsProducer == null ? null
+                                    : getUploadedItemContent(
+                                            item.contentsProducer));
             // Flow validates the accepted mime types and file extensions on
             // the server as well, rejecting the request instead of throwing
-            if (event.isRejected()) {
+            if (outcome.rejected()) {
                 item.status = UploadStatus.REJECTED;
-                item.errorMessage = event.getRejectionMessage();
+                item.errorMessage = outcome.rejectionMessage();
             } else {
                 item.status = UploadStatus.UPLOADED;
             }
-            uploadHandler.responseHandled(
-                    new UploadResult(true, VaadinResponse.getCurrent()));
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new IllegalStateException("Cannot handle upload request", e);
-        } catch (InvocationTargetException e) {
-            RuntimeException cause;
-            if (e.getCause() instanceof RuntimeException re) {
-                cause = re;
-            } else if (e.getCause() instanceof IOException ioe) {
-                cause = new UncheckedIOException(ioe);
-            } else {
-                cause = new UncheckedIOException(new IOException(e));
-            }
+        } catch (RuntimeException e) {
             item.status = UploadStatus.FAILED;
-            item.errorMessage = cause.getMessage();
-            uploadHandler.responseHandled(new UploadResult(false,
-                    VaadinResponse.getCurrent(), cause));
-            throw cause;
+            item.errorMessage = e.getMessage();
+            throw e;
         }
     }
 
