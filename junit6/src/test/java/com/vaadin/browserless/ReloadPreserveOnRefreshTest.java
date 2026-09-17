@@ -85,26 +85,49 @@ class ReloadPreserveOnRefreshTest extends BrowserlessTest {
     }
 
     @Test
-    void closeSessionThenReload_recreatesSessionAndUI() {
+    void closeSessionThenReload_recreatesSessionAndUIOnce() {
         PlainCounterView view = navigate(PlainCounterView.class);
         UI uiBefore = UI.getCurrent();
         VaadinSession sessionBefore = VaadinSession.getCurrent();
         sessionBefore.setAttribute("marker", "gone");
 
         // The logout idiom: close the session, then tell the browser to
-        // reload. Closing the session already rendered a fresh UI, so the
-        // reload has nothing left to do and must not fail.
+        // reload.
         uiBefore.getSession().close();
-        uiBefore.getPage().reload();
 
-        Assertions.assertNotSame(sessionBefore, VaadinSession.getCurrent(),
+        UI uiAfterClose = UI.getCurrent();
+        VaadinSession sessionAfterClose = VaadinSession.getCurrent();
+        Assertions.assertNotSame(sessionBefore, sessionAfterClose,
                 "Closing the session must create a fresh one");
-        Assertions.assertNull(VaadinSession.getCurrent().getAttribute("marker"),
+        Assertions.assertNull(sessionAfterClose.getAttribute("marker"),
                 "Session-scoped state must not survive the logout");
-        Assertions.assertNotSame(uiBefore, UI.getCurrent(),
+        Assertions.assertNotSame(uiBefore, uiAfterClose,
                 "Closing the session must create a fresh UI");
         Assertions.assertNotSame(view, getCurrentView(),
                 "The view must be recreated in the new UI");
+
+        // The close already rendered what the reload is asking for, so the
+        // reload must neither fail nor build a second UI on top of it.
+        uiBefore.getPage().reload();
+
+        Assertions.assertSame(uiAfterClose, UI.getCurrent(),
+                "The reload must not replace the UI the session close created");
+        Assertions.assertSame(sessionAfterClose, VaadinSession.getCurrent(),
+                "The reload must not replace the session the close created");
+    }
+
+    @Test
+    void reloadingAUIReplacedByAnEarlierReload_isRejected() {
+        navigate(PlainCounterView.class);
+        UI uiBefore = UI.getCurrent();
+
+        reload();
+
+        // The captured UI is gone, but its session is not: asking its page to
+        // reload is a mistake and must say so rather than do nothing.
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> uiBefore.getPage().reload(),
+                "Reloading a UI that an earlier reload replaced must fail");
     }
 
     @Test
