@@ -85,6 +85,29 @@ class ReloadPreserveOnRefreshTest extends BrowserlessTest {
     }
 
     @Test
+    void closeSessionThenReload_recreatesSessionAndUI() {
+        PlainCounterView view = navigate(PlainCounterView.class);
+        UI uiBefore = UI.getCurrent();
+        VaadinSession sessionBefore = VaadinSession.getCurrent();
+        sessionBefore.setAttribute("marker", "gone");
+
+        // The logout idiom: close the session, then tell the browser to
+        // reload. Closing the session already rendered a fresh UI, so the
+        // reload has nothing left to do and must not fail.
+        uiBefore.getSession().close();
+        uiBefore.getPage().reload();
+
+        Assertions.assertNotSame(sessionBefore, VaadinSession.getCurrent(),
+                "Closing the session must create a fresh one");
+        Assertions.assertNull(VaadinSession.getCurrent().getAttribute("marker"),
+                "Session-scoped state must not survive the logout");
+        Assertions.assertNotSame(uiBefore, UI.getCurrent(),
+                "Closing the session must create a fresh UI");
+        Assertions.assertNotSame(view, getCurrentView(),
+                "The view must be recreated in the new UI");
+    }
+
+    @Test
     void reload_keepsSameSessionAndScopedState() {
         navigate(PlainCounterView.class);
         VaadinSession sessionBefore = VaadinSession.getCurrent();

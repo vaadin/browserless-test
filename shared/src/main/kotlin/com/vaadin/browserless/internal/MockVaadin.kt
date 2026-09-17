@@ -92,12 +92,13 @@ object MockVaadin {
     private val lastWindowName = ThreadLocal<String>()
     private val windowNameCounter = AtomicLong()
 
-    // Maps a UI detached by a page reload to the UI that replaced it. A reload
-    // can be triggered by application code calling Page.reload(), so anything
-    // holding on to a UI (notably BrowserlessUIContext) needs a way to follow
-    // its window to the live UI. Weakly keyed, so an entry disappears as soon
-    // as the detached UI is no longer referenced.
-    private val reloadReplacements: MutableMap<UI, UI> =
+    // Maps a UI that was torn down to the UI that took over its window: a page
+    // reload and a session close both discard the current UI and render a
+    // fresh one for the same window. Either can be triggered by application
+    // code, so anything holding on to a UI (notably BrowserlessUIContext)
+    // needs a way to follow its window to the live UI. Weakly keyed, so an
+    // entry disappears as soon as the old UI is no longer referenced.
+    private val uiReplacements: MutableMap<UI, UI> =
         Collections.synchronizedMap(WeakHashMap())
 
     /**
@@ -223,27 +224,29 @@ object MockVaadin {
     }
 
     /**
-     * Records that [detached] was replaced by [created] during a page reload,
-     * so that [liveUI] can map the old UI to the new one.
+     * Records that [created] took over the window of [discarded], so that
+     * [liveUI] can map the old UI to the new one. Called for both ways a
+     * window's UI is replaced: a page reload and a session close.
      */
     @JvmStatic
-    fun recordReloadReplacement(detached: UI, created: UI) {
-        reloadReplacements[detached] = created
+    fun recordUIReplacement(discarded: UI, created: UI) {
+        uiReplacements[discarded] = created
     }
 
     /**
-     * Follows the reload chain starting at [ui] and returns the UI that is live
-     * now: a reload detaches a UI and creates a fresh one for the same window,
-     * so a caller holding the detached UI must be redirected to its
-     * replacement. Returns [ui] itself if it was never replaced.
+     * Follows the replacement chain starting at [ui] and returns the UI that is
+     * live now: a page reload or a session close discards a UI and creates a
+     * fresh one for the same window, so a caller holding the discarded UI must
+     * be redirected to its successor. Returns [ui] itself if it was never
+     * replaced.
      */
     @JvmStatic
     fun liveUI(ui: UI): UI {
         var live: UI = ui
-        var next: UI? = reloadReplacements[live]
+        var next: UI? = uiReplacements[live]
         while (next != null && next !== live) {
             live = next
-            next = reloadReplacements[live]
+            next = uiReplacements[live]
         }
         return live
     }
@@ -576,9 +579,19 @@ object MockVaadin {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
             val mockSession: MockHttpSession = session.mock
+            val discarded: UI? = UI.getCurrent()
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)
+            // The fresh UI took over the window of the one this close
+            // discarded, just as a reload's does. Record it so holders of the
+            // old UI follow their window, and so the logout idiom - capture
+            // the UI, close the session, then ask its page to reload - can
+            // tell that the reload it asks for already happened.
+            val created: UI? = UI.getCurrent()
+            if (discarded != null && created != null && discarded !== created) {
+                recordUIReplacement(discarded, created)
+            }
         }
     }
 
@@ -676,18 +689,31 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
     }
 
     override fun reload() {
-        // Recreating the UI runs on the thread-locals of the current UI, so
-        // reloading a window other than the current one would detach and
-        // recreate the wrong window. Fail instead, before anything is
-        // changed: the caller has to make this window current first (a
-        // BrowserlessUIContext DSL call does that, as does UI.access()).
         val current: UI? = UI.getCurrent()
-        check(current === ui) {
-            "Cannot reload the page of UI $ui, because the current UI is " +
-                    (current?.let { "$it" } ?: "not set") +
-                    ". Reloading recreates the current UI, so the reloaded " +
-                    "window must be the current one: activate that window " +
-                    "first, e.g. through its BrowserlessUIContext or UI.access()."
+        if (current !== ui) {
+            if (MockVaadin.liveUI(ui) !== ui) {
+                // This UI no longer owns its window: something already
+                // discarded it and rendered a fresh UI in its place. That is
+                // the logout idiom - capture the UI, close its session, then
+                // ask its page to reload - where closing the session already
+                // did what the reload is asking for, so there is nothing left
+                // to do. Not even the superclass call, which would fail: it
+                // schedules JavaScript on a UI whose session is gone.
+                return
+            }
+            // Still the live UI of its window, but not the current one.
+            // Recreating the UI runs on the thread-locals of the current UI,
+            // so going on would detach and recreate whichever window is
+            // current. Fail before anything is changed: the caller has to make
+            // this window current first (a BrowserlessUIContext DSL call does
+            // that, as does UI.access()).
+            throw IllegalStateException(
+                "Cannot reload the page of UI $ui, because the current UI is " +
+                        (current?.let { "$it" } ?: "not set") +
+                        ". Reloading recreates the current UI, so the " +
+                        "reloaded window must be the current one: activate " +
+                        "that window first, e.g. through its " +
+                        "BrowserlessUIContext or UI.access().")
         }
 
         // recreate the UI on reload(), to simulate browser's F5
@@ -700,7 +726,7 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
         // reload() DSL.
         val created: UI? = UI.getCurrent()
         if (created != null && created !== ui) {
-            MockVaadin.recordReloadReplacement(ui, created)
+            MockVaadin.recordUIReplacement(ui, created)
         }
     }
 
