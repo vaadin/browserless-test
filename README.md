@@ -27,9 +27,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 - **Signals / reactive state** — process pending signal tasks in tests,
   including the confirmation of shared-signal writes
 - **Round-trip simulation** — flush pending server-side changes
-- **Focus and blur simulation** — focus follows tester interactions like with a
-  real user, firing focus and blur listeners in browser order; server-side
-  `Focusable.focus()` and `blur()` calls are applied as well
+- **Focus and blur simulation** — clicks and value changes made through testers
+  move focus like a real user would, firing focus and blur listeners in browser
+  order; server-side `Focusable.focus()` and `blur()` calls are applied as well
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
 - **Spring Boot integration** — `SpringBrowserlessTest` base class with full
@@ -418,7 +418,8 @@ means the queue has not been drained, not that the write was lost.
 ## Focus and blur
 
 Focus is tracked per UI while a test runs, so focus and blur listeners fire
-implicitly, the way they do with a real user in a browser:
+implicitly when a tester clicks a component or sets its value, the way they do
+with a real user in a browser:
 
 ```java
 test(amount).setValue("100"); // focuses the field
@@ -442,8 +443,9 @@ assertFalse(test(amount).isFocused());
 Server-side `Focusable.focus()` and `Focusable.blur()` calls are simulated as
 well, for example a click listener that opens a dialog and focuses a field in
 it. Such a call only schedules client-side JavaScript, which is applied at the
-end of each simulated interaction and on `roundTrip()`. The resulting focus or
-blur event reports `isFromClient() == false`, just like with a browser:
+end of a focus-tracked interaction, on `roundTrip()`, and whenever focus is
+queried with `isFocused()`. The resulting focus or blur event reports
+`isFromClient() == false`, just like with a browser:
 
 ```java
 Button open = new Button("Open", e -> {
@@ -457,14 +459,23 @@ assertTrue(test(quickAdd).isFocused());
 
 ### Notes and limitations
 
-- Focus follows interactions made through testers and server-side `Focusable`
-  calls. Events fired directly against a component, for example with
-  `ComponentUtil.fireEvent(...)`, bypass focus tracking.
+- Focus moves on clicks made through the common tester `click()` implementation,
+  on value changes made with a tester's `setValue(...)`, and on explicit
+  `focus()` / `blur()` calls.
+- Some testers fire their events directly instead of going through that
+  implementation — among them radio button, menu bar and context menu item
+  clicks — so they neither take focus nor blur the previously focused
+  component. The same holds for events fired by hand, for example with
+  `ComponentUtil.fireEvent(...)`. A server-side `Focusable` call scheduled by
+  such an interaction stays queued until the next focus-tracked interaction, a
+  `roundTrip()`, or an `isFocused()` query.
 - Only `Focusable` components take focus. Interacting with anything else blurs
   the previously focused component and leaves nothing focused, as focus falls
   back to the document body in a browser.
-- A component that is not attached to a UI can neither take nor lose focus, and
-  a disabled component does not accept focus. A read-only field does.
+- `focus()` and `blur()` throw an `IllegalStateException` for a component that
+  is disabled or not attached to a UI, since neither can take or lose focus in
+  a browser either. A read-only field can be focused. `isFocused()` never
+  throws and reports `false` for a component that is not attached.
 - Detecting server-side `Focusable` calls relies on matching the JavaScript that
   Flow generates for them, and reading the pending JavaScript queue consumes it:
   when a focus or blur call is pending, other JavaScript queued at the same time
