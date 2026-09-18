@@ -41,6 +41,14 @@ import com.vaadin.flow.dom.Element;
  * instance which searches through the whole component tree, or a
  * {@link com.vaadin.flow.component.Component} instance, which limits the search
  * to the component subtree.
+ * <p>
+ * Not everything a view shows is in that tree. A component that another
+ * component renders per item, and the content of an overlay that is not open,
+ * are reached through the tester of the component that owns them:
+ * {@code GridTester.getCellComponent(row, column)} for grid cells,
+ * {@code ContextMenuTester.open()} or {@code GridTester.contextMenu(row)} for
+ * menus. A query returns an empty result rather than failing, so such a
+ * component reads as if it was never created.
  *
  * @param <T>
  *            the type of the component(s) to search for

@@ -322,8 +322,9 @@ public class BrowserlessUIContext
      * the tree until then, and the lookup returns an empty result rather than
      * failing, so reach those components through the owning component tester
      * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
-     * {@code ContextMenuTester.open()} and then {@code clickItem(...)} for
-     * menus.
+     * {@code ContextMenuTester.open()} and then {@code clickItem(...)} for a
+     * context menu, and {@code GridTester.contextMenu(row).open()} for a grid
+     * context menu.
      *
      * @param componentType
      *            the type of component to search for
