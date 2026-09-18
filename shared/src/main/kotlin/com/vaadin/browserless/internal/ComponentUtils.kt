@@ -33,7 +33,7 @@ import com.vaadin.flow.component.checkbox.Checkbox
 import com.vaadin.flow.component.checkbox.CheckboxGroup
 import com.vaadin.flow.component.combobox.ComboBox
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog
-import com.vaadin.flow.component.contextmenu.ContextMenu
+import com.vaadin.flow.component.contextmenu.ContextMenuBase
 import com.vaadin.flow.component.datepicker.DatePicker
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.formlayout.FormLayout
@@ -391,7 +391,7 @@ fun Component.simulateClosedEvent() {
         return
     }
     when (this) {
-        is Dialog, is ConfirmDialog, is LoginOverlay, is ContextMenu, is Notification -> {
+        is Dialog, is ConfirmDialog, is LoginOverlay, is ContextMenuBase<*, *, *>, is Notification -> {
             ComponentUtil.setData(this, "hasSimulatedClosedEvent", true)
             element.addPropertyChangeListener("opened") { event ->
                 if (event.value == false) {
