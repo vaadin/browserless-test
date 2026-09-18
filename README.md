@@ -444,10 +444,17 @@ test(menu).open();
 find(Div.class).withText("Rename").all(); // one match
 ```
 
-`ContextMenuTester` works either way: `clickItem("Rename")` and
-`test(menu).find(Div.class)` read the server-side menu state and need no
-`open()` at all; `open()` additionally attaches the menu to the UI, which is
-what makes a top-level `find()` see the items.
+A closed menu is not attached to the UI, so, as in the browser, its items
+cannot be interacted with: `clickItem("Rename")`, `isItemChecked(...)` and
+`getItemTooltipText(...)` throw an `IllegalStateException` until the menu is
+opened. The tester-scoped `test(menu).find(Div.class)` is the exception, since
+it reads the menu contents rather than the UI; it finds the items whether the
+menu is open or not, and returns them detached while it is closed.
+
+A `GridContextMenu` is always about a row, so its tester takes one:
+`test(grid).contextMenu(row)` targets a row without opening the menu, `open()`
+then opens it there, and `clickItem("Rename")` clicks an item of the open menu.
+`GridContextMenuTester.open(row)` opens the menu on a row directly.
 
 ## Per-test Vaadin configuration
 

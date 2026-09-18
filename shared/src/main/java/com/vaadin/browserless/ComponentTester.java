@@ -160,7 +160,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * the tree until then, and the lookup returns an empty result rather than
      * failing, so reach those components through the owning component tester
      * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
-     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     * {@code ContextMenuTester.open()} and then {@code clickItem(...)} for a
+     * context menu, and {@code GridTester.contextMenu(row).open()} for a grid
+     * context menu.
      *
      * @param componentType
      *            type of the component to search.
