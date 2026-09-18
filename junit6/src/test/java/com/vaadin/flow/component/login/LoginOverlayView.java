@@ -29,9 +29,16 @@ import com.vaadin.flow.router.Route;
 public class LoginOverlayView extends Component implements HasComponents {
     LoginOverlay login;
     Div messages;
+    Button signUp;
+    Button help;
 
     public LoginOverlayView() {
         this.login = new LoginOverlay();
+        signUp = new Button("Sign up");
+        help = new Button("Help");
+        // Nested in a layout, so a match cannot be the slot root itself.
+        login.getFooter().add(new Div(signUp));
+        login.getCustomFormArea().add(new Div(help));
         messages = new Div(new Text("Messages"));
         login.addLoginListener(loginEvent -> addMessage(generateLoginMessage(
                 loginEvent.getUsername(), loginEvent.getPassword())));

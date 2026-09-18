@@ -19,6 +19,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.router.Route;
 
 @Tag("div")
@@ -27,10 +28,21 @@ public class DialogView extends Component implements HasComponents {
 
     Dialog dialog;
     Button button;
+    Button headerClose;
+    Button footerOk;
+    Button content;
 
     public DialogView() {
         dialog = new Dialog();
         button = new Button();
+        headerClose = new Button("Close");
+        footerOk = new Button("OK");
+        content = new Button("Content");
+        // The dialog slots its header into a wrapper element with no component
+        // of its own, and the button is nested one level deeper still.
+        dialog.getHeader().add(new Div(headerClose));
+        dialog.getFooter().add(footerOk);
+        dialog.add(content);
         add(button);
     }
 }
