@@ -243,6 +243,15 @@ block leaves no trace. Every step was checked by comparing the *multiset of
 not the `tests="N"` attribute, which DynaTest under-reports. 1,448 before,
 1,448 after, with all 225 renamed names pairing one-for-one.
 
+That check only sees tests that run. `MockVaadinTest.kt` carried five
+`/* TODO: uncomment after importing Locator APIs */` blocks, eight tests in
+all, and the port dropped them without a trace — navigation in a mocked
+environment, `beforeClientResponse` running once per lookup, a dialog's
+contents being reachable while it is open, reload re-navigating to the current
+URL, and the thread-pool example. The Java `Locator` they were waiting on
+exists, so they are back in `MockVaadinTest.java`. When a port deletes
+commented-out code, diff the comments too.
+
 ### Phase 7 — the doclint cleanup — done
 
 Every module builds clean under doclint, errors and warnings both, and

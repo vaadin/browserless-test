@@ -19,15 +19,20 @@ import jakarta.servlet.http.Cookie;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.example.base.HelloWorldView;
 import com.example.base.ParametrizedView;
+import com.example.base.WelcomeView;
 import com.example.base.child.ChildView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,6 +49,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -273,6 +279,31 @@ class MockVaadinTest {
         }
 
         @Test
+        void navigate_toAView_rendersIt() {
+            // MockVaadin.setup() navigates to "" while initializing the UI
+            Locator._get(Text.class, spec -> spec.setText("Welcome!"));
+
+            UI.getCurrent().navigate("helloworld");
+
+            Locator._get(Button.class,
+                    spec -> spec.setCaption("Hello, World!"));
+        }
+
+        @Test
+        void navigate_toAParametrizedView_rendersIt() {
+            UI.getCurrent().navigate("params/1");
+
+            Locator._get(ParametrizedView.class);
+        }
+
+        @Test
+        void navigate_toAViewWithAParentRoute_rendersIt() {
+            UI.getCurrent().navigate("parent/child");
+
+            Locator._get(ChildView.class);
+        }
+
+        @Test
         void routeConfiguration_resolvesTheUrlsOfTheDiscoveredViews() {
             RouteConfiguration routeConfig = RouteConfiguration.forRegistry(
                     UI.getCurrent().getInternals().getRouter().getRegistry());
@@ -293,8 +324,61 @@ class MockVaadinTest {
         }
     }
 
+    /**
+     * A lookup runs the blocks scheduled with {@link UI#beforeClientResponse},
+     * and runs each of them once. Tests <a href=
+     * "https://github.com/mvysny/karibu-testing/issues/11">karibu-testing#11</a>.
+     */
+    @Nested
+    class BeforeClientResponse {
+
+        @Test
+        void scheduledOnTheUi_runsOnceOnTheNextLookup() {
+            AtomicInteger ran = new AtomicInteger();
+            UI.getCurrent().beforeClientResponse(UI.getCurrent(),
+                    context -> assertEquals(1, ran.incrementAndGet(),
+                            "the block was supposed to be run only once"));
+
+            Locator._get(UI.class);
+
+            assertEquals(1, ran.get());
+        }
+
+        @Test
+        void scheduledOnANestedButton_runsOnceOnTheNextLookup() {
+            AtomicInteger ran = new AtomicInteger();
+            Button button = new Button();
+            UI.getCurrent().add(button);
+            UI.getCurrent()
+                    .beforeClientResponse(button, context -> assertEquals(1,
+                            ran.incrementAndGet(),
+                            "the block was supposed to be run only once"));
+
+            Locator._get(UI.class);
+
+            assertEquals(1, ran.get());
+        }
+    }
+
     @Nested
     class Dialogs {
+
+        @Test
+        void openDialog_putsItAndItsContentsInTheComponentTree() {
+            Locator._expectNone(Dialog.class);
+            Locator._expectNone(Div.class, spec -> spec.setText("Dialog Text"));
+
+            Dialog dialog = new Dialog(new Div(new Text("Dialog Text")));
+            dialog.open();
+
+            Locator._get(Dialog.class);
+            Locator._get(Div.class, spec -> spec.setText("Dialog Text"));
+
+            dialog.close();
+
+            Locator._expectNone(Div.class, spec -> spec.setText("Dialog Text"));
+            Locator._expectNone(Dialog.class);
+        }
 
         @Test
         void cleanupDialogs_closedDialog_isRemovedFromTheComponentTree() {
@@ -326,6 +410,25 @@ class MockVaadinTest {
             assertNotSame(ui, UI.getCurrent());
             // the old UI must be detached properly
             assertEquals(1, detachCalled.get());
+        }
+
+        @Test
+        void reload_navigatesToTheCurrentUrl() {
+            Locator._get(WelcomeView.class);
+
+            UI.getCurrent().getPage().reload();
+
+            Locator._get(WelcomeView.class);
+
+            UI.getCurrent().navigate("helloworld");
+
+            Locator._expectNone(WelcomeView.class);
+            Locator._get(HelloWorldView.class);
+
+            UI.getCurrent().getPage().reload();
+
+            Locator._expectNone(WelcomeView.class);
+            Locator._get(HelloWorldView.class);
         }
 
         @Test
@@ -512,6 +615,83 @@ class MockVaadinTest {
 
             assertNotSame(firstUi.get(), secondUi.get());
             assertNotSame(firstSession.get(), secondSession.get());
+        }
+
+        /**
+         * How an application runs browserless tests on a thread pool: the
+         * thread factory sets Vaadin up for every thread it creates, so each
+         * task gets its own UI and session.
+         */
+        @Test
+        void executorService_setsVaadinUpPerThread_andEveryTaskReachesTheService()
+                throws InterruptedException {
+            CallCountingService service = new CallCountingService();
+            ExecutorService executor = Executors.newFixedThreadPool(4,
+                    runnable -> new Thread(() -> {
+                        MockVaadin.setup(routes);
+                        runnable.run();
+                        MockVaadin.tearDown();
+                    }));
+            AtomicReference<Throwable> failure = new AtomicReference<>();
+
+            try {
+                for (int i = 0; i < 4; i++) {
+                    executor.submit(() -> {
+                        try {
+                            UI.getCurrent().navigate("helloworld");
+                            Locator._get(Button.class,
+                                    spec -> spec.setCaption("Hello, World!"))
+                                    .addClickListener(
+                                            event -> service.callService());
+                            ComponentUtils.serverClick(Locator._get(
+                                    Button.class,
+                                    spec -> spec.setCaption("Hello, World!")));
+                        } catch (Throwable t) {
+                            failure.compareAndSet(null, t);
+                        }
+                    });
+                }
+            } finally {
+                executor.shutdown();
+                assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS),
+                        "the tasks did not finish in time");
+            }
+
+            assertNull(failure.get(), () -> "a task failed: " + failure.get());
+            assertEquals(4, service.getCount());
+        }
+
+        /**
+         * Stands in for an application service: it only counts the calls, but
+         * it does so under a lock, so that a task running on the wrong thread
+         * or a lost Vaadin environment shows up as a wrong count.
+         */
+        private static class CallCountingService {
+
+            private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+            private int count;
+
+            void callService() {
+                lock.writeLock().lock();
+                try {
+                    Thread.sleep(10);
+                    count++;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    lock.writeLock().unlock();
+                }
+            }
+
+            int getCount() {
+                lock.readLock().lock();
+                try {
+                    return count;
+                } finally {
+                    lock.readLock().unlock();
+                }
+            }
         }
 
         private void newVaadinThread(AtomicReference<UI> ui,
