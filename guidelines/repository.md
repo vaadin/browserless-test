@@ -5,11 +5,8 @@
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
 - **Vaadin 25 / Flow** as a `provided` dependency, one fixed version per
   branch — see [Flow Version](flow-version.md).
-- **Kotlin** only in the test sources (`shared/src/test/kotlin`,
-  `junit6/src/test/kotlin`). The main sources are pure Java — see
-  [`de-kotlin-plan.md`](../de-kotlin-plan.md).
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
-  own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
+  own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
 - **maven-javadoc-plugin** for Javadoc in every module.
@@ -73,7 +70,7 @@ Formatting is applied by `mvn spotless:apply` and validated by
 `eclipse/VaadinJavaConventions.xml`, the import order in
 `eclipse/flow.importorder`, the Apache 2 license header in
 `eclipse/apache2-license-header.txt`, no wildcard imports, and a trailing
-newline. Kotlin files get the license header check only.
+newline.
 
 ## Blast radius
 

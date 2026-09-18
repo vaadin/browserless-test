@@ -19,8 +19,6 @@ Layout inside `junit6/src/test`:
   `LocatorApiTest`, `SignalsTest`) and the shared test contracts.
 - `java/com/example/…` — views and fixtures that tests navigate to, kept out of
   the framework packages so route scanning stays predictable.
-- `kotlin/` — the remaining DynaTest/Karibu-style tests of the Kotlin internals.
-  Do not add new ones; write new tests as JUnit 6 in Java.
 
 The Spring, Quarkus and CDI integrations have their own test sources, because
 each needs a different container on the classpath. `junit6-cdi-tests` exists

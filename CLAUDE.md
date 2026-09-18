@@ -17,7 +17,6 @@ each Vaadin component in a *tester* that drives it the way a browser would.
 
 - Java 21+, Maven (multi-module)
 - Vaadin 25 / Flow — a `provided` dependency, one fixed version per branch
-- Kotlin only in the test sources; the main sources are pure Java
 - JUnit 6 (Jupiter) for the test API and for this repository's own tests
 - An annotation processor (`locator-processor`) that generates the typed
   locator API at build time

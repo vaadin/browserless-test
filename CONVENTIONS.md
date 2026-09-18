@@ -108,8 +108,7 @@ Go through the Vaadin extension points rather than around them — fire service
 and session lifecycle events through the `VaadinService` event bus, and forward
 `Instantiator` calls to the real instantiator instead of reimplementing them.
 
-`shared` is written in Java. Kotlin survives only in the test sources; do not
-add new Kotlin files.
+This repository is written in Java; do not add Kotlin sources.
 
 See [`guidelines/architecture.md`](guidelines/architecture.md).
 

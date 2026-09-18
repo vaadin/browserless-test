@@ -14,6 +14,9 @@ Working plan for removing Kotlin from `browserless-test`. The goal is that
 | `junit6/src/test/kotlin` | 23 | ~3,050 | DynaTest + Karibu DSL |
 | `shared/src/test/kotlin` | 2 | 144 | DynaTest |
 
+All of it is ported as of Phase 6; the table is the starting point the phases
+below work through.
+
 `spring`, `quarkus`, `junit6/src/main` and `locator-processor` are already pure
 Java, but about 48 Java files reference the Kotlin packages and 24 call sites go
 through Kotlin file facades (`LocatorKt`, `PrettyPrintTreeKt`, `GridKt`,
@@ -204,17 +207,44 @@ so the port does not turn into a module-wide Javadoc cleanup. That cleanup is
 worth doing on its own, tightening the setting back a step at a time; the other
 modules already run with doclint on.
 
-### Phase 6 — test-side Kotlin (separate decision)
+### Phase 6 — test-side Kotlin — done
 
-The 25 Kotlin test files are test-scoped, so they never reach consumers, and
-leaving them keeps the port's risk down. They also keep `kotlin-maven-plugin`,
-`dynatest` and `karibu-dsl` in the build, against `guidelines/testing.md`.
+The last 25 Kotlin files, all test-scoped, are now JUnit 6 Java, and the word
+Kotlin is gone from the build: no `kotlin-maven-plugin`, no `dynatest`, no
+`karibu-dsl`, no `kotlin-stdlib`, no Dokka, no `kotlin` block in Spotless. All
+five suites match the `main` baseline: shared 42, junit6 1406,
+junit6-cdi-tests 4, spring 41, quarkus 31.
 
-Recommended: land Phases 1–5 first, then convert the ~3,200 LOC of DynaTest to
-JUnit 6 Java. `group { … }` / `test { … }` map cleanly onto `@Nested` /
-`@Test`, and `AllTests.kt` is a pure aggregator that disappears. This is the one
-phase where a mistake can silently delete coverage, so it needs a test-count
-diff rather than just a green build.
+- `group { … }` / `test { … }` map onto `@Nested` / `@Test`; `beforeEach` and
+  `afterEach` onto `@BeforeEach` / `@AfterEach`, and a `beforeGroup` onto
+  `@BeforeAll`. `AllTests.kt` was a pure aggregator: its two standalone tests
+  became `TestClasspathTest` and the rest of it disappeared.
+- `locatorTest()` and `locatorTest2()` were two DynaTest fragments the
+  aggregator wired under different lifecycle hooks, so they became two classes:
+  `LocatorTest` (with `MyLifecycleHook` installed) and
+  `LocatorWithoutLifecycleHookTest`.
+- `LocatorDsl.kt` existed only to keep `_get<Button> { caption = "…" }` working
+  for Kotlin callers. With the tests in Java it is deleted, and they call
+  `Locator._get(clazz, spec -> …)` directly — which is also what a user writes.
+- DynaTest's helpers needed Java equivalents: `cloneBySerialization()` became
+  `TestSerialization`, `expectThrows(clazz, message) { … }` became
+  `TestAssertions.expectThrows(Class, regex, Executable)`, and `expectList(…)`
+  became a plain `assertEquals(List.of(…), …)`.
+- Karibu DSL builders (`verticalLayout { textField(…) }`) become plain Vaadin
+  constructor and `add()` calls.
+- Watch the assertions that Kotlin's loose typing hid. A `var flag = false`
+  asserted with `expect(true)` says nothing about how many times a listener
+  fired; ported to a counter asserted `== 1` it turned red, because
+  `VaadinSession.close()` detaches the UI twice.
+- Test names: DynaTest's free-text names (`"attributes"`, `"spec"`,
+  `"FailsOnNoComponents UI"`) become method names in the repository's
+  `subject_scenario_expectation` shape, which is what surefire reports.
+
+**Verification.** A green build is not enough here — a dropped `test { … }`
+block leaves no trace. Every step was checked by comparing the *multiset of
+`<testcase name="…">` values* in the surefire XML against a baseline worktree,
+not the `tests="N"` attribute, which DynaTest under-reports. 1,448 before,
+1,448 after, with all 225 renamed names pairing one-for-one.
 
 ## Breaking changes
 
