@@ -35,18 +35,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <!-- Dokka generated this module's Javadocs until the Kotlin
-                         sources were ported away, and it validated nothing, so
-                         doclint is seeing these sources for the first time: it
-                         reports roughly 200 issues across 53 files, nearly all
-                         of them in testers untouched by the port. Disabled here
-                         to keep the port from turning into a module-wide
-                         Javadoc cleanup; that cleanup is worth doing on its
-                         own, tightening this back to the default a step at a
-                         time. The other modules run with doclint on. -->
-                    <doclint>none</doclint>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

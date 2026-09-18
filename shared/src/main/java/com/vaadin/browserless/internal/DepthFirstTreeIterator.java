@@ -48,6 +48,8 @@ public class DepthFirstTreeIterator<T> implements Iterator<T> {
     private final Function<T, List<T>> children;
 
     /**
+     * Creates an iterator over the tree below the given node.
+     *
      * @param root
      *            start here.
      * @param children
@@ -81,6 +83,10 @@ public class DepthFirstTreeIterator<T> implements Iterator<T> {
     /**
      * Walks the component child tree, depth-first: first the component, then
      * its descendants, then its next sibling.
+     *
+     * @param root
+     *            the component to start from
+     * @return the components, in depth-first order
      */
     public static Iterable<Component> walk(Component root) {
         return () -> new DepthFirstTreeIterator<>(root, component -> component

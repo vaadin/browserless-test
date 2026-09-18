@@ -77,6 +77,9 @@ public class TestSignalEnvironment extends SignalEnvironment {
     private final LinkedBlockingQueue<Runnable> tasks = new LinkedBlockingQueue<>();
     private Runnable cleanup;
 
+    /**
+     * Creates the environment; use {@link #register()} instead.
+     */
     protected TestSignalEnvironment() {
     }
 

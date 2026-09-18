@@ -56,8 +56,14 @@ import com.vaadin.flow.server.WebBrowser;
  */
 public class MockVaadinServlet extends VaadinServlet {
 
+    /**
+     * The routes registered when the service is created.
+     */
     private final Routes routes;
 
+    /**
+     * Produces the UI instances the sessions of this servlet hand out.
+     */
     private final UIFactory uiFactory;
 
     /**
@@ -174,6 +180,10 @@ public class MockVaadinServlet extends VaadinServlet {
 
     /**
      * Workaround for https://github.com/mvysny/karibu-testing/issues/66
+     *
+     * @param servlet
+     *            the servlet to act on
+     * @return the servlet's service, initializing the servlet first if needed
      */
     public static VaadinServletService serviceSafe(VaadinServlet servlet) {
         // we need to use the reflection. The problem is that the signature
@@ -194,6 +204,12 @@ public class MockVaadinServlet extends VaadinServlet {
 
     /**
      * Workaround for https://github.com/mvysny/karibu-testing/issues/66
+     *
+     * @param request
+     *            the request to act on
+     * @param service
+     *            the service to act on
+     * @return a request bound to the given servlet's service
      */
     public static VaadinServletRequest createVaadinServletRequest(
             HttpServletRequest request, VaadinService service) {
@@ -215,6 +231,12 @@ public class MockVaadinServlet extends VaadinServlet {
 
     /**
      * Workaround for https://github.com/mvysny/karibu-testing/issues/66
+     *
+     * @param response
+     *            the response to act on
+     * @param service
+     *            the service to act on
+     * @return a response bound to the given servlet's service
      */
     public static VaadinServletResponse createVaadinServletResponse(
             HttpServletResponse response, VaadinService service) {
@@ -234,6 +256,14 @@ public class MockVaadinServlet extends VaadinServlet {
         }
     }
 
+    /**
+     * Creates the browser details the session reports, describing a desktop
+     * Firefox.
+     *
+     * @param request
+     *            the request the browser details are taken from
+     * @return the browser details
+     */
     public static WebBrowser createWebBrowser(VaadinRequest request) {
         try {
             return _WebBrowser_constructor.newInstance(request);
@@ -242,6 +272,15 @@ public class MockVaadinServlet extends VaadinServlet {
         }
     }
 
+    /**
+     * Creates a session, locks it and binds it to the request.
+     *
+     * @param service
+     *            the service the session belongs to
+     * @param request
+     *            the request the session is bound to
+     * @return the new session, already locked
+     */
     public static VaadinSession createVaadinSession(VaadinService service,
             VaadinRequest request) {
         try {

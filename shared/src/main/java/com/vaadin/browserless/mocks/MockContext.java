@@ -76,6 +76,12 @@ import static com.vaadin.browserless.mocks.MockUtils.putOrRemove;
  */
 public class MockContext implements ServletContext, Serializable {
 
+    /**
+     * Creates an empty context.
+     */
+    public MockContext() {
+    }
+
     private static final Logger LOG = LoggerFactory
             .getLogger(MockContext.class);
 
@@ -245,6 +251,9 @@ public class MockContext implements ServletContext, Serializable {
         throw new UnsupportedOperationException("not implemented");
     }
 
+    /**
+     * The directories {@link #getRealPath} resolves paths against.
+     */
     private List<String> realPathRoots = Arrays
             .asList("src/main/webapp/frontend", "src/main/webapp");
 
@@ -291,6 +300,9 @@ public class MockContext implements ServletContext, Serializable {
         return null;
     }
 
+    /**
+     * The context init parameters.
+     */
     private final Map<String, String> initParameters = new HashMap<>();
 
     /**
@@ -367,6 +379,9 @@ public class MockContext implements ServletContext, Serializable {
         return "mock/localhost"; // Tomcat returns "Catalina/localhost"
     }
 
+    /**
+     * The session timeout, in minutes.
+     */
     private int sessionTimeout = 30;
 
     @Override
@@ -379,6 +394,9 @@ public class MockContext implements ServletContext, Serializable {
         this.sessionTimeout = sessionTimeout;
     }
 
+    /**
+     * The character encoding requests default to.
+     */
     private String requestCharacterEncoding = null;
 
     @Override
@@ -391,6 +409,9 @@ public class MockContext implements ServletContext, Serializable {
         this.requestCharacterEncoding = encoding;
     }
 
+    /**
+     * The character encoding responses default to.
+     */
     private String responseCharacterEncoding = null;
 
     @Override
@@ -413,6 +434,9 @@ public class MockContext implements ServletContext, Serializable {
         throw new UnsupportedOperationException("not implemented");
     }
 
+    /**
+     * The context attributes.
+     */
     private final ConcurrentHashMap<String, Object> attributes = new ConcurrentHashMap<>();
 
     @Override

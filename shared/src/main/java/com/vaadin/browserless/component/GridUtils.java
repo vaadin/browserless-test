@@ -171,12 +171,24 @@ public final class GridUtils {
 
     /**
      * Returns the item on given row. Fails if the row index is invalid. The
-     * data provider is sorted according to given [sortOrders] (empty by
-     * default) and filtered according to given [filter] (null by default)
+     * data provider is sorted according to given {@code sortOrders} (empty by
+     * default) and filtered according to given {@code filter} (null by default)
      * first.
      *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
      * @param rowIndex
      *            the row, 0..size - 1
+     * @param sortOrders
+     *            the sort orders to pass to the query
+     * @param inMemorySorting
+     *            the comparator applied in memory, or null for none
+     * @param filter
+     *            the filter to pass to the query, or null for none
      * @return the item at given row.
      * @throws AssertionError
      *             if the row index is out of bounds.
@@ -200,15 +212,41 @@ public final class GridUtils {
         return list.get(0);
     }
 
+    /**
+     * Equivalent to
+     * {@code _get(provider, rowIndex, Collections.emptyList(), null, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @param rowIndex
+     *            the row index, 0-based
+     * @return the item at the given row
+     */
     public static <T, F> T _get(DataProvider<T, F> provider, int rowIndex) {
         return _get(provider, rowIndex, Collections.emptyList(), null, null);
     }
 
     /**
      * Returns all items in given data provider, sorted according to given
-     * [sortOrders] (empty by default) and filtered according to given [filter]
-     * (null by default).
+     * {@code sortOrders} (empty by default) and filtered according to given
+     * {@code filter} (null by default).
      *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @param sortOrders
+     *            the sort orders to pass to the query
+     * @param inMemorySorting
+     *            the comparator applied in memory, or null for none
+     * @param filter
+     *            the filter to pass to the query, or null for none
      * @return the list of items.
      */
     public static <T, F> List<T> _findAll(DataProvider<T, F> provider,
@@ -219,6 +257,18 @@ public final class GridUtils {
         return fetched.collect(Collectors.toList());
     }
 
+    /**
+     * Equivalent to
+     * {@code _findAll(provider, Collections.emptyList(), null, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @return all items the data provider returns
+     */
     public static <T, F> List<T> _findAll(DataProvider<T, F> provider) {
         return _findAll(provider, Collections.emptyList(), null, null);
     }
@@ -227,11 +277,15 @@ public final class GridUtils {
      * Returns the item on given row. Fails if the row index is invalid. Uses
      * current Grid sorting.
      *
-     * For [TreeGrid] this returns the x-th displayed row; skips children of
-     * collapsed nodes. Uses [_rowSequence].
+     * For {@link TreeGrid} this returns the x-th displayed row; skips children
+     * of collapsed nodes. Uses {@code _rowSequence}.
      *
-     * WARNING: Very slow operation for [TreeGrid].
+     * WARNING: Very slow operation for {@link TreeGrid}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the row, 0..size - 1
      * @return the item at given row, not null.
@@ -260,15 +314,19 @@ public final class GridUtils {
     }
 
     /**
-     * Returns the item on given row, or null if the [rowIndex] is larger than
-     * the number of items the data provider can provide. Uses current Grid
+     * Returns the item on given row, or null if the {@code rowIndex} is larger
+     * than the number of items the data provider can provide. Uses current Grid
      * sorting.
      *
-     * For [TreeGrid] this returns the x-th displayed row; skips children of
-     * collapsed nodes. Uses [_rowSequence].
+     * For {@link TreeGrid} this returns the x-th displayed row; skips children
+     * of collapsed nodes. Uses {@code _rowSequence}.
      *
-     * WARNING: Very slow operation for [TreeGrid].
+     * WARNING: Very slow operation for {@link TreeGrid}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the row, 0 or larger.
      * @return the item at given row or null if the data provider provides less
@@ -296,8 +354,10 @@ public final class GridUtils {
      * retrieving the number of available rows. See `FetchCallback` for more
      * details.
      *
-     * @return true if the current data provider supports [_size] retrieval,
-     *         false if not. Returns true for Vaadin 14.
+     * @param grid
+     *            the grid to read
+     * @return true if the current data provider supports {@code _size}
+     *         retrieval, false if not. Returns true for Vaadin 14.
      */
     public static boolean _dataProviderSupportsSizeOp(Grid<?> grid) {
         try {
@@ -312,12 +372,22 @@ public final class GridUtils {
      * Returns items in given range from Grid's data provider. Uses current Grid
      * sorting.
      *
-     * For [TreeGrid] this walks the [_rowSequence].
+     * For {@link TreeGrid} this walks the {@code _rowSequence}.
      *
      * The Grid never sets any filters into the data provider, however any
      * ConfigurableFilterDataProvider will automatically apply its filters.
      *
-     * WARNING: Very slow operation for [TreeGrid].
+     * WARNING: Very slow operation for {@link TreeGrid}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param offset
+     *            the index of the first item to fetch
+     * @param limit
+     *            the maximum number of items to fetch
+     * @return items in given range from Grid's data provider
      */
     public static <T> List<T> _fetch(Grid<T> grid, int offset, int limit) {
         if (grid instanceof TreeGrid) {
@@ -334,7 +404,17 @@ public final class GridUtils {
      * Grid sorting. Any ConfigurableFilterDataProvider will automatically apply
      * its filters.
      *
-     * This is an internal stuff, most probably you wish to call [_fetch].
+     * This is an internal stuff, most probably you wish to call {@code _fetch}.
+     *
+     * @param <T>
+     *            the item type
+     * @param dc
+     *            the data communicator to read
+     * @param offset
+     *            the index of the first item to fetch
+     * @param limit
+     *            the maximum number of items to fetch
+     * @return items in given range from this data communicator
      */
     public static <T> List<T> fetch(DataCommunicator<T> dc, int offset,
             int limit) {
@@ -363,7 +443,13 @@ public final class GridUtils {
      * Returns all items from this data communicator. Uses current Grid sorting.
      * Any ConfigurableFilterDataProvider will automatically apply its filters.
      *
-     * This is an internal stuff, most probably you wish to call [_fetch].
+     * This is an internal stuff, most probably you wish to call {@code _fetch}.
+     *
+     * @param <T>
+     *            the item type
+     * @param dc
+     *            the data communicator to read
+     * @return all items from this data communicator
      */
     public static <T> List<T> fetchAll(DataCommunicator<T> dc) {
         return fetch(dc, 0, BasicUtils._saneFetchLimit());
@@ -372,12 +458,16 @@ public final class GridUtils {
     /**
      * Returns all items in given data provider. Uses current Grid sorting.
      *
-     * For [TreeGrid] this returns all displayed rows; skips children of
+     * For {@link TreeGrid} this returns all displayed rows; skips children of
      * collapsed nodes.
      *
      * The Grid never sets any filters into the data provider, however any
      * ConfigurableFilterDataProvider will automatically apply its filters.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @return the list of items.
      */
     public static <T> List<T> _findAll(Grid<T> grid) {
@@ -387,8 +477,18 @@ public final class GridUtils {
     /**
      * Returns the number of items in this data provider.
      *
-     * In case of [HierarchicalDataProvider] this returns the number of ALL
-     * items including all leafs.
+     * In case of {@link HierarchicalDataProvider} this returns the number of
+     * ALL items including all leafs.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @param filter
+     *            the filter to pass to the query, or null for none
+     * @return the number of items in this data provider
      */
     public static <T, F> int _size(DataProvider<T, F> provider, F filter) {
         if (provider instanceof HierarchicalDataProvider) {
@@ -399,6 +499,17 @@ public final class GridUtils {
         return provider.size(new Query<>(filter));
     }
 
+    /**
+     * Equivalent to {@code _size(provider, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @return the number of items in this data provider
+     */
     public static <T, F> int _size(DataProvider<T, F> provider) {
         return _size(provider, null);
     }
@@ -406,28 +517,61 @@ public final class GridUtils {
     /**
      * Returns the number of items in this data provider, including child items.
      * The function traverses recursively until all children are found; then a
-     * total size is returned. The function uses [HierarchicalDataProvider.size]
-     * mostly, but also uses [HierarchicalDataProvider.fetchChildren] to
-     * discover children. Only children matching [filter] are considered for
-     * recursive computation of the size.
+     * total size is returned. The function uses
+     * {@link HierarchicalDataProvider#size(com.vaadin.flow.data.provider.Query)}
+     * mostly, but also uses
+     * {@link HierarchicalDataProvider#fetchChildren(HierarchicalQuery)} to
+     * discover children. Only children matching {@code filter} are considered
+     * for recursive computation of the size.
      *
      * Note that this can differ to `Grid._size()` since `Grid._size()` ignores
      * children of collapsed tree nodes.
      *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
      * @param root
      *            start with this item; defaults to null to iterate all items
      * @param filter
-     *            filter to pass to [HierarchicalQuery]
+     *            filter to pass to {@link HierarchicalQuery}
+     * @return the number of items in this data provider, including child items
      */
     public static <T, F> int _size(HierarchicalDataProvider<T, F> provider,
             T root, F filter) {
         return (int) _rowSequence(provider, root, item -> true, filter).count();
     }
 
+    /**
+     * Equivalent to {@code _size(provider, null, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @return the number of items in this data provider, including child items
+     */
     public static <T, F> int _size(HierarchicalDataProvider<T, F> provider) {
         return _size(provider, null, null);
     }
 
+    /**
+     * Equivalent to {@code _size(provider, root, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @param root
+     *            start with this item; null iterates all items
+     * @return the number of items below the given root, including child items
+     */
     public static <T, F> int _size(HierarchicalDataProvider<T, F> provider,
             T root) {
         return _size(provider, root, null);
@@ -436,14 +580,19 @@ public final class GridUtils {
     /**
      * Returns the number of items in this Grid.
      *
-     * For [TreeGrid] this computes the number of items the [TreeGrid] is
-     * actually showing on-screen, ignoring children of collapsed nodes.
+     * For {@link TreeGrid} this computes the number of items the
+     * {@link TreeGrid} is actually showing on-screen, ignoring children of
+     * collapsed nodes.
      *
-     * A very slow operation for [TreeGrid] since it walks through all items
-     * returned by [_rowSequence].
+     * A very slow operation for {@link TreeGrid} since it walks through all
+     * items returned by {@code _rowSequence}.
      *
-     * If [_dataProviderSupportsSizeOp] is false, this function will fetch all
-     * the data and count the result returned, which is also very slow.
+     * If {@code _dataProviderSupportsSizeOp} is false, this function will fetch
+     * all the data and count the result returned, which is also very slow.
+     *
+     * @param grid
+     *            the grid to read
+     * @return the number of items in this Grid
      */
     public static int _size(Grid<?> grid) {
         if (grid instanceof TreeGrid) {
@@ -461,8 +610,15 @@ public final class GridUtils {
     }
 
     /**
-     * Gets a [Grid.Column] of this grid by its [columnKey].
+     * Gets a {@link Grid.Column} of this grid by its {@code columnKey}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param columnKey
+     *            the column key
+     * @return a {@link Grid.Column} of this grid by its {@code columnKey}
      * @throws AssertionError
      *             if no such column exists.
      */
@@ -481,15 +637,22 @@ public final class GridUtils {
     }
 
     /**
-     * Retrieves a component produced by [ComponentRenderer] in given [Grid]
-     * cell. Fails if the renderer is not a [ComponentRenderer].
+     * Retrieves a component produced by {@link ComponentRenderer} in given
+     * {@link Grid} cell. Fails if the renderer is not a
+     * {@link ComponentRenderer}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the row index, 0 or higher.
      * @param columnKey
-     *            the column key [Grid.Column.getKey]
+     *            the column key {@link Grid.Column#getKey()}
+     * @return a component produced by {@link ComponentRenderer} in given
+     *         {@link Grid} cell
      * @throws IllegalStateException
-     *             if the renderer is not [ComponentRenderer].
+     *             if the renderer is not {@link ComponentRenderer}.
      */
     public static <T> Component _getCellComponent(Grid<T> grid, int rowIndex,
             String columnKey) {
@@ -514,13 +677,18 @@ public final class GridUtils {
 
     /**
      * Returns the formatted value of given column as a String. Uses
-     * [getPresentationValue] and converts the result to string (even if the
-     * result is a [Component]).
+     * {@code getPresentationValue} and converts the result to string (even if
+     * the result is a {@link Component}).
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the row index, 0 or higher.
      * @param columnKey
      *            the column ID.
+     * @return the formatted value of given column as a String
      */
     public static <T> String _getFormatted(Grid<T> grid, int rowIndex,
             String columnKey) {
@@ -530,11 +698,17 @@ public final class GridUtils {
     }
 
     /**
-     * Returns the formatted value as a String. Uses [getPresentationValue] and
-     * converts the result to string (even if the result is a [Component]).
+     * Returns the formatted value as a String. Uses
+     * {@code getPresentationValue} and converts the result to string (even if
+     * the result is a {@link Component}).
      *
+     * @param <T>
+     *            the item type
+     * @param column
+     *            the column to read
      * @param rowObject
      *            the bean
+     * @return the formatted value as a String
      */
     public static <T> String _getFormatted(Grid.Column<T> column, T rowObject) {
         Object value = getPresentationValue(column, rowObject);
@@ -543,10 +717,16 @@ public final class GridUtils {
 
     /**
      * Returns the formatted row as a list of Strings, one for every visible
-     * column. Uses [_getFormatted].
+     * column. Uses {@code _getFormatted}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowObject
      *            the bean
+     * @return the formatted row as a list of Strings, one for every visible
+     *         column
      */
     public static <T> List<String> _getFormattedRow(Grid<T> grid, T rowObject) {
         List<String> result = new ArrayList<>();
@@ -560,11 +740,17 @@ public final class GridUtils {
 
     /**
      * Returns the formatted row as a list of Strings, one for every visible
-     * column. Uses [_getFormatted]. Fails if the [rowIndex] is not within the
-     * limits.
+     * column. Uses {@code _getFormatted}. Fails if the {@code rowIndex} is not
+     * within the limits.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the index of the row, 0..size-1.
+     * @return the formatted row as a list of Strings, one for every visible
+     *         column
      */
     public static <T> List<String> _getFormattedRow(Grid<T> grid,
             int rowIndex) {
@@ -574,11 +760,17 @@ public final class GridUtils {
 
     /**
      * Returns the formatted row as a list of Strings, one for every visible
-     * column. Uses [_getFormatted]. Returns null if the [rowIndex] is not
-     * within the limits.
+     * column. Uses {@code _getFormatted}. Returns null if the {@code rowIndex}
+     * is not within the limits.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
      * @param rowIndex
      *            the index of the row, 0-based.
+     * @return the formatted row as a list of Strings, one for every visible
+     *         column
      */
     public static <T> List<String> _getFormattedRowOrNull(Grid<T> grid,
             int rowIndex) {
@@ -590,9 +782,19 @@ public final class GridUtils {
     }
 
     /**
-     * Returns the output of renderer set for this column for given [rowObject]
-     * formatted as close as possible to the client-side output, using
-     * [Grid.Column.renderer].
+     * Returns the output of renderer set for this column for given
+     * {@code rowObject} formatted as close as possible to the client-side
+     * output, using the column's renderer.
+     *
+     * @param <T>
+     *            the item type
+     * @param column
+     *            the column to read
+     * @param rowObject
+     *            the item the row shows
+     * @return the output of renderer set for this column for given {@code
+     *         rowObject} formatted as close as possible to the client-side
+     *         output, using the column's renderer
      */
     public static <T> Object getPresentationValue(Grid.Column<T> column,
             T rowObject) {
@@ -627,8 +829,8 @@ public final class GridUtils {
 
     /**
      * Dumps given range of rows of the Grid, formatting the values using the
-     * [_getFormatted] function. Does not consider header groups. The output
-     * example:
+     * {@code _getFormatted} function. Does not consider header groups. The
+     * output example:
      *
      * <pre>
      * --[Name]--[Age]--[Occupation]--
@@ -636,11 +838,31 @@ public final class GridUtils {
      * 1: Fred, 40, Supervisor
      * --and 198 more
      * </pre>
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @return the grid contents, formatted as a table
      */
     public static <T> String _dump(Grid<T> grid) {
         return _dump(grid, 0, 9);
     }
 
+    /**
+     * Dumps the given range of rows of the grid, formatting the values with
+     * {@code _getFormatted}. Does not consider header groups.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to dump
+     * @param from
+     *            the first row to dump, 0-based
+     * @param to
+     *            the row to stop before, exclusive
+     * @return the rows, formatted as a table
+     */
     public static <T> String _dump(Grid<T> grid, int from, int to) {
         StringBuilder sb = new StringBuilder();
         List<Grid.Column<T>> visibleColumns = new ArrayList<>();
@@ -730,8 +952,13 @@ public final class GridUtils {
     }
 
     /**
-     * Asserts that this grid's provider returns given [count] of items. If not,
-     * an [AssertionError] is thrown with the Grid [_dump].
+     * Asserts that this grid's provider returns given {@code count} of items.
+     * If not, an {@link AssertionError} is thrown with the Grid {@code _dump}.
+     *
+     * @param grid
+     *            the grid to read
+     * @param count
+     *            the expected number of items
      */
     public static void expectRows(Grid<?> grid, int count) {
         int actual = _size(grid);
@@ -743,8 +970,12 @@ public final class GridUtils {
     }
 
     /**
-     * Asserts that this grid's [rowIndex] row is formatted as expected.
+     * Asserts that this grid's {@code rowIndex} row is formatted as expected.
      *
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
      * @param row
      *            the expected row formatting.
      */
@@ -783,7 +1014,8 @@ public final class GridUtils {
     }
 
     /**
-     * Returns the [ValueProvider] backing this [ColumnPathRenderer].
+     * Returns the {@link ValueProvider} backing this
+     * {@link ColumnPathRenderer}.
      */
     @SuppressWarnings("unchecked")
     static <T> ValueProvider<T, ?> providerOf(ColumnPathRenderer<T> renderer) {
@@ -811,8 +1043,12 @@ public final class GridUtils {
     }
 
     /**
-     * Retrieves the cell for given [Grid.Column.getKey].
+     * Retrieves the cell for given {@link Grid.Column#getKey()}.
      *
+     * @param row
+     *            the row index, 0-based
+     * @param key
+     *            the key that was pressed
      * @return the corresponding cell
      * @throws IllegalArgumentException
      *             if no such column exists.
@@ -829,8 +1065,12 @@ public final class GridUtils {
     }
 
     /**
-     * Retrieves the cell for given [Grid.Column.getKey].
+     * Retrieves the cell for given {@link Grid.Column#getKey()}.
      *
+     * @param row
+     *            the row index, 0-based
+     * @param key
+     *            the key that was pressed
      * @return the corresponding cell
      * @throws IllegalArgumentException
      *             if no such column exists.
@@ -846,8 +1086,15 @@ public final class GridUtils {
     }
 
     /**
-     * Sorts given grid. Affects [_findAll], [_get] and other data-fetching
-     * functions.
+     * Sorts given grid. Affects {@code _findAll}, {@code _get} and other
+     * data-fetching functions.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param sortOrder
+     *            the sort order to apply
      */
     public static <T> void sort(Grid<T> grid, QuerySortOrder... sortOrder) {
         List<GridSortOrder<T>> orders = new ArrayList<>();
@@ -864,9 +1111,16 @@ public final class GridUtils {
     // ---------------------------------------------------------------------
 
     /**
-     * Fires the [ItemClickEvent] event for given [rowIndex] which invokes all
-     * item click listeners registered via [Grid.addItemClickListener].
+     * Fires the {@link ItemClickEvent} event for given {@code rowIndex} which
+     * invokes all item click listeners registered via
+     * {@link Grid#addItemClickListener(com.vaadin.flow.component.ComponentEventListener)}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
      * @param button
      *            the id of the pressed mouse button (0 is the default button,
      *            see ClickEvent.getButton)
@@ -890,19 +1144,36 @@ public final class GridUtils {
                 shiftKey, altKey, metaKey);
     }
 
+    /**
+     * Equivalent to
+     * {@code _clickItem(grid, rowIndex, 0, false, false, false, false)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
+     */
     public static <T> void _clickItem(Grid<T> grid, int rowIndex) {
         _clickItem(grid, rowIndex, 0, false, false, false, false);
     }
 
     /**
-     * Fires the [ItemClickEvent] event for given [rowIndex] and a [column]
-     * which invokes all item click listeners registered via
-     * [Grid.addItemClickListener].
+     * Fires the {@link ItemClickEvent} event for given {@code rowIndex} and a
+     * {@code column} which invokes all item click listeners registered via
+     * {@link Grid#addItemClickListener(com.vaadin.flow.component.ComponentEventListener)}.
      *
-     * @param button
-     *            the id of the pressed mouse button
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
      * @param column
      *            optional column to be clicked
+     * @param button
+     *            the id of the pressed mouse button
      * @param ctrlKey
      *            `true` if the control key was down when the event was fired,
      *            `false` otherwise
@@ -943,20 +1214,39 @@ public final class GridUtils {
         BasicUtils._fireEvent(grid, event);
     }
 
+    /**
+     * Equivalent to
+     * {@code _clickItem(grid, rowIndex, column, 1, false, false, false, false)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
+     * @param column
+     *            the column to read
+     */
     public static <T> void _clickItem(Grid<T> grid, int rowIndex,
             Grid.Column<?> column) {
         _clickItem(grid, rowIndex, column, 1, false, false, false, false);
     }
 
     /**
-     * Fires the [ItemClickEvent] event for given [rowIndex] and a [columnKey]
-     * which invokes all item click listeners registered via
-     * [Grid.addItemClickListener].
+     * Fires the {@link ItemClickEvent} event for given {@code rowIndex} and a
+     * {@code columnKey} which invokes all item click listeners registered via
+     * {@link Grid#addItemClickListener(com.vaadin.flow.component.ComponentEventListener)}.
      *
-     * @param button
-     *            the id of the pressed mouse button
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
      * @param columnKey
      *            the key of the column to be clicked
+     * @param button
+     *            the id of the pressed mouse button
      * @param ctrlKey
      *            `true` if the control key was down when the event was fired,
      *            `false` otherwise
@@ -977,16 +1267,35 @@ public final class GridUtils {
                 ctrlKey, shiftKey, altKey, metaKey);
     }
 
+    /**
+     * Equivalent to
+     * {@code _clickItem(grid, rowIndex, columnKey, 1, false, false, false, false)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
+     * @param columnKey
+     *            the column key
+     */
     public static <T> void _clickItem(Grid<T> grid, int rowIndex,
             String columnKey) {
         _clickItem(grid, rowIndex, columnKey, 1, false, false, false, false);
     }
 
     /**
-     * Fires the [ItemDoubleClickEvent] event for given [rowIndex] which invokes
-     * all item click listeners registered via
-     * [Grid.addItemDoubleClickListener].
+     * Fires the {@link ItemDoubleClickEvent} event for given {@code rowIndex}
+     * which invokes all item click listeners registered via
+     * {@link Grid#addItemDoubleClickListener(com.vaadin.flow.component.ComponentEventListener)}.
      *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
      * @param button
      *            the id of the pressed mouse button
      * @param ctrlKey
@@ -1014,6 +1323,17 @@ public final class GridUtils {
         BasicUtils._fireEvent(grid, event);
     }
 
+    /**
+     * Equivalent to
+     * {@code _doubleClickItem(grid, rowIndex, 1, false, false, false, false)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param rowIndex
+     *            the row index, 0-based
+     */
     public static <T> void _doubleClickItem(Grid<T> grid, int rowIndex) {
         _doubleClickItem(grid, rowIndex, 1, false, false, false, false);
     }
@@ -1023,13 +1343,23 @@ public final class GridUtils {
     // ---------------------------------------------------------------------
 
     /**
-     * Returns a stream which walks over all rows the [TreeGrid] is actually
-     * showing. The stream will *skip* children of collapsed nodes.
+     * Returns a stream which walks over all rows the {@link TreeGrid} is
+     * actually showing. The stream will <em>skip</em> children of collapsed
+     * nodes.
      *
      * Iterating the entire stream is a very slow operation since it will
-     * repeatedly poll [HierarchicalDataProvider] for list of children.
+     * repeatedly poll {@link HierarchicalDataProvider} for list of children.
      *
      * Honors current grid ordering.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param filter
+     *            the filter to pass to the query, or null for none
+     * @return a stream which walks over all rows the {@link TreeGrid} is
+     *         actually showing
      */
     public static <T> Stream<T> _rowSequence(TreeGrid<T> grid,
             SerializablePredicate<T> filter) {
@@ -1037,26 +1367,44 @@ public final class GridUtils {
         return _rowSequence(grid.getDataProvider(), null, isExpanded, filter);
     }
 
+    /**
+     * Equivalent to {@code _rowSequence(grid, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @return a stream over the rows the grid is actually showing
+     */
     public static <T> Stream<T> _rowSequence(TreeGrid<T> grid) {
         return _rowSequence(grid, null);
     }
 
     /**
-     * Returns a stream which walks over all rows the [TreeGrid] is actually
-     * showing. The stream will *skip* children of collapsed nodes.
+     * Returns a stream which walks over all rows the {@link TreeGrid} is
+     * actually showing. The stream will <em>skip</em> children of collapsed
+     * nodes.
      *
      * Iterating the entire stream is a very slow operation since it will
-     * repeatedly poll [HierarchicalDataProvider] for list of children.
+     * repeatedly poll {@link HierarchicalDataProvider} for list of children.
      *
      * Honors current grid ordering.
      *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
      * @param root
      *            start with this item; defaults to null to iterate all items
      * @param isExpanded
      *            if returns false for an item, children of that item are
      *            skipped
      * @param filter
-     *            filter to pass to [HierarchicalQuery]
+     *            filter to pass to {@link HierarchicalQuery}
+     * @return a stream which walks over all rows the {@link TreeGrid} is
+     *         actually showing
      */
     public static <T, F> Stream<T> _rowSequence(
             HierarchicalDataProvider<T, F> provider, T root,
@@ -1079,17 +1427,32 @@ public final class GridUtils {
         return result;
     }
 
+    /**
+     * Equivalent to {@code _rowSequence(provider, null, item -> true, null)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <F>
+     *            the filter type
+     * @param provider
+     *            the data provider to read
+     * @return a stream over all items the data provider returns
+     */
     public static <T, F> Stream<T> _rowSequence(
             HierarchicalDataProvider<T, F> provider) {
         return _rowSequence(provider, null, item -> true, null);
     }
 
     /**
-     * Returns the number of items the [TreeGrid] is actually showing. For
+     * Returns the number of items the {@link TreeGrid} is actually showing. For
      * example it doesn't count in children of collapsed nodes.
      *
      * A very slow operation since it walks through all items returned by
-     * [_rowSequence].
+     * {@code _rowSequence}.
+     *
+     * @param grid
+     *            the grid to read
+     * @return the number of items the {@link TreeGrid} is actually showing
      */
     public static int _size(TreeGrid<?> grid) {
         return (int) _rowSequence(grid).count();
@@ -1119,6 +1482,16 @@ public final class GridUtils {
         return provider.fetchChildren(query).collect(Collectors.toList());
     }
 
+    /**
+     * Renders the tree grid's data source as a pretty tree, expanding every
+     * node regardless of what the grid currently shows.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the tree grid to read
+     * @return the data source, as a printable tree
+     */
     public static <T> PrettyPrintTree _dataSourceToPrettyTree(
             TreeGrid<T> grid) {
         Function<T, List<T>> getChildrenOf = item -> {
@@ -1155,6 +1528,16 @@ public final class GridUtils {
         return new PrettyPrintTree(self.toString(), childTrees);
     }
 
+    /**
+     * Equivalent to
+     * {@code grid.getDataProvider().fetch(new HierarchicalQuery<>(null, null)) .collect(Collectors.toList())}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @return the root items of the tree
+     */
     public static <T> List<T> _getRootItems(TreeGrid<T> grid) {
         return grid.getDataProvider().fetch(new HierarchicalQuery<>(null, null))
                 .collect(Collectors.toList());
@@ -1162,11 +1545,26 @@ public final class GridUtils {
 
     /**
      * Expands all nodes. May invoke massive data loading.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     * @param depth
+     *            how deep the walk has gone, 0 for the root
      */
     public static <T> void _expandAll(TreeGrid<T> grid, int depth) {
         grid.expandRecursively(_getRootItems(grid), depth);
     }
 
+    /**
+     * Equivalent to {@code _expandAll(grid, 100)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param grid
+     *            the grid to read
+     */
     public static <T> void _expandAll(TreeGrid<T> grid) {
         _expandAll(grid, 100);
     }
@@ -1180,6 +1578,10 @@ public final class GridUtils {
      *
      * Works both with Vaadin 16 and Vaadin 17: Vaadin 17 components no longer
      * implement HasItems.
+     *
+     * @param c
+     *            the component to inspect
+     * @return the data provider currently set to this Component
      */
     public static DataProvider<?, ?> dataProvider(Component c) {
         try {
@@ -1216,9 +1618,16 @@ public final class GridUtils {
     // ---------------------------------------------------------------------
 
     /**
-     * Call this instead of [Editor.editItem] - this function makes sure that
-     * the editor opening is mocked properly, calls the editor bindings, and
-     * fires the editor-open-event.
+     * Call this instead of {@link Editor#editItem(Object)} - this function
+     * makes sure that the editor opening is mocked properly, calls the editor
+     * bindings, and fires the editor-open-event.
+     *
+     * @param <T>
+     *            the item type
+     * @param editor
+     *            the editor to act on
+     * @param item
+     *            the item to act on
      */
     public static <T> void _editItem(Editor<T> editor, T item) {
         if (!editor.getGrid().isAttached()) {
@@ -1274,12 +1683,12 @@ public final class GridUtils {
      * In single select clears the selection and selects only the given item; in
      * multi-select adds it to the selection.
      *
+     * @param <T>
+     *            the grid item type
      * @param grid
      *            the grid to select in
      * @param item
      *            the item to select
-     * @param <T>
-     *            the grid item type
      */
     public static <T> void _select(Grid<T> grid, T item) {
         BasicUtils.checkEditableByUser(grid);
@@ -1294,10 +1703,10 @@ public final class GridUtils {
      * Selects all items in the Grid; runs the same code as when the "select
      * all" checkbox is checked.
      *
-     * @param grid
-     *            the grid to select in
      * @param <T>
      *            the grid item type
+     * @param grid
+     *            the grid to select in
      * @throws IllegalStateException
      *             if the grid is not multi-select, or the "select all" checkbox
      *             is hidden
@@ -1323,13 +1732,13 @@ public final class GridUtils {
      * is single-select with
      * {@link GridSingleSelectionModel#isDeselectAllowed()} set to false.
      *
+     * @param <T>
+     *            the grid item type
      * @param grid
      *            the grid to deselect in
      * @param item
      *            the item to deselect; it must be selected, since deselecting a
      *            row that is not selected is not a gesture the user has
-     * @param <T>
-     *            the grid item type
      * @throws IllegalStateException
      *             if the item is not selected
      */
@@ -1354,10 +1763,10 @@ public final class GridUtils {
      * by unchecking rows one by one. Call {@link #_deselect} per row to model
      * that instead.
      *
-     * @param grid
-     *            the grid to deselect in
      * @param <T>
      *            the grid item type
+     * @param grid
+     *            the grid to deselect in
      * @throws IllegalStateException
      *             if the grid is not multi-select, or the "select all" checkbox
      *             is hidden
@@ -1374,9 +1783,9 @@ public final class GridUtils {
     }
 
     /**
-     * Returns the column's Internal ID. Not related to [Grid.Column.getKey] in
-     * any way. Auto-generated by the Grid. Not really useful; mostly used
-     * internally by Vaadin.
+     * Returns the column's Internal ID. Not related to
+     * {@link Grid.Column#getKey()} in any way. Auto-generated by the Grid. Not
+     * really useful; mostly used internally by Vaadin.
      */
     public static String _internalId(Grid.Column<?> column) {
         try {

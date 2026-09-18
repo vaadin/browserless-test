@@ -30,6 +30,12 @@ import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
 
 /**
+ * Tester for ComboBox components.
+ *
+ * @param <T>
+ *            component type
+ * @param <Y>
+ *            item type
  * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.combobox.ComboBox")
@@ -47,7 +53,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
 
     /**
      * Simulate writing a filter to the combobox.
-     * <p/>
+     * <p>
      * Use {@link #getSuggestions()} to get the string values show in the
      * dropdown or {@link #getSuggestionItems()} to get the actual items in the
      * suggestion.
@@ -127,7 +133,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
 
     /**
      * Clears the selection by clicking the clear button, as the user would.
-     * <p/>
+     * <p>
      * Requires the clear button to be visible — a hidden clear button is not
      * something the user can click. {@link #selectItem(String)} with
      * {@code null} clears the selection without that requirement.

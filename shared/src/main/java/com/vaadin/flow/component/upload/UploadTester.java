@@ -141,7 +141,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            content type of the file to upload
      * @param contents
      *            file contents as an array of bytes
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -166,7 +166,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            content type of the file to upload
      * @param contents
      *            file contents as an array of bytes
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -188,7 +188,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param file
      *            the file to upload
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -350,11 +350,13 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * the outcome the same way a user reads the upload file list in the
      * browser.
      * <p>
-     * Files are reported as {@link UploadStatus#UPLOADED} once the upload
-     * handler or receiver has consumed them, and as
-     * {@link UploadStatus#REJECTED} both when the client-side gate refused them
-     * and when Flow's server-side accepted type validation did, in which case
-     * neither shows up as a thrown exception.
+     * Files are reported as
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#UPLOADED}
+     * once the upload handler or receiver has consumed them, and as
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#REJECTED}
+     * both when the client-side gate refused them and when Flow's server-side
+     * accepted type validation did, in which case neither shows up as a thrown
+     * exception.
      *
      * @return the outcome of the last simulated upload, one entry per file, or
      *         an empty list if no upload has been simulated yet

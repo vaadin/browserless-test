@@ -58,30 +58,78 @@ public class Routes implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Routes.class);
 
+    /**
+     * The classes annotated with {@code @Route}.
+     */
     private final Set<Class<? extends Component>> routes;
 
+    /**
+     * The classes implementing {@code HasErrorParameter}.
+     */
     private final Set<Class<? extends HasErrorParameter<?>>> errorRoutes;
 
+    /**
+     * The classes implementing {@code RouterLayout}.
+     */
     private final Set<Class<? extends RouterLayout>> layouts;
 
+    /**
+     * Whether {@link #register} skips looking for a {@code @PWA} class.
+     */
     private boolean skipPwaInit;
 
+    /**
+     * Equivalent to
+     * {@code this(new LinkedHashSet<>(), defaultErrorRoutes(), new LinkedHashSet<>(), true)}.
+     */
     public Routes() {
         this(new LinkedHashSet<>(), defaultErrorRoutes(), new LinkedHashSet<>(),
                 true);
     }
 
+    /**
+     * Equivalent to
+     * {@code this(routes, errorRoutes, new LinkedHashSet<>(), true)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param errorRoutes
+     *            the error routes to register
+     */
     public Routes(Set<Class<? extends Component>> routes,
             Set<Class<? extends HasErrorParameter<?>>> errorRoutes) {
         this(routes, errorRoutes, new LinkedHashSet<>(), true);
     }
 
+    /**
+     * Equivalent to {@code this(routes, errorRoutes, layouts, true)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param errorRoutes
+     *            the error routes to register
+     * @param layouts
+     *            the layouts to register
+     */
     public Routes(Set<Class<? extends Component>> routes,
             Set<Class<? extends HasErrorParameter<?>>> errorRoutes,
             Set<Class<? extends RouterLayout>> layouts) {
         this(routes, errorRoutes, layouts, true);
     }
 
+    /**
+     * Creates a route set with the given contents.
+     *
+     * @param routes
+     *            the classes annotated with {@code @Route}
+     * @param errorRoutes
+     *            the classes implementing {@code HasErrorParameter}
+     * @param layouts
+     *            the classes implementing {@code RouterLayout}
+     * @param skipPwaInit
+     *            whether {@link #register} skips looking for a {@code @PWA}
+     *            class
+     */
     public Routes(Set<Class<? extends Component>> routes,
             Set<Class<? extends HasErrorParameter<?>>> errorRoutes,
             Set<Class<? extends RouterLayout>> layouts, boolean skipPwaInit) {
@@ -151,6 +199,9 @@ public class Routes implements Serializable {
     /**
      * Registers all routes to Vaadin 15 registry. Automatically called from
      * {@link MockVaadin#setup}.
+     *
+     * @param sc
+     *            the servlet context to register the routes in
      */
     @SuppressWarnings("unchecked")
     public void register(VaadinContext sc) {
@@ -231,6 +282,14 @@ public class Routes implements Serializable {
         return this;
     }
 
+    /**
+     * Returns a new route set holding the routes of both this set and the given
+     * one.
+     *
+     * @param other
+     *            the routes to merge in
+     * @return the union of the two route sets
+     */
     public Routes merge(Routes other) {
         Routes result = new Routes(new LinkedHashSet<>(this.routes),
                 new LinkedHashSet<>(this.errorRoutes),
@@ -266,6 +325,16 @@ public class Routes implements Serializable {
     /**
      * Creates a copy of this Routes with optional field overrides. Mirrors the
      * Kotlin data-class `copy(...)` method.
+     *
+     * @param routes
+     *            the routes to register
+     * @param errorRoutes
+     *            the error routes to register
+     * @param layouts
+     *            the layouts to register
+     * @param skipPwaInit
+     *            whether PWA initialization is skipped
+     * @return a copy of this Routes with optional field overrides
      */
     public Routes copy(Set<Class<? extends Component>> routes,
             Set<Class<? extends HasErrorParameter<?>>> errorRoutes,
@@ -314,6 +383,9 @@ public class Routes implements Serializable {
 
     /**
      * Clears the PWA class config from this registry.
+     *
+     * @param registry
+     *            the route registry to register into
      */
     @SuppressWarnings("unchecked")
     public static void clearPwaClass(ApplicationRouteRegistry registry) {

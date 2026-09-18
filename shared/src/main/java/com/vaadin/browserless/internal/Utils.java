@@ -58,6 +58,8 @@ public final class Utils {
     /**
      * Returns the major JVM version, e.g. 6 for Java 1.6, 8 for Java 8, 11 for
      * Java 11 etc.
+     *
+     * @return the major JVM version, e.g
      */
     public static int jvmVersion() {
         return parseJvmVersion(System.getProperty("java.version"));
@@ -133,6 +135,13 @@ public final class Utils {
         return getErrorParameterType(clazz) == NotFoundException.class;
     }
 
+    /**
+     * Returns the current request.
+     *
+     * @return the current request, never null
+     * @throws IllegalStateException
+     *             if no request is bound to the current thread
+     */
     public static VaadinRequest currentRequest() {
         VaadinRequest req = VaadinService.getCurrentRequest();
         if (req == null) {
@@ -142,6 +151,13 @@ public final class Utils {
         return req;
     }
 
+    /**
+     * Returns the current response.
+     *
+     * @return the current response, never null
+     * @throws IllegalStateException
+     *             if no response is bound to the current thread
+     */
     public static VaadinResponse currentResponse() {
         VaadinResponse resp = VaadinService.getCurrentResponse();
         if (resp == null) {
@@ -154,6 +170,9 @@ public final class Utils {
     /**
      * Returns the {@link UI#getCurrent}; fails with informative error message
      * if the UI.getCurrent() is null.
+     *
+     * @return the {@link UI#getCurrent}; fails with informative error message
+     *         if the UI.getCurrent() is null
      */
     public static UI currentUI() {
         UI ui = UI.getCurrent();
@@ -167,6 +186,10 @@ public final class Utils {
     /**
      * Retrieves the mock request which backs up {@link VaadinRequest}. ```
      * currentRequest.mock.addCookie(Cookie("foo", "bar")) ```
+     *
+     * @param request
+     *            the request to act on
+     * @return the mock request which backs up {@link VaadinRequest}
      */
     public static MockRequest mock(VaadinRequest request) {
         return (MockRequest) ((VaadinServletRequest) request).getRequest();
@@ -175,6 +198,10 @@ public final class Utils {
     /**
      * Retrieves the mock response which backs up {@link VaadinResponse}. ```
      * currentResponse.mock.getCookie("foo").value ```
+     *
+     * @param response
+     *            the response to act on
+     * @return the mock response which backs up {@link VaadinResponse}
      */
     public static MockResponse mock(VaadinResponse response) {
         return (MockResponse) ((VaadinServletResponse) response).getResponse();
@@ -183,16 +210,34 @@ public final class Utils {
     /**
      * Retrieves the mock session which backs up {@link VaadinSession}. ```
      * VaadinSession.getCurrent().mock ```
+     *
+     * @param session
+     *            the session to act on
+     * @return the mock session which backs up {@link VaadinSession}
      */
     public static MockHttpSession mock(VaadinSession session) {
         return (MockHttpSession) ((WrappedHttpSession) session.getSession())
                 .getHttpSession();
     }
 
+    /**
+     * Returns the servlet context behind a Vaadin context.
+     *
+     * @param context
+     *            the Vaadin context
+     * @return the servlet context
+     */
     public static ServletContext getContext(VaadinContext context) {
         return ((VaadinServletContext) context).getContext();
     }
 
+    /**
+     * Returns whether the servlet has been initialized.
+     *
+     * @param servlet
+     *            the servlet to check
+     * @return {@code true} if the servlet has a servlet config
+     */
     public static boolean isInitialized(Servlet servlet) {
         return servlet.getServletConfig() != null;
     }
@@ -213,6 +258,13 @@ public final class Utils {
         return polymerTemplateClass != null;
     }
 
+    /**
+     * Loads a class by name.
+     *
+     * @param className
+     *            the fully qualified class name
+     * @return the class, or null if it is not on the classpath
+     */
     public static Class<?> findClass(String className) {
         try {
             return Class.forName(className);
@@ -226,6 +278,15 @@ public final class Utils {
         }
     }
 
+    /**
+     * Loads a class by name.
+     *
+     * @param className
+     *            the fully qualified class name
+     * @return the class, never null
+     * @throws ClassNotFoundException
+     *             if the class is not on the classpath
+     */
     public static Class<?> findClassOrThrow(String className)
             throws ClassNotFoundException {
         Class<?> clazz = findClass(className);

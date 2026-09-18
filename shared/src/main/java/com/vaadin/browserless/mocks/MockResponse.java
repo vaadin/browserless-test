@@ -49,6 +49,12 @@ import java.util.stream.Collectors;
  */
 public class MockResponse implements HttpServletResponse {
 
+    /**
+     * Creates an empty response.
+     */
+    public MockResponse() {
+    }
+
     @Override
     public String encodeURL(String url) {
         return url;

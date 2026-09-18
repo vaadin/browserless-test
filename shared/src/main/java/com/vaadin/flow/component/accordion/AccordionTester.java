@@ -21,6 +21,10 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for Accordion components.
+ *
+ * @param <T>
+ *            component type
  * @since 1.0
  */
 @Tests(Accordion.class)

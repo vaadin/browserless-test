@@ -39,8 +39,14 @@ public final class CountRange implements Serializable {
      */
     public static final CountRange ONE = new CountRange(1, 1);
 
+    /**
+     * The smallest accepted count, inclusive.
+     */
     private final int start;
 
+    /**
+     * The largest accepted count, inclusive.
+     */
     private final int endInclusive;
 
     /**

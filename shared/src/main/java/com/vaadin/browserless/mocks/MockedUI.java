@@ -44,6 +44,12 @@ import com.vaadin.flow.shared.Registration;
  */
 public class MockedUI extends UI {
 
+    /**
+     * Creates the UI.
+     */
+    public MockedUI() {
+    }
+
     /** {@link Location} keeps its own copies of these package private. */
     private static final String QUERY_SEPARATOR = "?";
 

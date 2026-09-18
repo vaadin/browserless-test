@@ -79,6 +79,15 @@ public final class Renderers {
     /**
      * Returns the output of this renderer for given {@code rowObject} formatted
      * as close as possible to the client-side output.
+     *
+     * @param <T>
+     *            the item type
+     * @param renderer
+     *            the renderer to read the value from
+     * @param rowObject
+     *            the item the row shows
+     * @return the output of this renderer for given {@code rowObject} formatted
+     *         as close as possible to the client-side output
      */
     @SuppressWarnings("unchecked")
     public static <T> String _getPresentationValue(Renderer<T> renderer,
@@ -124,6 +133,20 @@ public final class Renderers {
         }
     }
 
+    /**
+     * Renders a Lit template the way the client would, substituting every
+     * {@code ${item.x}} expression with the matching value provider's output.
+     *
+     * @param <T>
+     *            the item type
+     * @param template
+     *            the Lit template source
+     * @param valueProviders
+     *            the value providers, by the name used in the template
+     * @param item
+     *            the item the row shows
+     * @return the template with every expression substituted
+     */
     public static <T> String renderLitTemplate(String template,
             Map<String, ValueProvider<T, ?>> valueProviders, T item) {
         String renderedTemplate = template;
@@ -140,6 +163,14 @@ public final class Renderers {
 
     /**
      * Returns the text rendered for given {@code item}.
+     *
+     * @param <T>
+     *            the item type
+     * @param renderer
+     *            the renderer to read the value from
+     * @param item
+     *            the item to act on
+     * @return the text rendered for given {@code item}
      */
     public static <T> String renderText(TextRenderer<T> renderer, T item) {
         return renderer.createComponent(item).getElement().getText();
@@ -147,6 +178,14 @@ public final class Renderers {
 
     /**
      * Returns the {@link ValueProvider} set to {@link BasicRenderer}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <V>
+     *            the value type
+     * @param renderer
+     *            the renderer to read the value from
+     * @return the {@link ValueProvider} set to {@link BasicRenderer}
      */
     @SuppressWarnings("unchecked")
     public static <T, V> ValueProvider<T, V> valueProvider(
@@ -161,6 +200,10 @@ public final class Renderers {
 
     /**
      * Returns the Polymer Template set to the {@link Renderer}.
+     *
+     * @param renderer
+     *            the renderer to read the value from
+     * @return the Polymer Template set to the {@link Renderer}
      */
     public static String template(Renderer<?> renderer) {
         try {

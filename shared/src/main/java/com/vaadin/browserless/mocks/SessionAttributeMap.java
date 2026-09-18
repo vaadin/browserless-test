@@ -38,6 +38,12 @@ public class SessionAttributeMap extends AbstractMap<String, Object> {
     private final HttpSession session;
     private final Set<Entry<String, Object>> entries;
 
+    /**
+     * Exposes the given session's attributes as a map.
+     *
+     * @param session
+     *            the session to wrap
+     */
     public SessionAttributeMap(HttpSession session) {
         this.session = session;
         this.entries = new SessionAttributeEntrySet(session);

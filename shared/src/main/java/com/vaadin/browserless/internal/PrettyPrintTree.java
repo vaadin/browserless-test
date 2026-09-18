@@ -189,6 +189,13 @@ public class PrettyPrintTree {
         }
     }
 
+    /**
+     * Builds a printable tree out of the component and its descendants.
+     *
+     * @param root
+     *            the component to start from
+     * @return the tree, ready to be printed
+     */
     public static PrettyPrintTree ofVaadin(Component root) {
         PrettyPrintTree result = new PrettyPrintTree(toPrettyString(root),
                 new ArrayList<>());
@@ -199,6 +206,13 @@ public class PrettyPrintTree {
         return result;
     }
 
+    /**
+     * Equivalent to {@code PrettyPrintTree.ofVaadin(c).print()}.
+     *
+     * @param c
+     *            the component to inspect
+     * @return the component tree rendered as text
+     */
     public static String toPrettyTree(Component c) {
         return PrettyPrintTree.ofVaadin(c).print();
     }
@@ -213,8 +227,17 @@ public class PrettyPrintTree {
      * Returns the most basic properties of the component, formatted as a
      * concise string: * The component class * The {@link Component#getId} *
      * Whether the component is {@link Component#isVisible} * Whether it is a
-     * {@link HasValue} that is read-only * the styles * The
-     * {@link Component#label} and text * The {@link HasValue#getValue}
+     * {@link HasValue} that is read-only * the styles * The label and text *
+     * The {@link HasValue#getValue}
+     *
+     * @param c
+     *            the component to inspect
+     * @return the most basic properties of the component, formatted as a
+     *         concise string: * The component class * The
+     *         {@link Component#getId} * Whether the component is
+     *         {@link Component#isVisible} * Whether it is a {@link HasValue}
+     *         that is read-only * the styles * The label and text * The
+     *         {@link HasValue#getValue}
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static String toPrettyString(Component c) {

@@ -490,6 +490,12 @@ public class MockRequest implements HttpServletRequest {
         this.cookiesInt = cookiesInt;
     }
 
+    /**
+     * Adds a cookie to the request, as the browser would send it.
+     *
+     * @param cookie
+     *            the cookie to add
+     */
     public void addCookie(Cookie cookie) {
         if (cookiesInt == null) {
             cookiesInt = new Cookie[] { cookie };
@@ -738,6 +744,15 @@ public class MockRequest implements HttpServletRequest {
         return MockHttpEnvironment.isSecure();
     }
 
+    /**
+     * Equivalent to
+     * {@code parameters.put(name, Arrays.copyOf(values, values.length))}.
+     *
+     * @param name
+     *            the attribute name
+     * @param values
+     *            the values of the parameter
+     */
     public void setParameter(String name, String... values) {
         parameters.put(name, Arrays.copyOf(values, values.length));
     }

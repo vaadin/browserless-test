@@ -53,8 +53,12 @@ public final class ElementUtils {
      * Either calls {@link Element#setAttribute} (if the {@code value} is not
      * null), or {@link Element#removeAttribute} (if the {@code value} is null).
      * 
+     * @param element
+     *            the element to change
      * @param attribute
      *            the name of the attribute.
+     * @param value
+     *            the value to set
      */
     public static void setOrRemoveAttribute(Element element, String attribute,
             String value) {
@@ -69,6 +73,8 @@ public final class ElementUtils {
      * Toggles {@code className} - removes it if it was there, or adds it if it
      * wasn't there.
      * 
+     * @param classList
+     *            the element's class list
      * @param className
      *            the class name to toggle, cannot contain spaces.
      */
@@ -83,6 +89,13 @@ public final class ElementUtils {
     /**
      * Inserts {@code newNode} as a child, right before an {@code existingNode}.
      * A counterpart for JavaScript DOM `Node.insertBefore()`.
+     *
+     * @param parent
+     *            the element to insert into
+     * @param newNode
+     *            the element to insert
+     * @param existingNode
+     *            the child to insert ahead of
      */
     public static void insertBefore(Element parent, Element newNode,
             Element existingNode) {
@@ -101,6 +114,10 @@ public final class ElementUtils {
     /**
      * This function actually works, as opposed to
      * {@link Element#getTextRecursively}.
+     *
+     * @param element
+     *            the element to inspect
+     * @return the text of the element and of all of its descendants
      */
     public static String textRecursively2(Element element) {
         // remove when this is fixed: https://github.com/vaadin/flow/issues/3668
@@ -108,6 +125,13 @@ public final class ElementUtils {
         return textRecursively(node);
     }
 
+    /**
+     * Returns the text of the node and of all of its descendants.
+     *
+     * @param node
+     *            the node to read
+     * @return the concatenated text
+     */
     public static String textRecursively(Node node) {
         if (node instanceof TextNode) {
             return ((TextNode) node).text();
@@ -122,6 +146,11 @@ public final class ElementUtils {
     /**
      * Returns all virtual child elements added via
      * {@link Element#appendVirtualChild}.
+     *
+     * @param element
+     *            the element to inspect
+     * @return all virtual child elements added via
+     *         {@link Element#appendVirtualChild}
      */
     public static List<Element> getVirtualChildren(Element element) {
         if (element.getNode().hasFeature(VirtualChildrenList.class)) {
@@ -142,6 +171,10 @@ public final class ElementUtils {
 
     /**
      * Gets the element mapped to the given state node.
+     *
+     * @param node
+     *            the node to inspect
+     * @return the element mapped to the given state node
      */
     public static Element element(StateNode node) {
         return Element.get(node);
@@ -150,6 +183,13 @@ public final class ElementUtils {
     /**
      * Returns child elements with the `slot` attribute set to given
      * {@code slotName}.
+     *
+     * @param element
+     *            the element to inspect
+     * @param slotName
+     *            the name of the slot
+     * @return child elements with the `slot` attribute set to given {@code
+     *         slotName}
      */
     public static List<Element> getChildrenInSlot(Element element,
             String slotName) {
@@ -160,6 +200,11 @@ public final class ElementUtils {
 
     /**
      * Removes all child elements from given slot, leaving it empty.
+     *
+     * @param element
+     *            the element whose slot is cleared
+     * @param slotName
+     *            the name of the slot
      */
     public static void clearSlot(Element element, String slotName) {
         if (slotName == null || slotName.isBlank()) {
@@ -172,6 +217,10 @@ public final class ElementUtils {
 
     /**
      * Returns all components that are closest to {@code this} element.
+     *
+     * @param element
+     *            the element to inspect
+     * @return all components that are closest to {@code this} element
      */
     public static List<Component> _findComponents(Element element) {
         List<Component> components = new ArrayList<>();
@@ -181,6 +230,11 @@ public final class ElementUtils {
 
     /**
      * Fires a DOM {@code event} on this element.
+     *
+     * @param element
+     *            the element to fire the event on
+     * @param event
+     *            the event to fire
      */
     public static void _fireDomEvent(Element element, DomEvent event) {
         element.getNode().getFeature(ElementListenerMap.class).fireEvent(event);

@@ -33,6 +33,8 @@ public interface CommercialTesterWrappers {
     /**
      * Create a tester for the given GridPro instance.
      *
+     * @param <V>
+     *            the value type
      * @param grid
      *            the GridPro instance to be tested
      * @return a GridProTester instance wrapping the given GridPro
@@ -44,6 +46,8 @@ public interface CommercialTesterWrappers {
     /**
      * Create a tester for the given GridPro instance.
      *
+     * @param <V>
+     *            the value type
      * @param grid
      *            the GridPro instance to be tested
      * @param itemType

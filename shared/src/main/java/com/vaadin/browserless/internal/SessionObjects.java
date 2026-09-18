@@ -32,11 +32,35 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public final class SessionObjects {
 
+    /**
+     * The session.
+     */
     public final VaadinSession session;
+    /**
+     * The request bound to the session.
+     */
     public final VaadinRequest request;
+    /**
+     * The response bound to the session.
+     */
     public final VaadinResponse response;
+    /**
+     * The HTTP session the Vaadin session is stored in.
+     */
     public final MockHttpSession httpSession;
 
+    /**
+     * Groups the four objects that make up one mocked user's session.
+     *
+     * @param session
+     *            the session
+     * @param request
+     *            the request bound to the session
+     * @param response
+     *            the response bound to the session
+     * @param httpSession
+     *            the HTTP session the Vaadin session is stored in
+     */
     public SessionObjects(VaadinSession session, VaadinRequest request,
             VaadinResponse response, MockHttpSession httpSession) {
         this.session = session;
@@ -45,22 +69,56 @@ public final class SessionObjects {
         this.httpSession = httpSession;
     }
 
+    /**
+     * Returns the session.
+     *
+     * @return the session
+     */
     public VaadinSession getSession() {
         return session;
     }
 
+    /**
+     * Returns the request bound to the session.
+     *
+     * @return the request
+     */
     public VaadinRequest getRequest() {
         return request;
     }
 
+    /**
+     * Returns the response bound to the session.
+     *
+     * @return the response
+     */
     public VaadinResponse getResponse() {
         return response;
     }
 
+    /**
+     * Returns the HTTP session the Vaadin session is stored in.
+     *
+     * @return the HTTP session
+     */
     public MockHttpSession getHttpSession() {
         return httpSession;
     }
 
+    /**
+     * Returns a copy of this group with the given objects in place of the
+     * current ones.
+     *
+     * @param session
+     *            the session
+     * @param request
+     *            the request bound to the session
+     * @param response
+     *            the response bound to the session
+     * @param httpSession
+     *            the HTTP session the Vaadin session is stored in
+     * @return the new group
+     */
     public SessionObjects copy(VaadinSession session, VaadinRequest request,
             VaadinResponse response, MockHttpSession httpSession) {
         return new SessionObjects(session, request, response, httpSession);

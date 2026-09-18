@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation to use to scan given packages for component wrappers outside the
  * default {@code com.vaadin.flow.component}.
- * <p/>
+ * <p>
  * This makes adding custom component wrappers simpler as they can then use
  * package protected fields and methods.
  *
@@ -37,7 +37,7 @@ public @interface ComponentTesterPackages {
 
     /**
      * Array of packages to scan for {@link ComponentTester} implementations.
-     * <p/>
+     * <p>
      * Implementation should use the {@link Tests} annotation to be used
      * automatically in the {@code wraps(Component)} method.
      *

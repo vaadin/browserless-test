@@ -37,5 +37,10 @@ import com.vaadin.flow.component.UI;
  */
 @FunctionalInterface
 public interface UIFactory extends Serializable {
+    /**
+     * Creates a new UI instance.
+     *
+     * @return the new UI; must be a fresh instance every time
+     */
     UI invoke();
 }

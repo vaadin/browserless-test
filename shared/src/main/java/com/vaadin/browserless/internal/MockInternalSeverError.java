@@ -40,6 +40,12 @@ import com.vaadin.flow.router.internal.DefaultErrorHandler;
 @DefaultErrorHandler
 public class MockInternalSeverError extends InternalServerError {
 
+    /**
+     * Creates the error view.
+     */
+    public MockInternalSeverError() {
+    }
+
     @Override
     public int setErrorParameter(BeforeEnterEvent event,
             ErrorParameter<Exception> parameter) {

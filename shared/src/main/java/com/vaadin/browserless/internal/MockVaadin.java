@@ -219,10 +219,10 @@ public final class MockVaadin {
      * Please do that by extending {@link MockVaadinServlet} and overriding
      * {@link MockVaadinServlet#createServletService}
      * `createServletService(DeploymentConfiguration)`. Please consult
-     * {@link MockService} on what methods you must override in your custom
-     * service. Alternatively, see `MockSpringServlet` (in the
-     * `browserless-test-spring` module) on how to extend your custom servlet
-     * and provide all necessary mocking code.
+     * {@link com.vaadin.browserless.mocks.MockService MockService} on what
+     * methods you must override in your custom service. Alternatively, see
+     * `MockSpringServlet` (in the `browserless-test-spring` module) on how to
+     * extend your custom servlet and provide all necessary mocking code.
      *
      * @param routes
      *            all classes annotated with
@@ -234,6 +234,8 @@ public final class MockVaadin {
      *            default simply instantiates {@link MockedUI} class.
      * @param lookupServices
      *            service classes to be provided to the lookup initializer
+     * @param configuration
+     *            the deployment configuration to use
      */
     public static void setup(Routes routes, UIFactory uiFactory,
             Set<Class<?>> lookupServices,
@@ -243,20 +245,50 @@ public final class MockVaadin {
         setup(uiFactory, servlet, lookupServices, configuration);
     }
 
+    /**
+     * Equivalent to
+     * {@code setup(routes, uiFactory, lookupServices, BrowserlessConfiguration.empty())}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI instance
+     * @param lookupServices
+     *            the lookup services to register
+     */
     public static void setup(Routes routes, UIFactory uiFactory,
             Set<Class<?>> lookupServices) {
         setup(routes, uiFactory, lookupServices,
                 BrowserlessConfiguration.empty());
     }
 
+    /**
+     * Equivalent to {@code setup(routes, uiFactory, Collections.emptySet())}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI instance
+     */
     public static void setup(Routes routes, UIFactory uiFactory) {
         setup(routes, uiFactory, Collections.emptySet());
     }
 
+    /**
+     * Equivalent to
+     * {@code setup(routes, MockedUI::new, Collections.emptySet())}.
+     *
+     * @param routes
+     *            the routes to register
+     */
     public static void setup(Routes routes) {
         setup(routes, MockedUI::new, Collections.emptySet());
     }
 
+    /**
+     * Equivalent to
+     * {@code setup(new Routes(), MockedUI::new, Collections.emptySet())}.
+     */
     public static void setup() {
         setup(new Routes(), MockedUI::new, Collections.emptySet());
     }
@@ -264,6 +296,9 @@ public final class MockVaadin {
     /**
      * Equivalent to
      * {@code setup(new Routes(), uiFactory, Collections.emptySet())}.
+     *
+     * @param uiFactory
+     *            creates the UI instance
      */
     public static void setup(UIFactory uiFactory) {
         setup(new Routes(), uiFactory, Collections.emptySet());
@@ -281,6 +316,8 @@ public final class MockVaadin {
      *            {@link VaadinServlet}.
      * @param lookupServices
      *            service classes to be provided to the lookup initializer
+     * @param configuration
+     *            the deployment configuration to use
      */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet,
             Set<Class<?>> lookupServices,
@@ -293,20 +330,55 @@ public final class MockVaadin {
         createSession(servlet.getServletContext(), uiFactory);
     }
 
+    /**
+     * Equivalent to
+     * {@code setup(uiFactory, servlet, lookupServices, BrowserlessConfiguration.empty())}.
+     *
+     * @param uiFactory
+     *            creates the UI instance
+     * @param servlet
+     *            the servlet to act on
+     * @param lookupServices
+     *            the lookup services to register
+     */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet,
             Set<Class<?>> lookupServices) {
         setup(uiFactory, servlet, lookupServices,
                 BrowserlessConfiguration.empty());
     }
 
+    /**
+     * Equivalent to {@code setup(uiFactory, servlet, Collections.emptySet())}.
+     *
+     * @param uiFactory
+     *            creates the UI instance
+     * @param servlet
+     *            the servlet to act on
+     */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet) {
         setup(uiFactory, servlet, Collections.emptySet());
     }
 
+    /**
+     * Equivalent to
+     * {@code setup((UIFactory) MockedUI::new, servlet, Collections.emptySet())}.
+     *
+     * @param servlet
+     *            the servlet to act on
+     */
     public static void setup(VaadinServlet servlet) {
         setup((UIFactory) MockedUI::new, servlet, Collections.emptySet());
     }
 
+    /**
+     * Equivalent to
+     * {@code setup((UIFactory) MockedUI::new, servlet, lookupServices)}.
+     *
+     * @param servlet
+     *            the servlet to act on
+     * @param lookupServices
+     *            the lookup services to register
+     */
     public static void setup(VaadinServlet servlet,
             Set<Class<?>> lookupServices) {
         setup((UIFactory) MockedUI::new, servlet, lookupServices);
@@ -318,6 +390,12 @@ public final class MockVaadin {
      * to share a single service across multiple independent sessions
      * (multi-user testing).
      *
+     * @param servlet
+     *            the servlet to act on
+     * @param lookupServices
+     *            the lookup services to register
+     * @param configuration
+     *            the deployment configuration to use
      * @return the initialized {@link VaadinServletService}
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
@@ -383,12 +461,30 @@ public final class MockVaadin {
         return service;
     }
 
+    /**
+     * Equivalent to
+     * {@code setupServlet(servlet, lookupServices, BrowserlessConfiguration.empty())}.
+     *
+     * @param servlet
+     *            the servlet to act on
+     * @param lookupServices
+     *            the lookup services to register
+     * @return the service the servlet was initialized with
+     */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<Class<?>> lookupServices) {
         return setupServlet(servlet, lookupServices,
                 BrowserlessConfiguration.empty());
     }
 
+    /**
+     * Equivalent to
+     * {@code setupServlet(servlet, Collections.emptySet(), BrowserlessConfiguration.empty())}.
+     *
+     * @param servlet
+     *            the servlet to act on
+     * @return the service the servlet was initialized with
+     */
     public static VaadinServletService setupServlet(VaadinServlet servlet) {
         return setupServlet(servlet, Collections.emptySet(),
                 BrowserlessConfiguration.empty());
@@ -397,6 +493,9 @@ public final class MockVaadin {
     /**
      * Properly closes the current UI and fire the detach event on it. Does
      * nothing if there is no current UI.
+     *
+     * @param fireUIDetach
+     *            whether the UI detach listeners are fired
      */
     public static void closeCurrentUI(boolean fireUIDetach) {
         UI ui = UI.getCurrent();
@@ -462,6 +561,9 @@ public final class MockVaadin {
      * `currentlyClosingSession` flag is set for the duration so the
      * `afterSessionClose` recreation hook (used by single-user `setup`) is
      * suppressed — multi-user callers manage their own session lifecycle.
+     *
+     * @param session
+     *            the session to act on
      */
     public static void fireSessionDestroyAndDrain(VaadinSession session) {
         VaadinService service = session.getService();
@@ -480,6 +582,11 @@ public final class MockVaadin {
     /**
      * Creates a new session, request and response for the given
      * {@code service}, but does NOT set any thread-locals or create a UI.
+     *
+     * @param service
+     *            the service to act on
+     * @return a new session, request and response for the given {@code
+     *         service}, but does NOT set any thread-locals or create a UI
      */
     public static SessionObjects createSessionObjects(
             VaadinServletService service) {
@@ -555,6 +662,15 @@ public final class MockVaadin {
         createUI(uiFactory, objs.session);
     }
 
+    /**
+     * Creates a new UI in the given session and navigates it to the current
+     * location, as a browser would on a fresh page load.
+     *
+     * @param uiFactory
+     *            produces the UI instance
+     * @param session
+     *            the session the UI belongs to
+     */
     public static void createUI(UIFactory uiFactory, VaadinSession session) {
         VaadinRequest request = VaadinRequest.getCurrent();
         if (request == null) {
@@ -634,9 +750,10 @@ public final class MockVaadin {
      * Calls the following:
      * <ul>
      * <li>{@code runUIQueue}
-     * <li>{@link StateTree#runExecutionsBeforeClientResponse} which runs all
-     * blocks scheduled via {@link UI#beforeClientResponse}
-     * <li>{@link #cleanupDialogs}
+     * <li>{@link com.vaadin.flow.internal.StateTree#runExecutionsBeforeClientResponse()
+     * StateTree.runExecutionsBeforeClientResponse} which runs all blocks
+     * scheduled via {@link UI#beforeClientResponse}
+     * <li>{@link TestingLifecycleHooks#cleanupDialogs}
      * </ul>
      *
      * If you'd like to test your {@link ErrorHandler} then take a look at
@@ -660,17 +777,19 @@ public final class MockVaadin {
      *
      * If {@link VaadinSession#errorHandler} is not set or
      * {@code propagateExceptionToHandler} is false, any exceptions thrown from
-     * {@link Command}s scheduled via the {@link UI#access} will make this
-     * function fail. The exceptions will be wrapped in
-     * {@link ExecutionException}.
+     * {@link com.vaadin.flow.server.Command Command}s scheduled via the
+     * {@link UI#access} will make this function fail. The exceptions will be
+     * wrapped in {@link ExecutionException}.
      *
      * @param propagateExceptionToHandler
      *            defaults to false. If true and
      *            {@link VaadinSession#errorHandler} is set, any exceptions
-     *            thrown from {@link Command}s scheduled via the
-     *            {@link UI#access} will be redirected to
+     *            thrown from {@link com.vaadin.flow.server.Command Command}s
+     *            scheduled via the {@link UI#access} will be redirected to
      *            {@link VaadinSession#errorHandler} and will not be re-thrown
      *            from this method.
+     * @param session
+     *            the session to act on
      * @throws IllegalStateException
      *             if the environment is not mocked
      */
@@ -734,10 +853,21 @@ public final class MockVaadin {
         throw (T) t;
     }
 
+    /**
+     * Equivalent to
+     * {@code runUIQueue(propagateExceptionToHandler, VaadinSession.getCurrent())}.
+     *
+     * @param propagateExceptionToHandler
+     *            whether a failing command is handed to the session's error
+     *            handler instead of being rethrown
+     */
     public static void runUIQueue(boolean propagateExceptionToHandler) {
         runUIQueue(propagateExceptionToHandler, VaadinSession.getCurrent());
     }
 
+    /**
+     * Equivalent to {@code runUIQueue(false, VaadinSession.getCurrent())}.
+     */
     public static void runUIQueue() {
         runUIQueue(false, VaadinSession.getCurrent());
     }
@@ -746,8 +876,14 @@ public final class MockVaadin {
      * Internal function, do not call directly.
      *
      * Only usable when you are providing your own implementation of
-     * {@link VaadinSession}. See {@link MockVaadinSession} on how to call this
-     * properly.
+     * {@link VaadinSession}. See
+     * {@link com.vaadin.browserless.mocks.MockVaadinSession MockVaadinSession}
+     * on how to call this properly.
+     *
+     * @param session
+     *            the session to act on
+     * @param uiFactory
+     *            creates the UI instance
      */
     public static void afterSessionClose(VaadinSession session,
             UIFactory uiFactory) {
@@ -792,6 +928,13 @@ public final class MockVaadin {
     /**
      * Fires session init listeners on the given service. Java-friendly static
      * wrapper for the internal extension function.
+     *
+     * @param service
+     *            the service to act on
+     * @param session
+     *            the session to act on
+     * @param request
+     *            the request to act on
      */
     public static void fireSessionInit(VaadinService service,
             VaadinSession session, VaadinRequest request) {
@@ -802,6 +945,9 @@ public final class MockVaadin {
     /**
      * Fires service destroy listeners on the given service. Java-friendly
      * static wrapper for the internal extension function.
+     *
+     * @param service
+     *            the service to act on
      */
     public static void fireServiceDestroy(VaadinService service) {
         fireServiceDestroyListeners(service, new ServiceDestroyEvent(service));
@@ -864,11 +1010,33 @@ public final class MockVaadin {
         private static final Set<String> SELF_NAMES = new HashSet<>(
                 Arrays.asList("_self", "_parent", "_top", ""));
 
+        /**
+         * The UI this page belongs to.
+         */
         private final UI ui;
+        /**
+         * Produces the UI instance a reload puts in place of the old one.
+         */
         private final UIFactory uiFactory;
+        /**
+         * The session the UI belongs to.
+         */
         private final VaadinSession session;
+        /**
+         * The recorded outbound navigations, by window name.
+         */
         private final Map<String, List<String>> navigations = new LinkedHashMap<>();
 
+        /**
+         * Creates the page of the given UI.
+         *
+         * @param ui
+         *            the UI this page belongs to
+         * @param uiFactory
+         *            produces the UI a reload puts in place of the old one
+         * @param session
+         *            the session the UI belongs to
+         */
         public MockPage(UI ui, UIFactory uiFactory, VaadinSession session) {
             super(ui);
             this.ui = ui;
@@ -876,6 +1044,12 @@ public final class MockVaadin {
             this.session = session;
         }
 
+        /**
+         * Returns the URL of the last navigation that replaced the current
+         * page.
+         *
+         * @return the URL, or null if nothing navigated away
+         */
         public String getLastExternalNavigationURL() {
             List<String> list = navigations.get("_self");
             if (list == null || list.isEmpty()) {
@@ -884,6 +1058,13 @@ public final class MockVaadin {
             return list.get(list.size() - 1);
         }
 
+        /**
+         * Returns the URL of the last navigation into the given window.
+         *
+         * @param windowName
+         *            the target window name, as passed to {@code open()}
+         * @return the URL, or null if nothing opened that window
+         */
         public String getExternalNavigationURL(String windowName) {
             List<String> list = navigations
                     .get(normalizeWindowName(windowName));
@@ -893,6 +1074,11 @@ public final class MockVaadin {
             return list.get(list.size() - 1);
         }
 
+        /**
+         * Returns the URLs opened in each window other than the current one.
+         *
+         * @return the opened URLs, by window name
+         */
         public Map<String, List<String>> getOpenedWindows() {
             Map<String, List<String>> result = new LinkedHashMap<>();
             for (Map.Entry<String, List<String>> e : navigations.entrySet()) {

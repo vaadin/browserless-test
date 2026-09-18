@@ -51,6 +51,9 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public class MockService extends VaadinServletService {
 
+    /**
+     * Produces the UI instances the sessions of this service hand out.
+     */
     private final UIFactory uiFactory;
 
     /**

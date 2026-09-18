@@ -78,6 +78,11 @@ public final class ComponentUtils {
 
     /**
      * Fires given event on the component.
+     *
+     * @param component
+     *            the component to fire the event on
+     * @param event
+     *            the event to fire
      */
     public static void fireEvent(Component component, ComponentEvent<?> event) {
         ComponentUtil.fireEvent(component, event);
@@ -88,11 +93,39 @@ public final class ComponentUtils {
      * to all {@link ClickNotifier}s. This function directly calls all click
      * listeners, thus it avoids the roundtrip to client and back. It even works
      * with browserless testing.
+     *
+     * @param <T>
+     *            the item type
+     * @param notifier
+     *            the component to fire the event on
      */
     public static <T extends ClickNotifier<?>> void serverClick(T notifier) {
         serverClick(notifier, true, 0, 1, false, false, false, false);
     }
 
+    /**
+     * Fires a click event on the component, as the browser would.
+     *
+     * @param <T>
+     *            the component type
+     * @param notifier
+     *            the component to click
+     * @param fromClient
+     *            whether the event is reported as coming from the client
+     * @param button
+     *            the mouse button, as
+     *            {@link com.vaadin.browserless.MouseButton} numbers them
+     * @param clickCount
+     *            how many clicks the event reports
+     * @param shiftKey
+     *            whether Shift was held down
+     * @param ctrlKey
+     *            whether Ctrl was held down
+     * @param altKey
+     *            whether Alt was held down
+     * @param metaKey
+     *            whether Meta was held down
+     */
     public static <T extends ClickNotifier<?>> void serverClick(T notifier,
             boolean fromClient, int button, int clickCount, boolean shiftKey,
             boolean ctrlKey, boolean altKey, boolean metaKey) {
@@ -104,22 +137,48 @@ public final class ComponentUtils {
     /**
      * Sets the alignment of the text in the component. One of `center`, `left`,
      * `right`, `justify`.
+     *
+     * @param component
+     *            the component to change
+     * @return the text alignment, or null if none is set
      */
     public static String textAlign(Component component) {
         return component.getElement().getStyle().get("textAlign");
     }
 
+    /**
+     * Equivalent to
+     * {@code component.getElement().getStyle().set("textAlign", value)}.
+     *
+     * @param component
+     *            the component to change
+     * @param value
+     *            the value to set
+     */
     public static void textAlign(Component component, String value) {
         component.getElement().getStyle().set("textAlign", value);
     }
 
     /**
      * Sets or removes the `title` attribute on component's element.
+     *
+     * @param component
+     *            the component to change
+     * @return the tooltip text, or null if the component has none
      */
     public static String tooltip(Component component) {
         return component.getElement().getAttribute("title");
     }
 
+    /**
+     * Equivalent to
+     * {@code ElementUtils.setOrRemoveAttribute(component.getElement(), "title", value)}.
+     *
+     * @param component
+     *            the component to change
+     * @param value
+     *            the value to set
+     */
     public static void tooltip(Component component, String value) {
         ElementUtils.setOrRemoveAttribute(component.getElement(), "title",
                 value);
@@ -129,6 +188,12 @@ public final class ComponentUtils {
      * Adds the right-click (context-menu) {@code listener} to the component.
      * Also causes the right-click browser menu not to be shown on this
      * component (see {@link #preventDefault}).
+     *
+     * @param component
+     *            the component to add the listener to
+     * @param listener
+     *            the listener to add
+     * @return the registration, so the listener can be removed again
      */
     public static DomListenerRegistration addContextMenuListener(
             Component component, DomEventListener listener) {
@@ -141,6 +206,8 @@ public final class ComponentUtils {
      * "https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault">Event.preventDefault()</a>
      * on the event.
      *
+     * @param registration
+     *            the registration to remove
      * @return this
      */
     public static DomListenerRegistration preventDefault(
@@ -151,6 +218,9 @@ public final class ComponentUtils {
     /**
      * Removes the component from its parent. Does nothing if the component is
      * not attached to a parent.
+     *
+     * @param component
+     *            the component to detach
      */
     public static void removeFromParent(Component component) {
         Component parent = component.getParent().orElse(null);
@@ -162,6 +232,13 @@ public final class ComponentUtils {
     /**
      * Finds component's parent, parent's parent (etc) which satisfies given
      * {@code predicate}. Returns null if there is no such parent.
+     *
+     * @param component
+     *            the component to inspect
+     * @param predicate
+     *            the predicate the component must satisfy
+     * @return component's parent, parent's parent (etc) which satisfies given
+     *         {@code predicate}
      */
     public static Component findAncestor(Component component,
             Predicate<Component> predicate) {
@@ -173,6 +250,13 @@ public final class ComponentUtils {
      * Finds component, component's parent, parent's parent (etc) which
      * satisfies given {@code predicate}. Returns null if no component on the
      * ancestor-or-self axis satisfies.
+     *
+     * @param component
+     *            the component to inspect
+     * @param predicate
+     *            the predicate the component must satisfy
+     * @return component, component's parent, parent's parent (etc) which
+     *         satisfies given {@code predicate}
      */
     public static Component findAncestorOrSelf(Component component,
             Predicate<Component> predicate) {
@@ -188,6 +272,13 @@ public final class ComponentUtils {
 
     /**
      * Checks if this component is nested in {@code potentialAncestor}.
+     *
+     * @param component
+     *            the component to inspect
+     * @param potentialAncestor
+     *            the component that may be an ancestor
+     * @return {@code true} if this component is nested in {@code
+     *         potentialAncestor}
      */
     public static boolean isNestedIn(Component component,
             Component potentialAncestor) {
@@ -198,6 +289,11 @@ public final class ComponentUtils {
      * Checks whether this component is currently attached to a {@link UI}.
      *
      * Returns true for attached components even if the UI itself is closed.
+     *
+     * @param component
+     *            the component to inspect
+     * @return {@code true} if this component is currently attached to a
+     *         {@link UI}
      */
     public static boolean isAttached(Component component) {
         // see https://github.com/vaadin/flow/issues/7911
@@ -209,6 +305,10 @@ public final class ComponentUtils {
      *
      * Works both with Vaadin 16 and Vaadin 17: Vaadin 17 components no longer
      * implement HasItems.
+     *
+     * @param component
+     *            the component to inspect
+     * @return the data provider currently set to this Component
      */
     public static DataProvider<?, ?> dataProvider(Component component) {
         try {
@@ -245,6 +345,13 @@ public final class ComponentUtils {
      *
      * In case the specified component has already been added to another parent,
      * it will be removed from there and added to this one.
+     *
+     * @param container
+     *            the component to search, itself included
+     * @param newComponent
+     *            the component to insert
+     * @param existing
+     *            the child to insert ahead of
      */
     public static void insertBefore(HasOrderedComponents container,
             Component newComponent, Component existing) {
@@ -264,6 +371,10 @@ public final class ComponentUtils {
      * Return the location of the currently shown view. The function will report
      * the current (old) view in {@code com.vaadin.flow.router.BeforeLeaveEvent}
      * and {@code com.vaadin.flow.router.BeforeEnterEvent}.
+     *
+     * @param ui
+     *            the UI to act on
+     * @return the location of the view the UI currently shows
      */
     public static Location currentViewLocation(UI ui) {
         return ui.getInternals().getActiveViewLocation();
@@ -271,6 +382,10 @@ public final class ComponentUtils {
 
     /**
      * True when the component has any children.
+     *
+     * @param container
+     *            the component to search, itself included
+     * @return {@code true} if the container has at least one child
      */
     public static boolean hasChildren(HasComponents container) {
         return ((Component) container).getChildren().findFirst().isPresent();
@@ -280,6 +395,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then calls {@link HasStyle#addClassName} on each class name. Does
      * nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void addClassNames2(HasStyle target, String classNames) {
         // workaround for https://github.com/vaadin/flow/issues/11709
@@ -292,6 +412,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then calls {@link #addClassNames2} on each class name. Does
      * nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void addClassNames2(HasStyle target, String... classNames) {
         // workaround for https://github.com/vaadin/flow/issues/11709
@@ -304,6 +429,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then calls {@link HasStyle#removeClassName} on each class name.
      * Does nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void removeClassNames2(HasStyle target, String classNames) {
         // workaround for https://github.com/vaadin/flow/issues/11709
@@ -316,6 +446,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then calls {@link #removeClassNames2} on each class name. Does
      * nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void removeClassNames2(HasStyle target,
             String... classNames) {
@@ -329,6 +464,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then clears the class names and calls {@link #addClassNames2} on
      * each class name. Does nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void setClassNames2(HasStyle target, String classNames) {
         // workaround for https://github.com/vaadin/flow/issues/11709
@@ -340,6 +480,11 @@ public final class ComponentUtils {
      * Splits {@code classNames} by whitespaces to obtain individual class
      * names, then clears the class names and calls {@link #addClassNames2} on
      * each class name. Does nothing if the string is blank.
+     *
+     * @param target
+     *            the component to change
+     * @param classNames
+     *            the CSS class names
      */
     public static void setClassNames2(HasStyle target, String... classNames) {
         // workaround for https://github.com/vaadin/flow/issues/11709
@@ -351,6 +496,10 @@ public final class ComponentUtils {
      * A component placeholder, usually shown when there's no value selected.
      * Not all components support a placeholder; those that don't will return
      * null.
+     *
+     * @param component
+     *            the component to inspect
+     * @return the placeholder, or null if the component has none
      */
     public static String placeholder(Component component) {
         // modify when this is fixed: https://github.com/vaadin/flow/issues/4068
@@ -375,6 +524,14 @@ public final class ComponentUtils {
         return null;
     }
 
+    /**
+     * Sets the component's placeholder.
+     *
+     * @param component
+     *            the component to change
+     * @param value
+     *            the placeholder to set, null to remove it
+     */
     public static void placeholder(Component component, String value) {
         if (component instanceof TextField) {
             ((TextField) component).setPlaceholder(value);
@@ -398,6 +555,10 @@ public final class ComponentUtils {
      * Concatenates texts from all elements placed in the `label` slot. This
      * effectively returns whatever was provided in the String label via
      * {@link FormLayout#addFormItem}.
+     *
+     * @param item
+     *            the item to act on
+     * @return the text of the form item's label slot
      */
     public static String label(FormLayout.FormItem item) {
         List<Component> captions = item.getChildren().filter(
@@ -447,9 +608,9 @@ public final class ComponentUtils {
      * `label` slot. This effectively returns whatever was provided in the
      * String label via {@link FormLayout#addFormItem}.
      *
-     * {@link Button#caption} is displayed directly on the component while label
-     * is displayed next to the component in a layout (e.g. a {@link TextField}
-     * nested in a form layout).
+     * A {@link Button}'s caption is displayed directly on the component while
+     * label is displayed next to the component in a layout (e.g. a
+     * {@link TextField} nested in a form layout).
      *
      * Vote for <a href="https://github.com/vaadin/flow/issues/3241">issue
      * #3241</a>.
@@ -461,6 +622,10 @@ public final class ComponentUtils {
      * `VerticalLayout` will show nothing since {@link FormLayout} doesn't
      * display a label itself. See {@code LabelWrapper} for a list of possible
      * solutions.
+     *
+     * @param component
+     *            the component to inspect
+     * @return the component's label, or null if it has none
      */
     public static String label(Component component) {
         try {
@@ -490,6 +655,14 @@ public final class ComponentUtils {
         }
     }
 
+    /**
+     * Sets the component's label.
+     *
+     * @param component
+     *            the component to change
+     * @param value
+     *            the label to set, null to remove it
+     */
     public static void label(Component component, String value) {
         try {
             if (_HasLabel != null && _HasLabel.isInstance(component)) {
@@ -524,6 +697,10 @@ public final class ComponentUtils {
      * but only managed to create confusion between the two concepts. Also,
      * there's only a {@link Button} which has the notion of a caption. Will be
      * removed with no replacement.
+     *
+     * @param component
+     *            the component to inspect
+     * @return the component's caption, or null if it has none
      */
     @Deprecated
     public static String caption(Component component) {
@@ -533,6 +710,14 @@ public final class ComponentUtils {
         return label(component);
     }
 
+    /**
+     * Sets the component's caption.
+     *
+     * @param component
+     *            the component to change
+     * @param value
+     *            the caption to set, null to remove it
+     */
     @Deprecated
     public static void caption(Component component, String value) {
         if (component instanceof Button) {
@@ -546,6 +731,9 @@ public final class ComponentUtils {
      * Sets up an event listener for overlay components that fires a `closed`
      * DOM event when the component is closed. This simulates the event being
      * fired from the browser after the closing animation has finished.
+     *
+     * @param component
+     *            the component to close
      */
     public static void simulateClosedEvent(Component component) {
         if (ComponentUtil.getData(component,

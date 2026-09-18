@@ -199,13 +199,10 @@ classpath, so downstream consumers pull no Kotlin runtime.
   puts on the classpath at `provided` scope — no new dependency.
 
 **Replacing Dokka turns Javadoc validation on for the first time.** Dokka
-validated nothing, so `maven-javadoc-plugin` immediately fails `shared` on about
-200 doclint issues across 53 files — mostly `self` errors from `<p/>`, missing
-`@param` on type variables, and unresolvable `@link` targets, nearly all in
-testers untouched by the port. `shared` therefore sets `<doclint>none</doclint>`
-so the port does not turn into a module-wide Javadoc cleanup. That cleanup is
-worth doing on its own, tightening the setting back a step at a time; the other
-modules already run with doclint on.
+validated nothing, so `maven-javadoc-plugin` fails `shared` the moment it
+replaces it. `shared` carried `<doclint>none</doclint>` through Phase 5 so the
+port would not turn into a module-wide Javadoc cleanup; see
+[Phase 7](#phase-7--the-doclint-cleanup--done) for that cleanup.
 
 ### Phase 6 — test-side Kotlin — done
 
@@ -245,6 +242,39 @@ block leaves no trace. Every step was checked by comparing the *multiset of
 `<testcase name="…">` values* in the surefire XML against a baseline worktree,
 not the `tests="N"` attribute, which DynaTest under-reports. 1,448 before,
 1,448 after, with all 225 renamed names pairing one-for-one.
+
+### Phase 7 — the doclint cleanup — done
+
+`shared` builds clean under doclint, errors and warnings both, and
+`<doclint>none</doclint>` is gone from its pom.
+
+The "roughly 200 issues" the Phase 5 note quoted was **javadoc's output cap**,
+not the count: the tool stops after 100 errors and 100 warnings. The real
+number was 935. The root pom now passes `-Xmaxerrs`/`-Xmaxwarns` so the next
+person reads a count rather than a ceiling.
+
+- Three groups were genuine defects: unresolvable `@link` and `@throws`
+  targets, `<p/>` and empty `<p>`, `<` and `>` written literally, and a `<pre>`
+  block whose `ContextMenuTester<ContextMenu>` parsed as an HTML tag. 76 of
+  those.
+- 291 were in the *generated* `*Locator` files, so they were fixed in
+  `locator-processor`: the class Javadoc now carries `@param` for the locator's
+  type parameters, both generated constructors carry Javadoc, and a copied
+  `{@link #member}` is rewritten to point back at the tester it came from.
+- A tester's Javadoc is copied verbatim into a generated locator that has no
+  imports, so a cross-package `{@link Span}` resolves in the tester and fails in
+  the copy. The rule — spell such targets out in full — is now in
+  [`guidelines/documenting.md`](guidelines/documenting.md).
+- The rest was the `missing` group: 316 `@param`, 236 undocumented members, 116
+  `@return`. Almost all of it in the files this port rewrote, because KDoc
+  carried none of those tags.
+- The port had also left 65 Javadoc lines in KDoc markup — `[TreeGrid]`,
+  `[_rowSequence]`, `*skip*` — which render as literal brackets and asterisks.
+  Those are now `{@link}`, `{@code}` and `<em>`.
+
+Still open, and untouched here because the ask was `shared`: `junit6`, `spring`
+and `quarkus` report 36 doclint warnings between them. They never failed a
+build, because doclint warnings do not.
 
 ## Breaking changes
 

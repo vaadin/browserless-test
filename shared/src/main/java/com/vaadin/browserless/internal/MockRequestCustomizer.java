@@ -29,5 +29,11 @@ import com.vaadin.browserless.mocks.MockRequest;
  */
 @FunctionalInterface
 public interface MockRequestCustomizer {
+    /**
+     * Customizes the request before it is handed to the test.
+     *
+     * @param request
+     *            the request to customize
+     */
     void apply(MockRequest request);
 }

@@ -58,6 +58,9 @@ import com.vaadin.flow.server.communication.IndexHtmlRequestListener;
 @Deprecated(forRemoval = true)
 public class MockInstantiator implements Instantiator {
 
+    /**
+     * The instantiator the calls are forwarded to.
+     */
     private final Instantiator delegate;
 
     /**

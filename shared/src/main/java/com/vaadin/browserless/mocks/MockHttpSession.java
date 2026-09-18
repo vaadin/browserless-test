@@ -46,12 +46,30 @@ import static com.vaadin.browserless.mocks.MockUtils.putOrRemove;
  */
 public class MockHttpSession implements HttpSession, Serializable {
 
+    /**
+     * The session id, which {@link #changeSessionId} rotates.
+     */
     private volatile String sessionId;
+    /**
+     * The context the session belongs to.
+     */
     private final ServletContext servletContext;
+    /**
+     * When the session was created.
+     */
     private final long creationTime;
+    /**
+     * The inactivity timeout, in seconds.
+     */
     private int maxInactiveInterval;
 
+    /**
+     * The session attributes.
+     */
     private final ConcurrentHashMap<String, Object> attributes = new ConcurrentHashMap<>();
+    /**
+     * Whether the session is still valid; {@link #invalidate} clears it.
+     */
     private final AtomicBoolean valid = new AtomicBoolean(true);
 
     /**

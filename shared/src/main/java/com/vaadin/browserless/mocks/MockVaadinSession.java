@@ -36,6 +36,9 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public class MockVaadinSession extends VaadinSession {
 
+    /**
+     * Produces the UI instances this session hands out.
+     */
     private final UIFactory uiFactory;
 
     /**

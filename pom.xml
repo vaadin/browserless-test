@@ -150,6 +150,13 @@
                          runs in modules that reference this plugin. -->
                     <configuration>
                         <quiet>true</quiet>
+                        <!-- javadoc stops reporting after 100 errors and 100
+                             warnings by default, which makes a large backlog
+                             look far smaller than it is. Report all of it. -->
+                        <additionalOptions>
+                            <additionalOption>-Xmaxerrs 9999</additionalOption>
+                            <additionalOption>-Xmaxwarns 9999</additionalOption>
+                        </additionalOptions>
                     </configuration>
                     <executions>
                         <execution>

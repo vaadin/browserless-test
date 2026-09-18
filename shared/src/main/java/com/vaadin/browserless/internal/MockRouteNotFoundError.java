@@ -41,6 +41,16 @@ import com.vaadin.flow.router.internal.DefaultErrorHandler;
 @DefaultErrorHandler
 public class MockRouteNotFoundError extends RouteNotFoundError {
 
+    /**
+     * Creates the error view.
+     */
+    public MockRouteNotFoundError() {
+    }
+
+    /**
+     * The exception the navigation failed with, recorded so the test can assert
+     * on it.
+     */
     private NotFoundException cause = null;
 
     /**

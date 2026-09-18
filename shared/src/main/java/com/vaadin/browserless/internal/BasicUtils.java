@@ -69,6 +69,8 @@ public final class BasicUtils {
     /**
      * Fires a DOM event on this component.
      * 
+     * @param component
+     *            the component to fire the event on
      * @param eventType
      *            the event type, e.g. "click"
      */
@@ -79,6 +81,8 @@ public final class BasicUtils {
     /**
      * Fires a DOM event on this component.
      * 
+     * @param component
+     *            the component to fire the event on
      * @param eventType
      *            the event type, e.g. "click"
      * @param eventData
@@ -95,11 +99,23 @@ public final class BasicUtils {
      * The same as {@link Component#getId} but without Optional.
      *
      * Workaround for https://github.com/vaadin/flow/issues/664
+     *
+     * @param component
+     *            the component to set the id on
+     * @return the component id, or null if it has none
      */
     public static String id_(Component component) {
         return component.getId().orElse(null);
     }
 
+    /**
+     * Equivalent to {@code component.setId(value)}.
+     *
+     * @param component
+     *            the component to set the id on
+     * @param value
+     *            the value to set
+     */
     public static void id_(Component component, String value) {
         component.setId(value);
     }
@@ -108,6 +124,12 @@ public final class BasicUtils {
      * Checks whether the component is visible (usually
      * {@link Component#isVisible} but for {@link Text} the text must be
      * non-empty).
+     *
+     * @param component
+     *            the component to inspect
+     * @return {@code true} if the component is visible (usually
+     *         {@link Component#isVisible} but for {@link Text} the text must be
+     *         non-empty)
      */
     public static boolean _isVisible(Component component) {
         if (component instanceof Text) {
@@ -120,6 +142,10 @@ public final class BasicUtils {
 
     /**
      * Returns direct text contents (it doesn't peek into the child elements).
+     *
+     * @param component
+     *            the component to inspect
+     * @return direct text contents (it doesn't peek into the child elements)
      */
     public static String _text(Component component) {
         if (component instanceof HasText) {
@@ -139,6 +165,8 @@ public final class BasicUtils {
      * enabled. * If the component is {@link HasValue}, it must not be
      * {@link HasValue#isReadOnly}.
      * 
+     * @param component
+     *            the component to check
      * @throws IllegalStateException
      *             if any of the above doesn't hold.
      */
@@ -182,6 +210,8 @@ public final class BasicUtils {
      * Fails if the component is editable. See {@link #checkEditableByUser} for
      * more details.
      * 
+     * @param component
+     *            the component to check
      * @throws AssertionError
      *             if the component is editable.
      */
@@ -205,12 +235,15 @@ public final class BasicUtils {
      * Computes whether this component and all of its parents are enabled.
      *
      * Recursively checks that all ancestors are also enabled (the "implicitly
-     * disabled" effect, see {@link HasEnabled#isEnabled} javadoc for more
-     * details).
+     * disabled" effect, see
+     * {@link com.vaadin.flow.component.HasEnabled#isEnabled()
+     * HasEnabled.isEnabled()} javadoc for more details).
      *
      * Also check that the component is not inert due to there being a modal
      * component.
      *
+     * @param component
+     *            the component to inspect
      * @return false if this component or any of its parent is disabled or is
      *         inert.
      */
@@ -222,6 +255,11 @@ public final class BasicUtils {
     /**
      * Fires {@link FocusNotifier.FocusEvent} on the component, but only if it's
      * editable.
+     *
+     * @param <T>
+     *            the item type
+     * @param component
+     *            the component to focus
      */
     public static <T extends Component & Focusable<T>> void _focus(
             T component) {
@@ -233,6 +271,11 @@ public final class BasicUtils {
     /**
      * Fires {@link BlurNotifier.BlurEvent} on the component, but only if it's
      * editable.
+     *
+     * @param <T>
+     *            the item type
+     * @param component
+     *            the component to blur
      */
     public static <T extends Component & Focusable<T>> void _blur(T component) {
         checkEditableByUser(component);
@@ -244,6 +287,9 @@ public final class BasicUtils {
      * Closes the UI and simulates the end of the request. The {@link UI#close}
      * is called, but also the session is set to null which fires the detach
      * listeners and makes the UI and all of its components detached.
+     *
+     * @param ui
+     *            the UI to act on
      */
     public static void _close(UI ui) {
         ui.close();
@@ -254,6 +300,11 @@ public final class BasicUtils {
     /**
      * Returns child components which were added to this component via
      * {@code com.vaadin.flow.dom.Element.appendVirtualChild}.
+     *
+     * @param component
+     *            the component to inspect
+     * @return child components which were added to this component via
+     *         {@code com.vaadin.flow.dom.Element.appendVirtualChild}
      */
     public static List<Component> _getVirtualChildren(Component component) {
         List<Component> result = new ArrayList<>();
@@ -268,6 +319,12 @@ public final class BasicUtils {
         return error.getElement().getText();
     }
 
+    /**
+     * The number of rows a lookup fetches before it gives up, so that a
+     * misconfigured data provider fails the test instead of hanging it.
+     *
+     * @return the fetch limit
+     */
     public static int _saneFetchLimit() {
         // don't use high value otherwise Vaadin 19+ will calculate negative
         // limit and will pass it to SizeVerifier,

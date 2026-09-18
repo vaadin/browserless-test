@@ -150,6 +150,11 @@ public final class Shortcuts {
      * the current UI. This will in turn notify all components currently
      * attached to the current UI which subscribed for this exact key
      * combination.
+     *
+     * @param key
+     *            the key that was pressed
+     * @param modifiers
+     *            the key modifiers held down
      */
     public static void fireShortcut(Key key, Key... modifiers) {
         // keep the modifiers of type Key[] instead of KeyModifier[], otherwise
@@ -162,6 +167,13 @@ public final class Shortcuts {
     /**
      * Use the global `fireShortcut()` function unless you know what you're
      * doing!
+     *
+     * @param component
+     *            the component the shortcut is fired on
+     * @param key
+     *            the key that was pressed
+     * @param modifiers
+     *            the key modifiers held down
      */
     public static void _fireShortcut(Component component, Key key,
             Key... modifiers) {
@@ -185,7 +197,7 @@ public final class Shortcuts {
         MockFilterJsonObject data = new MockFilterJsonObject(key, modifierSet);
 
         // the shortcut registration is only updated in
-        // [UI.beforeClientResponse]; run the registration code now.
+        // UI.beforeClientResponse(); run the registration code now.
         MockVaadin.clientRoundtrip();
 
         // this will fire the "keydown" DOM event, which in turn fires
