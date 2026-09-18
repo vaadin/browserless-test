@@ -30,9 +30,11 @@ import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
+import com.vaadin.browserless.internal.RenderedComponentSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester;
+import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -298,8 +300,10 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * For the default renderer ColumnPathRenderer the result is the sent text
      * for defined object path.
      * <p/>
-     * For a ComponentRenderer the result is the rendered component as
-     * prettyString.
+     * For a ComponentRenderer the result is the text of the component the grid
+     * rendered for the cell, see {@link #getCellComponent(int, int)}. A
+     * renderer that returns no component renders an empty cell, so the text is
+     * empty rather than {@literal null}.
      * <p/>
      * More to be added as we find other renderers that need handling.
      *
@@ -315,11 +319,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
         ensureVisible();
         final Grid.Column<Y> targetColumn = getColumns().get(column);
         if (targetColumn.getRenderer() instanceof ComponentRenderer) {
-            Component component = getCellComponent(row, column);
-            if (component == null) {
-                return null;
-            }
-            return component.getElement().getTextRecursively();
+            return getCellComponent(row, column).getElement()
+                    .getTextRecursively();
         } else if (targetColumn.getRenderer() instanceof ColumnPathRenderer) {
             // This renderer just writes the object text using a path
             return getValueProviderString(row, targetColumn);
@@ -328,77 +329,203 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     }
 
     /**
-     * Get component for item in cell.
+     * Get the component the grid renders for the cell in the given position.
      *
      * <p>
-     * A component renderer only produces a component when it is asked to render
-     * a specific item, so until this method is called there is nothing in the
+     * A component renderer only produces a component when the grid renders a
+     * row for the client, so a renderer component is never part of the
      * component tree that {@code find(...)} walks, and this method is the way
-     * to reach it. Every call renders the cell again and attaches the new
-     * instance to the grid, so asking twice for the same cell leaves two
-     * instances behind and a later {@code find(...)} reports both. Hold on to
-     * the component this method returns instead of asking for it again.
+     * to reach it. What comes back is the very component the browser shows:
+     * asking for the same cell twice returns the same instance, and the
+     * instance is replaced when the grid re-renders the row, for example after
+     * {@code refreshItem(...)}. A row the client has not asked for yet is
+     * scrolled into view first, the way a user reaches it.
+     *
+     * <p>
+     * Use {@link #renderCellComponent(int, int)} to render a cell on its own,
+     * without the grid.
      *
      * @param row
      *            item row
      * @param column
      *            column to get
-     * @return initialized component for the targeted cell
+     * @return the component the grid rendered for the targeted cell
      * @throws IllegalArgumentException
      *             when the target column of the cell is not a component
      *             renderer
+     * @throws IllegalStateException
+     *             when the grid renders no component for the cell
      */
     public Component getCellComponent(int row, int column) {
         ensureVisible();
         final Grid.Column<Y> yColumn = getColumns().get(column);
-        return getRendererItem(row, yColumn);
+        return getRenderedCellComponent(row, yColumn);
     }
 
     /**
-     * Get component for item in column.
+     * Get the component the grid renders for the cell in the given row of the
+     * column with the given key.
      *
      * <p>
-     * A component renderer only produces a component when it is asked to render
-     * a specific item, so until this method is called there is nothing in the
+     * A component renderer only produces a component when the grid renders a
+     * row for the client, so a renderer component is never part of the
      * component tree that {@code find(...)} walks, and this method is the way
-     * to reach it. Every call renders the cell again and attaches the new
-     * instance to the grid, so asking twice for the same cell leaves two
-     * instances behind and a later {@code find(...)} reports both. Hold on to
-     * the component this method returns instead of asking for it again.
+     * to reach it. What comes back is the very component the browser shows:
+     * asking for the same cell twice returns the same instance, and the
+     * instance is replaced when the grid re-renders the row, for example after
+     * {@code refreshItem(...)}. A row the client has not asked for yet is
+     * scrolled into view first, the way a user reaches it.
+     *
+     * <p>
+     * Use {@link #renderCellComponent(int, String)} to render a cell on its
+     * own, without the grid.
      *
      * @param row
      *            item row
      * @param columnName
      *            key/property of column
-     * @return initialized component for the target cell
+     * @return the component the grid rendered for the target cell
+     * @throws IllegalArgumentException
+     *             when column for property doesn't exist or the target column
+     *             of the cell is not a component renderer
+     * @throws IllegalStateException
+     *             when the grid renders no component for the cell, which is the
+     *             case for a hidden column
+     */
+    public Component getCellComponent(int row, String columnName) {
+        ensureVisible();
+        return getRenderedCellComponent(row, getColumnByKey(columnName));
+    }
+
+    /**
+     * Render the component for the cell in the given position on its own,
+     * without the grid, and attach it to the grid so that it can be used.
+     *
+     * <p>
+     * This asks the column's component renderer for a component for the item on
+     * the row, which is not the instance the grid renders for the client: every
+     * call renders the cell again and attaches the new instance to the grid, so
+     * asking twice for the same cell leaves two instances behind and a later
+     * {@code find(...)} reports both.
+     *
+     * <p>
+     * Prefer {@link #getCellComponent(int, int)}, which returns the component
+     * the browser shows. This method is for the cases the grid does not render
+     * itself, such as a hidden column.
+     *
+     * @param row
+     *            item row
+     * @param column
+     *            column to render
+     * @return a freshly rendered component for the targeted cell
+     * @throws IllegalArgumentException
+     *             when the target column of the cell is not a component
+     *             renderer
+     */
+    public Component renderCellComponent(int row, int column) {
+        ensureVisible();
+        return getRendererItem(row, getColumns().get(column));
+    }
+
+    /**
+     * Render the component for the cell in the given row of the column with the
+     * given key on its own, without the grid, and attach it to the grid so that
+     * it can be used.
+     *
+     * <p>
+     * This asks the column's component renderer for a component for the item on
+     * the row, which is not the instance the grid renders for the client: every
+     * call renders the cell again and attaches the new instance to the grid, so
+     * asking twice for the same cell leaves two instances behind and a later
+     * {@code find(...)} reports both.
+     *
+     * <p>
+     * Prefer {@link #getCellComponent(int, String)}, which returns the
+     * component the browser shows. This method is for the cases the grid does
+     * not render itself, such as a hidden column.
+     *
+     * @param row
+     *            item row
+     * @param columnName
+     *            key/property of column
+     * @return a freshly rendered component for the target cell
      * @throws IllegalArgumentException
      *             when column for property doesn't exist or the target column
      *             of the cell is not a component renderer
      */
-    public Component getCellComponent(int row, String columnName) {
+    public Component renderCellComponent(int row, String columnName) {
         ensureVisible();
-        if (getComponent().getColumnByKey(columnName) == null) {
+        return getRendererItem(row, getColumnByKey(columnName));
+    }
+
+    private Grid.Column<Y> getColumnByKey(String columnName) {
+        final Grid.Column<Y> column = getComponent().getColumnByKey(columnName);
+        if (column == null) {
             throw new IllegalArgumentException(
                     "No column for property '" + columnName + "' exists");
         }
+        return column;
+    }
 
-        final Grid.Column<Y> yColumn = getComponent()
-                .getColumnByKey(columnName);
-        return getRendererItem(row, yColumn);
+    private Component getRenderedCellComponent(int row,
+            Grid.Column<Y> yColumn) {
+        ensureComponentRenderer(yColumn);
+        if (!yColumn.isVisible()) {
+            throw new IllegalStateException("Column '" + yColumn.getKey()
+                    + "' is not visible, so the grid renders no component for "
+                    + "it. Use renderCellComponent to render the cell without "
+                    + "the grid.");
+        }
+        // pending row rendering happens when the response is written
+        roundTrip();
+        Component component = findRenderedCellComponent(row, yColumn);
+        if (component == null) {
+            // the client has not asked for the row yet, so the grid has not
+            // rendered it - bring it into the viewport as a user scrolling
+            // down to the row would
+            getComponent().scrollToIndex(row);
+            roundTrip();
+            component = findRenderedCellComponent(row, yColumn);
+        }
+        if (component == null) {
+            throw new IllegalStateException("Grid rendered no component for "
+                    + "row " + row + " in column '" + yColumn.getKey()
+                    + "'. The item on the row is not the one the grid rendered,"
+                    + " which happens when the data provider returns items that"
+                    + " are not equal across fetches. Use renderCellComponent"
+                    + " to render the cell without the grid.");
+        }
+        return component;
+    }
+
+    private Component findRenderedCellComponent(int row,
+            Grid.Column<Y> yColumn) {
+        final Y item = getRow(row);
+        final DataCommunicator<Y> dataCommunicator = getComponent()
+                .getDataCommunicator();
+        if (!dataCommunicator.isItemActive(item)) {
+            return null;
+        }
+        return RenderedComponentSupport.getRenderedComponent(yColumn,
+                dataCommunicator.getKeyMapper().key(item));
+    }
+
+    private void ensureComponentRenderer(Grid.Column<Y> yColumn) {
+        if (!(yColumn.getRenderer() instanceof ComponentRenderer)) {
+            throw new IllegalArgumentException(
+                    "Target column doesn't have a ComponentRenderer.");
+        }
     }
 
     private Component getRendererItem(int row, Grid.Column<Y> yColumn) {
-        if (yColumn.getRenderer() instanceof ComponentRenderer) {
-            final Y item = getRow(row);
-            var component = ((ComponentRenderer<?, Y>) yColumn.getRenderer())
-                    .createComponent(item);
-            if (component != null) {
-                getComponent().getElement().appendChild(component.getElement());
-            }
-            return component;
+        ensureComponentRenderer(yColumn);
+        final Y item = getRow(row);
+        var component = ((ComponentRenderer<?, Y>) yColumn.getRenderer())
+                .createComponent(item);
+        if (component != null) {
+            getComponent().getElement().appendChild(component.getElement());
         }
-        throw new IllegalArgumentException(
-                "Target column doesn't have a ComponentRenderer.");
+        return component;
     }
 
     private <V> V getLitRendererPropertyValue(int row, Grid.Column<Y> column,
