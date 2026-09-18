@@ -25,6 +25,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.splitlayout.SplitLayout.SplitterDragEndEvent;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -122,6 +124,21 @@ class SplitLayoutTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void findInPrimaryAndSecondary_narrowTheSearchToOneSplit() {
+        Button save = new Button("Save");
+        Button details = new Button("Details");
+        view.layout.removeAll();
+        // Nested in a layout, so the match cannot be the slot root itself.
+        view.layout.addToPrimary(new Div(save));
+        view.layout.addToSecondary(details);
+
+        assertSame(save,
+                test(view.layout).findInPrimary(Button.class).single());
+        assertSame(details,
+                test(view.layout).findInSecondary(Button.class).single());
+    }
+
+    @Test
     void accessors_layoutHidden_throw() {
         view.layout.setVisible(false);
 
@@ -131,5 +148,9 @@ class SplitLayoutTesterTest extends BrowserlessTest {
                 test(view.layout)::getPrimaryComponent);
         assertThrows(IllegalStateException.class,
                 test(view.layout)::getSecondaryComponent);
+        assertThrows(IllegalStateException.class,
+                () -> test(view.layout).findInPrimary(Button.class));
+        assertThrows(IllegalStateException.class,
+                () -> test(view.layout).findInSecondary(Button.class));
     }
 }

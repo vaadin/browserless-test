@@ -83,6 +83,7 @@ public class LocatorProcessor extends AbstractProcessor {
     private static final String LOCATOR_FQN = "com.vaadin.browserless.locator.Locator";
     private static final String CLICKABLE_FQN = "com.vaadin.browserless.Clickable";
     private static final String HAS_CLEAR_BUTTON_FQN = "com.vaadin.flow.component.shared.HasClearButton";
+    private static final String COMPONENT_QUERY_FQN = "com.vaadin.browserless.ComponentQuery";
 
     /**
      * Mapping from Vaadin {@code Has*} interface FQN to the locator-side
@@ -159,6 +160,10 @@ public class LocatorProcessor extends AbstractProcessor {
      * the {@code ComponentTester} base machinery (the locator provides its own
      * resolution + usability surface) or to the locator's own filter chain.
      * <p>
+     * A method that hands back a {@code ComponentQuery} is skipped too, by
+     * return type rather than by name — see
+     * {@link #returnsComponentQuery(ExecutableElement)}.
+     * <p>
      * {@code click}, {@code middleClick} and {@code rightClick} are
      * <em>not</em> skipped: a tester override is delegated like any other
      * method, and when no tester in the chain declares them the locator picks
@@ -167,7 +172,7 @@ public class LocatorProcessor extends AbstractProcessor {
      * interface-level defaults are never harvested as delegates.
      */
     private static final Set<String> METHOD_SKIP_LIST = Set.of("getComponent",
-            "isUsable", "setModal", "find", "ensureComponentIsUsable");
+            "isUsable", "setModal", "ensureComponentIsUsable");
 
     /** Collected entries used to emit {@code GeneratedLocators}. */
     private final List<Entry> entries = new ArrayList<>();
@@ -793,6 +798,9 @@ public class LocatorProcessor extends AbstractProcessor {
             if (METHOD_SKIP_LIST.contains(m.getSimpleName().toString())) {
                 continue;
             }
+            if (returnsComponentQuery(m)) {
+                continue;
+            }
             collected.putIfAbsent(erasedSignatureKey(m), m);
         }
         TypeMirror sup = type.getSuperclass();
@@ -801,6 +809,30 @@ public class LocatorProcessor extends AbstractProcessor {
                     (TypeElement) ((DeclaredType) sup).asElement(),
                     componentTesterEl, collected);
         }
+    }
+
+    /**
+     * Whether the method hands back a {@code ComponentQuery}, which takes it
+     * out of the delegated set: the caller would drop off the locator chain and
+     * lose {@code click()}, {@code withText()}, {@code atIndex()} and the lazy
+     * re-resolution the locator gives. The locator offers its own resolution
+     * surface instead, so {@code find(Class)} and the slot-scoped finders built
+     * on it stay tester-only API.
+     *
+     * @param m
+     *            the candidate method
+     * @return {@literal true} if the erased return type is
+     *         {@code ComponentQuery}
+     */
+    private boolean returnsComponentQuery(ExecutableElement m) {
+        TypeElement componentQuery = processingEnv.getElementUtils()
+                .getTypeElement(COMPONENT_QUERY_FQN);
+        if (componentQuery == null) {
+            return false;
+        }
+        Types types = processingEnv.getTypeUtils();
+        return types.isSameType(types.erasure(m.getReturnType()),
+                types.erasure(componentQuery.asType()));
     }
 
     /**

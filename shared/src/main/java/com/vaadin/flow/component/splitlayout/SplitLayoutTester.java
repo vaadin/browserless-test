@@ -18,6 +18,7 @@ package com.vaadin.flow.component.splitlayout;
 import org.jetbrains.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
@@ -43,6 +44,18 @@ public class SplitLayoutTester<T extends SplitLayout>
      */
     private static final String PRIMARY_FLEX_BASIS = "element.querySelector(':scope > [slot=\"primary\"]').style.flexBasis";
     private static final String SECONDARY_FLEX_BASIS = "element.querySelector(':scope > [slot=\"secondary\"]').style.flexBasis";
+
+    /**
+     * The slot a layout puts the components added with
+     * {@link SplitLayout#addToPrimary(Component...)} in.
+     */
+    private static final String PRIMARY_SLOT = "primary";
+
+    /**
+     * The slot a layout puts the components added with
+     * {@link SplitLayout#addToSecondary(Component...)} in.
+     */
+    private static final String SECONDARY_SLOT = "secondary";
 
     /**
      * Wrap given component for testing.
@@ -131,5 +144,49 @@ public class SplitLayoutTester<T extends SplitLayout>
     public Component getSecondaryComponent() {
         ensureVisible();
         return getComponent().getSecondaryComponent();
+    }
+
+    /**
+     * Searches the primary split for components of the given type.
+     * <p>
+     * The primary split holds the components added with
+     * {@link SplitLayout#addToPrimary(Component...)}. Components nested inside
+     * them are found too, so a button inside the layout filling the split is
+     * reached as well as a button added to the split directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the primary split
+     * @throws IllegalStateException
+     *             if the layout is not visible to the user
+     */
+    public <R extends Component> ComponentQuery<R> findInPrimary(
+            Class<R> componentType) {
+        ensureVisible();
+        return find(componentType).withinSlot(PRIMARY_SLOT);
+    }
+
+    /**
+     * Searches the secondary split for components of the given type.
+     * <p>
+     * The secondary split holds the components added with
+     * {@link SplitLayout#addToSecondary(Component...)}. Components nested
+     * inside them are found too, so a button inside the layout filling the
+     * split is reached as well as a button added to the split directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the secondary split
+     * @throws IllegalStateException
+     *             if the layout is not visible to the user
+     */
+    public <R extends Component> ComponentQuery<R> findInSecondary(
+            Class<R> componentType) {
+        ensureVisible();
+        return find(componentType).withinSlot(SECONDARY_SLOT);
     }
 }

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -80,6 +81,25 @@ public class LoginOverlayTesterTest extends BrowserlessTest {
         Assertions.assertEquals(1, find(Span.class).from(view).all().size());
         Span message = find(Span.class).from(view).withId("m1").first();
         Assertions.assertEquals("forgot", message.getText());
+    }
+
+    @Test
+    void findInFooterAndCustomFormArea_narrowTheSearchToOneSlot() {
+        login_.openOverlay();
+
+        Assertions.assertSame(view.signUp,
+                login_.findInFooter(Button.class).single());
+        Assertions.assertSame(view.help,
+                login_.findInCustomFormArea(Button.class).single());
+    }
+
+    @Test
+    void findInFooterAndCustomFormArea_overlayClosed_throw() {
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> login_.findInFooter(Button.class),
+                "A closed overlay shows no footer content");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> login_.findInCustomFormArea(Button.class));
     }
 
     @Test
