@@ -28,6 +28,7 @@ import com.github.mvysny.karibudsl.v10.tooltip
 import com.vaadin.flow.component.Html
 import com.vaadin.flow.component.Text
 import com.vaadin.flow.component.UI
+import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.contextmenu.ContextMenu
 import com.vaadin.flow.component.formlayout.FormLayout
@@ -364,3 +365,9 @@ private class HtmlSpan(@Language("html") innerHTML: String = "") : Span() {
         this.innerHTML = innerHTML
     }
 }
+
+// Extension shims over the Java statics, so the assertions below keep reading
+// as `component.toPrettyString()` instead of wrapping every one of them.
+private fun Component.toPrettyString(): String = PrettyPrintTree.toPrettyString(this)
+
+private fun Component.toPrettyTree(): String = PrettyPrintTree.toPrettyTree(this)

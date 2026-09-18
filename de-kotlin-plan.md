@@ -120,16 +120,25 @@ was written and is live on `main`, and its fallback moved from
 `_getVirtualChildren` to `ComponentUtil.getAllChildren`. Porting the old Java as
 written would have silently reverted both.
 
-### Phase 3 — `PrettyPrintTree` + `Routes`
+### Phase 3 — `PrettyPrintTree` + `Routes` — done
+
+On `refactor/no-kotlin-pretty-routes`. All five suites match the `main`
+baseline: shared 42, junit6 1406, junit6-cdi-tests 4, spring 41, quarkus 31.
 
 `MockRouteNotFoundError` and `MockInternalSeverError` move to their own files
-(Java allows one public class per file). Reconcile against `main`'s rewritten
-`hrefValue()`, which already removed the `kotlin-reflect` usage this phase was
-originally about.
+(Java allows one public class per file). `main`'s `hrefValue()` had already been
+rewritten in plain Java reflection, and it is considerably more thorough than
+what the prior port carried — it walks the class hierarchy reading declared
+methods *and* fields at any visibility, because `Anchor` keeps its `href` in a
+private field. That version is the one to port; the prior port's getter-only
+lookup would have quietly changed what a tree dump shows for an `Anchor`.
 
-Fix `junit6/src/main/java/com/vaadin/browserless/TreeOnFailureExtension.java:40`
-(`PrettyPrintTree.Companion.ofVaadin`) in this phase. It only runs on test
-failure, so a green suite does not catch it.
+`TreeOnFailureExtension` (`PrettyPrintTree.Companion.ofVaadin`) is fixed here.
+Nothing else referenced it, and the line only runs on test failure, so a green
+suite does not catch it.
+
+`kotlin-reflect` was already dropped on `main` by `df099d0`, so this phase has
+no dependency change.
 
 ### Phase 4 — `Locator` + `MockVaadin`
 
@@ -227,6 +236,12 @@ top of a Java method that declares checked exceptions.
   `MockHttpEnvironment.INSTANCE.setLocalPort(…)`. The Java port gives the same
   accessor names as statics, so `INSTANCE`-qualified calls break. Same for
   `MockVaadinHelper`.
+- **A `Boolean` property is `getX()`, not `isX()`.** Kotlin only uses the `is`
+  prefix when the property name already starts with `is`, so `var skipPwaInit`
+  compiles to `getSkipPwaInit()` and `var prettyPrintUseAscii` to
+  `getPrettyPrintUseAscii()`. Naming the Java getter the bean-conventional
+  `isSkipPwaInit()` breaks every Kotlin caller using the property syntax, and
+  every Java caller too. Keep Kotlin's name.
 - **`Companion` and other Kotlin synthetics** — `MockContext.Companion`,
   `MockHttpSession.Companion` (whose `create` becomes a real static),
   `MockInstantiator.Companion`, the `$default` bridges behind default arguments,

@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.AbstractCompositeField;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
@@ -229,7 +229,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
             Consumer<Consumer<String>> reasonsProvider) {
         if (!usableTest.test(component)) {
             StringBuilder message = new StringBuilder(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not usable");
             Stream.Builder<String> reasons = Stream.builder();
             reasonsProvider.accept(reasons::add);
@@ -300,7 +300,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     protected static void ensureVisible(Component component) {
         if (!component.isVisible() || !component.isAttached()) {
             throw new IllegalStateException(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not visible!");
         }
     }
@@ -471,9 +471,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
             StringBuilder message = new StringBuilder(
                     "Expecting the query to produce at most one result, but got ")
                     .append(result.size()).append(": ");
-            message.append(
-                    result.stream().map(PrettyPrintTreeKt::toPrettyString)
-                            .collect(Collectors.joining(", ")));
+            message.append(result.stream().map(PrettyPrintTree::toPrettyString)
+                    .collect(Collectors.joining(", ")));
             throw new IllegalArgumentException(message.toString());
         }
         return Optional.of(result.get(0));

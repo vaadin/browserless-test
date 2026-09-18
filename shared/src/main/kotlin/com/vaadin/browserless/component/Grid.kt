@@ -61,7 +61,7 @@ import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
 import com.vaadin.browserless.internal.filterNotBlank
 import com.vaadin.browserless.internal.size
 import com.vaadin.browserless.internal.Renderers.template
-import com.vaadin.browserless.internal.toPrettyString
+import com.vaadin.browserless.internal.PrettyPrintTree.toPrettyString
 import java.lang.reflect.Method
 import java.lang.reflect.Field
 import java.util.stream.Stream
@@ -273,7 +273,7 @@ public fun Grid<*>._size(): Int {
  * @throws AssertionError if no such column exists.
  */
 public fun <T> Grid<T>._getColumnByKey(columnKey: String): Grid.Column<T> = getColumnByKey(columnKey)
-        ?: throw AssertionError("${toPrettyString()}: No such column with key '$columnKey'; available columns: ${columns.mapNotNull { it.key }}")
+        ?: throw AssertionError("${toPrettyString(this)}: No such column with key '$columnKey'; available columns: ${columns.mapNotNull { it.key }}")
 
 /**
  * Performs a click on a [ClickableRenderer] in given [Grid] cell. Only supports the following scenarios:
@@ -302,10 +302,10 @@ public fun <T> Grid<T>._getColumnByKey(columnKey: String): Grid.Column<T> = getC
 //        } else {
 //            // don't try to do anything smart here since things will break silently for the customer as they upgrade Vaadin version
 //            // https://github.com/mvysny/karibu-testing/issues/67
-//            fail("${this.toPrettyString()} column $columnKey: ComponentRenderer produced ${component.toPrettyString()} which is not a button nor a ClickNotifier - please use _getCellComponent() instead")
+//            fail("${toPrettyString(this)} column $columnKey: ComponentRenderer produced ${toPrettyString(component)} which is not a button nor a ClickNotifier - please use _getCellComponent() instead")
 //        }
 //    } else {
-//        fail("${this.toPrettyString()} column $columnKey has renderer $renderer which is not supported by this method")
+//        fail("${toPrettyString(this)} column $columnKey has renderer $renderer which is not supported by this method")
 //    }
 //}
 
@@ -323,10 +323,10 @@ public fun <T : Any> Grid<T>._getCellComponent(
     val column: Grid.Column<T> = _getColumnByKey(columnKey)
     val renderer: Renderer<T>? = column.renderer
     if (renderer !is ComponentRenderer<*, *>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses renderer $renderer but we expect a ComponentRenderer here")
+        throw java.lang.IllegalArgumentException("${toPrettyString(this)} column $columnKey uses renderer $renderer but we expect a ComponentRenderer here")
     }
     if (renderer is NativeButtonRenderer<*>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses NativeButtonRenderer which is not supported by this function")
+        throw java.lang.IllegalArgumentException("${toPrettyString(this)} column $columnKey uses NativeButtonRenderer which is not supported by this function")
     }
     val item: T = _get(rowIndex)
     val component: Component = (renderer as ComponentRenderer<*, T>).createComponent(item)
@@ -467,7 +467,7 @@ public fun <T : Any> Grid<T>._dump(rows: IntRange = 0..9): String = buildString 
 public fun Grid<*>.expectRows(count: Int) {
     val actual = _size()
     if (actual != count) {
-        throw AssertionError("${this.toPrettyString()}: expected $count rows but got $actual\n${_dump()}")
+        throw AssertionError("${toPrettyString(this)}: expected $count rows but got $actual\n${_dump()}")
     }
 }
 
@@ -479,7 +479,7 @@ public fun Grid<*>.expectRow(rowIndex: Int, vararg row: String) {
     val expected: List<String> = row.toList()
     val actual: List<String> = _getFormattedRow(rowIndex)
     if (expected != actual) {
-        throw AssertionError("${this.toPrettyString()} at $rowIndex: expected $expected but got $actual\n${_dump()}")
+        throw AssertionError("${toPrettyString(this)} at $rowIndex: expected $expected but got $actual\n${_dump()}")
     }
 }
 
@@ -787,7 +787,7 @@ public val Component.dataProvider: DataProvider<*, *>? get() = when (this) {
  * mocked properly, calls the editor bindings, and fires the editor-open-event.
  */
 public fun <T> Editor<T>._editItem(item: T) {
-//    expect(true, "${grid.toPrettyString()} is not attached, editItem() would do nothing. Make sure the Grid is attached to an UI") {
+//    expect(true, "${toPrettyString(grid)} is not attached, editItem() would do nothing. Make sure the Grid is attached to an UI") {
 //        grid.isAttached()
 //    }
     if(!grid.isAttached()) throw java.lang.IllegalStateException("Grid is not attached so can not edit")

@@ -145,7 +145,7 @@ public final class BasicUtils {
     public static void checkEditableByUser(Component component) {
         if (!isEffectivelyVisible(component)) {
             throw new IllegalStateException("The "
-                    + PrettyPrintTreeKt.toPrettyString(component)
+                    + PrettyPrintTree.toPrettyString(component)
                     + " is not effectively visible - either it is hidden, or its ascendant is hidden");
         }
         boolean parentNullOrEnabled = !component.getParent().isPresent()
@@ -153,13 +153,13 @@ public final class BasicUtils {
         if (parentNullOrEnabled) {
             if (!component.getElement().isEnabled()) {
                 throw new IllegalStateException(
-                        "The " + PrettyPrintTreeKt.toPrettyString(component)
+                        "The " + PrettyPrintTree.toPrettyString(component)
                                 + " is not enabled");
             }
         }
         if (!isEffectivelyEnabled(component)) {
             throw new IllegalStateException(
-                    "The " + PrettyPrintTreeKt.toPrettyString(component)
+                    "The " + PrettyPrintTree.toPrettyString(component)
                             + " is nested in a disabled component");
         }
         if (component instanceof HasValue) {
@@ -167,13 +167,13 @@ public final class BasicUtils {
             HasValue<HasValue.ValueChangeEvent<Object>, Object> hasValue = (HasValue) component;
             if (hasValue.isReadOnly()) {
                 throw new IllegalStateException(
-                        "The " + PrettyPrintTreeKt.toPrettyString(component)
+                        "The " + PrettyPrintTree.toPrettyString(component)
                                 + " is read-only");
             }
         }
         if (!component.isAttached()) {
             throw new IllegalStateException(
-                    " The " + PrettyPrintTreeKt.toPrettyString(component)
+                    " The " + PrettyPrintTree.toPrettyString(component)
                             + " is not attached");
         }
     }
@@ -193,7 +193,7 @@ public final class BasicUtils {
             return;
         }
         throw new AssertionError("The "
-                + PrettyPrintTreeKt.toPrettyString(component) + " is editable");
+                + PrettyPrintTree.toPrettyString(component) + " is editable");
     }
 
     static boolean isEffectivelyVisible(Component component) {
