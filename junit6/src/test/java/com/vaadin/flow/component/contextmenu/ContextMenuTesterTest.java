@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.contextmenu;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -52,6 +53,19 @@ class ContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void openCloseMenu_openedChangeEventsComeFromClient() {
+        List<Boolean> fromClient = new ArrayList<>();
+        view.menu.addOpenedChangeListener(
+                event -> fromClient.add(event.isFromClient()));
+
+        test(view.menu).open();
+        test(view.menu).close();
+
+        Assertions.assertEquals(List.of(true, true), fromClient,
+                "opening and closing the menu should be reported as user actions");
+    }
+
+    @Test
     void programmaticallyClose_menuIsDetached() {
         test(view.menu).open();
 
@@ -68,6 +82,23 @@ class ContextMenuTesterTest extends BrowserlessTest {
         IllegalStateException exception = Assertions
                 .assertThrows(IllegalStateException.class, menu_::open);
         Assertions.assertTrue(exception.getMessage().contains("already open"));
+    }
+
+    @Test
+    void openMenu_notUsable_throws() {
+        view.menu.setVisible(false);
+
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class, test(view.menu)::open);
+        Assertions.assertTrue(exception.getMessage().contains("is not usable"));
+
+        Assertions.assertFalse(view.menu.isOpened(),
+                "a refused open should leave the menu closed");
+        Assertions.assertFalse(view.menu.isAttached(),
+                "a refused open should leave the menu detached from the UI");
+        Assertions.assertEquals(0,
+                find(Div.class).withText("Component Item").all().size(),
+                "a refused open should not leave the menu content reachable through a top level find()");
     }
 
     @Test
