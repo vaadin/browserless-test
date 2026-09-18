@@ -1,9 +1,11 @@
 name: Browserless Test Validation
 
 on:
-  pull_request_target:
+  pull_request:
+    # Maintenance branches are named <major>.<minor>, e.g. 25.3 or 1.1
     branches:
       - main
+      - "[0-9]+.[0-9]+"
     types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
@@ -24,12 +26,8 @@ env:
   VAADIN_PRO_KEY: ${{ secrets.VAADIN_PRO_KEY }}
 
 jobs:
-  check-permissions:
-    uses: ./.github/workflows/check-permissions.yml
-
   format-check:
     name: Format Check
-    needs: check-permissions
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -94,6 +92,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     needs: build
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -134,13 +133,13 @@ jobs:
       issues: read
       checks: write
       pull-requests: write
-    if: always()
+    if: ${{ always() && !github.event.pull_request.head.repo.fork }}
     needs: [format-check, build, unit-tests]
     runs-on: ubuntu-latest
 
     steps:
       - name: Remove format hint comment
-        if: always() && needs.format-check.result == 'success' && github.event_name == 'pull_request_target'
+        if: always() && needs.format-check.result == 'success' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -163,7 +162,7 @@ jobs:
             }
 
       - name: Post format hint comment
-        if: always() && needs.format-check.result == 'failure' && github.event_name == 'pull_request_target'
+        if: always() && needs.format-check.result == 'failure' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
