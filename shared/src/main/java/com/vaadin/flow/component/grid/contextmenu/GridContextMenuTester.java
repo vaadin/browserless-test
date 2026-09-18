@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.browserless.internal.MenuItemNavigation;
 import com.vaadin.flow.component.Component;
@@ -158,7 +158,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         }
         Grid<Y> grid = getGrid();
         String itemKey = GridContextMenuSupport.getItemKey(grid,
-                GridKt._get(grid, row));
+                GridUtils._get(grid, row));
         String columnId = columnKey == null ? null
                 : GridContextMenuSupport.getColumnInternalId(grid, columnKey);
         GridContextMenuSupport.setTargetItem(grid, itemKey, columnId);

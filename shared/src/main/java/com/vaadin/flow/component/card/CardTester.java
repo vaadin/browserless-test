@@ -17,7 +17,7 @@ package com.vaadin.flow.component.card;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;

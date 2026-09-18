@@ -15,7 +15,7 @@
  */
 package com.vaadin.flow.component.splitlayout;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.ComponentQuery;

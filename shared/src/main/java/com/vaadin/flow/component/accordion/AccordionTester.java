@@ -15,7 +15,7 @@
  */
 package com.vaadin.flow.component.accordion;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;

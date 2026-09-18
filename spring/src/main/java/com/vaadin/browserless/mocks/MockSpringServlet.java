@@ -22,7 +22,7 @@ import java.lang.reflect.Constructor;
 import java.security.Principal;
 import java.util.function.UnaryOperator;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -53,16 +53,16 @@ import com.vaadin.flow.spring.SpringServlet;
  */
 public class MockSpringServlet extends SpringServlet {
 
-    @NotNull
+    @NonNull
     public final Routes routes;
-    @NotNull
+    @NonNull
     public final ApplicationContext ctx;
-    @NotNull
+    @NonNull
     public final UIFactory uiFactory;
 
-    public MockSpringServlet(@NotNull Routes routes,
+    public MockSpringServlet(@NonNull Routes routes,
 
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;
         this.routes = routes;

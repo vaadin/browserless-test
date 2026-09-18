@@ -28,7 +28,7 @@ import com.vaadin.browserless.LitRendererTestUtil;
 import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
@@ -67,7 +67,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return items in grid
      */
     public int size() {
-        return GridKt._size(getComponent());
+        return GridUtils._size(getComponent());
     }
 
     /**
@@ -80,7 +80,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return grid item on row
      */
     public Y getRow(int row) {
-        return GridKt._get(getComponent(), row);
+        return GridUtils._get(getComponent(), row);
     }
 
     /**
@@ -139,7 +139,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void clickRow(int row, MouseButton button, MetaKeys metaKeys) {
         ensureComponentIsUsable();
-        GridKt._clickItem(getComponent(), row, button.getButton(),
+        GridUtils._clickItem(getComponent(), row, button.getButton(),
                 metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                 metaKeys.isMeta());
     }
@@ -200,7 +200,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void doubleClickRow(int row, MouseButton button, MetaKeys metaKeys) {
         ensureComponentIsUsable();
-        GridKt._doubleClickItem(getComponent(), row, button.getButton(),
+        GridUtils._doubleClickItem(getComponent(), row, button.getButton(),
                 metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                 metaKeys.isMeta());
     }
@@ -221,7 +221,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     public void select(int row) {
         ensureComponentIsUsable();
         final Y item = getRow(row);
-        GridKt._select(getComponent(), item);
+        GridUtils._select(getComponent(), item);
     }
 
     /**
@@ -237,7 +237,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void selectAll() {
         ensureComponentIsUsable();
-        GridKt._selectAll(getComponent());
+        GridUtils._selectAll(getComponent());
     }
 
     /**
@@ -265,7 +265,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     public void deselect(int row) {
         ensureComponentIsUsable();
         final Y item = getRow(row);
-        GridKt._deselect(getComponent(), item);
+        GridUtils._deselect(getComponent(), item);
     }
 
     /**
@@ -286,7 +286,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void deselectAll() {
         ensureComponentIsUsable();
-        GridKt._deselectAll(getComponent());
+        GridUtils._deselectAll(getComponent());
     }
 
     /**

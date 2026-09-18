@@ -15,7 +15,7 @@
  */
 package com.vaadin.browserless.mocks;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.UIFactory;
@@ -40,11 +40,11 @@ import com.vaadin.flow.server.VaadinSession;
  * @since 1.0
  */
 public class MockSpringVaadinSession extends VaadinSession {
-    @NotNull
+    @NonNull
     private final UIFactory uiFactory;
 
-    public MockSpringVaadinSession(@NotNull VaadinService service,
-            @NotNull UIFactory uiFactory) {
+    public MockSpringVaadinSession(@NonNull VaadinService service,
+            @NonNull UIFactory uiFactory) {
         super(service);
         this.uiFactory = uiFactory;
     }

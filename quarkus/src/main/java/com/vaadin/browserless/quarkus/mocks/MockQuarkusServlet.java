@@ -20,7 +20,7 @@ import jakarta.servlet.ServletException;
 
 import java.lang.reflect.Field;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
@@ -67,7 +67,7 @@ public class MockQuarkusServlet extends QuarkusVaadinServlet {
      *            the factory used to build Flow UIs.
      */
     public MockQuarkusServlet(Routes routes, BeanManager beanManager,
-            @NotNull UIFactory uiFactory) {
+            @NonNull UIFactory uiFactory) {
         this.routes = routes;
         this.uiFactory = uiFactory;
         this.beanManager = beanManager;

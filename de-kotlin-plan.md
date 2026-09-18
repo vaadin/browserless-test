@@ -176,7 +176,12 @@ that field postdates the prior port — it would have broken the public
 logout-idiom early return, the wrong-UI guard and the
 `recordReloadReplacement(…)` call, which six reload tests caught.
 
-### Phase 5 — `Grid.kt` and the kotlin-stdlib drop
+### Phase 5 — `Grid.kt` and the kotlin-stdlib drop — done
+
+On `refactor/no-kotlin-grid`. All five suites match the `main` baseline:
+shared 42, junit6 1406, junit6-cdi-tests 4, spring 41, quarkus 31.
+`shared/src/main` is now 100% Java and `kotlin-stdlib` is off its compile
+classpath, so downstream consumers pull no Kotlin runtime.
 
 - `Sequence<T>` returns (`_rowSequence`) become `Stream<T>` built over
   `DepthFirstTreeIterator` + `Spliterator`. Laziness matters: `TreeGrid._size()`
@@ -185,6 +190,19 @@ logout-idiom early return, the wrong-UI guard and the
   no callers — drop them; the `getCell(String)` overloads stay.
 - Delete `shared/src/main/kotlin`, move `kotlin-stdlib` to test scope, replace
   Dokka with `maven-javadoc-plugin`.
+- `_dump(Grid, IntRange)` becomes `_dump(Grid, int from, int to)`. A row range
+  is not a count, so it needs no `CountRange`.
+- The `org.jetbrains.annotations` imports move to JSpecify, which Vaadin already
+  puts on the classpath at `provided` scope — no new dependency.
+
+**Replacing Dokka turns Javadoc validation on for the first time.** Dokka
+validated nothing, so `maven-javadoc-plugin` immediately fails `shared` on about
+200 doclint issues across 53 files — mostly `self` errors from `<p/>`, missing
+`@param` on type variables, and unresolvable `@link` targets, nearly all in
+testers untouched by the port. `shared` therefore sets `<doclint>none</doclint>`
+so the port does not turn into a module-wide Javadoc cleanup. That cleanup is
+worth doing on its own, tightening the setting back a step at a time; the other
+modules already run with doclint on.
 
 ### Phase 6 — test-side Kotlin (separate decision)
 
