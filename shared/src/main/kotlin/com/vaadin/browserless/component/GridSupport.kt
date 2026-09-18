@@ -13,22 +13,20 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.internal
-
-import com.vaadin.flow.component.Component
+package com.vaadin.browserless.component
 
 /**
- * Checks whether this component matches given spec. All rules are matched except the [count] rule. The
- * rules are matched against given component only (not against its children).
- *
- * Stays Kotlin until [SearchSpec] is ported, since it takes a Kotlin DSL block.
+ * The last Kotlin-only helpers `Grid.kt` still needs. Both go away with it in
+ * the final phase of the port.
  */
-fun Component.matches(spec: SearchSpec<Component>.() -> Unit): Boolean =
-    SearchSpec(Component::class.java).apply { spec() }.toPredicate().invoke(this)
 
 /**
  * Size of the [IntRange], used by the `Grid._dump()` implementation.
- *
- * Stays Kotlin until `Grid.kt` is ported.
  */
-val IntRange.size: Int get() = (endInclusive + 1 - start).coerceAtLeast(0)
+internal val IntRange.size: Int get() = (endInclusive + 1 - start).coerceAtLeast(0)
+
+/**
+ * Removes nulls and blank strings from this iterable.
+ */
+internal fun Iterable<String?>.filterNotBlank(): List<String> =
+    filterNotNull().filter { it.isNotBlank() }

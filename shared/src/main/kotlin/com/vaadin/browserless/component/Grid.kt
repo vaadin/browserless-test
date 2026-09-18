@@ -58,8 +58,6 @@ import com.vaadin.browserless.internal.BasicUtils._fireEvent
 import com.vaadin.browserless.internal.Renderers._getPresentationValue
 import com.vaadin.browserless.internal.BasicUtils._saneFetchLimit
 import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
-import com.vaadin.browserless.internal.filterNotBlank
-import com.vaadin.browserless.internal.size
 import com.vaadin.browserless.internal.Renderers.template
 import com.vaadin.browserless.internal.PrettyPrintTree.toPrettyString
 import java.lang.reflect.Method

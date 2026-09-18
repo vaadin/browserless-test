@@ -53,8 +53,6 @@ import com.vaadin.flow.server.startup.RouteRegistryInitializer;
  * <p>
  * Scanning is the slow part of setting a test up, so build one instance and
  * reuse it across setups.
- * <p>
- * For internal use only. May be renamed or removed in a future release.
  */
 public class Routes implements Serializable {
 

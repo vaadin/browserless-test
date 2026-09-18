@@ -371,9 +371,9 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 
     test("Reusing UI fails with helpful message") {
         val ui = MockedUI()
-        MockVaadin.setup(uiFactory = { ui })
+        MockVaadin.setup(UIFactory { ui })
         expectThrows(IllegalArgumentException::class, "which is already attached to a Session") {
-            MockVaadin.setup(uiFactory = { ui })
+            MockVaadin.setup(UIFactory { ui })
         }
     }
 
@@ -410,7 +410,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
         test("cookies in UI.init()") {
             MockVaadin.tearDown()
             var initCalled = false
-            MockVaadin.setup(uiFactory = {
+            MockVaadin.setup(UIFactory {
                 mock(currentRequest()).addCookie(Cookie("foo", "bar"))
                 object : UI() {
                     override fun init(request: VaadinRequest) {
@@ -548,7 +548,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
                 override fun createVaadinSession(request: VaadinRequest): VaadinSession = MockVaadinSession(this) { MockedUI() }
             }
             MockVaadin.tearDown()
-            MockVaadin.setup(servlet = object : MockVaadinServlet(routes) {
+            MockVaadin.setup(object : MockVaadinServlet(routes) {
                 override fun createServletService(deploymentConfiguration: DeploymentConfiguration): VaadinServletService {
                     val service = MyMockService(this, deploymentConfiguration)
                     service.init()
@@ -563,7 +563,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
             var uiInitListenerInvocationCount = 0
             var sessionDestroyListenerInvocationCount = 0
             var serviceDestroyListenerInvocationCount = 0
-            MockVaadin.setup(servlet = object : MockVaadinServlet(routes) {
+            MockVaadin.setup(object : MockVaadinServlet(routes) {
                 override fun createServletService(deploymentConfiguration: DeploymentConfiguration): VaadinServletService {
                     val service = MockService(this, deploymentConfiguration)
                     service.init()

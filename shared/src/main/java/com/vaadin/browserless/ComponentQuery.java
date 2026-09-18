@@ -25,10 +25,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import kotlin.Unit;
-import kotlin.ranges.IntRange;
-
-import com.vaadin.browserless.internal.LocatorKt;
+import com.vaadin.browserless.internal.CountRange;
+import com.vaadin.browserless.internal.Locator;
 import com.vaadin.browserless.internal.SearchSpec;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.shared.ThemeVariant;
@@ -122,7 +120,7 @@ public class ComponentQuery<T extends Component> {
     public ComponentQuery<T> withId(String id) {
         locatorSpec.id = id;
         // At most one element with given id is expected
-        locatorSpec.count = new IntRange(0, 1);
+        locatorSpec.count = new CountRange(0, 1);
         return this;
     }
 
@@ -142,7 +140,7 @@ public class ComponentQuery<T extends Component> {
     public ComponentQuery<T> withTestId(String testId) {
         locatorSpec.testId = testId;
         // At most one element with given test-id is expected
-        locatorSpec.count = new IntRange(0, 1);
+        locatorSpec.count = new CountRange(0, 1);
         return this;
     }
 
@@ -464,7 +462,7 @@ public class ComponentQuery<T extends Component> {
                     "count must be greater or equal than zero, but was "
                             + count);
         }
-        locatorSpec.count = new IntRange(count, count);
+        locatorSpec.count = CountRange.exactly(count);
         return this;
     }
 
@@ -495,7 +493,7 @@ public class ComponentQuery<T extends Component> {
                     "max must be greater or equal than min, but was min=" + min
                             + ", max=" + max + "");
         }
-        locatorSpec.count = new IntRange(min, max);
+        locatorSpec.count = new CountRange(min, max);
         return this;
     }
 
@@ -924,10 +922,9 @@ public class ComponentQuery<T extends Component> {
      */
     public List<T> all() {
         if (context != null) {
-            return LocatorKt._find(context, componentType,
-                    locatorSpec::populate);
+            return Locator._find(context, componentType, locatorSpec::populate);
         }
-        return LocatorKt._find(componentType, locatorSpec::populate);
+        return Locator._find(componentType, locatorSpec::populate);
     }
 
     /**
@@ -949,14 +946,14 @@ public class ComponentQuery<T extends Component> {
         // Snapshot and restore so resolution's "expect exactly one"
         // constraint doesn't leak into the persistent spec and
         // pollute later chain steps.
-        IntRange savedCount = locatorSpec.count;
-        locatorSpec.count = new IntRange(1, 1);
+        CountRange savedCount = locatorSpec.count;
+        locatorSpec.count = CountRange.ONE;
         try {
             if (context != null) {
-                return LocatorKt._get(context, componentType,
+                return Locator._get(context, componentType,
                         locatorSpec::populate);
             }
-            return LocatorKt._get(componentType, locatorSpec::populate);
+            return Locator._get(componentType, locatorSpec::populate);
         } catch (AssertionError e) {
             // Happens when found component(s) are not of the expected type
             throw new NoSuchElementException(e.getMessage());
@@ -980,7 +977,7 @@ public class ComponentQuery<T extends Component> {
         String placeholder;
         String text;
         boolean textExactMatch = true;
-        IntRange count = new IntRange(0, Integer.MAX_VALUE);
+        CountRange count = CountRange.ANY;
         Object value;
         final Set<String> classes = new HashSet<>();
         final Set<String> withoutClasses = new HashSet<>();
@@ -988,7 +985,7 @@ public class ComponentQuery<T extends Component> {
         String withoutThemes;
         List<Predicate<T>> predicates = new ArrayList<>(0);
 
-        public Unit populate(SearchSpec<T> spec) {
+        public void populate(SearchSpec<T> spec) {
             if (id != null)
                 spec.setId(id);
             if (testId != null)
@@ -1015,8 +1012,6 @@ public class ComponentQuery<T extends Component> {
                 spec.setWithoutThemes(withoutThemes);
             spec.setCount(count);
             spec.getPredicates().addAll(predicates);
-
-            return Unit.INSTANCE;
         }
 
     }

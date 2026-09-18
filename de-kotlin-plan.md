@@ -140,9 +140,11 @@ suite does not catch it.
 `kotlin-reflect` was already dropped on `main` by `df099d0`, so this phase has
 no dependency change.
 
-### Phase 4 — `Locator` + `MockVaadin`
+### Phase 4 — `Locator` + `MockVaadin` — done
 
-The behaviorally sensitive phase.
+On `refactor/no-kotlin-locator-mockvaadin`. All five suites match the `main`
+baseline: shared 42, junit6 1406, junit6-cdi-tests 4, spring 41, quarkus 31.
+After this phase no Java source in any module references a Kotlin type.
 
 - `Locator.kt` → `Locator` + `SearchSpec`.
 - `MockVaadin.kt` → `MockVaadin` + `SessionObjects` + `UIFactory` +
@@ -152,6 +154,27 @@ The behaviorally sensitive phase.
   throwables where Java cannot.
 - Keep `UIFactory`'s SAM method named `invoke()` so `MockedUI::new` call sites
   and the Spring / Quarkus constructors keep binding.
+- `CountRange` replaces `kotlin.ranges.IntRange` here rather than in Phase 5, so
+  `SearchSpec` and `ComponentQuery.LocatorSpec` are edited once instead of
+  twice.
+- The Kotlin DSL shim goes straight to `junit6/src/test/kotlin` as
+  `LocatorDsl.kt`, skipping the prior effort's intermediate stop in
+  `shared/src/main/kotlin`. Nothing in `shared/src/test` uses the locator DSL.
+- The three `@Deprecated(forRemoval = true)` Spring constructors taking
+  `Function0<UI>` are removed, as agreed: with a plain Java `UIFactory` they are
+  ambiguous against the `UIFactory` overload at any `MockedUI::new` call site.
+- `MockVaadin` fires session-init, service-destroy and UI-init through
+  `VaadinService.getEventBus()` with a rethrowing failure handler, as `main`
+  does. The prior port reflected into `VaadinService`'s private listener
+  collections and swallowed the rethrow, which both
+  [`CONVENTIONS.md`](CONVENTIONS.md) and
+  [`guidelines/architecture.md`](guidelines/architecture.md) argue against.
+
+Two things the drift check caught. `SearchSpec` had no `testId` at all, because
+that field postdates the prior port — it would have broken the public
+`ComponentQuery.withTestId(…)`. And `MockPage.reload()` was missing the
+logout-idiom early return, the wrong-UI guard and the
+`recordReloadReplacement(…)` call, which six reload tests caught.
 
 ### Phase 5 — `Grid.kt` and the kotlin-stdlib drop
 

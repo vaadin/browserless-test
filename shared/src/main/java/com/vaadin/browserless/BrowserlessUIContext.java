@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.locator.Locators;
 import com.vaadin.flow.component.Component;
@@ -548,7 +547,7 @@ public class BrowserlessUIContext
      */
     public String getExternalNavigationURL() {
         activate();
-        if (ui.getPage() instanceof MockPage mockPage) {
+        if (ui.getPage() instanceof MockVaadin.MockPage mockPage) {
             return mockPage.getLastExternalNavigationURL();
         }
         return null;
@@ -566,7 +565,7 @@ public class BrowserlessUIContext
      */
     public String getExternalNavigationURL(String windowName) {
         activate();
-        if (ui.getPage() instanceof MockPage mockPage) {
+        if (ui.getPage() instanceof MockVaadin.MockPage mockPage) {
             return mockPage.getExternalNavigationURL(windowName);
         }
         return null;
@@ -588,7 +587,7 @@ public class BrowserlessUIContext
      */
     public Map<String, List<String>> getOpenedWindows() {
         activate();
-        if (ui.getPage() instanceof MockPage mockPage) {
+        if (ui.getPage() instanceof MockVaadin.MockPage mockPage) {
             return mockPage.getOpenedWindows();
         }
         return Map.of();
