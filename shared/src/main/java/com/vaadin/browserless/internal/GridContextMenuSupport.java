@@ -133,12 +133,18 @@ public final class GridContextMenuSupport {
      * @return the internal id of the column
      * @throws IllegalArgumentException
      *             if the grid has no column with the given key
+     * @throws IllegalStateException
+     *             if the column is not visible
      */
     public static String getColumnInternalId(Grid<?> grid, String columnKey) {
         Grid.Column<?> column = grid.getColumnByKey(columnKey);
         if (column == null) {
             throw new IllegalArgumentException(
                     "Grid has no column with key " + columnKey);
+        }
+        if (!column.isVisible()) {
+            throw new IllegalStateException("Column with key " + columnKey
+                    + " is not visible, so a user cannot reach it");
         }
         return GridKt.get_internalId(column);
     }

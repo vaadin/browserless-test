@@ -69,6 +69,8 @@ class GridContextMenuTesterTest extends BrowserlessTest {
 
         Assertions.assertFalse(view.menu.isAttached(),
                 "context menu should be detached from the UI, but was not");
+        Assertions.assertEquals(0, find(Checkbox.class).all().size(),
+                "component item of the closed menu should not be findable");
     }
 
     @Test
@@ -187,9 +189,11 @@ class GridContextMenuTesterTest extends BrowserlessTest {
     void openOnRowAndColumn_openedEventReportsRowAndColumn() {
         List<Optional<String>> openedOn = new ArrayList<>();
         List<Optional<String>> openedColumns = new ArrayList<>();
+        List<Boolean> fromClient = new ArrayList<>();
         view.menu.addGridContextMenuOpenedListener(event -> {
             openedOn.add(event.getItem());
             openedColumns.add(event.getColumnId());
+            fromClient.add(event.isFromClient());
         });
 
         test(view.menu).open(1, GridContextMenuView.LENGTH_COLUMN);
@@ -200,6 +204,20 @@ class GridContextMenuTesterTest extends BrowserlessTest {
                 List.of(Optional.of(GridContextMenuSupport.getColumnInternalId(
                         view.grid, GridContextMenuView.LENGTH_COLUMN))),
                 openedColumns);
+        Assertions.assertIterableEquals(List.of(true), fromClient,
+                "opening the menu should look like a user gesture");
+    }
+
+    @Test
+    void openOnRow_invisibleColumn_throws() {
+        IllegalStateException exception = Assertions
+                .assertThrows(IllegalStateException.class, () -> test(view.menu)
+                        .open(0, GridContextMenuView.HIDDEN_COLUMN));
+        Assertions.assertTrue(exception.getMessage().contains("not visible"),
+                "expected the hidden column to be refused, but got: "
+                        + exception.getMessage());
+        Assertions.assertFalse(view.menu.isAttached(),
+                "menu should stay closed when the column cannot be reached");
     }
 
     @Test

@@ -34,6 +34,7 @@ public class GridContextMenuView extends Component implements HasComponents {
     static final String BOB = "Bob";
     static final String NAME_COLUMN = "name";
     static final String LENGTH_COLUMN = "length";
+    static final String HIDDEN_COLUMN = "hidden";
 
     final Grid<String> grid;
     final Grid<String> gridWithoutMenu;
@@ -47,6 +48,8 @@ public class GridContextMenuView extends Component implements HasComponents {
         grid.addColumn(name -> name).setKey(NAME_COLUMN).setHeader("Name");
         grid.addColumn(String::length).setKey(LENGTH_COLUMN)
                 .setHeader("Length");
+        grid.addColumn(String::toUpperCase).setKey(HIDDEN_COLUMN)
+                .setHeader("Hidden").setVisible(false);
         grid.setItems(ALICE, BOB);
 
         menu = grid.addContextMenu();

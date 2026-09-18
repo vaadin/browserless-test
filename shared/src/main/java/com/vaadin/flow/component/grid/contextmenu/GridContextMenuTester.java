@@ -145,8 +145,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * @throws IllegalArgumentException
      *             if the grid has no column with the given key
      * @throws IllegalStateException
-     *             if the menu is already open, or if a dynamic content handler
-     *             prevented it from opening
+     *             if the column is not visible, if the menu is already open, or
+     *             if a dynamic content handler prevented it from opening
      * @throws IndexOutOfBoundsException
      *             if the grid has no such row
      */
@@ -166,7 +166,10 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
             throw new IllegalStateException(
                     "Context menu did not open. Its dynamic content handler returned false for the target row.");
         }
-        getComponent().getElement().setProperty("opened", true);
+        // opened is a synchronized property, so pushing it through the
+        // client path makes the GridContextMenuOpenedEvent report
+        // isFromClient() as true, the way a real open does
+        setPropertyAsUser("opened", true);
         ensureComponentIsUsable();
     }
 
@@ -178,7 +181,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      */
     public void close() {
         ensureComponentIsUsable();
-        getComponent().getElement().setProperty("opened", false);
+        setPropertyAsUser("opened", false);
     }
 
     /**
