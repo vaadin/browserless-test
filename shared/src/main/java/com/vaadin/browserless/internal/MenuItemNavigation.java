@@ -117,6 +117,55 @@ public final class MenuItemNavigation {
     }
 
     /**
+     * Gets the texts of the given menu items as the browser shows them, i.e.
+     * only the visible ones, in their order.
+     * <p>
+     * An item created from a component has no text of its own, so it is
+     * reported as an empty string.
+     *
+     * @param items
+     *            the items of a menu level
+     * @return the texts of the visible items
+     */
+    public static List<String> visibleTexts(
+            List<? extends MenuItemBase<?, ?, ?>> items) {
+        return items.stream().filter(Component::isVisible)
+                .map(MenuItemBase::getText).collect(Collectors.toList());
+    }
+
+    /**
+     * Gets the texts of the visible items of the sub menu of the item addressed
+     * by the given text path.
+     *
+     * @param rootItems
+     *            the items of the top level menu
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @param <C>
+     *            menu type
+     * @param <I>
+     *            menu item type
+     * @param <S>
+     *            sub menu type
+     * @return the texts of the visible items of the sub menu
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item, or if the
+     *             item at the given path has no sub menu
+     * @throws IllegalStateException
+     *             if there are multiple matching items at any level, or if the
+     *             item at the given path is disabled or not visible
+     */
+    public static <C extends ContextMenuBase<C, I, S>, I extends MenuItemBase<C, I, S>, S extends SubMenuBase<C, I, S>> List<String> visibleSubMenuTexts(
+            List<I> rootItems, String topLevelText, String... nestedItemsText) {
+        I menuItem = findByPath(rootItems, topLevelText, nestedItemsText);
+        ensureParentItem(menuItem, pathToString(topLevelText, nestedItemsText));
+        return visibleTexts(menuItem.getSubMenu().getItems());
+    }
+
+    /**
      * Ensures that the given menu item is checkable, as only a checkable item
      * has a checked state to read.
      *
