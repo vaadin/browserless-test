@@ -16,8 +16,8 @@
 package com.vaadin.browserless.internal;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Map;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.grid.Grid;
@@ -25,6 +25,7 @@ import com.vaadin.flow.data.provider.AbstractComponentDataGenerator;
 import com.vaadin.flow.data.provider.CompositeDataGenerator;
 import com.vaadin.flow.data.provider.DataGenerator;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.internal.ReflectTools;
 
 /**
  * Reaches the components a {@link ComponentRenderer} has rendered for the rows
@@ -59,26 +60,18 @@ public final class RenderedComponentSupport {
      */
     public static Component getRenderedComponent(Grid.Column<?> column,
             String itemKey) {
+        DataGenerator<?> columnDataGenerator = (DataGenerator<?>) read(
+                Grid.Column.class, "compositeDataGenerator", column);
         AbstractComponentDataGenerator<?> generator = findComponentDataGenerator(
-                columnDataGenerator(column));
+                columnDataGenerator);
         if (generator == null) {
             return null;
         }
-        try {
-            Method getRenderedComponent = AbstractComponentDataGenerator.class
-                    .getDeclaredMethod("getRenderedComponent", String.class);
-            getRenderedComponent.setAccessible(true);
-            return (Component) getRenderedComponent.invoke(generator, itemKey);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(
-                    "Unable to read the component the column rendered for the item",
-                    e);
+        if (read(AbstractComponentDataGenerator.class, "renderedComponents",
+                generator) instanceof Map<?, ?> rendered) {
+            return (Component) rendered.get(itemKey);
         }
-    }
-
-    private static DataGenerator<?> columnDataGenerator(Grid.Column<?> column) {
-        return (DataGenerator<?>) read(Grid.Column.class,
-                "compositeDataGenerator", column);
+        return null;
     }
 
     private static AbstractComponentDataGenerator<?> findComponentDataGenerator(
@@ -102,11 +95,12 @@ public final class RenderedComponentSupport {
 
     private static Object read(Class<?> owner, String fieldName,
             Object instance) {
+        Field field = ReflectTools.findDeclaredField(owner, fieldName)
+                .orElseThrow(() -> new IllegalStateException("Unable to find "
+                        + owner.getSimpleName() + "." + fieldName));
         try {
-            Field field = owner.getDeclaredField(fieldName);
-            field.setAccessible(true);
             return field.get(instance);
-        } catch (ReflectiveOperationException e) {
+        } catch (IllegalAccessException e) {
             throw new IllegalStateException(
                     "Unable to read " + owner.getSimpleName() + "." + fieldName,
                     e);

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -435,6 +436,37 @@ class BasicGridTesterTest extends BrowserlessTest {
 
         Assertions.assertInstanceOf(Button.class,
                 grid_.renderCellComponent(1, BasicGridView.HIDDEN_BUTTON_KEY));
+    }
+
+    @Test
+    void getCellComponent_itemsNotEqualAcrossFetches_throwsAndSuggestsRendering() {
+        // a data provider that hands out a new item instance on every fetch:
+        // the grid cannot tell that the item on the row is the item it
+        // rendered the row for
+        final Grid<Person> lazyGrid = new Grid<>();
+        lazyGrid.addComponentColumn(person -> new Button(person.getFirstName()))
+                .setKey(BasicGridView.BUTTON_KEY);
+        lazyGrid.setItems(query -> IntStream
+                .range(query.getOffset(), query.getOffset() + query.getLimit())
+                .mapToObj(index -> {
+                    final Person person = new Person();
+                    person.setFirstName("Person " + index);
+                    return person;
+                }), query -> 100);
+        view.add(lazyGrid);
+
+        GridTester<Grid<Person>, Person> lazyGrid_ = test(lazyGrid);
+        final IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> lazyGrid_.getCellComponent(0, BasicGridView.BUTTON_KEY));
+        Assertions.assertTrue(
+                exception.getMessage().contains("Grid rendered no component")
+                        && exception.getMessage()
+                                .contains("renderCellComponent"),
+                "the failure should say the grid rendered nothing and point at the way to render the cell anyway");
+
+        Assertions.assertInstanceOf(Button.class,
+                lazyGrid_.renderCellComponent(0, BasicGridView.BUTTON_KEY));
     }
 
     @Test

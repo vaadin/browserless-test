@@ -301,9 +301,11 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * for defined object path.
      * <p/>
      * For a ComponentRenderer the result is the text of the component the grid
-     * rendered for the cell, see {@link #getCellComponent(int, int)}. A
-     * renderer that returns no component renders an empty cell, so the text is
-     * empty rather than {@literal null}.
+     * rendered for the cell, read through {@link #getCellComponent(int, int)}:
+     * a row the client has not asked for yet is scrolled into view first, and a
+     * cell the grid renders no component for fails the same way. A renderer
+     * that returns no component renders an empty cell, so the text is empty
+     * rather than {@literal null}.
      * <p/>
      * More to be added as we find other renderers that need handling.
      *
@@ -313,7 +315,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            column of cell
      * @return cell content that is sent to the client
      * @throws IllegalStateException
-     *             if component is not visible
+     *             if component is not visible, or if the grid renders no
+     *             component for a ComponentRenderer cell
      */
     public String getCellText(int row, int column) {
         ensureVisible();
@@ -410,8 +413,10 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *
      * <p>
      * Prefer {@link #getCellComponent(int, int)}, which returns the component
-     * the browser shows. This method is for the cases the grid does not render
-     * itself, such as a hidden column.
+     * the browser shows. This method is for tests written against the older
+     * behaviour of that method. A column index addresses the visible columns,
+     * so the cells the grid renders nothing for, those of a hidden column, are
+     * only reachable through {@link #renderCellComponent(int, String)}.
      *
      * @param row
      *            item row
