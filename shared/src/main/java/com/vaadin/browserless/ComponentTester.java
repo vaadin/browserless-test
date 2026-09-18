@@ -187,6 +187,29 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
+     * Checks that the wrapped component is usable and, if it is not, detaches
+     * it from the UI before rethrowing.
+     * <p>
+     * For an overlay the tester has to attach to the UI before it can tell
+     * whether it is usable, such as a context menu opened by a before-open
+     * event. Detaching it again keeps a refused interaction from leaving a
+     * closed overlay behind in the UI tree, where a top level {@code find(...)}
+     * would still reach its content.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable, with details on its current
+     *             state.
+     */
+    protected void ensureComponentIsUsableOrDetach() {
+        try {
+            ensureComponentIsUsable();
+        } catch (RuntimeException e) {
+            getComponent().getElement().removeFromParent();
+            throw e;
+        }
+    }
+
+    /**
      * Throws an {@link IllegalStateException} with details on the current state
      * of the component if it is not usable according to the provided test.
      *
