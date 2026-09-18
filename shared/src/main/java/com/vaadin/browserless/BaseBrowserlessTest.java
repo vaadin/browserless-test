@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -53,6 +54,8 @@ import com.vaadin.flow.server.VaadinSession;
 public abstract class BaseBrowserlessTest {
 
     private TestSignalEnvironment signalsTestEnvironment;
+    private BrowserlessConfiguration resolvedConfiguration;
+    private boolean classScopedConfiguration;
 
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
@@ -75,8 +78,53 @@ public abstract class BaseBrowserlessTest {
      */
     protected void initVaadinEnvironment() {
         scanTesters();
-        MockVaadin.setup(discoverRoutes(), MockedUI::new, lookupServices());
+        BrowserlessConfiguration configuration = testConfiguration();
+        MockVaadin.setup(discoverRoutes(), MockedUI::new,
+                allLookupServices(configuration), configuration);
         initSignalsSupport();
+    }
+
+    /**
+     * Gets the lookup services to register, combining the ones required by the
+     * framework integration, the ones provided by the deprecated
+     * {@link #lookupServices()} hook, and the ones declared by the test
+     * configuration.
+     *
+     * For internal use only.
+     *
+     * @return the set of services implementation classes, never
+     *         {@literal null}.
+     */
+    protected final Set<Class<?>> allLookupServices() {
+        return allLookupServices(testConfiguration());
+    }
+
+    /**
+     * Same as {@link #allLookupServices()}, but for a configuration that has
+     * already been resolved.
+     *
+     * {@link #testConfiguration()} is an overridable hook, so an override
+     * rebuilding the configuration on every call would otherwise do the work
+     * twice, and a non deterministic one could register services that do not
+     * belong to the configuration actually applied to the environment. Resolve
+     * the configuration once and pass it to both this method and
+     * {@code MockVaadin.setup()}.
+     *
+     * For internal use only.
+     *
+     * @param configuration
+     *            the configuration to read the lookup services from, not
+     *            {@literal null}
+     * @return the set of services implementation classes, never
+     *         {@literal null}.
+     */
+    @SuppressWarnings("deprecation")
+    protected final Set<Class<?>> allLookupServices(
+            BrowserlessConfiguration configuration) {
+        Set<Class<?>> services = new LinkedHashSet<>(frameworkLookupServices());
+        services.addAll(lookupServices());
+        services.addAll(configuration.getLookupServices());
+        return services;
     }
 
     protected void initSignalsSupport() {
@@ -135,10 +183,100 @@ public abstract class BaseBrowserlessTest {
      * {@link com.vaadin.flow.di.InstantiatorFactory},
      * {@link com.vaadin.flow.di.ResourceProvider}, etc.
      *
+     * Since 25.3 the services required by the Spring and Quarkus integrations
+     * are contributed by {@link #frameworkLookupServices()} instead, and are
+     * always registered. An override of this method therefore adds to them and
+     * can no longer replace one of them, for example to swap the Spring
+     * {@code SpringSecurityRequestCustomizer}; override
+     * {@link #frameworkLookupServices()} in a framework specific base class for
+     * that.
+     *
      * @return set of services implementation classes, never {@literal null}.
+     * @deprecated since 25.3, declare the services with
+     *             {@link BrowserlessTestConfig#lookupServices()} or by
+     *             overriding {@link #testConfiguration()} instead. Overrides of
+     *             this method are still honored.
      */
+    @Deprecated(since = "25.3")
     protected Set<Class<?>> lookupServices() {
         return Collections.emptySet();
+    }
+
+    /**
+     * Gets the services implementations required by the framework integration
+     * to initialize the Vaadin {@link com.vaadin.flow.di.Lookup}, for example
+     * the Spring or Quarkus lookup initializers.
+     *
+     * These services are always registered, regardless of the test
+     * configuration, so that a test customizing {@link #testConfiguration()}
+     * cannot accidentally break the framework integration.
+     *
+     * Meant to be overridden by framework specific base classes only; tests
+     * should declare their own services with
+     * {@link BrowserlessTestConfig#lookupServices()}.
+     *
+     * @return set of services implementation classes, never {@literal null}.
+     * @since 25.3
+     */
+    protected Set<Class<?>> frameworkLookupServices() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Gets the custom Vaadin configuration, such as application properties and
+     * feature flags, to apply to the mock Vaadin environment.
+     *
+     * Default implementation returns the configuration declared by the
+     * {@link BrowserlessTestConfig} annotations present on the test class and
+     * on the current test method, if any. Override this method to provide the
+     * configuration programmatically, potentially on top of the declared one.
+     *
+     * <pre>
+     * &#64;Override
+     * protected BrowserlessConfiguration testConfiguration() {
+     *     return BrowserlessConfiguration.builder()
+     *             .withConfiguration(super.testConfiguration())
+     *             .withFeatureFlags("myExperimentalFeature").build();
+     * }
+     * </pre>
+     *
+     * @return the configuration to apply, never {@literal null}.
+     * @see BrowserlessTestConfig
+     * @since 25.3
+     */
+    protected BrowserlessConfiguration testConfiguration() {
+        if (resolvedConfiguration != null) {
+            return resolvedConfiguration;
+        }
+        return BrowserlessConfiguration.from(getClass());
+    }
+
+    /**
+     * Sets the configuration resolved by the JUnit extension that handles
+     * {@link BrowserlessTestConfig} annotations, so that annotations on the
+     * current test method are taken into account as well.
+     */
+    void setResolvedConfiguration(BrowserlessConfiguration configuration) {
+        setResolvedConfiguration(configuration, false);
+    }
+
+    /**
+     * Same as {@link #setResolvedConfiguration(BrowserlessConfiguration)}, but
+     * telling whether the configuration is scoped to the whole test class.
+     *
+     * A class scoped configuration is installed once, before the shared Vaadin
+     * environment is created, and owns the field until it is cleared. Per
+     * method resolution, which runs later and knows nothing about the
+     * programmatic configuration of the class scoped extension, must not
+     * replace nor clear it while that environment is alive.
+     */
+    void setResolvedConfiguration(BrowserlessConfiguration configuration,
+            boolean classScoped) {
+        if (classScopedConfiguration && !classScoped) {
+            return;
+        }
+        this.resolvedConfiguration = configuration;
+        this.classScopedConfiguration = classScoped && configuration != null;
     }
 
     /**
@@ -219,6 +357,34 @@ public abstract class BaseBrowserlessTest {
             Class<T> expectedTarget) {
         return BrowserlessDSL.navigate(verifyAndGetUI(), location,
                 expectedTarget);
+    }
+
+    /**
+     * Simulates the user reloading the page (pressing F5): the current UI is
+     * detached and a fresh one is created in the same Vaadin session, then the
+     * current location is rendered again. Session-scoped state (session
+     * attributes, security context) survives. Views annotated with
+     * {@link com.vaadin.flow.router.PreserveOnRefresh @PreserveOnRefresh} keep
+     * their component instance and state; other views are recreated.
+     *
+     * @return the view shown after the reload
+     */
+    public HasElement reload() {
+        return BrowserlessDSL.reload(verifyAndGetUI());
+    }
+
+    /**
+     * Simulates a page reload (see {@link #reload()}) and verifies the
+     * resulting view is of the expected type.
+     *
+     * @param expectedTarget
+     *            the expected view class after reload
+     * @param <T>
+     *            the view type
+     * @return the view shown after the reload
+     */
+    public <T extends Component> T reload(Class<T> expectedTarget) {
+        return BrowserlessDSL.reload(verifyAndGetUI(), expectedTarget);
     }
 
     /**
@@ -305,6 +471,17 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component inside the UI
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            the type of the component(s) to search for
      * @param <T>
@@ -320,6 +497,10 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component nested inside the given
      * component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of the component(s) to search for
@@ -337,6 +518,10 @@ public abstract class BaseBrowserlessTest {
 
     /**
      * Gets a query object for finding a component inside the current view
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of the component(s) to search for
@@ -358,7 +543,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use {@link #find(Class)}
+     * @deprecated since 1.1, for removal in 26.0; use {@link #find(Class)}
      *             instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
@@ -377,7 +562,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use
+     * @deprecated since 1.1, for removal in 26.0; use
      *             {@link #find(Class, Component)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
@@ -394,8 +579,8 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the type of the component(s) to search for
      * @return a query object for finding components
-     * @deprecated since 1.1, for removal in 2.0; use {@link #findInView(Class)}
-     *             instead.
+     * @deprecated since 1.1, for removal in 26.0; use
+     *             {@link #findInView(Class)} instead.
      */
     @Deprecated(since = "1.1", forRemoval = true)
     public <T extends Component> ComponentQuery<T> $view(

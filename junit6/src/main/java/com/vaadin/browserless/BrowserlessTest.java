@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Base JUnit 6 class for browserless tests.
@@ -67,20 +68,30 @@ import org.junit.jupiter.api.BeforeEach;
  * &#64;Override
  * protected void initVaadinEnvironment() {
  *     scanTesters();
- *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet, lookupServices());
+ *     BrowserlessConfiguration configuration = testConfiguration();
+ *     MockVaadin.setup(MockedUI::new, cdiVaadinServlet,
+ *             allLookupServices(configuration), configuration);
  * }
  * }
  * </pre>
  *
  * <p>
+ * Passing the lookup services and the configuration to
+ * {@code MockVaadin.setup()} is what makes the overriding test honor
+ * {@link BrowserlessTestConfig}; an override dropping them silently ignores the
+ * annotation. Resolve {@link #testConfiguration()} once into a local and hand
+ * it to {@link #allLookupServices(BrowserlessConfiguration)} as well, so that
+ * an override of the hook is not evaluated twice.
+ *
+ * <p>
  * To provide custom Flow service implementations via the
- * {@link com.vaadin.flow.di.Lookup} SPI, override {@link #lookupServices()}:
+ * {@link com.vaadin.flow.di.Lookup} SPI, declare them with
+ * {@link BrowserlessTestConfig#lookupServices()}:
  *
  * <pre>
  * {@code
- * &#64;Override
- * protected Set<Class<?>> lookupServices() {
- *     return Set.of(CustomInstantiatorFactory.class);
+ * &#64;BrowserlessTestConfig(lookupServices = CustomInstantiatorFactory.class)
+ * class CartViewTest extends BrowserlessTest {
  * }
  * }
  * </pre>
@@ -112,8 +123,10 @@ import org.junit.jupiter.api.BeforeEach;
  * @see BrowserlessExtension
  *
  * @see BrowserlessClassExtension
+ * @see BrowserlessTestConfig
  * @since 1.0
  */
+@ExtendWith(BrowserlessTestConfigExtension.class)
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 

@@ -31,6 +31,7 @@ import com.vaadin.flow.router.RouteConfiguration;
 @ViewPackages
 class ComponentRendererVirtualListTesterTest extends BrowserlessTest {
 
+    private ComponentRendererVirtualListView view;
     private VirtualListTester<VirtualList<User>, User> $virtualList;
 
     @BeforeEach
@@ -38,7 +39,7 @@ class ComponentRendererVirtualListTesterTest extends BrowserlessTest {
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(ComponentRendererVirtualListView.class);
 
-        var view = navigate(ComponentRendererVirtualListView.class);
+        view = navigate(ComponentRendererVirtualListView.class);
         $virtualList = test(view.componentRendererVirtualList);
     }
 
@@ -165,6 +166,16 @@ class ComponentRendererVirtualListTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> $virtualList.getItemComponent(index),
                 "Tester should not be accessible for hidden virtual list");
+    }
+
+    @Test
+    void getItemText_virtualListSubclass_readsRenderer() {
+        VirtualListTester<VirtualList<User>, User> $subclassed = test(
+                view.subclassedVirtualList);
+
+        var index = UserData.getAnyValidIndex();
+        Assertions.assertEquals(expectedRendererText(UserData.get(index)),
+                $subclassed.getItemText(index));
     }
 
     private static String expectedRendererText(User user) {

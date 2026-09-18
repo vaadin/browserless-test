@@ -62,6 +62,10 @@ public class ContextMenuTester<T extends ContextMenu>
      * operate on the server component state and can be used regardless of the
      * menu {@code opened} state. Use {@link #open()} only if you want to
      * explicitly simulate the act of opening.
+     * <p>
+     * A top level {@code find(...)} on the UI is a different matter: the menu
+     * content is attached to the UI only while the menu is open, so it is found
+     * after {@link #open()} and not before.
      *
      * @throws IllegalStateException
      *             if the menu is already opened.

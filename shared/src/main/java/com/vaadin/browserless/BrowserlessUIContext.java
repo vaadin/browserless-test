@@ -142,6 +142,12 @@ public class BrowserlessUIContext
             previous.user.saveSecurityContext();
         }
 
+        // A page reload detaches this window's UI and creates a fresh one, so
+        // resolve the live UI before installing it. Doing it here rather than
+        // only in reload() also covers a reload that application code
+        // triggered itself through Page.reload().
+        this.ui = MockVaadin.liveUI(ui);
+
         // Install this user's Vaadin thread-locals and UI, restoring the
         // user's security snapshot. On same-user re-entry the snapshot is
         // intentionally not restored, so a logout (or any security mutation)
@@ -307,6 +313,17 @@ public class BrowserlessUIContext
      * Gets a query object for finding components of the given type in this
      * window's UI.
      *
+     * <p>
+     * The query walks the server-side component tree. A component that another
+     * component renders per item, such as the component a
+     * {@code ComponentRenderer} column renders for a grid row, does not exist
+     * until something renders it, and the content of an overlay, such as a
+     * context menu, is attached only while the overlay is open. Neither is in
+     * the tree until then, and the lookup returns an empty result rather than
+     * failing, so reach those components through the owning component tester
+     * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
+     * {@code ContextMenuTester.open()} or {@code clickItem(...)} for menus.
+     *
      * @param componentType
      *            the type of component to search for
      * @param <T>
@@ -322,6 +339,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type nested
      * inside the specified component.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for
@@ -340,6 +361,10 @@ public class BrowserlessUIContext
     /**
      * Gets a query object for finding components of the given type inside the
      * current view.
+     *
+     * <p>
+     * Searches the same server-side component tree as {@link #find(Class)}, see
+     * there for what that tree does not contain.
      *
      * @param componentType
      *            the type of component to search for
@@ -399,6 +424,37 @@ public class BrowserlessUIContext
     public HasElement getCurrentView() {
         activate();
         return BrowserlessDSL.getCurrentView(ui);
+    }
+
+    /**
+     * Simulates the user reloading this window (pressing F5): the window's UI
+     * is detached and a fresh one is created in the same Vaadin session, then
+     * the current location is rendered again. Session-scoped state (session
+     * attributes, security context) survives, and sibling windows are
+     * unaffected. Views annotated with
+     * {@link com.vaadin.flow.router.PreserveOnRefresh @PreserveOnRefresh} keep
+     * their component instance and state; other views are recreated.
+     *
+     * @return the view shown after the reload
+     */
+    public HasElement reload() {
+        activate();
+        return BrowserlessDSL.reload(ui);
+    }
+
+    /**
+     * Simulates a page reload (see {@link #reload()}) and verifies the
+     * resulting view is of the expected type.
+     *
+     * @param expectedTarget
+     *            the expected view class after reload
+     * @param <T>
+     *            the view type
+     * @return the view shown after the reload
+     */
+    public <T extends Component> T reload(Class<T> expectedTarget) {
+        activate();
+        return BrowserlessDSL.reload(ui, expectedTarget);
     }
 
     /**
@@ -547,6 +603,9 @@ public class BrowserlessUIContext
      * @return the UI instance
      */
     public UI getUI() {
+        if (ui != null) {
+            this.ui = MockVaadin.liveUI(ui);
+        }
         return ui;
     }
 
@@ -579,6 +638,9 @@ public class BrowserlessUIContext
             stillActive.user.saveSecurityContext();
         }
         if (ui != null) {
+            // Detach the UI that is live now: a reload may have replaced the
+            // one captured here, and the detached one needs no closing.
+            this.ui = MockVaadin.liveUI(ui);
             // Set thread-locals so detach listeners see this user's identity
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.

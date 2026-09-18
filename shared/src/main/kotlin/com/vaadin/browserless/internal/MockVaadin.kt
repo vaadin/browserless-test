@@ -16,12 +16,16 @@
 package com.vaadin.browserless.internal
 
 import java.io.Serializable
+import java.util.Collections
 import java.util.EventObject
+import java.util.WeakHashMap
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import jakarta.servlet.ServletContext
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.UI
+import com.vaadin.flow.component.page.ExtendedClientDetails
 import com.vaadin.flow.component.page.Page
 import com.vaadin.flow.di.Lookup
 import com.vaadin.flow.function.SerializableBiConsumer
@@ -40,10 +44,13 @@ import com.vaadin.flow.server.VaadinService
 import com.vaadin.flow.server.VaadinServiceEventBus
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.VaadinServlet
+import com.vaadin.flow.server.VaadinServletContext
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
+import com.vaadin.browserless.BrowserlessConfiguration
+import com.vaadin.browserless.BrowserlessTestSetupException
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -78,6 +85,21 @@ object MockVaadin {
     private val strongRefRes = ThreadLocal<VaadinResponse>()
     private val lastNavigation = ThreadLocal<Location>()
 
+    // The window name to assign to the next UI created by [createUI]. A reload
+    // records the closing UI's window name here so the recreated UI reuses it
+    // (see [closeCurrentUI]); a brand-new window leaves it unset and gets a
+    // fresh unique name. Mirrors the [lastNavigation] hand-off.
+    private val lastWindowName = ThreadLocal<String>()
+    private val windowNameCounter = AtomicLong()
+
+    // Maps a UI detached by a page reload to the UI that replaced it. A reload
+    // can be triggered by application code calling Page.reload(), so anything
+    // holding on to a UI (notably BrowserlessUIContext) needs a way to follow
+    // its window to the live UI. Weakly keyed, so an entry disappears as soon
+    // as the detached UI is no longer referenced.
+    private val reloadReplacements: MutableMap<UI, UI> =
+        Collections.synchronizedMap(WeakHashMap())
+
     /**
      * Mocks Vaadin for the current test method:
      * ```
@@ -100,15 +122,18 @@ object MockVaadin {
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
      * @param uiFactory produces [UI] instances and sets them as current, by default simply instantiates [MockedUI] class.
      * @param lookupServices service classes to be provided to the lookup initializer
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment.
      */
     @JvmStatic
     @JvmOverloads
     fun setup(routes: Routes = Routes(),
               uiFactory: UIFactory = UIFactory { MockedUI() },
-              lookupServices: Set<Class<*>> = emptySet()) {
+              lookupServices: Set<Class<*>> = emptySet(),
+              configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()) {
         // init servlet
         val servlet = MockVaadinServlet(routes)
-        setup(uiFactory, servlet, lookupServices)
+        setup(uiFactory, servlet, lookupServices, configuration)
     }
 
     /**
@@ -127,12 +152,16 @@ object MockVaadin {
      * Please consult [com.vaadin.browserless.mocks.MockService]
      * on what methods you must override in your custom service.
      * @param lookupServices service classes to be provided to the lookup initializer
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment.
      */
     @JvmStatic
+    @JvmOverloads
     fun setup(uiFactory: UIFactory = UIFactory { MockedUI() }, servlet: VaadinServlet,
-              lookupServices: Set<Class<*>> = emptySet()
+              lookupServices: Set<Class<*>> = emptySet(),
+              configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()
     ) {
-        val service = setupServlet(servlet, lookupServices)
+        val service = setupServlet(servlet, lookupServices, configuration)
         VaadinService.setCurrent(service)
 
         // init Vaadin Session
@@ -144,21 +173,79 @@ object MockVaadin {
      * session, UI, or set any thread-locals. Call this when you need to share
      * a single service across multiple independent sessions (multi-user testing).
      *
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags
+     * and lookup services, to apply to the mocked environment. Lookup services defined by the
+     * configuration are used in addition to the ones given by [lookupServices].
      * @return the initialized [VaadinServletService]
      */
     @JvmStatic
+    @JvmOverloads
     fun setupServlet(servlet: VaadinServlet,
-                     lookupServices: Set<Class<*>> = emptySet()
+                     lookupServices: Set<Class<*>> = emptySet(),
+                     configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()
     ): VaadinServletService {
         if (!servlet.isInitialized) {
-            val ctx: ServletContext = MockVaadinHelper.createMockContext(lookupServices)
+            // Lookup services can be given both explicitly and through the configuration
+            // (e.g. by a @BrowserlessTestConfig annotation); they accumulate.
+            val ctx: ServletContext = MockVaadinHelper.createMockContext(
+                    lookupServices + configuration.lookupServices)
+            // Context init parameters are read by ApplicationConfiguration, which is
+            // created and cached on first access, so they must be set before anything
+            // else touches the context.
+            configuration.applicationProperties.forEach { (name, value) -> ctx.setInitParameter(name, value) }
+            // Installed before the servlet is initialized, so that feature flags read
+            // during startup (e.g. by a VaadinServiceInitListener) already observe the
+            // test configuration. Installed even without overrides, so that tests
+            // toggling feature flags at runtime don't write them into the project
+            // resources folder, from where other tests would then read them.
+            BrowserlessFeatureFlags.install(VaadinServletContext(ctx), configuration.featureFlags)
             val config = MockServletConfig(ctx)
+            config.servletInitParams.putAll(configuration.applicationProperties)
+            // Enforced by the browserless environment, so it wins over test configuration
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)
+        } else if (!configuration.isEmpty) {
+            // Application properties, feature flags and lookup services are all
+            // read while the servlet is initialized, so there is no way to apply
+            // them afterwards. Failing here beats silently running the test
+            // against an environment that never saw its own configuration.
+            throw BrowserlessTestSetupException(
+                    "Cannot apply a custom Vaadin configuration to ${servlet.javaClass.name}, " +
+                            "because the servlet has already been initialized. The configuration " +
+                            "is read while the servlet initializes, so it must be provided to the " +
+                            "setup creating the servlet. Provide a servlet factory returning a new, " +
+                            "uninitialized servlet instance, or move the configuration to the setup " +
+                            "that initializes it. Discarded configuration: $configuration")
         }
         val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
         return service
+    }
+
+    /**
+     * Records that [detached] was replaced by [created] during a page reload,
+     * so that [liveUI] can map the old UI to the new one.
+     */
+    @JvmStatic
+    fun recordReloadReplacement(detached: UI, created: UI) {
+        reloadReplacements[detached] = created
+    }
+
+    /**
+     * Follows the reload chain starting at [ui] and returns the UI that is live
+     * now: a reload detaches a UI and creates a fresh one for the same window,
+     * so a caller holding the detached UI must be redirected to its
+     * replacement. Returns [ui] itself if it was never replaced.
+     */
+    @JvmStatic
+    fun liveUI(ui: UI): UI {
+        var live: UI = ui
+        var next: UI? = reloadReplacements[live]
+        while (next != null && next !== live) {
+            live = next
+            next = reloadReplacements[live]
+        }
+        return live
     }
 
     /**
@@ -169,6 +256,9 @@ object MockVaadin {
     fun closeCurrentUI(fireUIDetach: Boolean) {
         val ui: UI = UI.getCurrent() ?: return
         lastNavigation.set(ui.internals.activeViewLocation)
+        // Preserve the window name so a following createUI (reload / session
+        // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
+        lastWindowName.set(ui.internals.extendedClientDetails.windowName)
         if (ui.isClosing && ui.internals.session != null) {
             ui._close()
         }
@@ -195,6 +285,7 @@ object MockVaadin {
             VaadinService.setCurrent(null)
         }
         lastNavigation.remove()
+        lastWindowName.remove()
     }
 
     private fun clearVaadinInstances(fireUIDetach: Boolean) {
@@ -328,6 +419,26 @@ object MockVaadin {
             set(ui, MockPage(ui, uiFactory, session))
         }
         ui.internals.session = session
+
+        // Assign a stable, non-null window name via ExtendedClientDetails so
+        // @PreserveOnRefresh works. Flow keys its preserved-component cache on
+        // window.name, and the name must (a) be non-null and (b) stay constant
+        // across reloads of the same window. A reload carries the previous UI's
+        // name in lastWindowName; a brand-new window gets a fresh unique name.
+        // The name is consumed before the UI is initialized, so a failing
+        // initialization cannot leak it into the next createUI on this thread.
+        // Every other detail stays at its placeholder default, exactly as in
+        // the instance Flow would have created lazily: the window name is all
+        // the router reads, so the mock does not fabricate a screen or
+        // viewport geometry it has no way to know.
+        val windowName = lastWindowName.get()
+            ?: "window-${windowNameCounter.incrementAndGet()}"
+        lastWindowName.remove()
+        ui.internals.setExtendedClientDetails(
+            ExtendedClientDetails(ui, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, windowName,
+                null, null, null))
+
         UI.setCurrent(ui)
         ui.doInit(request, 1, "ROOT")
         strongRefUI.set(ui)
@@ -509,11 +620,14 @@ object MockVaadin {
      * (`BrowserlessUIContext.close`) call [closeCurrentUI] without a matching
      * [createUI], so this method must be invoked afterwards to prevent the
      * recorded location from leaking into the next unrelated [createUI] on the
-     * same thread (e.g. `user.newWindow()`).
+     * same thread (e.g. `user.newWindow()`). Also clears the recorded window
+     * name for the same reason: a fresh window must get a new unique name, not
+     * inherit the closed window's name.
      */
     @JvmStatic
     fun clearLastNavigation() {
         lastNavigation.remove()
+        lastWindowName.remove()
     }
 }
 
@@ -533,7 +647,7 @@ internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEven
     eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
-internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
+internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
 
     private companion object {
         private val SELF_NAMES = setOf("_self", "_parent", "_top", "")
@@ -562,10 +676,45 @@ internal class MockPage(ui: UI, private val uiFactory: UIFactory, private val se
     }
 
     override fun reload() {
+        val current: UI? = UI.getCurrent()
+        if (current !== ui) {
+            if (ui.session == null) {
+                // This UI lost its session, so it is the logout idiom -
+                // capture the UI, close its session, then ask its page to
+                // reload. Closing the session already tore this UI down and
+                // rendered a fresh one for its window, which is what the
+                // reload is asking for, so there is nothing left to do. Not
+                // even the superclass call, which would fail: it schedules
+                // JavaScript on a UI whose session is gone.
+                return
+            }
+            // A live UI, but not the current one. Recreating the UI runs on
+            // the thread-locals of the current UI, so going on would detach
+            // and recreate whichever window is current. Fail before anything
+            // is changed.
+            throw IllegalStateException(
+                "Cannot reload the page of UI $ui, because the current UI is " +
+                        (current?.let { "$it" } ?: "not set") +
+                        ". Reloading recreates the current UI, so the " +
+                        "reloaded window must be the current one. Either this " +
+                        "UI belongs to another window - activate it first, " +
+                        "e.g. through its BrowserlessUIContext or " +
+                        "UI.access() - or an earlier reload already replaced " +
+                        "it, in which case reload the current UI instead.")
+        }
+
         // recreate the UI on reload(), to simulate browser's F5
         super.reload()
         MockVaadin.closeCurrentUI(true)
         MockVaadin.createUI(uiFactory, session)
+        // Record the swap so holders of the detached UI (BrowserlessUIContext)
+        // can follow the window to the new UI. This path is also taken when
+        // application code calls Page.reload() itself, not only from the
+        // reload() DSL.
+        val created: UI? = UI.getCurrent()
+        if (created != null && created !== ui) {
+            MockVaadin.recordReloadReplacement(ui, created)
+        }
     }
 
     private fun normalizeWindowName(windowName: String?): String =
