@@ -369,8 +369,10 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * Gets the texts of the menu items, as the browser shows them.
      * <p/>
      * Hidden items are ignored, so the returned texts are aligned with the
-     * positions used by {@link #clickItem(int, int...)}, and each of them can
-     * be given to {@link #clickItem(String, String...)}.
+     * positions used by {@link #clickItem(int, int...)}. A text can also be
+     * given to {@link #clickItem(String, String...)}, as long as it identifies
+     * a single enabled item: a text that several visible items share is
+     * ambiguous, and a disabled item cannot be clicked.
      * <p/>
      * An item created from a component has no text of its own, and is reported
      * as an empty string. Use {@link #find(Class)} to reach such an item.
