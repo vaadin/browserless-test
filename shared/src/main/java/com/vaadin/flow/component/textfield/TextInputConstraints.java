@@ -20,11 +20,12 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.shared.HasAllowedCharPattern;
 
 /**
- * The restrictions a text input applies to what the user can type, shared by
- * the testers of the text based fields.
+ * The values a text input cannot be made to hold, shared by the testers of the
+ * text based fields.
  * <p>
  * Only the two constraints the browser physically enforces belong here:
  * {@literal maxlength} truncates the extra characters and
@@ -33,11 +34,30 @@ import com.vaadin.flow.component.shared.HasAllowedCharPattern;
  * validation-only constraints — {@literal minLength}, {@literal pattern},
  * required — are deliberately absent: the browser commits a value that breaks
  * them and leaves the field invalid, which is the state a validation test needs
- * to reach.
+ * to reach. Alongside them sits the structural refusal of {@code null}, which a
+ * text input has no state for at all.
  */
 final class TextInputConstraints {
 
     private TextInputConstraints() {
+    }
+
+    /**
+     * Fails when the given value is {@code null} and the field has no null
+     * state to hold it, that is when its empty value is something else.
+     *
+     * @param field
+     *            the field the value is typed into
+     * @param value
+     *            the value to type
+     * @throws IllegalArgumentException
+     *             if the field cannot hold {@code null}
+     */
+    static void ensureValueIsNotNull(HasValue<?, ?> field, Object value) {
+        if (value == null && field.getEmptyValue() != null) {
+            throw new IllegalArgumentException(
+                    "Field doesn't allow null values");
+        }
     }
 
     /**
@@ -54,7 +74,9 @@ final class TextInputConstraints {
      */
     static void ensureValueCanBeTyped(Component component, String value) {
         if (value == null || value.isEmpty()) {
-            // Emptying a field is always something the user can do.
+            // There is nothing to type: emptying a field is always something
+            // the user can do, and a null value only gets this far on a field
+            // whose own empty value is null.
             return;
         }
         ensureWithinMaxLength(component, value);
@@ -105,21 +127,17 @@ final class TextInputConstraints {
         // The pattern matches one character at a time, so it is applied per
         // code point, the way the web component filters the keystrokes.
         final OptionalInt rejected = value.codePoints()
-                .filter(codePoint -> !allowedChar.matcher(toString(codePoint))
-                        .matches())
+                .filter(codePoint -> !allowedChar
+                        .matcher(Character.toString(codePoint)).matches())
                 .findFirst();
         if (rejected.isPresent()) {
             throw new IllegalArgumentException("Value '" + value
                     + "' contains the character '"
-                    + toString(rejected.getAsInt())
+                    + Character.toString(rejected.getAsInt())
                     + "', which the allowed char pattern '" + allowedCharPattern
                     + "' does not match. The browser "
                     + "filters out such a keystroke, so the user cannot "
                     + "produce this value.");
         }
-    }
-
-    private static String toString(int codePoint) {
-        return new String(Character.toChars(codePoint));
     }
 }

@@ -100,6 +100,8 @@ class TextAreaTesterTest extends BrowserlessTest
         ta_.setValue(faultyValue);
         Assertions.assertEquals(faultyValue, view.textArea.getValue(),
                 "Value should have been set.");
+        Assertions.assertTrue(ta_.getComponent().isInvalid(),
+                "A validation-only constraint leaves the field invalid");
     }
 
     @Test

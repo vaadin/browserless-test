@@ -64,10 +64,7 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
     public void setValue(String value) {
         ensureComponentIsUsable();
 
-        if (value == null && getComponent().getEmptyValue() != null) {
-            throw new IllegalArgumentException(
-                    "Field doesn't allow null values");
-        }
+        TextInputConstraints.ensureValueIsNotNull(getComponent(), value);
         TextInputConstraints.ensureValueCanBeTyped(getComponent(), value);
 
         setValueAsUser(value);

@@ -69,10 +69,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
     public void setValue(V value) {
         ensureComponentIsUsable();
 
-        if (value == null && getComponent().getEmptyValue() != null) {
-            throw new IllegalArgumentException(
-                    "Field doesn't allow null values");
-        }
+        TextInputConstraints.ensureValueIsNotNull(getComponent(), value);
         if (value instanceof String text) {
             TextInputConstraints.ensureValueCanBeTyped(getComponent(), text);
         }
