@@ -346,6 +346,15 @@ class BasicGridTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void find_componentRenderedByColumn_notInComponentTree() {
+        // a component rendered per item does not exist until the renderer is
+        // asked to render that item, so the finder cannot see it. The cell
+        // component is reached through the tester instead.
+        Assertions.assertTrue(find(Button.class).all().isEmpty(),
+                "component column cells should not be part of the component tree");
+    }
+
+    @Test
     void getCellComponent_columnByKey_canClickAButton() {
         final Component cellComponent = test(view.basicGrid).getCellComponent(1,
                 BasicGridView.BUTTON_KEY);
