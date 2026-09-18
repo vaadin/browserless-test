@@ -105,17 +105,21 @@ public class TextFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void textFieldWithPattern_patternIsValidated() {
+    public void textFieldWithAllowedCharPattern_disallowedCharIsRefused() {
         TextField tf = view.textField;
         // Only accept numbers
-        tf.setAllowedCharPattern("\\d*");
+        tf.setAllowedCharPattern("\\d");
 
         final TextFieldTester<TextField, String> tf_ = test(tf);
         tf_.setValue("1234");
-
         Assertions.assertEquals("1234", tf.getValue());
-        tf_.setValue("hello");
-        Assertions.assertFalse(tf_.getComponent().isInvalid());
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tf_.setValue("hello"),
+                "The browser filters out a keystroke the allowed char pattern "
+                        + "does not match");
+        Assertions.assertEquals("1234", tf.getValue(),
+                "A refused value should not have been committed");
     }
 
     @Test
@@ -129,13 +133,20 @@ public class TextFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void textFieldWithMaxLength_lengthIsChecked() {
+    public void textFieldWithMaxLength_longerValueIsRefused() {
         TextField tf = view.textField;
         tf.setMaxLength(3);
 
         final TextFieldTester<TextField, String> tf_ = test(tf);
-        tf_.setValue("1234");
-        Assertions.assertTrue(tf_.getComponent().isInvalid());
+        tf_.setValue("123");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A value at the limit should have been set");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tf_.setValue("1234"),
+                "The browser truncates the characters over maxLength");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A refused value should not have been committed");
     }
 
     @Test

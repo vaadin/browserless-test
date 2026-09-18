@@ -93,7 +93,7 @@ class TextAreaTesterTest extends BrowserlessTest
     @Test
     void textAreaWithValidation_doNotPreventInvalid_doNotThrow() {
         // Only accept numbers
-        view.textArea.setAllowedCharPattern("\\d*");
+        view.textArea.setPattern("\\d*");
 
         final TextAreaTester<TextArea> ta_ = test(view.textArea);
         final String faultyValue = "Invalid value, but doesn't throw";
@@ -103,16 +103,21 @@ class TextAreaTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void textAreaWithPattern_patternIsValidated() {
+    public void textAreaWithAllowedCharPattern_disallowedCharIsRefused() {
         TextArea tf = view.textArea;
         // Only accept numbers
-        tf.setPattern("\\d*");
+        tf.setAllowedCharPattern("\\d");
 
         final TextAreaTester<TextArea> ta_ = test(tf);
         ta_.setValue("1234");
-
         Assertions.assertEquals("1234", tf.getValue());
-        Assertions.assertFalse(ta_.getComponent().isInvalid());
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ta_.setValue("hello"),
+                "The browser filters out a keystroke the allowed char pattern "
+                        + "does not match");
+        Assertions.assertEquals("1234", tf.getValue(),
+                "A refused value should not have been committed");
     }
 
     @Test
@@ -126,13 +131,29 @@ class TextAreaTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void textAreaWithMaxLength_lengthIsChecked() {
+    public void textAreaWithMaxLength_longerValueIsRefused() {
         TextArea tf = view.textArea;
         tf.setMaxLength(3);
 
         final TextAreaTester<TextArea> ta_ = test(tf);
-        ta_.setValue("1234");
-        Assertions.assertTrue(ta_.getComponent().isInvalid());
+        ta_.setValue("123");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A value at the limit should have been set");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ta_.setValue("1234"),
+                "The browser truncates the characters over maxLength");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A refused value should not have been committed");
+    }
+
+    @Test
+    public void textArea_nullValue_isRefused() {
+        final TextAreaTester<TextArea> ta_ = test(view.textArea);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ta_.setValue(null),
+                "A text area has no null state, clear() empties it");
     }
 
     @Test
