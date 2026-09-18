@@ -54,6 +54,8 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.dialog.DialogTester;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTester;
 import com.vaadin.flow.component.html.DescriptionList;
@@ -280,6 +282,22 @@ public interface TesterWrappers {
 
     default <V> GridTester<Grid<V>, V> test(Grid grid, Class<V> itemType) {
         return BaseBrowserlessTest.internalWrap(GridTester.class, grid);
+    }
+
+    /**
+     * Create a tester for the given GridContextMenu instance.
+     *
+     * @param gridContextMenu
+     *            the GridContextMenu instance to be tested
+     * @param <V>
+     *            the type of the items in the grid the menu is attached to
+     * @return a GridContextMenuTester instance wrapping the given
+     *         GridContextMenu
+     */
+    default <V> GridContextMenuTester<GridContextMenu<V>, V> test(
+            GridContextMenu<V> gridContextMenu) {
+        return BaseBrowserlessTest.internalWrap(GridContextMenuTester.class,
+                gridContextMenu);
     }
 
     default <V> ListBoxTester<ListBox<V>, V> test(ListBox<V> listBox) {
