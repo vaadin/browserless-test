@@ -168,11 +168,19 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
             throw new IllegalStateException(
                     "Context menu did not open. Its dynamic content handler returned false for the target row.");
         }
+        try {
+            ensureComponentIsUsable();
+        } catch (RuntimeException e) {
+            // The before-open event above attached the menu content to the
+            // UI. A refused open must not leave it behind, otherwise a closed
+            // menu stays reachable through a top level find().
+            getComponent().getElement().removeFromParent();
+            throw e;
+        }
         // opened is a synchronized property, so pushing it through the
         // client path makes the GridContextMenuOpenedEvent report
         // isFromClient() as true, the way a real open does
         setPropertyAsUser("opened", true);
-        ensureComponentIsUsable();
     }
 
     /**
