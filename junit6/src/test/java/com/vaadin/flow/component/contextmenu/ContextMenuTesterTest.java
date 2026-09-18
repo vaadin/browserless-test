@@ -512,7 +512,8 @@ class ContextMenuTesterTest extends BrowserlessTest {
 
         Assertions.assertIterableEquals(
                 List.of("Foo", "Bar", "Text", "Duplicated", "Duplicated", "",
-                        "Checkable", "Disabled", "Hierarchical"),
+                        "Checkable", "Disabled", "Hierarchical",
+                        "Duplicated Hidden"),
                 menu_.getItemTexts(),
                 "texts should be the visible items, in the order the browser shows them");
     }
