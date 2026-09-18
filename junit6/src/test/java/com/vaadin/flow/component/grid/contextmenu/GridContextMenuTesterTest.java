@@ -335,4 +335,50 @@ class GridContextMenuTesterTest extends BrowserlessTest {
                 "expected the ambiguity to be reported, but got: "
                         + exception.getMessage());
     }
+
+    @Test
+    void getItemTexts_openMenu_hiddenItemIgnored_subMenuByPath() {
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+        menu_.open(0);
+
+        Assertions.assertIterableEquals(
+                List.of("Edit", "", "Checkable", "Disabled", "Share"),
+                menu_.getItemTexts(),
+                "texts should be the visible items, with no text for the checkbox item");
+
+        Assertions.assertIterableEquals(List.of("Copy link", "Email"),
+                menu_.getItemTexts("Share"));
+    }
+
+    @Test
+    void getItemTexts_menuNotOpened_throws() {
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                menu_::getItemTexts);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> menu_.getItemTexts("Share"));
+    }
+
+    @Test
+    void getItemTexts_dynamicContentHandler_reportsItemsForTheOpenedRow() {
+        GridMenuItem<String> edit = view.menu.getItems().get(0);
+        view.menu.setDynamicContentHandler(item -> {
+            edit.setVisible(GridContextMenuView.BOB.equals(item));
+            return true;
+        });
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+
+        menu_.open(1);
+        Assertions.assertTrue(menu_.getItemTexts().contains("Edit"),
+                "Edit should be reported for the row the handler shows it for");
+
+        menu_.close();
+        menu_.open(0);
+        Assertions.assertFalse(menu_.getItemTexts().contains("Edit"),
+                "Edit should not be reported for a row the handler hides it for");
+    }
 }

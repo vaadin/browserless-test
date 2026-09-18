@@ -306,4 +306,29 @@ class MenuBarTesterTest extends BrowserlessTest {
                 () -> menu_.getItemTooltipText(22));
     }
 
+    @Test
+    void getItemTexts_hiddenItemIgnored_subMenuByPath() {
+        Assertions.assertIterableEquals(
+                List.of("Foo", "Bar", "Text", "Duplicated", "Duplicated",
+                        "Checkables", "Disabled", "Hierarchical"),
+                menu_.getItemTexts(),
+                "texts should be the visible items, in the order the browser shows them");
+
+        Assertions.assertIterableEquals(
+                List.of("Level2", "NestedSubMenu", "Nested Checkable",
+                        "NestedDisabled"),
+                menu_.getItemTexts("Hierarchical"),
+                "NestedInvisible should not be reported");
+    }
+
+    @Test
+    void getItemTexts_disabledMenuBar_itemsAreStillReported() {
+        view.menu.setEnabled(false);
+
+        Assertions.assertIterableEquals(
+                List.of("Foo", "Bar", "Text", "Duplicated", "Duplicated",
+                        "Checkables", "Disabled", "Hierarchical"),
+                menu_.getItemTexts(),
+                "a user can read the items of a disabled menu bar");
+    }
 }

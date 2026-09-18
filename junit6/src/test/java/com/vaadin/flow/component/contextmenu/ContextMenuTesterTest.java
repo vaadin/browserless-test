@@ -474,4 +474,67 @@ class ContextMenuTesterTest extends BrowserlessTest {
         Assertions.assertFalse(div.isAttached());
     }
 
+    @Test
+    void getItemTexts_hiddenItemIgnored_componentItemHasNoText() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        Assertions.assertIterableEquals(
+                List.of("Foo", "Bar", "Text", "Duplicated", "Duplicated", "",
+                        "Checkable", "Disabled", "Hierarchical",
+                        "Duplicated Hidden"),
+                menu_.getItemTexts(),
+                "texts should be the visible items, in the order the browser shows them");
+    }
+
+    @Test
+    void getItemTexts_positionsMatchClickItemPositions() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        // Hidden is filtered out of both, so Hierarchical is at position 8
+        // although it is the tenth item that was added
+        menu_.clickItem(menu_.getItemTexts().indexOf("Hierarchical"), 0);
+
+        Assertions.assertIterableEquals(List.of("Hierarchical / Level2"),
+                view.clickedItems);
+    }
+
+    @Test
+    void getItemTexts_subMenuByPath_hiddenItemIgnored() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        Assertions.assertIterableEquals(
+                List.of("Level2", "NestedSubMenu", "Nested Checkable",
+                        "NestedDisabled"),
+                menu_.getItemTexts("Hierarchical"),
+                "NestedInvisible should not be reported");
+        Assertions.assertIterableEquals(List.of("Level3"),
+                menu_.getItemTexts("Hierarchical", "NestedSubMenu"));
+    }
+
+    @Test
+    void getItemTexts_itemWithoutSubMenu_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        IllegalArgumentException exception = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> menu_.getItemTexts("Foo"));
+        Assertions.assertTrue(
+                exception.getMessage().contains("has no children"),
+                "expected the missing sub menu to be reported, but got: "
+                        + exception.getMessage());
+    }
+
+    @Test
+    void getItemTexts_menuNotOpened_throws() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                menu_::getItemTexts);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> menu_.getItemTexts("Hierarchical"));
+    }
 }
