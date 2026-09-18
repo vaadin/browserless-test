@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ClearButtonContract;
-import com.vaadin.browserless.RefusesEmptyValueContract;
+import com.vaadin.browserless.CommitsEmptyValueContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ViewPackages
 class TimePickerTesterTest extends BrowserlessTest
-        implements RefusesEmptyValueContract, ClearButtonContract {
+        implements CommitsEmptyValueContract, ClearButtonContract {
 
     TimePickerView view;
     TimePickerTester<TimePicker> pick_;
@@ -48,19 +48,51 @@ class TimePickerTesterTest extends BrowserlessTest
     }
 
     @Test
-    void invalidValue_overMaxDate_throwsIllegalArgument() {
+    void timeWithinMax_isValid_timeOverMax_isCommittedAndInvalid() {
         view.picker.setMax(LocalTime.NOON);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> pick_.setValue(LocalTime.of(13, 30)));
+        pick_.setValue(LocalTime.of(10, 0));
+
+        Assertions.assertTrue(pick_.isValid(),
+                "a time within max should leave the field valid");
+
+        final LocalTime newValue = LocalTime.of(13, 30);
+        pick_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the time the user can type should have been committed");
+        Assertions.assertFalse(pick_.isValid(),
+                "a time over max should leave the field invalid");
     }
 
     @Test
-    void invalidValue_underMinDate_throwsIllegalArgument() {
+    void valueUnderMinTime_isCommitted_fieldIsInvalid() {
         view.picker.setMin(LocalTime.NOON);
+        final LocalTime newValue = LocalTime.of(10, 0);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> pick_.setValue(LocalTime.of(10, 0)));
+        pick_.setValue(newValue);
+
+        Assertions.assertEquals(newValue, view.picker.getValue(),
+                "the time the user can type should have been committed");
+        Assertions.assertFalse(pick_.isValid(),
+                "a time under min should leave the field invalid");
+    }
+
+    @Test
+    void isValid_reportsAStaleValidStateAndAnExternalInvalidState() {
+        pick_.setValue(LocalTime.of(13, 30));
+        view.picker.setMax(LocalTime.NOON);
+
+        Assertions.assertFalse(pick_.isValid(),
+                "a time violating a constraint set after it was committed "
+                        + "should not be valid, although the component has not "
+                        + "re-run its own validation");
+
+        view.picker.setMax(LocalTime.of(13, 30));
+        view.picker.setInvalid(true);
+
+        Assertions.assertFalse(pick_.isValid(),
+                "a field marked invalid from the outside should not be valid");
     }
 
     @Test
@@ -116,5 +148,10 @@ class TimePickerTesterTest extends BrowserlessTest
     @Override
     public void setEmptyValue() {
         pick_.setValue(view.picker.getEmptyValue());
+    }
+
+    @Override
+    public boolean isValid() {
+        return pick_.isValid();
     }
 }

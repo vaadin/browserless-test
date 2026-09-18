@@ -15,14 +15,10 @@
  */
 package com.vaadin.flow.component.contextmenu;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.MenuItemNavigation;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
@@ -68,6 +64,10 @@ public class ContextMenuTester<T extends ContextMenu>
      * {@link IllegalStateException}. Only {@code find(Class)} works on a closed
      * menu, since it queries the menu contents instead of the UI; the
      * components it returns are detached until the menu is opened.
+     * <p>
+     * A top level {@code find(...)} on the UI is a different matter: the menu
+     * content is attached to the UI only while the menu is open, so it is found
+     * after {@link #open()} and not before.
      *
      * @throws IllegalStateException
      *             if the menu is already opened.
@@ -239,13 +239,8 @@ public class ContextMenuTester<T extends ContextMenu>
             String... nestedItemsText) {
         ensureComponentIsUsable();
         MenuItem menuItem = findMenuItemByPath(topLevelText, nestedItemsText);
-        if (!menuItem.isCheckable()) {
-            String fullPath = topLevelText + ((nestedItemsText.length > 0)
-                    ? " / " + String.join(" / ", nestedItemsText)
-                    : "");
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem,
+                MenuItemNavigation.pathToString(topLevelText, nestedItemsText));
         return menuItem.isChecked();
     }
 
@@ -296,15 +291,8 @@ public class ContextMenuTester<T extends ContextMenu>
         ensureComponentIsUsable();
         MenuItem menuItem = findMenuItemByPath(topLevelPosition,
                 nestedItemsPositions);
-        if (!menuItem.isCheckable()) {
-            String fullPath = IntStream
-                    .concat(IntStream.of(topLevelPosition),
-                            IntStream.of(nestedItemsPositions))
-                    .mapToObj(Integer::toString)
-                    .collect(Collectors.joining(" / "));
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem, MenuItemNavigation
+                .pathToString(topLevelPosition, nestedItemsPositions));
         return menuItem.isChecked();
     }
 
@@ -435,88 +423,14 @@ public class ContextMenuTester<T extends ContextMenu>
 
     private MenuItem findMenuItemByPath(String topLevelText,
             String... nestedItemsText) {
-        MenuItem menuItem = findMenuItem(getComponent().getMenuManager(),
-                topLevelText, null);
-        if (nestedItemsText.length > 0) {
-            String path = topLevelText + " / "
-                    + String.join(" / ", nestedItemsText);
-            for (String text : nestedItemsText) {
-                if (menuItem.isParentItem()) {
-                    menuItem = findMenuItem(
-                            menuItem.getSubMenu().getMenuManager(), text, path);
-                } else {
-                    throw new IllegalArgumentException("Menu item with text "
-                            + menuItem.getText()
-                            + " has no children. Make sure that the path is correct: "
-                            + path);
-                }
-            }
-        }
-        return menuItem;
-    }
-
-    private MenuItem findMenuItem(
-            MenuManager<ContextMenu, MenuItem, SubMenu> menuManager,
-            String text, String fullPath) {
-        List<MenuItem> items = menuManager.getItems().stream()
-                .filter(item -> text.equals(item.getText()))
-                .collect(Collectors.toList());
-        if (items.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Cannot find menu item with text " + text
-                            + (fullPath != null ? " on path " + fullPath : ""));
-        } else if (items.size() > 1) {
-            throw new IllegalStateException(
-                    "Expecting a single menu item with text " + text
-                            + " but found " + items.size()
-                            + (fullPath != null ? " on path " + fullPath : ""));
-        }
-        MenuItem menuItem = items.get(0);
-        ensureMenuItemIsUsable(menuItem, fullPath);
-        return menuItem;
+        return MenuItemNavigation.findByPath(getComponent().getItems(),
+                topLevelText, nestedItemsText);
     }
 
     private MenuItem findMenuItemByPath(int topLevelPosition,
             int... nestedItemsPositions) {
-
-        MenuItem menuItem = findMenuItemByPosition(
-                getComponent().getMenuManager(), topLevelPosition, null);
-        if (nestedItemsPositions.length > 0) {
-            StringBuilder path = new StringBuilder().append(topLevelPosition);
-            for (int position : nestedItemsPositions) {
-                if (menuItem.isParentItem()) {
-                    path.append(" / ").append(position);
-                    menuItem = findMenuItemByPosition(
-                            menuItem.getSubMenu().getMenuManager(), position,
-                            path.toString());
-                } else {
-                    throw new IllegalArgumentException("Menu item with text "
-                            + menuItem.getText()
-                            + " has no children. Make sure that the path is correct: "
-                            + path);
-                }
-            }
-        }
-        return menuItem;
-    }
-
-    private MenuItem findMenuItemByPosition(
-            MenuManager<ContextMenu, MenuItem, SubMenu> menuManager,
-            int position, String fullPath) {
-        MenuItem menuItem = menuManager.getItems().stream()
-                .filter(Component::isVisible).skip(position).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Cannot find menu item at position " + fullPath));
-        ensureMenuItemIsUsable(menuItem, fullPath);
-        return menuItem;
-    }
-
-    private void ensureMenuItemIsUsable(MenuItem menuItem, String fullPath) {
-        if (!menuItem.isEnabled() || !menuItem.isVisible()) {
-            throw new IllegalStateException(
-                    "Menu item " + fullPath + " is not usable. "
-                            + PrettyPrintTreeKt.toPrettyTree(menuItem));
-        }
+        return MenuItemNavigation.findByPath(getComponent().getItems(),
+                topLevelPosition, nestedItemsPositions);
     }
 
     private void clickMenuItem(MenuItem menuItem) {

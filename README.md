@@ -14,7 +14,7 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 
 ## Features
 
-- **65+ built-in component testers** — ready-made wrappers for Grid, Button,
+- **70+ built-in component testers** — ready-made wrappers for Grid, Button,
   TextField, ComboBox, Dialog, DatePicker, Upload, Charts, and many more
 - **View navigation** — navigate to `@Route`-annotated views with path, query,
   and template parameters
@@ -27,6 +27,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 - **Signals / reactive state** — process pending signal tasks in tests,
   including the confirmation of shared-signal writes
 - **Round-trip simulation** — flush pending server-side changes
+- **Page reload simulation** — simulate a browser refresh (F5): the UI is
+  recreated in the same Vaadin session, session-scoped state survives, and
+  `@PreserveOnRefresh` views keep their instance and state
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
 - **Spring Boot integration** — `SpringBrowserlessTest` base class with full
@@ -37,6 +40,10 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
   browser windows per user against a shared application within a single test;
   Vaadin thread-locals and per-user security context are switched
   automatically as you interact with each window
+- **Per-test Vaadin configuration** — apply application properties, feature
+  flags, and `Lookup` services to a single test class or method with
+  `@BrowserlessTestConfig`, without touching system properties or leaking into
+  other tests
 - **External navigation capture** — assert URLs triggered by
   `Page.setLocation()` and `Page.open()` (including `_blank`, named, and
   `_self` / `_parent` / `_top` targets) without leaving the test
@@ -265,8 +272,8 @@ subclass to get the additional `find<Component>()` entries.
 
 Locators carry the common filters directly: `withId`, `withTestId`,
 `withClassName` / `withoutClassName`, `withAttribute` (with or without an
-expected value), `withoutAttribute`, and `withCondition` for an arbitrary
-typed predicate.
+expected value), `withoutAttribute`, `withinSlot` for content a component
+places in a named slot, and `withCondition` for an arbitrary typed predicate.
 
 Filters that depend on a component capability are mixed in only where the
 component actually supports them, so misuse is a compile error rather than a
@@ -314,6 +321,27 @@ window.findButton().atIndex(2).click();
 // only look inside a resolved parent
 window.findButton().inside(window.findButton().withId("toolbar")).click();
 ```
+
+Content a component places in a named slot — a card's footer, a dialog's
+header — is scoped with `withinSlot(name)`. It matches content nested inside
+the slot too, not only the component that is the slot root:
+
+```java
+// the Save button in the card's footer, however deeply it is nested there
+window.findButton().inside(card).withinSlot("footer").withText("Save").click();
+```
+
+Slot names are the ones the component uses in the browser and differ per
+component: a card's header slot is `header`, a dialog's is `header-content`.
+A name nothing is slotted under simply matches no components.
+
+When slots nest, the outermost one wins, so everything below a slot matches:
+a button in the header of a card that another card placed in *its* footer is
+footer content, because that footer is the outer slot. Only the search context
+bounds the walk, so scoping to the slot's host, to a layout above it, or to
+nothing at all all see the same slots. The `withinSlot` javadoc walks through
+annotated component trees for that case and for components that slot content
+into wrapper elements.
 
 Beyond the action methods, locators expose `component()` (the single match,
 cached), `components()` (all matches), `exists()` (true if anything matches),
@@ -372,46 +400,189 @@ on locators. Use whichever fits — they search the same component tree.
 
 ## What `find()` can and cannot see
 
-Queries walk the server-side component tree. A component that another component
-renders per item, or that only materializes when a client opens an overlay, is
-not part of that tree, and has to be reached through the tester of the component
-that owns it. A query returns an empty result instead of failing, so such a
-component reads as if it was never created.
+`find(Class)`, `findInView(Class)` and the typed locators all walk the same
+thing: the server-side component tree. A component that another component
+renders per item does not exist until something renders it, and the content of
+an overlay is attached only while the overlay is open. Neither is in the tree
+until then — reach it through that component's tester instead. The lookup
+returns an empty result rather than an error, so the failure reads as "the
+component was never created".
 
-**Components rendered per item** do not exist until a renderer is asked to
-render one specific item, so they are not in the tree:
-
-```java
-grid.addComponentColumn(person -> new Checkbox()).setKey("subscriber");
-
-find(Checkbox.class).all();                      // empty
-
-// reach the cell component through the Grid tester instead
-Checkbox box = (Checkbox) test(grid).getCellComponent(0, "subscriber");
-test(box).click();
-```
-
-`GridTester` also exposes `getCellText(row, column)` for what the cell displays,
-and `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` for
-`LitRenderer` columns.
-
-**Overlay content** is not attached to the UI until the overlay is opened, so
-menu items are not findable from the UI root, and cannot be clicked, until then:
+### Components rendered per item
 
 ```java
-ContextMenu menu = new ContextMenu(target);
-menu.addItem("Rename", event -> rename());
-
-find(MenuItem.class).all();       // empty
-test(menu).clickItem("Rename");   // IllegalStateException: menu not attached
-
-test(menu).open();                // attaches the menu, as a right click would
-test(menu).clickItem("Rename");   // works
+grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
+        .setKey("subscriber");
 ```
 
-A tester-scoped `find(Class)` is the exception: `test(menu).find(Div.class)`
-queries the menu's own contents and finds them whether the menu is open or not,
-returning them in a detached state while it is closed.
+No checkbox exists until the renderer is asked to render a *specific* item, so
+`find(Checkbox.class)` finds none. `GridTester` renders the cell on demand:
+
+```java
+var checkbox = (Checkbox) test(grid).getCellComponent(0, "subscriber");
+test(checkbox).click();
+```
+
+- `getCellComponent(int row, int column)` / `getCellComponent(int row, String
+  columnKey)` — the component a `ComponentRenderer` column renders for a row.
+  Every call renders the cell again and attaches the new instance to the grid,
+  so asking twice for the same cell leaves two instances behind, and a later
+  `find()` reports both. Hold on to the component the tester returns instead of
+  asking for it again.
+- `getCellText(int row, int column)` — the text the cell sends to the client,
+  for both value and component renderers.
+- `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for
+  `LitRenderer` columns, which have no server-side component at all.
+
+### Overlay content
+
+A context menu's content is not attached to the UI until a client opens the
+overlay, so a top-level `find()` does not see it:
+
+```java
+find(Div.class).withText("Rename").all(); // empty while the menu is closed
+
+test(menu).open();
+
+find(Div.class).withText("Rename").all(); // one match
+```
+
+A closed menu is not attached to the UI, so, as in the browser, its items
+cannot be interacted with: `clickItem("Rename")`, `isItemChecked(...)` and
+`getItemTooltipText(...)` throw an `IllegalStateException` until the menu is
+opened. The tester-scoped `test(menu).find(Div.class)` is the exception, since
+it reads the menu contents rather than the UI; it finds the items whether the
+menu is open or not, and returns them detached while it is closed.
+
+A `GridContextMenu` is always about a row, so its tester takes one:
+`test(grid).contextMenu(row)` targets a row without opening the menu, `open()`
+then opens it there, and `clickItem("Rename")` clicks an item of the open menu.
+`GridContextMenuTester.open(row)` opens the menu on a row directly.
+
+## Per-test Vaadin configuration
+
+Some tests need a Vaadin environment configured differently from the rest of
+the suite — a view behind a feature flag, or a setting such as
+`devmode.sessionSerialization.enabled`. Annotate the test class or the test
+method with `@BrowserlessTestConfig`:
+
+```java
+@ViewPackages(classes = CartView.class)
+@BrowserlessTestConfig(
+        applicationProperties = "devmode.sessionSerialization.enabled=true",
+        featureFlags = "myExperimentalFeature")
+class CartViewTest extends BrowserlessTest {
+
+    @Test
+    void experimentalFeatureIsAvailable() {
+        // the feature flag is enabled for this test only
+    }
+
+    @Test
+    @BrowserlessTestConfig(featureFlags = "myExperimentalFeature=false")
+    void fallbackWhenFeatureIsDisabled() {
+        // method level configuration wins over the class level one
+    }
+}
+```
+
+- `applicationProperties` entries are `name=value` pairs, applied to the Vaadin
+  deployment configuration of the mock environment. The value is everything
+  after the first `=`.
+- `featureFlags` entries are either a feature identifier, to enable it, or an
+  `id=true|false` pair. They override whatever
+  `vaadin-featureflags.properties` or the `vaadin.experimental.*` system
+  properties declare.
+- `lookupServices` are implementation classes registered with the Vaadin
+  `Lookup` — an `InstantiatorFactory`, a `ResourceProvider`, and so on:
+
+  ```java
+  @BrowserlessTestConfig(lookupServices = MyInstantiatorFactory.class)
+  class MyViewTest extends BrowserlessTest {
+  }
+  ```
+
+All of them are scoped to the Vaadin environment created for the test, so there
+is nothing to reset afterwards and nothing leaks into other tests.
+
+Every annotation a test inherits is merged in, rather than shadowed by the
+nearest one. The closer a declaration is to the test method, the higher it
+ranks: method, then test class, then superclasses from the nearest up, then —
+for a `@Nested` test — enclosing classes from the innermost out. So a shared
+abstract base test can declare part of the configuration and a subclass refines
+it:
+
+```java
+@BrowserlessTestConfig(applicationProperties = "base.property=fromBase")
+abstract class AbstractViewTest extends BrowserlessTest {
+}
+
+@BrowserlessTestConfig(featureFlags = "myExperimentalFeature")
+class CartViewTest extends AbstractViewTest {
+    // both base.property and myExperimentalFeature apply
+}
+```
+
+Lookup services are the exception: they **accumulate** instead of being
+replaced, so a test method can add a service but cannot remove one declared by
+its class. Services required by the Spring and Quarkus integrations are always
+registered and are never affected by the test configuration — since 25.3 they
+come from `frameworkLookupServices()`, so an override of the deprecated
+`lookupServices()` adds to them and can no longer replace one.
+A method level annotation cannot be honored when the Vaadin environment is
+shared by all the tests in a class (`BrowserlessClassExtension`), and is
+rejected with an error.
+
+The same configuration can be defined programmatically, without annotations,
+on the extensions:
+
+```java
+@RegisterExtension
+BrowserlessExtension extension = new BrowserlessExtension()
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags(FeatureFlags.COLLABORATION_ENGINE_BACKEND);
+```
+
+on the application context builder, for multi-user tests:
+
+```java
+try (var app = BrowserlessApplicationContext.create(builder -> builder
+        .withViewPackages(CartView.class)
+        .withApplicationProperty("devmode.sessionSerialization.enabled", "true")
+        .withFeatureFlags("myExperimentalFeature"))) {
+    // ...
+}
+```
+
+or by overriding `testConfiguration()` on a base class based test:
+
+```java
+@Override
+protected BrowserlessConfiguration testConfiguration() {
+    return BrowserlessConfiguration.builder()
+            .withConfiguration(super.testConfiguration())
+            .withFeatureFlags("myExperimentalFeature").build();
+}
+```
+
+When both are used, a configuration defined on an extension or on the
+application context builder wins over the class level annotation, and loses
+against the method level one.
+
+A `testConfiguration()` override behaves differently: `super.testConfiguration()`
+returns the configuration already resolved from the annotations, so whatever the
+override adds on top of it wins over **all** of them, the method level one
+included. Build on `super.testConfiguration()` to refine the declared
+configuration, and leave out the values a test method should be able to
+override.
+
+> [!NOTE]
+> With Spring, a Vaadin property defined in the Spring environment (e.g.
+> `vaadin.devmode.sessionSerialization.enabled` in `application.properties`) is
+> applied by `SpringServlet` on top of the test configuration, and therefore
+> wins over `@BrowserlessTestConfig`. Use `@TestPropertySource` to override
+> such a property for a test. Properties that are not Vaadin init parameters
+> are not affected.
 
 ## Signals
 
@@ -468,12 +639,12 @@ layered context API that mirrors the Vaadin hierarchy:
 | `BrowserlessUIContext`             | one `UI` (one browser window)    | `user.newWindow()`                                                                         |
 
 `BrowserlessUIContext` exposes the same DSL as `BrowserlessTest` (`navigate`,
-`find`, `findInView`, `test`, `roundTrip`). Every DSL call automatically activates the
-context: Vaadin thread-locals (`VaadinService`, `VaadinSession`, `UI`,
-`VaadinRequest`, `VaadinResponse`) are switched to the target window, and on a
-user-switch the outgoing user's security context is saved and the incoming
-user's snapshot is restored. You can interleave operations on different
-windows freely without manual context switching.
+`find`, `findInView`, `test`, `roundTrip`, `reload`). Every DSL call
+automatically activates the context: Vaadin thread-locals (`VaadinService`,
+`VaadinSession`, `UI`, `VaadinRequest`, `VaadinResponse`) are switched to the
+target window, and on a user-switch the outgoing user's security context is
+saved and the incoming user's snapshot is restored. You can interleave
+operations on different windows freely without manual context switching.
 
 The application context is `AutoCloseable`: closing it (typically via
 `try-with-resources`) closes every user and every window in the right order,
@@ -616,6 +787,29 @@ class MultiUserSecurityTest {
 For a hand-built identity, pass it directly:
 `app.newUser(QuarkusSecurityIdentity.builder()...build())`.
 
+### Reloading a window
+
+`reload()` simulates the user pressing F5 on one window: that window's `UI` is
+detached and a fresh one is created in the same `VaadinSession`, and the
+current location — route parameters and query string included — is rendered
+again. Session-scoped state survives and sibling windows are untouched.
+
+```java
+var w = app.newUser().newWindow();
+var cart = w.navigate(CartView.class); // @PreserveOnRefresh
+
+w.test(w.find(Button.class).withId("add").single()).click();
+
+// Same instance and state: @PreserveOnRefresh survives the refresh
+assertSame(cart, w.reload(CartView.class));
+```
+
+A view without `@PreserveOnRefresh` is recreated, so its state resets — the
+same distinction a real browser refresh makes. The no-argument `reload()`
+returns the resulting view as a `HasElement`; `reload(Class)` additionally
+asserts the expected view type. Both are also available on `BrowserlessTest`
+and on `BrowserlessExtension`.
+
 ### Capturing external navigation
 
 When a view triggers `Page.setLocation()` or `Page.open()`, the URL is
@@ -658,9 +852,13 @@ and `_blank`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions this project follows,
-including the shared test contracts (`ClearContract`, `ClearButtonContract`,
-`RefusesEmptyValueContract`) that every value tester's test class implements.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and test the project and
+what a pull request is expected to look like, [CONVENTIONS.md](CONVENTIONS.md)
+for the canonical list of conventions, and
+[guidelines/](guidelines/overview.md) for the reasoning behind them — including
+how a tester simulates the browser and the shared test contracts
+(`ClearContract`, `ClearButtonContract`, `CommitsEmptyValueContract`) that
+every value tester's test class implements.
 
 ## License
 

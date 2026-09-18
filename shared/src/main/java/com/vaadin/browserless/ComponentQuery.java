@@ -41,28 +41,6 @@ import com.vaadin.flow.dom.Element;
  * instance which searches through the whole component tree, or a
  * {@link com.vaadin.flow.component.Component} instance, which limits the search
  * to the component subtree.
- * <p>
- * The search walks the server-side component tree. A component that another
- * component renders per item, or that only materializes when a client opens an
- * overlay, is not part of that tree, and has to be reached through the tester
- * of the component that owns it. Since a query returns an empty result instead
- * of failing, such a component reads as if it was never created.
- * <p>
- * Components rendered per item, as in
- * {@code grid.addComponentColumn(person -> new Checkbox())}, do not exist until
- * a renderer is asked to render one specific item. Reach them through
- * {@code GridTester.getCellComponent(row, column)} or
- * {@code getCellComponent(row, columnKey)}, read what the cell displays with
- * {@code getCellText(row, column)}, and use
- * {@code getLitRendererPropertyValue(...)} /
- * {@code invokeLitRendererFunction(...)} for {@code LitRenderer} columns.
- * <p>
- * Overlay content, such as the items of a
- * {@link com.vaadin.flow.component.contextmenu.ContextMenu}, is not attached to
- * the UI until the overlay is opened. {@code ContextMenuTester.open()} attaches
- * the menu, after which its items are part of the tree and can be clicked with
- * {@code clickItem(...)}. A tester-scoped {@code find(Class)} also sees the
- * items of a closed menu, but returns them in a detached state.
  *
  * @param <T>
  *            the type of the component(s) to search for
@@ -603,6 +581,153 @@ public class ComponentQuery<T extends Component> {
         locatorSpec.predicates
                 .add(ElementConditions.hasNotAttribute(attribute, value));
         return this;
+    }
+
+    /**
+     * Requires the components to sit in the given named slot of the component
+     * that hosts them.
+     * <p>
+     * A component is in slot {@code name} when an element carrying
+     * {@code slot="name"} is one of its ancestors, or is the component itself.
+     * The whole subtree below a slot belongs to it, however deeply nested: a
+     * button inside a footer {@code Div} is in the footer just like a button
+     * that <em>is</em> the footer. When slots nest, the outermost one — the one
+     * closest to the search context — decides.
+     * <p>
+     * This filter narrows an already slot-aware search rather than widening
+     * one: an unfiltered {@code find(Class)} on a component returns matches
+     * from every one of its slots, and from the slots of the components nested
+     * in them, so {@code withinSlot} only drops what sits outside the named
+     * slot.
+     * <p>
+     * Take this card, dumped with {@code toPrettyTree()} (the same tree
+     * {@code TreeOnFailureExtension} prints on failure), where the slotted
+     * elements show up as {@code @slot='...'}:
+     *
+     * <pre>
+     * └── Card[#card]
+     *     ├── Button[#content]
+     *     ├── Button[#title, @slot='header']
+     *     ├── Div[#footer-bar, @slot='footer']
+     *     │   └── Button[#save]
+     *     ├── Button[#cancel, @slot='footer']
+     *     └── Card[#inner, @slot='footer']
+     *         ├── Button[#open]
+     *         └── Button[#details, @slot='header']
+     * </pre>
+     *
+     * {@code test(card).find(Button.class).withinSlot("footer").all()} returns
+     * {@code #save}, {@code #cancel}, {@code #open} and {@code #details} —
+     * everything the card put in its footer:
+     * <ul>
+     * <li>{@code #cancel} is itself the slot root.</li>
+     * <li>{@code #save} is nested inside the slotted {@code Div}.</li>
+     * <li>{@code #open} and {@code #details} are inside the inner card, which
+     * the outer card placed in its footer. What those nested components do with
+     * their own slots does not matter: the inner card's {@code slot='header'}
+     * does not take {@code #details} out of the outer card's footer.</li>
+     * <li>{@code #content} is not returned: it is in the card's default slot,
+     * and no slot name matches a component that is not slotted.</li>
+     * </ul>
+     *
+     * Because the outer slot wins, repeated slot names at different nesting
+     * levels stay separate: the card's {@code header} holds only
+     * {@code #title}, and {@code #details} counts as header content only once
+     * the inner card is itself the search context, which puts its
+     * {@code header} slot outermost:
+     *
+     * <pre>{@code
+     * // [#save, #cancel, #open, #details]
+     * test(card).find(Button.class).withinSlot("footer").all();
+     *
+     * // [#title] — #details is footer content of this card
+     * test(card).find(Button.class).withinSlot("header").all();
+     *
+     * // [#details] — and header content of the inner one
+     * test(inner).find(Button.class).withinSlot("header").all();
+     * }</pre>
+     *
+     * Not every component puts the attribute on the component it slots. Here a
+     * dialog holds a layout in its header and a button plus a card in its
+     * footer, and the dump shows no {@code @slot} at all:
+     *
+     * <pre>
+     * └── Dialog[#dialog, opened='true', @role='dialog']
+     *     ├── Button[#body]
+     *     ├── Div[#header-bar]
+     *     │   └── Button[#close]
+     *     ├── Button[#ok]
+     *     └── Card[#card]
+     *         └── Button[#content]
+     * </pre>
+     *
+     * A dialog slots that content into wrapper elements which carry the
+     * attribute but have no component of their own, and the tree dump descends
+     * through them. This filter walks the element tree, so it still sees the
+     * slots: {@code withinSlot("header-content")} matches {@code #close} and
+     * {@code withinSlot("footer")} matches {@code #ok} and {@code #content}.
+     * <p>
+     * The search context (see {@link #from(Component)}) bounds the walk, so a
+     * slot the context itself is placed in does not leak into the result.
+     * Scoped to the card above,
+     * {@code test(card).find(Button.class).withinSlot("footer").all()} is
+     * therefore empty — the {@code footer} slot the card sits in belongs to the
+     * dialog, not to the card — while the same query scoped to the dialog, to
+     * any component in between, or to nothing at all does return
+     * {@code #content}. Widening the search context never drops matches: it can
+     * only bring further slots into view.
+     * <p>
+     * Slot names are the ones the component uses in the browser, and they are
+     * component specific: {@code Card} and {@code ConfirmDialog} name their
+     * header slot {@code header}, while {@code Dialog} names it
+     * {@code header-content}, as above. A name no component is slotted under
+     * simply produces no results.
+     * <p>
+     * This is not the same as {@code withAttribute("slot", name)}: the
+     * attribute filter only matches a component that is itself the slot root,
+     * so on the card it finds {@code #cancel} but neither {@code #save} nor
+     * {@code #open}, and on the dialog it matches nothing at all.
+     *
+     * @param slot
+     *            the name of the slot, not {@literal null} nor blank
+     * @return this element query instance for chaining
+     * @throws IllegalArgumentException
+     *             if {@code slot} is {@literal null} or blank
+     */
+    public ComponentQuery<T> withinSlot(String slot) {
+        if (slot == null || slot.isBlank()) {
+            throw new IllegalArgumentException(
+                    "slot must not be null nor blank");
+        }
+        locatorSpec.predicates.add(component -> isInSlot(component, slot));
+        return this;
+    }
+
+    /**
+     * Checks whether the given component sits inside the named slot. Of the
+     * slots enclosing the component, the one closest to the search context
+     * decides, so the whole subtree below a slot belongs to it however deeply
+     * nested and whatever slots the components in between define themselves.
+     * The walk stops at the search context, or at the UI root when the query
+     * has none.
+     *
+     * @param component
+     *            the component to inspect
+     * @param slot
+     *            the name of the slot
+     * @return {@literal true} if the component is in the named slot
+     */
+    private boolean isInSlot(Component component, String slot) {
+        Element scope = context != null ? context.getElement() : null;
+        String outermost = null;
+        for (Element element = component.getElement(); element != null
+                && !element.equals(scope); element = element.getParent()) {
+            String name = element.getAttribute("slot");
+            if (name != null) {
+                outermost = name;
+            }
+        }
+        return slot.equals(outermost);
     }
 
     /**

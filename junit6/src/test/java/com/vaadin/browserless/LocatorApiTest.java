@@ -28,7 +28,9 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 
 /**
@@ -189,6 +191,35 @@ class LocatorApiTest {
     }
 
     @Test
+    void checkbox_checkUncheckAndIsChecked_reachableFromLocator() {
+        // check()/uncheck()/isChecked() are declared on CheckboxTester so
+        // that LocatorProcessor picks them up as locator delegates.
+        try (var app = createApplicationContext()) {
+            var window = app.newUser().newWindow();
+            window.navigate(LocatorDemoView.class);
+
+            Assertions.assertFalse(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox initial state not to be checked");
+
+            window.findCheckbox().withId("accept").check();
+            Assertions.assertTrue(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox to be checked, but was not");
+
+            window.findCheckbox().withId("accept").check();
+            Assertions.assertTrue(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox to stay checked, but was not");
+
+            window.findCheckbox().withId("accept").uncheck();
+            Assertions.assertFalse(
+                    window.findCheckbox().withId("accept").isChecked(),
+                    "Expecting checkbox not to be checked, but was");
+        }
+    }
+
+    @Test
     void grid_typedRowAccessor() {
         try (var app = createApplicationContext()) {
             var window = app.newUser().newWindow();
@@ -312,6 +343,27 @@ class LocatorApiTest {
                     .click();
             Assertions.assertEquals("Saved: ",
                     window.findSpan().withId("echo").component().getText());
+        }
+    }
+
+    @Test
+    void filterChain_withinSlot_selectsSlottedContent() {
+        Button footerButton = new Button("Footer action");
+        Button contentButton = new Button("Content action");
+        Card card = new Card();
+        card.add(contentButton);
+        // Nested in a layout, so the match cannot come from the slot root
+        // itself.
+        card.addToFooter(new Div(footerButton));
+
+        // An ad-hoc component rather than the shared demo view, whose button
+        // count other tests here assert on.
+        try (var window = BrowserlessUIContext.forComponent(card)) {
+            Assertions.assertEquals(2, window.findButton().components().size());
+            Assertions.assertSame(footerButton,
+                    window.findButton().withinSlot("footer").component());
+            Assertions.assertSame(footerButton, window.findButton().inside(card)
+                    .withinSlot("footer").component());
         }
     }
 

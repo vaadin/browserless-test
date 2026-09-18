@@ -22,6 +22,8 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -151,6 +153,12 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
                 view.receiver.getFileData().getMimeType());
         Assertions.assertEquals(FIRST_FILE_CONTENTS,
                 inputStreamToString(view.receiver.getInputStream()));
+
+        Assertions.assertEquals(
+                List.of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                single_.getLastUploadStatus());
+        single_.ensureUploaded();
     }
 
     @Test
@@ -283,10 +291,20 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
     }
 
     @Test
-    void upload_fileCountExceeded_throws() {
+    void uploadAll_fileCountExceeded_extraFilesRejected() {
+        List<String> rejected = new ArrayList<>();
+        view.uploadMulti.addFileRejectedListener(ev -> rejected
+                .add(ev.getFileName() + ":" + ev.getErrorMessage()));
         view.uploadMulti.setMaxFiles(2);
-        Assertions.assertThrows(IllegalStateException.class,
-                () -> multi_.uploadAll(file1, file2, file3));
+
+        multi_.uploadAll(file1, file2, file3);
+
+        Assertions.assertEquals(List.of(file3.getName() + ":Too Many Files."),
+                rejected,
+                "The file exceeding maxFiles should have been rejected");
+        Assertions.assertEquals(Set.of(file1.getName(), file2.getName()),
+                view.multiReceiver.getFiles(),
+                "Only the files fitting maxFiles should have been received");
     }
 
     void assertFailedUpload(BiConsumer<String, String> wrapperAction) {
@@ -349,6 +367,10 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
                 "Finished listener was not notified");
         Assertions.assertTrue(allFinished.get(),
                 "All Finished listener was not notified");
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
     }
 
     private String inputStreamToString(InputStream inputStream) {

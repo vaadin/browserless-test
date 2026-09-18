@@ -32,6 +32,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
@@ -371,6 +372,27 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void id_anonymousComponentInTree_throwsNoSuchElement() {
+        Element rootElement = getCurrentView().getElement();
+        TextField anonymous = new TextField() {
+        };
+        rootElement.appendChild(anonymous.getElement());
+
+        ComponentQuery<TextField> query = findInView(TextField.class);
+        // the failure dumps the component tree, which has to cope with an
+        // anonymous component subclass as well: it has no simple name, so it is
+        // dumped by its fully qualified one
+        NoSuchElementException exception = Assertions.assertThrows(
+                NoSuchElementException.class, () -> query.id("no-such-id"));
+        Assertions.assertTrue(
+                exception.getMessage().contains(anonymous.getClass().getName()),
+                "Expecting the anonymous component to be dumped as "
+                        + anonymous.getClass().getName()
+                        + " in the failure message, but got "
+                        + exception.getMessage());
+    }
+
+    @Test
     void id_matchingDifferentComponentType_throws() {
         Element rootElement = getCurrentView().getElement();
         rootElement.appendChild(new TextField().getElement());
@@ -653,6 +675,153 @@ class ComponentQueryTest extends BrowserlessTest {
             return value > 1 && value < 3;
         }).all();
         Assertions.assertIterableEquals(List.of(div2, div3), result);
+    }
+
+    @Test
+    void withinSlot_cardSlots_matchNestedContentUnlikeTheSlotAttribute() {
+        // The component tree the withinSlot javadoc walks through, so the
+        // documented outcome stays pinned.
+        Button content = new Button("Content button");
+        Button title = new Button("Title button");
+        Button save = new Button("Save button");
+        Button cancel = new Button("Cancel button");
+        Button open = new Button("Open button");
+        Button details = new Button("Details button");
+
+        Card inner = new Card();
+        inner.add(open);
+        inner.setHeader(details);
+
+        Card card = new Card();
+        card.add(content);
+        card.setHeader(title);
+        card.addToFooter(new Div(save), cancel, inner);
+        Div layout = new Div(card);
+        getCurrentView().getElement().appendChild(layout.getElement());
+
+        ComponentTester<Card> tester = new ComponentTester<>(card);
+        // cancel is the slot root itself, save is nested inside the slotted
+        // Div, and open and details are inside the inner card the outer card
+        // placed in its footer — the inner card's own header slot does not
+        // take details out of this card's footer.
+        Assertions.assertIterableEquals(List.of(save, cancel, open, details),
+                tester.find(Button.class).withinSlot("footer").all());
+        // For the same reason the outer card's header holds only its own
+        // header content, while the inner card's header holds details.
+        Assertions.assertIterableEquals(List.of(title),
+                tester.find(Button.class).withinSlot("header").all());
+        Assertions.assertIterableEquals(List.of(details),
+                new ComponentTester<>(inner).find(Button.class)
+                        .withinSlot("header").all());
+        // A search context above the card, and no search context at all, see
+        // the same slots: the card is the outermost slotted host either way,
+        // so widening the search must not silently empty the result.
+        ComponentTester<Div> layoutTester = new ComponentTester<>(layout);
+        Assertions.assertIterableEquals(List.of(save, cancel, open, details),
+                layoutTester.find(Button.class).withinSlot("footer").all());
+        Assertions.assertIterableEquals(List.of(title),
+                layoutTester.find(Button.class).withinSlot("header").all());
+        Assertions.assertIterableEquals(List.of(save, cancel, open, details),
+                find(Button.class).withinSlot("footer").all());
+        Assertions.assertIterableEquals(List.of(title),
+                find(Button.class).withinSlot("header").all());
+        // The content button is in the card's default slot, which no slot name
+        // matches.
+        Assertions.assertTrue(tester.find(Button.class).withinSlot("content")
+                .all().isEmpty());
+        // A slot the card does not have, e.g. a typo, simply finds nothing.
+        Assertions.assertTrue(tester.find(Button.class).withinSlot("fooooter")
+                .all().isEmpty());
+
+        // Filters compose the usual way.
+        Assertions.assertSame(cancel, tester.find(Button.class)
+                .withinSlot("footer").withText("Cancel button").single());
+
+        // The attribute filter this replaces only ever matched the slot root.
+        Assertions.assertIterableEquals(List.of(cancel), tester
+                .find(Button.class).withAttribute("slot", "footer").all());
+    }
+
+    @Test
+    void withinSlot_dialogSlots_matchThroughTheComponentlessWrapper() {
+        Button headerButton = new Button("Header button");
+        Button footerButton = new Button("Footer button");
+        Button contentButton = new Button("Content button");
+
+        Dialog dialog = new Dialog();
+        dialog.getHeader().add(new Div(headerButton));
+        dialog.getFooter().add(footerButton);
+        dialog.add(contentButton);
+        dialog.open();
+
+        // A dialog slots its header and footer into wrapper elements that have
+        // no component, so the attribute filter cannot see them at all while
+        // the slot filter can. Note the browser-level slot name: a dialog
+        // header is "header-content", not "header".
+        ComponentTester<Dialog> tester = new ComponentTester<>(dialog);
+        Assertions.assertIterableEquals(List.of(headerButton),
+                tester.find(Button.class).withinSlot("header-content").all());
+        Assertions.assertIterableEquals(List.of(footerButton),
+                tester.find(Button.class).withinSlot("footer").all());
+        Assertions.assertTrue(tester.find(Button.class)
+                .withAttribute("slot", "footer").all().isEmpty());
+    }
+
+    @Test
+    void withinSlot_nestedSlots_outermostSlotWins() {
+        Button dialogHeaderButton = new Button("Dialog header button");
+        Dialog dialog = new Dialog();
+        dialog.getHeader().add(dialogHeaderButton);
+
+        Card card = new Card();
+        card.addToFooter(dialog);
+        getCurrentView().getElement().appendChild(card.getElement());
+        dialog.open();
+
+        // The button is in the dialog's header, but the card put that dialog
+        // in its footer, so from the card the footer is the outer slot and it
+        // is footer content. The dialog's own "header-content" slot is the
+        // inner one and loses.
+        ComponentTester<Card> tester = new ComponentTester<>(card);
+        Assertions.assertIterableEquals(List.of(dialogHeaderButton),
+                tester.find(Button.class).withinSlot("footer").all());
+        Assertions.assertTrue(tester.find(Button.class)
+                .withinSlot("header-content").all().isEmpty());
+        // Scoped to the dialog it is header content again.
+        Assertions.assertIterableEquals(List.of(dialogHeaderButton),
+                new ComponentTester<>(dialog).find(Button.class)
+                        .withinSlot("header-content").all());
+    }
+
+    @Test
+    void withinSlot_slottedContext_lookupStopsAtTheSearchContext() {
+        Button contentButton = new Button("Content button");
+        Card card = new Card();
+        card.add(contentButton);
+
+        Dialog dialog = new Dialog();
+        dialog.getFooter().add(card);
+        dialog.open();
+
+        // Scoped to the card: the card's own slot in the dialog is above the
+        // search context and must not make its content look slotted.
+        Assertions.assertTrue(new ComponentTester<>(card).find(Button.class)
+                .withinSlot("footer").all().isEmpty());
+
+        // Unscoped: the walk continues past the card up to the UI root, where
+        // the dialog's footer is the outermost enclosing slot, so the same
+        // button is footer content there.
+        Assertions.assertIterableEquals(List.of(contentButton),
+                find(Button.class).withinSlot("footer").all());
+    }
+
+    @Test
+    void withinSlot_nullOrBlank_throws() {
+        ComponentQuery<Button> query = find(Button.class);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withinSlot(null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> query.withinSlot(" "));
     }
 
     @Test

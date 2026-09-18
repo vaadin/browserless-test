@@ -29,7 +29,10 @@ import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.provider.SortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -327,6 +330,15 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     /**
      * Get component for item in cell.
      *
+     * <p>
+     * A component renderer only produces a component when it is asked to render
+     * a specific item, so until this method is called there is nothing in the
+     * component tree that {@code find(...)} walks, and this method is the way
+     * to reach it. Every call renders the cell again and attaches the new
+     * instance to the grid, so asking twice for the same cell leaves two
+     * instances behind and a later {@code find(...)} reports both. Hold on to
+     * the component this method returns instead of asking for it again.
+     *
      * @param row
      *            item row
      * @param column
@@ -344,6 +356,15 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Get component for item in column.
+     *
+     * <p>
+     * A component renderer only produces a component when it is asked to render
+     * a specific item, so until this method is called there is nothing in the
+     * component tree that {@code find(...)} walks, and this method is the way
+     * to reach it. Every call renders the cell again and attaches the new
+     * instance to the grid, so asking twice for the same cell leaves two
+     * instances behind and a later {@code find(...)} reports both. Hold on to
+     * the component this method returns instead of asking for it again.
      *
      * @param row
      *            item row
@@ -790,6 +811,35 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
             sortOrders.add(insertIndex, GridSortOrder.desc(col).build().get(0));
         }
         getComponent().sort(sortOrders);
+    }
+
+    /**
+     * Gets a tester for the context menu of this grid, targeting the given row.
+     * <p/>
+     * The index is 0 based and counts the rows the user sees. The menu is not
+     * opened, so that assertions can be made on it first; open it with
+     * {@link GridContextMenuTester#open()}.
+     *
+     * <pre>
+     * var menu = test(grid).contextMenu(0);
+     * menu.open();
+     * menu.clickItem("Edit");
+     * </pre>
+     *
+     * @param row
+     *            row the context menu is about
+     * @return a tester for the context menu of this grid, targeting the given
+     *         row
+     * @throws IllegalStateException
+     *             if the grid is not usable, or if it has no context menu or
+     *             more than one
+     */
+    @SuppressWarnings("unchecked")
+    public GridContextMenuTester<GridContextMenu<Y>, Y> contextMenu(int row) {
+        ensureComponentIsUsable();
+        GridContextMenu<Y> menu = (GridContextMenu<Y>) GridContextMenuSupport
+                .getContextMenu(getComponent());
+        return new GridContextMenuTester<>(menu, row);
     }
 
     private String getValueProviderString(int row, Grid.Column<Y> targetColumn)

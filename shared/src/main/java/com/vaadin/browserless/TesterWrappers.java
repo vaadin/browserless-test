@@ -22,10 +22,14 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.TextTester;
 import com.vaadin.flow.component.accordion.Accordion;
 import com.vaadin.flow.component.accordion.AccordionTester;
+import com.vaadin.flow.component.avatar.AvatarGroup;
+import com.vaadin.flow.component.avatar.AvatarGroupTester;
 import com.vaadin.flow.component.breadcrumbs.Breadcrumbs;
 import com.vaadin.flow.component.breadcrumbs.BreadcrumbsTester;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonTester;
+import com.vaadin.flow.component.card.Card;
+import com.vaadin.flow.component.card.CardTester;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.checkbox.CheckboxGroupTester;
@@ -50,6 +54,8 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.dialog.DialogTester;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AnchorTester;
 import com.vaadin.flow.component.html.DescriptionList;
@@ -131,6 +137,8 @@ import com.vaadin.flow.component.slider.IntegerRangeSlider;
 import com.vaadin.flow.component.slider.IntegerRangeSliderTester;
 import com.vaadin.flow.component.slider.IntegerSlider;
 import com.vaadin.flow.component.slider.IntegerSliderTester;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.splitlayout.SplitLayoutTester;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.TabSheetTester;
 import com.vaadin.flow.component.tabs.Tabs;
@@ -166,6 +174,18 @@ public interface TesterWrappers {
                 accordion);
     }
 
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param avatarGroup
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default AvatarGroupTester<AvatarGroup> test(AvatarGroup avatarGroup) {
+        return BaseBrowserlessTest.internalWrap(AvatarGroupTester.class,
+                avatarGroup);
+    }
+
     default BreadcrumbsTester<Breadcrumbs> test(Breadcrumbs breadcrumbs) {
         return BaseBrowserlessTest.internalWrap(BreadcrumbsTester.class,
                 breadcrumbs);
@@ -173,6 +193,17 @@ public interface TesterWrappers {
 
     default ButtonTester<Button> test(Button button) {
         return BaseBrowserlessTest.internalWrap(ButtonTester.class, button);
+    }
+
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param card
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default CardTester<Card> test(Card card) {
+        return BaseBrowserlessTest.internalWrap(CardTester.class, card);
     }
 
     default CheckboxTester<Checkbox> test(Checkbox checkbox) {
@@ -251,6 +282,22 @@ public interface TesterWrappers {
 
     default <V> GridTester<Grid<V>, V> test(Grid grid, Class<V> itemType) {
         return BaseBrowserlessTest.internalWrap(GridTester.class, grid);
+    }
+
+    /**
+     * Create a tester for the given GridContextMenu instance.
+     *
+     * @param gridContextMenu
+     *            the GridContextMenu instance to be tested
+     * @param <V>
+     *            the type of the items in the grid the menu is attached to
+     * @return a GridContextMenuTester instance wrapping the given
+     *         GridContextMenu
+     */
+    default <V> GridContextMenuTester<GridContextMenu<V>, V> test(
+            GridContextMenu<V> gridContextMenu) {
+        return BaseBrowserlessTest.internalWrap(GridContextMenuTester.class,
+                gridContextMenu);
     }
 
     default <V> ListBoxTester<ListBox<V>, V> test(ListBox<V> listBox) {
@@ -402,6 +449,18 @@ public interface TesterWrappers {
             IntegerSlider integerSlider) {
         return BaseBrowserlessTest.internalWrap(IntegerSliderTester.class,
                 integerSlider);
+    }
+
+    /**
+     * Wraps the given component in a tester.
+     *
+     * @param splitLayout
+     *            the component to wrap
+     * @return a tester for the given component
+     */
+    default SplitLayoutTester<SplitLayout> test(SplitLayout splitLayout) {
+        return BaseBrowserlessTest.internalWrap(SplitLayoutTester.class,
+                splitLayout);
     }
 
     default TabsTester<Tabs> test(Tabs tabs) {

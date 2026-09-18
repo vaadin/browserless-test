@@ -426,6 +426,21 @@ class ContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void find_menuContent_notInTheUiTreeUntilTheMenuIsOpened() {
+        // The menu content is not attached to the UI until a client opens the
+        // overlay, so a top level find() does not see it.
+        Assertions.assertEquals(0,
+                find(Div.class).withText("Component Item").all().size(),
+                "closed context menu content should not be reachable through a top level find()");
+
+        test(view.menu).open();
+
+        Assertions.assertEquals(1,
+                find(Div.class).withText("Component Item").all().size(),
+                "open context menu content should be reachable through a top level find()");
+    }
+
+    @Test
     void openAndFind_ContextMenuItemsCanBeAccessed() {
         var menuTester = test(view.menu);
         var div = menuTester.find(Div.class).withText("Component Item")
