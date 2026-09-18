@@ -71,6 +71,16 @@ public class ContextMenuView extends Component implements HasComponents {
         nestedInvisible.getSubMenu().addItem("Level3", ev -> clickedItems
                 .add("Hierarchical / NestedInvisible / Level3"));
 
+        // Appended last so that the positions used by the by-index tests stay
+        // stable. A hidden sibling sharing the text of a visible item must not
+        // make the text ambiguous, since a user sees only one of them.
+        menu.addItem("Duplicated Hidden",
+                ev -> clickedItems.add("Duplicated Hidden"));
+        menu.addItem("Duplicated Hidden",
+                ev -> clickedItems.add("Duplicated Hidden invisible"))
+                .setVisible(false);
+        menu.addItem("Hierarchical").setVisible(false);
+
         add(assignee);
     }
 

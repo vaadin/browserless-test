@@ -118,6 +118,23 @@ class ContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void clickItem_hiddenItemWithSameText_clicksVisibleItem() {
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        menu_.clickItem("Duplicated Hidden");
+        Assertions.assertIterableEquals(List.of("Duplicated Hidden"),
+                view.clickedItems);
+
+        // the hidden "Hierarchical" sibling has no children, so resolving it
+        // instead of the visible one would fail the path
+        menu_.clickItem("Hierarchical", "Level2");
+        Assertions.assertIterableEquals(
+                List.of("Duplicated Hidden", "Hierarchical / Level2"),
+                view.clickedItems);
+    }
+
+    @Test
     void clickItem_checkable_checkStatusChanges() {
         ContextMenuTester<ContextMenu> menu_ = test(view.menu);
         menu_.open();
