@@ -305,6 +305,10 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component inside the UI
      *
+     * <p>
+     * Not every component of a view is part of the tree the query walks: see
+     * {@link ComponentQuery} for what the query can and cannot see.
+     *
      * @param componentType
      *            the type of the component(s) to search for
      * @param <T>

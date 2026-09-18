@@ -370,6 +370,49 @@ Locators are the typed convenience layer; `find(Class)` and `ComponentQuery`
 remain available for ad-hoc, lower-level queries and for filters not surfaced
 on locators. Use whichever fits — they search the same component tree.
 
+## What `find()` can and cannot see
+
+Queries walk the server-side component tree. A component that another component
+renders per item, or that only materializes when a client opens an overlay, is
+not part of that tree, and has to be reached through the tester of the component
+that owns it. A query returns an empty result instead of failing, so such a
+component reads as if it was never created.
+
+**Components rendered per item** do not exist until a renderer is asked to
+render one specific item, so they are not in the tree:
+
+```java
+grid.addComponentColumn(person -> new Checkbox());
+
+find(Checkbox.class).all();                      // empty
+
+// reach the cell component through the Grid tester instead
+Checkbox box = (Checkbox) test(grid).getCellComponent(0, "subscriber");
+test(box).click();
+```
+
+`GridTester` also exposes `getCellText(row, column)` for what the cell displays,
+and `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` for
+`LitRenderer` columns.
+
+**Overlay content** is not attached to the UI until the overlay is opened, so
+menu items are not findable from the UI root, and cannot be clicked, until then:
+
+```java
+ContextMenu menu = new ContextMenu(target);
+menu.addItem("Rename", event -> rename());
+
+find(MenuItem.class).all();       // empty
+test(menu).clickItem("Rename");   // IllegalStateException: menu not attached
+
+test(menu).open();                // attaches the menu, as a right click would
+test(menu).clickItem("Rename");   // works
+```
+
+A tester-scoped `find(Class)` is the exception: `test(menu).find(Div.class)`
+queries the menu's own contents and finds them whether the menu is open or not,
+returning them in a detached state while it is closed.
+
 ## Signals
 
 Signal effects and shared-signal confirmations are not executed on a background

@@ -41,6 +41,28 @@ import com.vaadin.flow.dom.Element;
  * instance which searches through the whole component tree, or a
  * {@link com.vaadin.flow.component.Component} instance, which limits the search
  * to the component subtree.
+ * <p>
+ * The search walks the server-side component tree. A component that another
+ * component renders per item, or that only materializes when a client opens an
+ * overlay, is not part of that tree, and has to be reached through the tester
+ * of the component that owns it. Since a query returns an empty result instead
+ * of failing, such a component reads as if it was never created.
+ * <p>
+ * Components rendered per item, as in
+ * {@code grid.addComponentColumn(person -> new Checkbox())}, do not exist until
+ * a renderer is asked to render one specific item. Reach them through
+ * {@code GridTester.getCellComponent(row, column)} or
+ * {@code getCellComponent(row, columnKey)}, read what the cell displays with
+ * {@code getCellText(row, column)}, and use
+ * {@code getLitRendererPropertyValue(...)} /
+ * {@code invokeLitRendererFunction(...)} for {@code LitRenderer} columns.
+ * <p>
+ * Overlay content, such as the items of a
+ * {@link com.vaadin.flow.component.contextmenu.ContextMenu}, is not attached to
+ * the UI until the overlay is opened. {@code ContextMenuTester.open()} attaches
+ * the menu, after which its items are part of the tree and can be clicked with
+ * {@code clickItem(...)}. A tester-scoped {@code find(Class)} also sees the
+ * items of a closed menu, but returns them in a detached state.
  *
  * @param <T>
  *            the type of the component(s) to search for

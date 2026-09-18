@@ -307,6 +307,10 @@ public class BrowserlessUIContext
      * Gets a query object for finding components of the given type in this
      * window's UI.
      *
+     * <p>
+     * Not every component of a view is part of the tree the query walks: see
+     * {@link ComponentQuery} for what the query can and cannot see.
+     *
      * @param componentType
      *            the type of component to search for
      * @param <T>

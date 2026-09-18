@@ -61,11 +61,13 @@ public class ContextMenuTester<T extends ContextMenu>
      * simulates the server-side state changes that would occur when a user
      * opens the menu in the browser.
      * <p>
-     * Calling {@link #open()} is not required before using
-     * {@code clickItem(...)} or {@code find(Class)} methods. Those methods
-     * operate on the server component state and can be used regardless of the
-     * menu {@code opened} state. Use {@link #open()} only if you want to
-     * explicitly simulate the act of opening.
+     * A closed context menu is not attached to the UI, so, exactly as in the
+     * browser, its items cannot be interacted with: open the menu before
+     * calling {@code clickItem(...)}, {@code isItemChecked(...)} or
+     * {@code getItemTooltipText(...)}, otherwise they throw an
+     * {@link IllegalStateException}. Only {@code find(Class)} works on a closed
+     * menu, since it queries the menu contents instead of the UI; the
+     * components it returns are detached until the menu is opened.
      *
      * @throws IllegalStateException
      *             if the menu is already opened.
@@ -120,8 +122,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * }
      * </pre>
      *
-     * Note: Opening the menu via {@link #open()} is not required before
-     * invoking this method; the lookup operates on server-side state.
+     * Note: the menu must be opened with {@link #open()} before an item can be
+     * clicked, since a closed menu is not attached to the UI.
      *
      * @param topLevelText
      *            the text content of the top level menu item, not
@@ -131,8 +133,9 @@ public class ContextMenuTester<T extends ContextMenu>
      * @throws IllegalArgumentException
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
-     *             if there are multiple matching items at any level, or if the
-     *             item at the given path is disabled or not visible.
+     *             if the menu is not opened, if there are multiple matching
+     *             items at any level, or if the item at the given path is
+     *             disabled or not visible.
      */
     public void clickItem(String topLevelText, String... nestedItemsText) {
         ensureComponentIsUsable();
@@ -171,8 +174,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * }
      * </pre>
      *
-     * Note: Opening the menu via {@link #open()} is not required before
-     * invoking this method; the lookup operates on server-side state.
+     * Note: the menu must be opened with {@link #open()} before an item can be
+     * clicked, since a closed menu is not attached to the UI.
      *
      * @param topLevelPosition
      *            the zero-based position of the item in the menu, as it will be
@@ -183,7 +186,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * @throws IllegalArgumentException
      *             if the provided position does not identify a menu item.
      * @throws IllegalStateException
-     *             if the item at the given position is disabled or not visible.
+     *             if the menu is not opened, or if the item at the given
+     *             position is disabled or not visible.
      */
     public void clickItem(int topLevelPosition, int... nestedItemsPositions) {
         ensureComponentIsUsable();
@@ -228,7 +232,8 @@ public class ContextMenuTester<T extends ContextMenu>
      *             if the provided text does not identify a menu item or if the
      *             menu item is not checkable.
      * @throws IllegalStateException
-     *             if the item at given path is not usable.
+     *             if the menu is not opened, or if the item at given path is
+     *             not usable.
      */
     public boolean isItemChecked(String topLevelText,
             String... nestedItemsText) {
@@ -283,7 +288,8 @@ public class ContextMenuTester<T extends ContextMenu>
      *             if the provided position does not identify a menu item or if
      *             the menu item is not checkable.
      * @throws IllegalStateException
-     *             if the item at given position is not usable.
+     *             if the menu is not opened, or if the item at given position
+     *             is not usable.
      */
     public boolean isItemChecked(int topLevelPosition,
             int... nestedItemsPositions) {
@@ -336,7 +342,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * @throws IllegalArgumentException
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
-     *             if the item at given path is not usable.
+     *             if the menu is not opened, or if the item at given path is
+     *             not usable.
      * @since 1.1
      */
     public String getItemTooltipText(String topLevelText,
@@ -384,7 +391,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * @throws IllegalArgumentException
      *             if the provided position does not identify a menu item.
      * @throws IllegalStateException
-     *             if the item at given position is not usable.
+     *             if the menu is not opened, or if the item at given position
+     *             is not usable.
      * @since 1.1
      */
     public String getItemTooltipText(int topLevelPosition,

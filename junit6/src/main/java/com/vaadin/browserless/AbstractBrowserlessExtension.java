@@ -214,6 +214,10 @@ abstract class AbstractBrowserlessExtension
     /**
      * Gets a query object for finding components of the given type in the UI.
      *
+     * <p>
+     * Not every component of a view is part of the tree the query walks: see
+     * {@link ComponentQuery} for what the query can and cannot see.
+     *
      * @param type
      *            component type to search for
      * @param <T>

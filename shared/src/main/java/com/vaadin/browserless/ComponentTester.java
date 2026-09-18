@@ -151,6 +151,11 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Gets a {@link ComponentQuery} to search for component of the given type
      * nested inside the wrapped component.
      *
+     * <p>
+     * Not every component nested inside the wrapped one is part of the tree the
+     * query walks: see {@link ComponentQuery} for what the query can and cannot
+     * see.
+     *
      * @param componentType
      *            type of the component to search.
      * @param <R>
