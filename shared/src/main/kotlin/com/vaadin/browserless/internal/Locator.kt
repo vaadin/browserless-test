@@ -24,6 +24,14 @@ import com.vaadin.flow.component.HasValue
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.router.InternalServerError
+import com.vaadin.browserless.internal.BasicUtils.errorMessage
+import com.vaadin.browserless.internal.BasicUtils.id_
+import com.vaadin.browserless.internal.BasicUtils.isEffectivelyVisible
+import com.vaadin.browserless.internal.ComponentUtils.caption
+import com.vaadin.browserless.internal.ComponentUtils.isPolymerTemplate
+import com.vaadin.browserless.internal.ComponentUtils.placeholder
+import com.vaadin.browserless.internal.Utils.currentUI
+import com.vaadin.browserless.internal.Utils.hasPolymerTemplates
 
 /**
  * A criterion for matching components. The component must match all of non-null fields.
@@ -93,10 +101,10 @@ class SearchSpec<T : Component>(
     fun toPredicate(): (Component) -> Boolean {
         val p = mutableListOf<(Component)->Boolean>()
         p.add { component -> clazz.isInstance(component)}
-        if (id != null) p.add { component -> component.id_ == id }
+        if (id != null) p.add { component -> id_(component) == id }
         if (testId != null) p.add { component -> component.testId == testId }
-        if (caption != null) p.add { component -> component.caption == caption }
-        if (placeholder != null) p.add { component -> component.placeholder == placeholder }
+        if (caption != null) p.add { component -> caption(component) == caption }
+        if (placeholder != null) p.add { component -> placeholder(component) == placeholder }
         if (!classes.isNullOrBlank()) p.add { component -> component.hasAllClasses(classes!!) }
         if (!withoutClasses.isNullOrBlank()) p.add { component -> component.doesntHaveAnyClasses(withoutClasses!!) }
         if (!themes.isNullOrBlank()) p.add { component -> component.hasAllThemes(themes!!) }
@@ -110,7 +118,7 @@ class SearchSpec<T : Component>(
 
 
 private data class CaptionContainsPredicate<T : Component>(val substring: String) : Predicate<T> {
-    override fun test(t: T): Boolean = t.caption.contains(substring)
+    override fun test(t: T): Boolean = caption(t).contains(substring)
     override fun toString() = "captionContains('$substring')"
 }
 
@@ -174,7 +182,7 @@ inline fun <reified T: Component> _get(noinline block: SearchSpec<T>.()->Unit = 
  * @return the only matching component, never null.
  * @throws IllegalArgumentException if no component matched, or if more than one component matches.
  */
-fun <T: Component> _get(clazz: Class<T>, block: SearchSpec<T>.()->Unit = {}): T = currentUI._get(clazz, block)
+fun <T: Component> _get(clazz: Class<T>, block: SearchSpec<T>.()->Unit = {}): T = currentUI()._get(clazz, block)
 
 /**
  * Finds a list of VISIBLE components of given [clazz] which matches [block]. This component and all of its descendants are searched.
@@ -229,17 +237,17 @@ inline fun <reified T: Component> _find(noinline block: SearchSpec<T>.()->Unit =
  * @return the list of matching components, may be empty.
  */
 fun <T: Component> _find(clazz: Class<T>, block: SearchSpec<T>.()->Unit = {}): List<T> =
-        currentUI._find(clazz, block)
+        currentUI()._find(clazz, block)
 
 private fun Component.find(predicate: (Component)->Boolean): List<Component> {
-    testingLifecycleHook.awaitBeforeLookup()
+    TestingLifecycleHooks.getCurrent().awaitBeforeLookup()
     val descendants: List<Component> = _walkAll().toList()
-    testingLifecycleHook.awaitAfterLookup()
+    TestingLifecycleHooks.getCurrent().awaitAfterLookup()
     val error: InternalServerError? = descendants.filterIsInstance<InternalServerError>().firstOrNull()
     if (error != null) {
-        throw AssertionError("An internal server error occurred; please check log for the actual stack-trace. Error text: ${error.errorMessage}\n${currentUI.toPrettyTree()}")
+        throw AssertionError("An internal server error occurred; please check log for the actual stack-trace. Error text: ${errorMessage(error)}\n${currentUI().toPrettyTree()}")
     }
-    return descendants.filter { it.isEffectivelyVisible() && predicate(it) }
+    return descendants.filter { isEffectivelyVisible(it) && predicate(it) }
 }
 
 /**
@@ -253,7 +261,7 @@ private fun <T> Iterable<(T) -> Boolean>.and(): (T) -> Boolean =
  * then its next sibling.
  */
 fun Component._walkAll(): Iterable<Component> = Iterable {
-    DepthFirstTreeIterator(this) { component: Component -> testingLifecycleHook.getAllChildren(component) }
+    DepthFirstTreeIterator(this) { component: Component -> TestingLifecycleHooks.getCurrent().getAllChildren(component) }
 }
 
 /**
@@ -297,7 +305,7 @@ inline fun <reified T: Component> _expectNone(noinline block: SearchSpec<T>.()->
  * @throws IllegalArgumentException if one or more components matched.
  */
 fun <T: Component> _expectNone(clazz: Class<T>, block: SearchSpec<T>.()->Unit = {}) {
-    currentUI._expectNone(clazz, block)
+    currentUI()._expectNone(clazz, block)
 }
 
 /**
@@ -331,7 +339,7 @@ inline fun <reified T : Component> _expectOne(noinline block: SearchSpec<T>.() -
  * @throws AssertionError if none, or more than one components matched.
  */
 fun <T : Component> _expectOne(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}) {
-    currentUI._expectOne(clazz, block)
+    currentUI()._expectOne(clazz, block)
 }
 
 /**
@@ -399,7 +407,7 @@ inline fun <reified T : Component> _expect(count: Int = 1, noinline block: Searc
  * @throws AssertionError if incorrect count of component matched.
  */
 fun <T : Component> _expect(clazz: Class<T>, count: Int = 1, block: SearchSpec<T>.() -> Unit = {}) {
-    currentUI._expect(clazz, count, block)
+    currentUI()._expect(clazz, count, block)
 }
 
 /**
@@ -407,15 +415,15 @@ fun <T : Component> _expect(clazz: Class<T>, count: Int = 1, block: SearchSpec<T
  * with given [expectedErrorMessage].
  */
 fun _expectInternalServerError(expectedErrorMessage: String = "") {
-    testingLifecycleHook.awaitBeforeLookup()
-    val descendants: List<Component> = currentUI._walkAll().toList()
-    testingLifecycleHook.awaitAfterLookup()
+    TestingLifecycleHooks.getCurrent().awaitBeforeLookup()
+    val descendants: List<Component> = currentUI()._walkAll().toList()
+    TestingLifecycleHooks.getCurrent().awaitAfterLookup()
     val error: InternalServerError? = descendants.filterIsInstance<InternalServerError>().firstOrNull()
     if (error == null) {
-        throw AssertionError("Expected an internal server error but none happened. Component tree:\n${currentUI.toPrettyTree()}")
+        throw AssertionError("Expected an internal server error but none happened. Component tree:\n${currentUI().toPrettyTree()}")
     }
-    if (!error.errorMessage.contains(expectedErrorMessage)) {
-        throw AssertionError("Expected InternalServerError with message '$expectedErrorMessage' but was '${error.errorMessage}'. Component tree:\n${currentUI.toPrettyTree()}")
+    if (!errorMessage(error).contains(expectedErrorMessage)) {
+        throw AssertionError("Expected InternalServerError with message '$expectedErrorMessage' but was '${errorMessage(error)}'. Component tree:\n${currentUI().toPrettyTree()}")
     }
 }
 

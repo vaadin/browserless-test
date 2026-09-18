@@ -92,10 +92,12 @@ spring 41, quarkus 31.
   [`guidelines/documenting.md`](guidelines/documenting.md). Once Dokka is gone
   (Phase 5) this is what `maven-javadoc-plugin` publishes.
 
-### Phase 2 — `internal/` utilities
+### Phase 2 — `internal/` utilities — done
 
 `BasicUtils`, `ComponentUtils`, `ElementUtils`, `DepthFirstTreeIterator`,
-`Renderers`, `Shortcuts`, `TestingLifecycleHook`, `Utils`.
+`Renderers`, `Shortcuts`, `TestingLifecycleHook`, `Utils`, on
+`refactor/no-kotlin-internal-utils`. All five suites match the `main` baseline:
+shared 42, junit6 1406, junit6-cdi-tests 4, spring 41, quarkus 31.
 
 One Java utility class per Kotlin file: `public final`, private constructor,
 top-level and extension functions become `public static` methods with the
@@ -104,7 +106,19 @@ receiver as the first parameter. The leading-underscore convention
 
 `TestingLifecycleHook` splits into the interface plus a `TestingLifecycleHooks`
 holder, because a Java interface cannot hold the mutable global that the Kotlin
-top-level `var testingLifecycleHook` provided.
+top-level `var testingLifecycleHook` provided. The global is a
+`getCurrent()` / `setCurrent(…)` pair, not a public field — see the
+`MockHttpEnvironment` lesson from Phase 1.
+
+A 20-line `Matches.kt` shim stays behind, holding `Component.matches(…)` and
+`IntRange.size`. Both take Kotlin-only types and go away with `SearchSpec`
+(Phase 4) and `Grid` (Phase 5).
+
+Two things the drift check caught, both in `TestingLifecycleHook`: its
+`getAllChildren` had a `Grid` branch that was commented out when the prior port
+was written and is live on `main`, and its fallback moved from
+`_getVirtualChildren` to `ComponentUtil.getAllChildren`. Porting the old Java as
+written would have silently reverted both.
 
 ### Phase 3 — `PrettyPrintTree` + `Routes`
 
@@ -189,6 +203,21 @@ top of a Java method that declares checked exceptions.
 
 - **Every `*Kt` facade class.** 24 in-repo Java call sites get rewritten; any
   external caller breaks.
+
+  Because the class name changes anyway (`UtilsKt` → `Utils`), the accessor
+  names generated for Kotlin properties are renamed at the same time and at no
+  extra cost: `getCurrentUI()` → `currentUI()`, `get_saneFetchLimit()` →
+  `_saneFetchLimit()`, `getId_()` / `setId_()` → `id_()` / `id_(…)`, and so on
+  throughout Phase 2.
+- **Kotlin `internal` helpers stop being callable from outside the package.**
+  `internal` is public in bytecode, so `splitByWhitespaces`, `ellipsize`,
+  `hasCustomToString`, `isRouteNotFound`, `getErrorParameterType`,
+  `isEffectivelyVisible`, `isPolymerTemplate` and friends were reachable by
+  accident. They are package-private in Java, which is what `internal` meant.
+- **`Button.caption` folds into `caption(Component)`.** Kotlin dispatches
+  extensions on the static type, so a more specific `Button.caption` shadowed
+  the generic one; Java has no equivalent, so the generic method takes an
+  `instanceof Button` short-circuit and the two-overload API becomes one.
 - **`.Companion` accessors** — `PrettyPrintTree.Companion.ofVaadin` (live in
   `TreeOnFailureExtension`), `TestingLifecycleHook.Companion.getDefault`,
   `MockHttpSession.Companion.create`.

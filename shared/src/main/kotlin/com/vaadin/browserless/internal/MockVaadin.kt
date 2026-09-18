@@ -51,6 +51,9 @@ import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
 import com.vaadin.browserless.BrowserlessConfiguration
 import com.vaadin.browserless.BrowserlessTestSetupException
+import com.vaadin.browserless.internal.BasicUtils._close
+import com.vaadin.browserless.internal.Utils.isInitialized
+import com.vaadin.browserless.internal.Utils.mock
 import com.vaadin.browserless.mocks.MockHttpSession
 import com.vaadin.browserless.mocks.MockRequest
 import com.vaadin.browserless.mocks.MockResponse
@@ -179,7 +182,7 @@ object MockVaadin {
                      lookupServices: Set<Class<*>> = emptySet(),
                      configuration: BrowserlessConfiguration = BrowserlessConfiguration.empty()
     ): VaadinServletService {
-        if (!servlet.isInitialized) {
+        if (!isInitialized(servlet)) {
             // Lookup services can be given both explicitly and through the configuration
             // (e.g. by a @BrowserlessTestConfig annotation); they accumulate.
             val ctx: ServletContext = MockVaadinHelper.createMockContext(
@@ -255,7 +258,7 @@ object MockVaadin {
         // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
         lastWindowName.set(ui.internals.extendedClientDetails.windowName)
         if (ui.isClosing && ui.internals.session != null) {
-            ui._close()
+            _close(ui)
         }
         if (fireUIDetach) {
             ComponentUtil.onComponentDetach(ui)
@@ -479,7 +482,7 @@ object MockVaadin {
         checkNotNull(VaadinSession.getCurrent()) { "No VaadinSession" }
         runUIQueue()
         UI.getCurrent().internals.stateTree.runExecutionsBeforeClientResponse()
-        cleanupDialogs()
+        TestingLifecycleHooks.cleanupDialogs()
     }
 
     /**
@@ -570,7 +573,7 @@ object MockVaadin {
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
-            val mockSession: MockHttpSession = session.mock
+            val mockSession: MockHttpSession = mock(session)
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)

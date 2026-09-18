@@ -33,7 +33,7 @@ import java.util.Set;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.geolocation.BrowserlessGeolocationClientFactory;
 import com.vaadin.flow.component.geolocation.GeolocationClientFactory;
 import com.vaadin.flow.di.Lookup;
@@ -171,9 +171,9 @@ public final class MockVaadinHelper {
         Object acf;
         Class<?> dacfClass;
         try {
-            acf = lookup(ctx, UtilsKt.findClassOrThrow(
+            acf = lookup(ctx, Utils.findClassOrThrow(
                     "com.vaadin.flow.server.startup.ApplicationConfigurationFactory"));
-            dacfClass = UtilsKt.findClassOrThrow(
+            dacfClass = Utils.findClassOrThrow(
                     "com.vaadin.flow.server.startup.DefaultApplicationConfigurationFactory");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -241,7 +241,7 @@ public final class MockVaadinHelper {
         loaders.addAll(lookupServices);
         loaders.add(LookupInitializer.class);
         try {
-            loaders.add(UtilsKt.findClassOrThrow(
+            loaders.add(Utils.findClassOrThrow(
                     "com.vaadin.flow.di.LookupInitializer$ResourceProviderImpl"));
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -269,7 +269,7 @@ public final class MockVaadinHelper {
         // sometimes customers don't include entire vaadin-core and exclude
         // stuff like fusion on purpose.
         // load the class only if it exists.
-        Class<?> clazz = UtilsKt.findClass(className);
+        Class<?> clazz = Utils.findClass(className);
         if (clazz != null) {
             loaders.add(clazz);
         }
