@@ -191,6 +191,22 @@ class GridContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void openOnRow_menuNotUsable_throws() {
+        view.menu.setVisible(false);
+
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class, () -> test(view.menu).open(0));
+        Assertions.assertTrue(exception.getMessage().contains("is not usable"));
+
+        Assertions.assertFalse(view.menu.isOpened(),
+                "a refused open should leave the menu closed");
+        Assertions.assertFalse(view.menu.isAttached(),
+                "a refused open should leave the menu detached from the UI");
+        Assertions.assertEquals(0, find(Checkbox.class).all().size(),
+                "a refused open should not leave the menu content reachable through a top level find()");
+    }
+
+    @Test
     void clickItem_menuNotOpened_throws() {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.menu).clickItem("Edit"));
