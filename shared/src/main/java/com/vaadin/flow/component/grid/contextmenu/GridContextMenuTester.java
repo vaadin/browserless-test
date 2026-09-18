@@ -1,0 +1,434 @@
+/*
+ * Copyright 2000-2026 Vaadin Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.vaadin.flow.component.grid.contextmenu;
+
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import tools.jackson.databind.node.ObjectNode;
+
+import com.vaadin.browserless.ComponentQuery;
+import com.vaadin.browserless.ComponentTester;
+import com.vaadin.browserless.Tests;
+import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.internal.GridContextMenuSupport;
+import com.vaadin.browserless.internal.MenuItemNavigation;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.dom.DomEvent;
+import com.vaadin.flow.internal.JacksonUtils;
+
+/**
+ * Tester for GridContextMenu components.
+ * <p/>
+ * A grid context menu is always about a row: the user right-clicks a row, and
+ * the events the menu fires report that row. {@link #open(int)} therefore takes
+ * the row to open the menu on, addressed by its zero-based index among the rows
+ * the user sees, the same way {@link com.vaadin.flow.component.grid.GridTester}
+ * addresses rows.
+ * <p/>
+ * The menu content is not part of the UI until the menu opens, so
+ * {@code clickItem(...)} and {@link #find(Class)} only see the items of an open
+ * menu.
+ *
+ * @param <T>
+ *            component type
+ * @param <Y>
+ *            item type
+ */
+@Tests(fqn = { "com.vaadin.flow.component.grid.contextmenu.GridContextMenu" })
+public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
+        extends ComponentTester<T> {
+
+    /**
+     * Wrap grid context menu for testing.
+     *
+     * @param component
+     *            target grid context menu
+     */
+    public GridContextMenuTester(T component) {
+        super(component);
+    }
+
+    /**
+     * Opens the context menu on the row it currently targets, as if the user
+     * had asked for it in the browser.
+     * <p/>
+     * The target row is the one given to
+     * {@link com.vaadin.flow.component.grid.GridTester#contextMenu(int)}, so
+     * this method is the counterpart of that entry point. Use
+     * {@link #open(int)} to open the menu on a row directly.
+     * <p/>
+     * It does not render any client-side overlay, it only simulates the
+     * server-side state changes that opening the menu produces: the menu is
+     * attached to the UI, so its items become findable and clickable, and a
+     * {@code GridContextMenuOpenedEvent} reporting the target row is fired.
+     *
+     * @throws IllegalStateException
+     *             if the menu does not target a row, if it is already open, or
+     *             if a dynamic content handler prevented it from opening
+     */
+    public void open() {
+        Grid<Y> grid = getGrid();
+        String itemKey = grid.getElement()
+                .getProperty(GridContextMenuSupport.TARGET_ITEM_KEY_PROPERTY);
+        if (itemKey == null) {
+            throw new IllegalStateException(
+                    "Context menu does not target a row. Open it on a row with open(int row), "
+                            + "or get the tester from test(grid).contextMenu(int row).");
+        }
+        openOnTargetedRow(itemKey);
+    }
+
+    /**
+     * Opens the context menu on the given row, as if the user had asked for it
+     * in the browser.
+     * <p/>
+     * The index is 0 based and counts the rows the user sees. The row is
+     * reported by the events the menu fires, so
+     * {@code GridContextMenuItemClickEvent.getItem()} and
+     * {@code GridContextMenuOpenedEvent.getItem()} hold the item on that row.
+     *
+     * @param row
+     *            row to open the menu on
+     * @throws IllegalStateException
+     *             if the menu is already open, or if a dynamic content handler
+     *             prevented it from opening
+     * @throws IndexOutOfBoundsException
+     *             if the grid has no such row
+     */
+    public void open(int row) {
+        open(row, null);
+    }
+
+    /**
+     * Opens the context menu on the given row and column, as if the user had
+     * asked for it in the browser.
+     * <p/>
+     * The column is reported by
+     * {@code GridContextMenuOpenedEvent.getColumnId()}.
+     *
+     * @param row
+     *            row to open the menu on, 0 based
+     * @param columnKey
+     *            key of the column to open the menu on, as set with
+     *            {@code Grid.Column.setKey(String)}
+     * @throws IllegalArgumentException
+     *             if the grid has no column with the given key
+     * @throws IllegalStateException
+     *             if the menu is already open, or if a dynamic content handler
+     *             prevented it from opening
+     * @throws IndexOutOfBoundsException
+     *             if the grid has no such row
+     */
+    public void open(int row, String columnKey) {
+        Grid<Y> grid = getGrid();
+        String itemKey = GridContextMenuSupport.getItemKey(grid,
+                GridKt._get(grid, row));
+        String columnId = columnKey == null ? null
+                : GridContextMenuSupport.getColumnInternalId(grid, columnKey);
+        GridContextMenuSupport.setTargetItem(grid, itemKey, columnId);
+        openOnTargetedRow(itemKey);
+    }
+
+    /**
+     * Closes the context menu.
+     *
+     * @throws IllegalStateException
+     *             if the menu is not open
+     */
+    public void close() {
+        ensureComponentIsUsable();
+        getComponent().getElement().setProperty("opened", false);
+    }
+
+    /**
+     * Simulates a click on the item that matches the given text.
+     * <p/>
+     * For a nested menu item, provide the text of each menu item in the
+     * hierarchy.
+     * <p/>
+     * The path to the menu item must reflect what is seen in the browser,
+     * meaning that hidden items are ignored. If there are multiple visible
+     * items at the same level with the same text, an
+     * {@link IllegalStateException} is thrown because the target is ambiguous.
+     * Disabled or invisible items cannot be clicked and will also cause an
+     * {@link IllegalStateException}.
+     * <p/>
+     * The menu has to be open, since its items are not part of the UI before
+     * that.
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}.
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the menu is not open, if there are multiple matching items
+     *             at any level, or if the item at the given path is disabled or
+     *             not visible.
+     */
+    public void clickItem(String topLevelText, String... nestedItemsText) {
+        ensureComponentIsUsable();
+        clickMenuItem(findMenuItemByPath(topLevelText, nestedItemsText));
+    }
+
+    /**
+     * Simulates a click on the item at the given position in the menu.
+     * <p/>
+     * For a nested menu item, provide the position of each sub menu that should
+     * be navigated to reach the requested item.
+     * <p/>
+     * Positions are zero-based and refer only to items that are visible at each
+     * menu level, i.e. hidden items are ignored (the same way as in the
+     * browser). Disabled or invisible items cannot be clicked and will cause an
+     * {@link IllegalStateException}.
+     * <p/>
+     * The menu has to be open, since its items are not part of the UI before
+     * that.
+     *
+     * @param topLevelPosition
+     *            the zero-based position of the item in the menu, as it will be
+     *            seen in the browser.
+     * @param nestedItemsPositions
+     *            the zero-based position of the nested items, relative to the
+     *            parent menu
+     * @throws IllegalArgumentException
+     *             if the provided position does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the menu is not open, or if the item at the given position
+     *             is disabled or not visible.
+     */
+    public void clickItem(int topLevelPosition, int... nestedItemsPositions) {
+        ensureComponentIsUsable();
+        clickMenuItem(
+                findMenuItemByPath(topLevelPosition, nestedItemsPositions));
+    }
+
+    /**
+     * Checks if the checkable menu item matching given text is checked.
+     * <p/>
+     * For a nested menu item, provide the text of each menu item in the
+     * hierarchy.
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}.
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @return {@literal true} if the item at given path is checked, otherwise
+     *         {@literal false}.
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item or if the
+     *             menu item is not checkable.
+     * @throws IllegalStateException
+     *             if the menu is not open, or if the item at given path is not
+     *             usable.
+     */
+    public boolean isItemChecked(String topLevelText,
+            String... nestedItemsText) {
+        ensureComponentIsUsable();
+        GridMenuItem<Y> menuItem = findMenuItemByPath(topLevelText,
+                nestedItemsText);
+        if (!menuItem.isCheckable()) {
+            String fullPath = topLevelText + ((nestedItemsText.length > 0)
+                    ? " / " + String.join(" / ", nestedItemsText)
+                    : "");
+            throw new IllegalArgumentException("Menu item at position "
+                    + fullPath + " is not a checkable menu item");
+        }
+        return menuItem.isChecked();
+    }
+
+    /**
+     * Checks if the checkable menu item at given position is checked.
+     * <p/>
+     * For a nested menu item, provide the position of each sub menu that should
+     * be navigated to reach the requested item.
+     *
+     * @param topLevelPosition
+     *            the zero-based position of the item in the menu, as it will be
+     *            seen in the browser.
+     * @param nestedItemsPositions
+     *            the zero-based position of the nested items, relative to the
+     *            parent menu
+     * @return {@literal true} if the item at given position is checked,
+     *         otherwise {@literal false}.
+     * @throws IllegalArgumentException
+     *             if the provided position does not identify a menu item or if
+     *             the menu item is not checkable.
+     * @throws IllegalStateException
+     *             if the menu is not open, or if the item at given position is
+     *             not usable.
+     */
+    public boolean isItemChecked(int topLevelPosition,
+            int... nestedItemsPositions) {
+        ensureComponentIsUsable();
+        GridMenuItem<Y> menuItem = findMenuItemByPath(topLevelPosition,
+                nestedItemsPositions);
+        if (!menuItem.isCheckable()) {
+            String fullPath = IntStream
+                    .concat(IntStream.of(topLevelPosition),
+                            IntStream.of(nestedItemsPositions))
+                    .mapToObj(Integer::toString)
+                    .collect(Collectors.joining(" / "));
+            throw new IllegalArgumentException("Menu item at position "
+                    + fullPath + " is not a checkable menu item");
+        }
+        return menuItem.isChecked();
+    }
+
+    /**
+     * Gets the tooltip text of the menu item matching the given text.
+     * <p/>
+     * For a nested menu item, provide the text of each menu item in the
+     * hierarchy.
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}.
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @return the tooltip text of the menu item at given path, or
+     *         {@literal null} if the item has no tooltip set.
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the menu is not open, or if the item at given path is not
+     *             usable.
+     */
+    public String getItemTooltipText(String topLevelText,
+            String... nestedItemsText) {
+        ensureComponentIsUsable();
+        return findMenuItemByPath(topLevelText, nestedItemsText).getElement()
+                .getProperty("tooltip");
+    }
+
+    /**
+     * Gets the tooltip text of the menu item at the given position in the menu.
+     * <p/>
+     * For a nested menu item, provide the position of each sub menu that should
+     * be navigated to reach the requested item.
+     *
+     * @param topLevelPosition
+     *            the zero-based position of the item in the menu, as it will be
+     *            seen in the browser.
+     * @param nestedItemsPositions
+     *            the zero-based position of the nested items, relative to the
+     *            parent menu
+     * @return the tooltip text of the menu item at given position, or
+     *         {@literal null} if the item has no tooltip set.
+     * @throws IllegalArgumentException
+     *             if the provided position does not identify a menu item.
+     * @throws IllegalStateException
+     *             if the menu is not open, or if the item at given position is
+     *             not usable.
+     */
+    public String getItemTooltipText(int topLevelPosition,
+            int... nestedItemsPositions) {
+        ensureComponentIsUsable();
+        return findMenuItemByPath(topLevelPosition, nestedItemsPositions)
+                .getElement().getProperty("tooltip");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Can be used to find components in the context menu. The menu content is
+     * only part of the UI while the menu is open, so components are returned in
+     * a detached state unless {@link #open(int)} has been called previously.
+     *
+     * <pre>
+     * // view:
+     * GridContextMenu&lt;Person&gt; menu = grid.addContextMenu();
+     * menu.addItem(new Checkbox("Show inactive"), event -> {
+     * });
+     *
+     * // test:
+     * GridContextMenuTester&lt;GridContextMenu&lt;Person&gt;, Person&gt; menuTester = test(
+     *         view.menu);
+     * menuTester.open(0);
+     * Checkbox checkbox = menuTester.find(Checkbox.class).single();
+     * </pre>
+     */
+    @Override
+    public <R extends Component> ComponentQuery<R> find(
+            Class<R> componentType) {
+        return super.find(componentType);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Grid<Y> getGrid() {
+        Component target = getComponent().getTarget();
+        if (!(target instanceof Grid)) {
+            throw new IllegalStateException(
+                    "Context menu is not attached to a grid");
+        }
+        return (Grid<Y>) target;
+    }
+
+    private void openOnTargetedRow(String itemKey) {
+        if (getComponent().isOpened()) {
+            throw new IllegalStateException("Context menu is already open");
+        }
+        requestMenu(itemKey);
+        roundTrip();
+        if (!getComponent().isAttached()) {
+            throw new IllegalStateException(
+                    "Context menu did not open. Its dynamic content handler returned false for the target row.");
+        }
+        getComponent().getElement().setProperty("opened", true);
+        ensureComponentIsUsable();
+    }
+
+    /**
+     * Fires the DOM event the grid sends when the user asks for the context
+     * menu. It attaches the menu to the UI, unless a dynamic content handler
+     * decides that the menu should not open for the target row.
+     */
+    private void requestMenu(String itemKey) {
+        ObjectNode detail = JacksonUtils.createObjectNode();
+        detail.put("key", itemKey);
+        ObjectNode eventData = JacksonUtils.createObjectNode();
+        eventData.set("event.detail", detail);
+        fireDomEvent(new DomEvent(getGrid().getElement(),
+                GridContextMenuSupport.BEFORE_OPEN_EVENT, eventData));
+    }
+
+    private GridMenuItem<Y> findMenuItemByPath(String topLevelText,
+            String... nestedItemsText) {
+        return MenuItemNavigation.findByPath(getComponent().getItems(),
+                topLevelText, nestedItemsText);
+    }
+
+    private GridMenuItem<Y> findMenuItemByPath(int topLevelPosition,
+            int... nestedItemsPositions) {
+        return MenuItemNavigation.findByPath(getComponent().getItems(),
+                topLevelPosition, nestedItemsPositions);
+    }
+
+    /**
+     * Clicks the item the way the browser does. A {@code GridMenuItem} listens
+     * to the DOM click event rather than to a Flow {@code ClickEvent}, so
+     * firing a click event on the item would not run its listeners.
+     */
+    private void clickMenuItem(GridMenuItem<Y> menuItem) {
+        fireDomEvent(new DomEvent(menuItem.getElement(), "click",
+                JacksonUtils.createObjectNode()));
+    }
+}

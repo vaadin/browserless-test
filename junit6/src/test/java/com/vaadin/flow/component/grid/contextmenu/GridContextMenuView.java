@@ -32,27 +32,51 @@ public class GridContextMenuView extends Component implements HasComponents {
 
     static final String ALICE = "Alice";
     static final String BOB = "Bob";
+    static final String NAME_COLUMN = "name";
+    static final String LENGTH_COLUMN = "length";
 
     final Grid<String> grid;
+    final Grid<String> gridWithoutMenu;
     final GridContextMenu<String> menu;
+    final GridMenuItem<String> checkableItem;
     final List<String> clickedItems = new ArrayList<>();
     final List<Optional<String>> clickedRows = new ArrayList<>();
 
     public GridContextMenuView() {
         grid = new Grid<>();
-        grid.addColumn(name -> name).setHeader("Name");
+        grid.addColumn(name -> name).setKey(NAME_COLUMN).setHeader("Name");
+        grid.addColumn(String::length).setKey(LENGTH_COLUMN)
+                .setHeader("Length");
         grid.setItems(ALICE, BOB);
 
         menu = grid.addContextMenu();
-        menu.addItem("Edit", event -> {
-            clickedItems.add("Edit");
-            clickedRows.add(event.getItem());
-        });
-        menu.addItem(new Checkbox("Show inactive"), event -> {
-            clickedItems.add("Show inactive");
-            clickedRows.add(event.getItem());
-        });
+        menu.addItem("Edit", event -> record("Edit", event.getItem()))
+                .setTooltipText("Edit the selected person");
+        menu.addItem(new Checkbox("Show inactive"),
+                event -> record("Show inactive", event.getItem()));
+        checkableItem = menu.addItem("Checkable",
+                event -> record("Checkable", event.getItem()));
+        checkableItem.setCheckable(true);
+        menu.addItem("Disabled", event -> record("Disabled", event.getItem()))
+                .setEnabled(false);
+        menu.addItem("Hidden", event -> record("Hidden", event.getItem()))
+                .setVisible(false);
 
-        add(grid);
+        GridSubMenu<String> subMenu = menu.addItem("Share").getSubMenu();
+        subMenu.addItem("Copy link",
+                event -> record("Share / Copy link", event.getItem()));
+        subMenu.addItem("Email",
+                event -> record("Share / Email", event.getItem()));
+
+        gridWithoutMenu = new Grid<>();
+        gridWithoutMenu.addColumn(name -> name).setHeader("Name");
+        gridWithoutMenu.setItems(ALICE);
+
+        add(grid, gridWithoutMenu);
+    }
+
+    private void record(String item, Optional<String> row) {
+        clickedItems.add(item);
+        clickedRows.add(row);
     }
 }
