@@ -41,8 +41,8 @@ import com.vaadin.flow.server.VaadinServletService;
 import com.vaadin.flow.spring.SpringServlet;
 
 /**
- * Makes sure that the {@link #routes} are properly registered, and that
- * {@link MockSpringServletService} is used instead of vanilla
+ * Makes sure that the {@link #getRoutes() routes} are properly registered, and
+ * that {@link MockSpringServletService} is used instead of vanilla
  * {@link com.vaadin.flow.spring.SpringVaadinServletService}.
  *
  * <p>
@@ -57,17 +57,19 @@ public class MockSpringServlet extends SpringServlet {
      * The routes registered when the service is created.
      */
     @NonNull
-    public final Routes routes;
+    private final Routes routes;
+
     /**
      * The Spring context the views are instantiated from.
      */
     @NonNull
-    public final ApplicationContext ctx;
+    private final ApplicationContext ctx;
+
     /**
      * Produces the UI instances the sessions of this servlet hand out.
      */
     @NonNull
-    public final UIFactory uiFactory;
+    private final UIFactory uiFactory;
 
     /**
      * Creates the servlet.
@@ -86,6 +88,37 @@ public class MockSpringServlet extends SpringServlet {
         this.ctx = ctx;
         this.routes = routes;
         this.uiFactory = uiFactory;
+    }
+
+    /**
+     * Returns the routes this servlet registers.
+     *
+     * @return the routes
+     */
+    @NonNull
+    public Routes getRoutes() {
+        return routes;
+    }
+
+    /**
+     * Returns the Spring context the views are instantiated from.
+     *
+     * @return the application context
+     */
+    @NonNull
+    public ApplicationContext getApplicationContext() {
+        return ctx;
+    }
+
+    /**
+     * Returns the factory producing the {@link com.vaadin.flow.component.UI} of
+     * every session this servlet's service creates.
+     *
+     * @return the UI factory
+     */
+    @NonNull
+    public UIFactory getUiFactory() {
+        return uiFactory;
     }
 
     @Override

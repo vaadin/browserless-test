@@ -454,6 +454,11 @@ Reading the Kotlin source is not enough to know what the published API is: a
 a `object` adds an `INSTANCE`. Phase 1's first pass flattened properties into
 public fields in ten classes before this check caught it.
 
+The check only covers the classes it is pointed at. `SessionObjects`, a Kotlin
+`data class`, was flattened the same way in Phase 4 and slipped through until
+after the port; its four `val`s are private again, so its surface matches the
+released one.
+
 Build `main` in a throwaway worktree and diff the compiled surface:
 
 ```bash

@@ -647,19 +647,19 @@ public final class MockVaadin {
         SessionObjects objs = createSessionObjects(service);
 
         // install thread-locals
-        strongRefReq.set(objs.request);
-        CurrentInstance.set(VaadinRequest.class, objs.request);
-        VaadinSession.setCurrent(objs.session);
-        strongRefSession.set(objs.session);
-        strongRefRes.set(objs.response);
-        CurrentInstance.set(VaadinResponse.class, objs.response);
+        strongRefReq.set(objs.getRequest());
+        CurrentInstance.set(VaadinRequest.class, objs.getRequest());
+        VaadinSession.setCurrent(objs.getSession());
+        strongRefSession.set(objs.getSession());
+        strongRefRes.set(objs.getResponse());
+        CurrentInstance.set(VaadinResponse.class, objs.getResponse());
 
         // fire session init listeners
-        fireSessionInitListeners(service,
-                new SessionInitEvent(service, objs.session, objs.request));
+        fireSessionInitListeners(service, new SessionInitEvent(service,
+                objs.getSession(), objs.getRequest()));
 
         // create UI
-        createUI(uiFactory, objs.session);
+        createUI(uiFactory, objs.getSession());
     }
 
     /**

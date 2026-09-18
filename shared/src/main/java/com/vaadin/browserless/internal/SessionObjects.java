@@ -35,19 +35,22 @@ public final class SessionObjects {
     /**
      * The session.
      */
-    public final VaadinSession session;
+    private final VaadinSession session;
+
     /**
      * The request bound to the session.
      */
-    public final VaadinRequest request;
+    private final VaadinRequest request;
+
     /**
      * The response bound to the session.
      */
-    public final VaadinResponse response;
+    private final VaadinResponse response;
+
     /**
      * The HTTP session the Vaadin session is stored in.
      */
-    public final MockHttpSession httpSession;
+    private final MockHttpSession httpSession;
 
     /**
      * Groups the four objects that make up one mocked user's session.
