@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.dom.DomEventListener;
@@ -146,7 +146,7 @@ public final class GridContextMenuSupport {
             throw new IllegalStateException("Column with key " + columnKey
                     + " is not visible, so a user cannot reach it");
         }
-        return GridKt.get_internalId(column);
+        return GridUtils._internalId(column);
     }
 
     private static List<GridContextMenu<?>> findContextMenus(Grid<?> grid) {

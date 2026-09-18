@@ -24,6 +24,12 @@ import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataViewUtils;
 
 /**
+ * Tester for Select components.
+ *
+ * @param <T>
+ *            component type
+ * @param <Y>
+ *            item type
  * @since 1.0
  */
 @Tests(fqn = { "com.vaadin.flow.component.select.Select" })

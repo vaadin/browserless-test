@@ -28,7 +28,7 @@ import com.vaadin.browserless.LitRendererTestUtil;
 import com.vaadin.browserless.MetaKeys;
 import com.vaadin.browserless.MouseButton;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
@@ -67,12 +67,12 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return items in grid
      */
     public int size() {
-        return GridKt._size(getComponent());
+        return GridUtils._size(getComponent());
     }
 
     /**
      * Get the item at the given row index.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -80,12 +80,12 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return grid item on row
      */
     public Y getRow(int row) {
-        return GridKt._get(getComponent(), row);
+        return GridUtils._get(getComponent(), row);
     }
 
     /**
      * Click on grid row.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -97,7 +97,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Click on grid row with given button.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -112,7 +112,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Click on grid row with given meta keys pressed.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -126,7 +126,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Click on grid row with given button and meta keys pressed.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -139,14 +139,14 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void clickRow(int row, MouseButton button, MetaKeys metaKeys) {
         ensureComponentIsUsable();
-        GridKt._clickItem(getComponent(), row, button.getButton(),
+        GridUtils._clickItem(getComponent(), row, button.getButton(),
                 metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                 metaKeys.isMeta());
     }
 
     /**
      * Double-click on grid row.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -158,7 +158,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Double-click on grid row with given button.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -173,7 +173,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Double-click on grid row with given meta keys pressed.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -187,7 +187,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Double-click on grid row with given button and meta keys pressed.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param row
@@ -200,16 +200,16 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void doubleClickRow(int row, MouseButton button, MetaKeys metaKeys) {
         ensureComponentIsUsable();
-        GridKt._doubleClickItem(getComponent(), row, button.getButton(),
+        GridUtils._doubleClickItem(getComponent(), row, button.getButton(),
                 metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                 metaKeys.isMeta());
     }
 
     /**
      * Select the item on given row.
-     * <p/>
+     * <p>
      * The index is 0 based.
-     * <p/>
+     * <p>
      * Single select will clear any old selections. Multi select will add to
      * selection.
      *
@@ -221,13 +221,13 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     public void select(int row) {
         ensureComponentIsUsable();
         final Y item = getRow(row);
-        GridKt._select(getComponent(), item);
+        GridUtils._select(getComponent(), item);
     }
 
     /**
      * Select all items in grid, running the same code as when the select all
      * checkbox is checked.
-     * <p/>
+     * <p>
      * Only works for multi select, and only when the select all checkbox is
      * actually shown - if it isn't, the user has no way to trigger this.
      *
@@ -237,21 +237,21 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void selectAll() {
         ensureComponentIsUsable();
-        GridKt._selectAll(getComponent());
+        GridUtils._selectAll(getComponent());
     }
 
     /**
      * Deselect the item on given row.
-     * <p/>
+     * <p>
      * The index is 0 based.
-     * <p/>
+     * <p>
      * Simulates the user deselecting a row: ctrl-clicking a selected row or
      * unchecking the row's selection checkbox in multi select, clicking the
      * selected row in single select.
-     * <p/>
+     * <p>
      * The row has to be selected. Deselecting a row that isn't selected is not
      * a gesture the user has, so it fails instead of doing nothing.
-     * <p/>
+     * <p>
      * The call is ignored, exactly as the user's click would be, when the item
      * is not selectable or when the grid is single select and deselecting is
      * not allowed.
@@ -265,16 +265,16 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     public void deselect(int row) {
         ensureComponentIsUsable();
         final Y item = getRow(row);
-        GridKt._deselect(getComponent(), item);
+        GridUtils._deselect(getComponent(), item);
     }
 
     /**
      * Deselect all items in grid, running the same code as when the select all
      * checkbox is unchecked.
-     * <p/>
+     * <p>
      * Only works for multi select, and only when the select all checkbox is
      * actually shown - if it isn't, the user has no way to trigger this.
-     * <p/>
+     * <p>
      * This is the counterpart of {@link #selectAll()} and behaves like the
      * checkbox does: the selection is dropped in one selection event, without
      * the per row toggle events the user would cause by unchecking rows one by
@@ -286,21 +286,21 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      */
     public void deselectAll() {
         ensureComponentIsUsable();
-        GridKt._deselectAll(getComponent());
+        GridUtils._deselectAll(getComponent());
     }
 
     /**
      * Get the text that is shown on the client for the cell in the given
      * position.
-     * <p/>
+     * <p>
      * The indexes for row and column are 0 based.
-     * <p/>
+     * <p>
      * For the default renderer ColumnPathRenderer the result is the sent text
      * for defined object path.
-     * <p/>
+     * <p>
      * For a ComponentRenderer the result is the rendered component as
      * prettyString.
-     * <p/>
+     * <p>
      * More to be added as we find other renderers that need handling.
      *
      * @param row
@@ -418,6 +418,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     /**
      * Get property value for item's LitRenderer in column.
      *
+     * @param <V>
+     *            the type of the LitRenderer property
      * @param row
      *            item row
      * @param columnName
@@ -426,8 +428,6 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            the name of the LitRenderer property
      * @param propertyClass
      *            the class of the value of the LitRenderer property
-     * @param <V>
-     *            the type of the LitRenderer property
      * @return value of renderer's property for the target cell
      * @throws IllegalArgumentException
      *             when column for property doesn't exist or the target column
@@ -443,6 +443,8 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
     /**
      * Get property value for item's LitRenderer in column.
      *
+     * @param <V>
+     *            the type of the LitRenderer property
      * @param row
      *            item row
      * @param column
@@ -451,8 +453,6 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      *            the name of the LitRenderer property
      * @param propertyClass
      *            the class of the value of the LitRenderer property
-     * @param <V>
-     *            the type of the LitRenderer property
      * @return value of renderer's property for the target cell
      * @throws IllegalArgumentException
      *             when column for property doesn't exist or the target column
@@ -557,8 +557,10 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if component is not visible
      *
-     * @deprecated Use {@link Grid.Column#getHeaderText()} or
-     *             {@link Grid.Column#getHeaderComponent()}
+     * @deprecated Use
+     *             {@link com.vaadin.flow.component.grid.Grid.Column#getHeaderText()}
+     *             or
+     *             {@link com.vaadin.flow.component.grid.Grid.Column#getHeaderComponent()}
      */
     @Deprecated
     public String getHeaderCell(int column) {
@@ -609,8 +611,11 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @return footer contents
      * @throws IllegalStateException
      *             if component is not visible
-     * @deprecated Use {@link Grid.Column#getFooterText()} or
-     *             {@link Grid.Column#getFooterComponent()} directly
+     * @deprecated Use
+     *             {@link com.vaadin.flow.component.grid.Grid.Column#getFooterText()}
+     *             or
+     *             {@link com.vaadin.flow.component.grid.Grid.Column#getFooterComponent()}
+     *             directly
      */
     @Deprecated(forRemoval = true)
     public String getFooterCell(int column) {
@@ -630,7 +635,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Checks if the column at the given index is sortable.
-     * <p/>
+     * <p>
      * The index is 0 based.
      *
      * @param column
@@ -815,10 +820,11 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Gets a tester for the context menu of this grid, targeting the given row.
-     * <p/>
+     * <p>
      * The index is 0 based and counts the rows the user sees. The menu is not
      * opened, so that assertions can be made on it first; open it with
-     * {@link GridContextMenuTester#open()}.
+     * {@link com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester#open()
+     * GridContextMenuTester.open()}.
      *
      * <pre>
      * var menu = test(grid).contextMenu(0);

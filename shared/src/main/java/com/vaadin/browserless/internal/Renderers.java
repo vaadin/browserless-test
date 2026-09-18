@@ -1,0 +1,216 @@
+/*
+ * Copyright 2000-2026 Vaadin Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.vaadin.browserless.internal;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
+
+import org.jsoup.Jsoup;
+
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.data.renderer.BasicRenderer;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.renderer.Renderer;
+import com.vaadin.flow.data.renderer.TextRenderer;
+import com.vaadin.flow.function.ValueProvider;
+
+/**
+ * Renders a {@link com.vaadin.flow.data.renderer.Renderer} server-side, as
+ * close as possible to what the client would show.
+ * <p>
+ * This is what lets a test assert on a rendered grid cell without a browser.
+ * Each renderer kind needs its own route to the value: a basic renderer formats
+ * it, a component renderer builds the component, and a Lit renderer has its
+ * template expression interpolated and the resulting HTML stripped to text.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ */
+public final class Renderers {
+
+    private Renderers() {
+    }
+
+    private static final Method _BasicRenderer_getFormattedValue;
+    private static final Field _BasicRenderer_valueProvider;
+    private static final Field _Renderer_template;
+
+    static {
+        try {
+            Method m = null;
+            for (Method candidate : BasicRenderer.class.getDeclaredMethods()) {
+                if (candidate.getName().equals("getFormattedValue")) {
+                    m = candidate;
+                    break;
+                }
+            }
+            if (m == null) {
+                throw new NoSuchMethodException("getFormattedValue");
+            }
+            m.setAccessible(true);
+            _BasicRenderer_getFormattedValue = m;
+
+            Field valueProviderField = BasicRenderer.class
+                    .getDeclaredField("valueProvider");
+            valueProviderField.setAccessible(true);
+            _BasicRenderer_valueProvider = valueProviderField;
+
+            Field templateField = Renderer.class.getDeclaredField("template");
+            templateField.setAccessible(true);
+            _Renderer_template = templateField;
+        } catch (NoSuchMethodException | NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returns the output of this renderer for given {@code rowObject} formatted
+     * as close as possible to the client-side output.
+     *
+     * @param <T>
+     *            the item type
+     * @param renderer
+     *            the renderer to read the value from
+     * @param rowObject
+     *            the item the row shows
+     * @return the output of this renderer for given {@code rowObject} formatted
+     *         as close as possible to the client-side output
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> String _getPresentationValue(Renderer<T> renderer,
+            T rowObject) {
+        try {
+            if (renderer instanceof BasicRenderer) {
+                BasicRenderer<T, ?> basicRenderer = (BasicRenderer<T, ?>) renderer;
+                Object value = valueProvider(basicRenderer).apply(rowObject);
+                return (String) _BasicRenderer_getFormattedValue
+                        .invoke(basicRenderer, value);
+            }
+            if (renderer instanceof TextRenderer) {
+                return renderText((TextRenderer<T>) renderer, rowObject);
+            }
+            if (renderer instanceof ComponentRenderer) {
+                ComponentRenderer<?, T> componentRenderer = (ComponentRenderer<?, T>) renderer;
+                Component component = componentRenderer
+                        .createComponent(rowObject);
+                return PrettyPrintTree.toPrettyString(component);
+            }
+            if (renderer.getClass().getSimpleName().equals("LitRenderer")) {
+                // LitRenderer re-declares private members
+                Field templateProperty = renderer.getClass()
+                        .getDeclaredField("templateExpression");
+                templateProperty.setAccessible(true);
+                String templateExpression = (String) templateProperty
+                        .get(renderer);
+
+                Field valueProvidersProperty = renderer.getClass()
+                        .getDeclaredField("valueProviders");
+                valueProvidersProperty.setAccessible(true);
+                Map<String, ValueProvider<T, ?>> valueProviders = (Map<String, ValueProvider<T, ?>>) valueProvidersProperty
+                        .get(renderer);
+
+                String renderedLitTemplateHtml = renderLitTemplate(
+                        templateExpression, valueProviders, rowObject);
+                return ElementUtils
+                        .textRecursively(Jsoup.parse(renderedLitTemplateHtml));
+            }
+            return null;
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Renders a Lit template the way the client would, substituting every
+     * {@code ${item.x}} expression with the matching value provider's output.
+     *
+     * @param <T>
+     *            the item type
+     * @param template
+     *            the Lit template source
+     * @param valueProviders
+     *            the value providers, by the name used in the template
+     * @param item
+     *            the item the row shows
+     * @return the template with every expression substituted
+     */
+    public static <T> String renderLitTemplate(String template,
+            Map<String, ValueProvider<T, ?>> valueProviders, T item) {
+        String renderedTemplate = template;
+        for (Map.Entry<String, ValueProvider<T, ?>> entry : valueProviders
+                .entrySet()) {
+            String placeholder = "${item." + entry.getKey() + "}";
+            if (renderedTemplate.contains(placeholder)) {
+                renderedTemplate = renderedTemplate.replace(placeholder,
+                        String.valueOf(entry.getValue().apply(item)));
+            }
+        }
+        return renderedTemplate;
+    }
+
+    /**
+     * Returns the text rendered for given {@code item}.
+     *
+     * @param <T>
+     *            the item type
+     * @param renderer
+     *            the renderer to read the value from
+     * @param item
+     *            the item to act on
+     * @return the text rendered for given {@code item}
+     */
+    public static <T> String renderText(TextRenderer<T> renderer, T item) {
+        return renderer.createComponent(item).getElement().getText();
+    }
+
+    /**
+     * Returns the {@link ValueProvider} set to {@link BasicRenderer}.
+     *
+     * @param <T>
+     *            the item type
+     * @param <V>
+     *            the value type
+     * @param renderer
+     *            the renderer to read the value from
+     * @return the {@link ValueProvider} set to {@link BasicRenderer}
+     */
+    @SuppressWarnings("unchecked")
+    public static <T, V> ValueProvider<T, V> valueProvider(
+            BasicRenderer<T, V> renderer) {
+        try {
+            return (ValueProvider<T, V>) _BasicRenderer_valueProvider
+                    .get(renderer);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returns the Polymer Template set to the {@link Renderer}.
+     *
+     * @param renderer
+     *            the renderer to read the value from
+     * @return the Polymer Template set to the {@link Renderer}
+     */
+    public static String template(Renderer<?> renderer) {
+        try {
+            String template = (String) _Renderer_template.get(renderer);
+            return template != null ? template : "";
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}

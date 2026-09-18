@@ -151,6 +151,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @return this builder, for chaining
+         * @param factory
+         *            creates the servlet the context runs on
          * @see BrowserlessApplicationContext.Builder#withServletFactory
          */
         public Builder<C> withServletFactory(
@@ -160,6 +166,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param uiFactory
+         *            creates the UI instance
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withUIFactory
          */
         public Builder<C> withUIFactory(UIFactory uiFactory) {
@@ -168,6 +180,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param services
+         *            the lookup services to register
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withLookupServices
          */
         public Builder<C> withLookupServices(Class<?>... services) {
@@ -176,6 +194,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param packages
+         *            the packages to scan
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withViewPackages(String...)
          */
         public Builder<C> withViewPackages(String... packages) {
@@ -184,6 +208,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param classes
+         *            the classes to register
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withViewPackages(Class[])
          */
         public Builder<C> withViewPackages(Class<?>... classes) {
@@ -192,6 +222,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param packages
+         *            the packages to scan
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withComponentTesterPackages(String...)
          */
         public Builder<C> withComponentTesterPackages(String... packages) {
@@ -200,6 +236,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param classes
+         *            the classes to register
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withComponentTesterPackages(Class[])
          */
         public Builder<C> withComponentTesterPackages(Class<?>... classes) {
@@ -208,6 +250,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param hook
+         *            the lifecycle hook to install
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withCloseHook
          */
         public Builder<C> withCloseHook(Runnable hook) {
@@ -216,6 +264,14 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param name
+         *            the attribute name
+         * @param value
+         *            the value to set
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withApplicationProperty
          */
         public Builder<C> withApplicationProperty(String name, String value) {
@@ -224,6 +280,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param properties
+         *            the initialization properties
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withApplicationProperties
          */
         public Builder<C> withApplicationProperties(
@@ -233,6 +295,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param featureIds
+         *            the features to enable
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withFeatureFlags(String...)
          */
         public Builder<C> withFeatureFlags(String... featureIds) {
@@ -241,6 +309,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param features
+         *            the features to enable
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withFeatureFlags(Feature...)
          */
         public Builder<C> withFeatureFlags(Feature... features) {
@@ -249,6 +323,14 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param featureId
+         *            the feature to enable
+         * @param enabled
+         *            whether the feature is on
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withFeatureFlag(String,
          *      boolean)
          */
@@ -258,6 +340,14 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param feature
+         *            the feature to enable
+         * @param enabled
+         *            whether the feature is on
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withFeatureFlag(Feature,
          *      boolean)
          */
@@ -267,6 +357,12 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
+         * @param configuration
+         *            the deployment configuration to use
+         * @return this builder, for chaining
          * @see BrowserlessApplicationContext.Builder#withConfiguration
          */
         public Builder<C> withConfiguration(

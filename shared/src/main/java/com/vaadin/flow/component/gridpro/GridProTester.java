@@ -18,7 +18,7 @@ package com.vaadin.flow.component.gridpro;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.grid.GridTester;
@@ -80,7 +80,7 @@ public class GridProTester<T extends GridPro<Y>, Y> extends GridTester<T, Y> {
                 var field = editColumn.getEditorField();
                 ensureComponentIsUsable((Component) field, f -> isUsable(f));
                 if (field.isReadOnly()) {
-                    throw new IllegalStateException(PrettyPrintTreeKt
+                    throw new IllegalStateException(PrettyPrintTree
                             .toPrettyString((Component) field)
                             + " is not usable because it is read only.");
                 }

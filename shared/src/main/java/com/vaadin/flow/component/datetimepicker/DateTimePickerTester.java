@@ -42,7 +42,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
 
     /**
      * Set the date to the component, as the user would enter it.
-     * <p/>
+     * <p>
      * A value that violates the component's constraints — outside
      * {@literal min - max}, or the empty value on a required field — is
      * committed all the same, because the browser commits it too and simply
@@ -84,7 +84,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
-     * <p/>
+     * <p>
      * Emptying is something the user can always do, so it needs no clear
      * button: a field may legitimately end up invalid — a required field, for
      * instance — once emptied.

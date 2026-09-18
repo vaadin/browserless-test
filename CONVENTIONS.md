@@ -108,9 +108,7 @@ Go through the Vaadin extension points rather than around them — fire service
 and session lifecycle events through the `VaadinService` event bus, and forward
 `Instantiator` calls to the real instantiator instead of reimplementing them.
 
-New code in `shared` is written in Java. The Kotlin sources under
-`shared/src/main/kotlin` are the older mock and internal layer and are being
-ported to Java; do not add new Kotlin files there.
+This repository is written in Java; do not add Kotlin sources.
 
 See [`guidelines/architecture.md`](guidelines/architecture.md).
 
@@ -147,6 +145,13 @@ detail.
 
 Javadoc describes the code today, not what changed. Change history belongs in
 commit messages.
+
+In a tester, spell cross-package `@link` and `@throws` targets out in full:
+`locator-processor` copies the Javadoc into the generated `*Locator`, which has
+no imports. Every module builds clean under doclint, warnings included, so every
+published member needs a description, its `@param`s and its `@return` — a class
+that would otherwise get an undocumented default constructor declares an
+explicit one.
 
 See [`guidelines/documenting.md`](guidelines/documenting.md).
 

@@ -19,6 +19,10 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.flow.component.HtmlComponent;
 
 /**
+ * Tester for HtmlComponent components.
+ *
+ * @param <T>
+ *            component type
  * @since 1.0
  */
 public class HtmlComponentTester<T extends HtmlComponent>

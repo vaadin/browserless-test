@@ -56,58 +56,147 @@ abstract class AbstractBrowserlessExtension
 
     // --- Protected builder helpers ---
 
+    /**
+     * Adds the packages of the given classes to the packages scanned for
+     * routes.
+     *
+     * @param classes
+     *            classes whose packages are scanned
+     */
     protected void addViewPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
                 .forEach(viewPackages::add);
     }
 
+    /**
+     * Adds the given packages to the packages scanned for routes.
+     *
+     * @param packages
+     *            the packages to scan
+     */
     protected void addViewPackages(String... packages) {
         viewPackages.addAll(Arrays.asList(packages));
     }
 
+    /**
+     * Registers extra service classes with the lookup initializer.
+     *
+     * @param serviceClasses
+     *            the service classes to register
+     */
     protected void addServices(Class<?>... serviceClasses) {
         configuration.withLookupServices(serviceClasses);
     }
 
+    /**
+     * Adds the given packages to the packages scanned for component testers.
+     *
+     * @param packages
+     *            the packages to scan
+     */
     protected void addComponentTesterPackages(String... packages) {
         componentTesterPackages.addAll(Arrays.asList(packages));
     }
 
+    /**
+     * Adds the packages of the given classes to the packages scanned for
+     * component testers.
+     *
+     * @param classes
+     *            classes whose packages are scanned
+     */
     protected void addComponentTesterPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
                 .forEach(componentTesterPackages::add);
     }
 
+    /**
+     * Sets an application property on the deployment configuration.
+     *
+     * @param name
+     *            the property name
+     * @param value
+     *            the property value
+     */
     protected void addApplicationProperty(String name, String value) {
         configuration.withApplicationProperty(name, value);
     }
 
+    /**
+     * Sets several application properties on the deployment configuration.
+     *
+     * @param properties
+     *            the properties to set
+     */
     protected void addApplicationProperties(Map<String, String> properties) {
         configuration.withApplicationProperties(properties);
     }
 
+    /**
+     * Turns on the given feature flags.
+     *
+     * @param featureIds
+     *            the ids of the features to turn on
+     */
     protected void addFeatureFlags(String... featureIds) {
         configuration.withFeatureFlags(featureIds);
     }
 
+    /**
+     * Turns on the given feature flags.
+     *
+     * @param features
+     *            the features to turn on
+     */
     protected void addFeatureFlags(Feature... features) {
         configuration.withFeatureFlags(features);
     }
 
+    /**
+     * Turns the given feature flag on or off.
+     *
+     * @param featureId
+     *            the id of the feature
+     * @param enabled
+     *            whether the feature is on
+     */
     protected void addFeatureFlag(String featureId, boolean enabled) {
         configuration.withFeatureFlag(featureId, enabled);
     }
 
+    /**
+     * Turns the given feature flag on or off.
+     *
+     * @param feature
+     *            the feature
+     * @param enabled
+     *            whether the feature is on
+     */
     protected void addFeatureFlag(Feature feature, boolean enabled) {
         configuration.withFeatureFlag(feature, enabled);
     }
 
+    /**
+     * Merges the given configuration into the one this extension builds.
+     *
+     * @param configuration
+     *            the configuration to merge in
+     */
     protected void addConfiguration(BrowserlessConfiguration configuration) {
         this.configuration.withConfiguration(configuration);
     }
 
     // --- Lifecycle callbacks ---
 
+    /**
+     * Creates the Vaadin environment for a test, arming the cleanup action
+     * first so that a setup that fails halfway through still tears down.
+     *
+     * @param testInstance
+     *            the test instance, if the test has one
+     * @param ctx
+     *            the JUnit extension context
+     */
     protected void doInit(Object testInstance, ExtensionContext ctx) {
         BrowserlessConfiguration effectiveConfiguration = BrowserlessTestConfigExtension
                 .resolveConfiguration(ctx, configuration.build());
@@ -140,6 +229,9 @@ abstract class AbstractBrowserlessExtension
         return false;
     }
 
+    /**
+     * Runs the cleanup action armed by {@code doInit}, if there is one.
+     */
     protected void doCleanup() {
         if (cleanupAction != null) {
             cleanupAction.run();
@@ -352,8 +444,8 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Simulates a page reload (see {@link #reload()}) and verifies the
-     * resulting view is of the expected type.
+     * Simulates a page reload (see {@code reload()}) and verifies the resulting
+     * view is of the expected type.
      *
      * @param expectedTarget
      *            the expected view class after reload

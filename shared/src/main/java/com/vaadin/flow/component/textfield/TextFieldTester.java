@@ -65,7 +65,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
-     * <p/>
+     * <p>
      * Emptying is something the user can always do, so it needs no clear
      * button: a field may legitimately end up invalid — a required field, for
      * instance — once emptied.
@@ -79,7 +79,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
 
     /**
      * Empties the field by clicking its clear button, as the user would.
-     * <p/>
+     * <p>
      * Unlike {@link #clear()}, which models selecting the contents and deleting
      * them and is therefore always available, this requires the clear button to
      * be visible — a hidden clear button is not something the user can click.
