@@ -25,6 +25,7 @@ import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -159,6 +160,21 @@ class CardTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void findInHeaderAndFooter_narrowTheSearchToOneSlot() {
+        Button edit = new Button("Edit");
+        Button book = new Button("Book");
+        Button content = new Button("Content");
+        // Nested in a layout, so the match cannot be the slot root itself.
+        view.card.setHeader(new Div(edit));
+        view.card.addToFooter(new Div(book));
+        view.card.add(content);
+
+        var tester = test(view.card);
+        assertEquals(List.of(edit), tester.findInHeader(Button.class).all());
+        assertEquals(List.of(book), tester.findInFooter(Button.class).all());
+    }
+
+    @Test
     void headerAccessors_returnHeaderComponents() {
         Span header = new Span("Header");
         view.card.setHeader(header);
@@ -226,5 +242,9 @@ class CardTesterTest extends BrowserlessTest {
         assertThrows(IllegalStateException.class, test(view.card)::getMedia);
         assertThrows(IllegalStateException.class,
                 test(view.card)::getFooterComponents);
+        assertThrows(IllegalStateException.class,
+                () -> test(view.card).findInHeader(Button.class));
+        assertThrows(IllegalStateException.class,
+                () -> test(view.card).findInFooter(Button.class));
     }
 }

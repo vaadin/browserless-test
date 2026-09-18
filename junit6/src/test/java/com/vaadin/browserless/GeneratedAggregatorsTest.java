@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <li>{@code GeneratedCommercialLocators} carries the commercial entries.
  * <li>{@code CommercialLocators} unions both via interface inheritance.
  * <li>Internal tester helpers are not delegated onto the generated locators.
+ * <li>Tester methods handing back a {@code ComponentQuery} are not delegated
+ * either, so the locator chain is never dropped.
  * <li>The end-user-style aggregator emitted by junit6's test-compile
  * ({@code com.example.locator.AppLocators}) is scoped to this module's own
  * {@code @Tests}-annotated testers and does not regenerate shared.jar's.
@@ -124,6 +126,32 @@ class GeneratedAggregatorsTest {
         assertFalse(methods.contains("updateSelection"),
                 "updateSelection is an internal helper and must not be delegated onto the locator: "
                         + methods);
+    }
+
+    @Test
+    void locatorDoesNotDelegateComponentQueryReturningMethods()
+            throws Exception {
+        // A ComponentQuery hands the caller off the locator chain, so a
+        // tester method returning one stays tester-only API however it is
+        // named. CardTester is the case that pins the rule: it declares both
+        // an override of find(Class) and the slot-scoped finders, so neither
+        // is kept off the locator by the supertype walk stopping at
+        // ComponentTester.
+        Class<?> locator = Class
+                .forName("com.vaadin.flow.component.card.CardLocator");
+        Set<String> methods = methodNames(locator.getDeclaredMethods());
+        assertTrue(methods.contains("getTitleAsText"),
+                "CardLocator should expose getTitleAsText, was: " + methods);
+        assertFalse(methods.contains("find"),
+                "CardTester.find is an override returning a ComponentQuery and must not be delegated onto the locator: "
+                        + methods);
+        assertFalse(methods.contains("findInHeader"),
+                "findInHeader returns a ComponentQuery and must not be delegated onto the locator: "
+                        + methods);
+        assertTrue(
+                Arrays.stream(locator.getDeclaredMethods()).noneMatch(
+                        m -> m.getReturnType().equals(ComponentQuery.class)),
+                "No locator method may return a ComponentQuery: " + methods);
     }
 
     private static Set<String> methodNames(Method[] methods) {
