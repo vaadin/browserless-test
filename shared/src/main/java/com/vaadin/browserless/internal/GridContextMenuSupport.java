@@ -16,12 +16,12 @@
 package com.vaadin.browserless.internal;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.dom.DomEventListener;
@@ -140,15 +140,7 @@ public final class GridContextMenuSupport {
             throw new IllegalArgumentException(
                     "Grid has no column with key " + columnKey);
         }
-        try {
-            Method getInternalId = Grid.Column.class
-                    .getDeclaredMethod("getInternalId");
-            getInternalId.setAccessible(true);
-            return (String) getInternalId.invoke(column);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(
-                    "Cannot read the internal id of column " + columnKey, e);
-        }
+        return GridKt.get_internalId(column);
     }
 
     private static List<GridContextMenu<?>> findContextMenus(Grid<?> grid) {

@@ -17,6 +17,7 @@ package com.vaadin.browserless.internal;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.contextmenu.ContextMenuBase;
@@ -113,6 +114,58 @@ public final class MenuItemNavigation {
             }
         }
         return menuItem;
+    }
+
+    /**
+     * Ensures that the given menu item is checkable, as only a checkable item
+     * has a checked state to read.
+     *
+     * @param menuItem
+     *            the menu item to check
+     * @param path
+     *            the path the item was addressed by, for the error message
+     * @throws IllegalArgumentException
+     *             if the menu item is not checkable
+     */
+    public static void requireCheckable(MenuItemBase<?, ?, ?> menuItem,
+            String path) {
+        if (!menuItem.isCheckable()) {
+            throw new IllegalArgumentException("Menu item at position " + path
+                    + " is not a checkable menu item");
+        }
+    }
+
+    /**
+     * Renders a text path the way it is reported in error messages.
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @return the path as a string
+     */
+    public static String pathToString(String topLevelText,
+            String... nestedItemsText) {
+        return topLevelText + ((nestedItemsText.length > 0)
+                ? " / " + String.join(" / ", nestedItemsText)
+                : "");
+    }
+
+    /**
+     * Renders a position path the way it is reported in error messages.
+     *
+     * @param topLevelPosition
+     *            the position of the top level menu item
+     * @param nestedItemsPositions
+     *            positions of the nested menu items
+     * @return the path as a string
+     */
+    public static String pathToString(int topLevelPosition,
+            int... nestedItemsPositions) {
+        return IntStream
+                .concat(IntStream.of(topLevelPosition),
+                        IntStream.of(nestedItemsPositions))
+                .mapToObj(Integer::toString).collect(Collectors.joining(" / "));
     }
 
     private static <C extends ContextMenuBase<C, I, S>, I extends MenuItemBase<C, I, S>, S extends SubMenuBase<C, I, S>> I findByText(

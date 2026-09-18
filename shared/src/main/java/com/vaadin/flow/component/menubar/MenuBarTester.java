@@ -15,9 +15,6 @@
  */
 package com.vaadin.flow.component.menubar;
 
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.MenuItemNavigation;
@@ -176,13 +173,8 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
             String... nestedItemsText) {
         ensureComponentIsUsable();
         MenuItem menuItem = findMenuItemByPath(topLevelText, nestedItemsText);
-        if (!menuItem.isCheckable()) {
-            String fullPath = topLevelText + ((nestedItemsText.length > 0)
-                    ? " / " + String.join(" / ", nestedItemsText)
-                    : "");
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem,
+                MenuItemNavigation.pathToString(topLevelText, nestedItemsText));
         return menuItem.isChecked();
     }
 
@@ -232,15 +224,8 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
         ensureComponentIsUsable();
         MenuItem menuItem = findMenuItemByPath(topLevelPosition,
                 nestedItemsPositions);
-        if (!menuItem.isCheckable()) {
-            String fullPath = IntStream
-                    .concat(IntStream.of(topLevelPosition),
-                            IntStream.of(nestedItemsPositions))
-                    .mapToObj(Integer::toString)
-                    .collect(Collectors.joining(" / "));
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem, MenuItemNavigation
+                .pathToString(topLevelPosition, nestedItemsPositions));
         return menuItem.isChecked();
     }
 

@@ -803,28 +803,25 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * {@link GridContextMenuTester#open()}.
      *
      * <pre>
-     * test(grid).contextMenu(0).open();
-     * test(grid).contextMenu(0).clickItem("Edit"); // menu has to be open
+     * var menu = test(grid).contextMenu(0);
+     * menu.open();
+     * menu.clickItem("Edit");
      * </pre>
      *
      * @param row
      *            row the context menu is about
-     * @return a tester for the context menu of this grid
+     * @return a tester for the context menu of this grid, targeting the given
+     *         row
      * @throws IllegalStateException
      *             if the grid is not usable, or if it has no context menu or
      *             more than one
-     * @throws IndexOutOfBoundsException
-     *             if the grid has no such row
      */
     @SuppressWarnings("unchecked")
     public GridContextMenuTester<GridContextMenu<Y>, Y> contextMenu(int row) {
         ensureComponentIsUsable();
         GridContextMenu<Y> menu = (GridContextMenu<Y>) GridContextMenuSupport
                 .getContextMenu(getComponent());
-        GridContextMenuSupport.setTargetItem(getComponent(),
-                GridContextMenuSupport.getItemKey(getComponent(), getRow(row)),
-                null);
-        return new GridContextMenuTester<>(menu);
+        return new GridContextMenuTester<>(menu, row);
     }
 
     private String getValueProviderString(int row, Grid.Column<Y> targetColumn)

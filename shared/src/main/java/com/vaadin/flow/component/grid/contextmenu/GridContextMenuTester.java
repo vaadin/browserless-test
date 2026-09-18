@@ -15,9 +15,6 @@
  */
 package com.vaadin.flow.component.grid.contextmenu;
 
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.ComponentQuery;
@@ -53,14 +50,36 @@ import com.vaadin.flow.internal.JacksonUtils;
 public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         extends ComponentTester<T> {
 
+    /** Row {@link #open()} opens the menu on, {@literal null} for none. */
+    private final Integer targetRow;
+
     /**
      * Wrap grid context menu for testing.
+     * <p/>
+     * The menu targets no row, so it has to be opened with {@link #open(int)}.
      *
      * @param component
      *            target grid context menu
      */
     public GridContextMenuTester(T component) {
         super(component);
+        this.targetRow = null;
+    }
+
+    /**
+     * Wrap grid context menu for testing, targeting the given row.
+     * <p/>
+     * The index is 0 based and counts the rows the user sees. Opening the menu
+     * with {@link #open()} opens it on that row.
+     *
+     * @param component
+     *            target grid context menu
+     * @param row
+     *            row the menu is about
+     */
+    public GridContextMenuTester(T component, int row) {
+        super(component);
+        this.targetRow = row;
     }
 
     /**
@@ -82,15 +101,12 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      *             if a dynamic content handler prevented it from opening
      */
     public void open() {
-        Grid<Y> grid = getGrid();
-        String itemKey = grid.getElement()
-                .getProperty(GridContextMenuSupport.TARGET_ITEM_KEY_PROPERTY);
-        if (itemKey == null) {
+        if (targetRow == null) {
             throw new IllegalStateException(
                     "Context menu does not target a row. Open it on a row with open(int row), "
                             + "or get the tester from test(grid).contextMenu(int row).");
         }
-        openOnTargetedRow(itemKey);
+        open(targetRow);
     }
 
     /**
@@ -135,13 +151,23 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      *             if the grid has no such row
      */
     public void open(int row, String columnKey) {
+        if (getComponent().isOpened()) {
+            throw new IllegalStateException("Context menu is already open");
+        }
         Grid<Y> grid = getGrid();
         String itemKey = GridContextMenuSupport.getItemKey(grid,
                 GridKt._get(grid, row));
         String columnId = columnKey == null ? null
                 : GridContextMenuSupport.getColumnInternalId(grid, columnKey);
         GridContextMenuSupport.setTargetItem(grid, itemKey, columnId);
-        openOnTargetedRow(itemKey);
+        requestMenu(itemKey);
+        roundTrip();
+        if (!getComponent().isAttached()) {
+            throw new IllegalStateException(
+                    "Context menu did not open. Its dynamic content handler returned false for the target row.");
+        }
+        getComponent().getElement().setProperty("opened", true);
+        ensureComponentIsUsable();
     }
 
     /**
@@ -245,13 +271,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         ensureComponentIsUsable();
         GridMenuItem<Y> menuItem = findMenuItemByPath(topLevelText,
                 nestedItemsText);
-        if (!menuItem.isCheckable()) {
-            String fullPath = topLevelText + ((nestedItemsText.length > 0)
-                    ? " / " + String.join(" / ", nestedItemsText)
-                    : "");
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem,
+                MenuItemNavigation.pathToString(topLevelText, nestedItemsText));
         return menuItem.isChecked();
     }
 
@@ -281,15 +302,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         ensureComponentIsUsable();
         GridMenuItem<Y> menuItem = findMenuItemByPath(topLevelPosition,
                 nestedItemsPositions);
-        if (!menuItem.isCheckable()) {
-            String fullPath = IntStream
-                    .concat(IntStream.of(topLevelPosition),
-                            IntStream.of(nestedItemsPositions))
-                    .mapToObj(Integer::toString)
-                    .collect(Collectors.joining(" / "));
-            throw new IllegalArgumentException("Menu item at position "
-                    + fullPath + " is not a checkable menu item");
-        }
+        MenuItemNavigation.requireCheckable(menuItem, MenuItemNavigation
+                .pathToString(topLevelPosition, nestedItemsPositions));
         return menuItem.isChecked();
     }
 
@@ -380,20 +394,6 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
                     "Context menu is not attached to a grid");
         }
         return (Grid<Y>) target;
-    }
-
-    private void openOnTargetedRow(String itemKey) {
-        if (getComponent().isOpened()) {
-            throw new IllegalStateException("Context menu is already open");
-        }
-        requestMenu(itemKey);
-        roundTrip();
-        if (!getComponent().isAttached()) {
-            throw new IllegalStateException(
-                    "Context menu did not open. Its dynamic content handler returned false for the target row.");
-        }
-        getComponent().getElement().setProperty("opened", true);
-        ensureComponentIsUsable();
     }
 
     /**

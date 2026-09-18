@@ -121,6 +121,41 @@ class GridContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void isItemChecked_byPosition_reportsCheckedState() {
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+        menu_.open(0);
+
+        // "Checkable" is the item at position 2, "Hidden" is skipped
+        Assertions.assertFalse(menu_.isItemChecked(2));
+
+        view.checkableItem.setChecked(true);
+
+        Assertions.assertTrue(menu_.isItemChecked(2));
+    }
+
+    @Test
+    void isItemChecked_itemNotCheckable_throws() {
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+        menu_.open(0);
+
+        IllegalArgumentException byPosition = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> menu_.isItemChecked(4, 1));
+        Assertions.assertEquals(
+                "Menu item at position 4 / 1 is not a checkable menu item",
+                byPosition.getMessage());
+
+        IllegalArgumentException byText = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> menu_.isItemChecked("Share", "Email"));
+        Assertions.assertEquals(
+                "Menu item at position Share / Email is not a checkable menu item",
+                byText.getMessage());
+    }
+
+    @Test
     void getItemTooltipText_returnsTooltipOfItem() {
         GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
                 view.menu);
@@ -230,11 +265,45 @@ class GridContextMenuTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void contextMenuFromGridTester_severalTesters_keepTheirOwnRow() {
+        GridContextMenuTester<GridContextMenu<String>, String> onAlice = test(
+                view.grid).contextMenu(0);
+        GridContextMenuTester<GridContextMenu<String>, String> onBob = test(
+                view.grid).contextMenu(1);
+
+        onAlice.open();
+        onAlice.clickItem("Edit");
+        onAlice.close();
+
+        onBob.open();
+        onBob.clickItem("Edit");
+
+        Assertions.assertIterableEquals(
+                List.of(Optional.of(GridContextMenuView.ALICE),
+                        Optional.of(GridContextMenuView.BOB)),
+                view.clickedRows,
+                "each tester should keep the row it was created for");
+    }
+
+    @Test
     void contextMenuFromGridTester_gridWithoutContextMenu_throws() {
         IllegalStateException exception = Assertions.assertThrows(
                 IllegalStateException.class,
                 () -> test(view.gridWithoutMenu).contextMenu(0));
         Assertions.assertTrue(
                 exception.getMessage().contains("has no context menu"));
+    }
+
+    @Test
+    void contextMenuFromGridTester_gridWithSeveralContextMenus_throws() {
+        view.grid.addContextMenu().addItem("From the second menu");
+
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> test(view.grid).contextMenu(0));
+        Assertions.assertTrue(
+                exception.getMessage().contains("Grid has 2 context menus"),
+                "expected the ambiguity to be reported, but got: "
+                        + exception.getMessage());
     }
 }
