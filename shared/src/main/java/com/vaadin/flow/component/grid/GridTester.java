@@ -820,10 +820,11 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
 
     /**
      * Gets a tester for the context menu of this grid, targeting the given row.
-     * <p/>
+     * <p>
      * The index is 0 based and counts the rows the user sees. The menu is not
      * opened, so that assertions can be made on it first; open it with
-     * {@link GridContextMenuTester#open()}.
+     * {@link com.vaadin.flow.component.grid.contextmenu.GridContextMenuTester#open()
+     * GridContextMenuTester.open()}.
      *
      * <pre>
      * var menu = test(grid).contextMenu(0);
