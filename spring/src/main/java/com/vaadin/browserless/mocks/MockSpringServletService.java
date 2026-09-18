@@ -38,6 +38,9 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */

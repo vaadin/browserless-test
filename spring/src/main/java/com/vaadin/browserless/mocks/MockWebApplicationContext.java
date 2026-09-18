@@ -40,8 +40,8 @@ import org.springframework.web.context.WebApplicationContext;
 /**
  * An adapter to make a generic Spring ApplicationContext act like a
  * WebApplicationContext.
- *
- * For internal use only.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @since 1.0
  */

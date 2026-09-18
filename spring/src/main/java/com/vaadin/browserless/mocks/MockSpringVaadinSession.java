@@ -35,6 +35,9 @@ import com.vaadin.flow.server.VaadinSession;
  * {@link MockVaadin#afterSessionClose}.</li>
  * </ul>
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */

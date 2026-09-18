@@ -47,6 +47,9 @@ import com.vaadin.flow.spring.SpringServlet;
  * {@link MockSpringServletService} is used instead of vanilla
  * {@link com.vaadin.flow.spring.SpringVaadinServletService}.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */

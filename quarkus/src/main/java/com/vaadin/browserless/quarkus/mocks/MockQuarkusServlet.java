@@ -36,6 +36,9 @@ import com.vaadin.quarkus.QuarkusVaadinServlet;
  * {@link MockQuarkusServletService} is used instead of vanilla
  * {@link com.vaadin.quarkus.QuarkusVaadinServletService}.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @since 1.0
  */
 public class MockQuarkusServlet extends QuarkusVaadinServlet {
