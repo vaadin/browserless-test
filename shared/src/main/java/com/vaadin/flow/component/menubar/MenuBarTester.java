@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.menubar;
 
+import java.util.List;
+
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.MenuItemNavigation;
@@ -319,6 +321,92 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
         MenuItem menuItem = findMenuItemByPath(topLevelPosition,
                 nestedItemsPositions);
         return menuItem.getElement().getProperty("tooltip");
+    }
+
+    /**
+     * Gets the texts of the menu items, as the browser shows them.
+     * <p>
+     * Hidden items are ignored, so the returned texts are aligned with the
+     * positions used by {@link #clickItem(int, int...)}. A text can also be
+     * given to {@link #clickItem(String, String...)}, as long as it identifies
+     * a single enabled item: a text that several visible items share is
+     * ambiguous, and a disabled item cannot be clicked.
+     * <p>
+     * An item created from a component has no text of its own, and is reported
+     * as an empty string. Use {@link #find(Class)} to reach such an item.
+     * <p>
+     * All items of the menu bar are reported. A browser collapses the items
+     * that do not fit into an overflow menu, which cannot be simulated without
+     * a layout.
+     *
+     * <pre>
+     * {@code
+     *
+     * menu.addItem("Preview", event -> {
+     * });
+     * menu.addItem("Hidden", event -> {
+     * }).setVisible(false);
+     * menu.addItem("Share");
+     *
+     * // ["Preview", "Share"]
+     * wrapper.getItemTexts();
+     * }
+     * </pre>
+     *
+     * @return the texts of the visible top level menu items, in the order they
+     *         are shown in
+     * @throws IllegalStateException
+     *             if the menu bar is not visible
+     */
+    public List<String> getItemTexts() {
+        ensureVisible();
+        return MenuItemNavigation.visibleTexts(getComponent().getItems());
+    }
+
+    /**
+     * Gets the texts of the items of the sub menu of the item matching the
+     * given text, as the browser shows them.
+     * <p>
+     * For a nested sub menu, provide the text of each menu item in the
+     * hierarchy, the same way as in {@link #clickItem(String, String...)}.
+     * <p>
+     * Hidden items are ignored at every level, both when following the path and
+     * in the returned texts.
+     *
+     * <pre>
+     * {@code
+     *
+     * var subMenu = menu.addItem("Share").getSubMenu();
+     * subMenu.addItem("Copy link", event -> {
+     * });
+     * subMenu.addItem("Email", event -> {
+     * });
+     *
+     * // ["Copy link", "Email"]
+     * wrapper.getItemTexts("Share");
+     * }
+     * </pre>
+     *
+     * @param topLevelText
+     *            the text content of the top level menu item, not
+     *            {@literal null}.
+     * @param nestedItemsText
+     *            text content of the nested menu items
+     * @return the texts of the visible items of the sub menu, in the order they
+     *         are shown in
+     * @throws IllegalArgumentException
+     *             if the provided text does not identify a menu item, or if the
+     *             item at the given path has no sub menu.
+     * @throws IllegalStateException
+     *             if the menu bar is not visible, if there are multiple
+     *             matching items at any level, or if the item at the given path
+     *             is disabled or not visible.
+     */
+    public List<String> getItemTexts(String topLevelText,
+            String... nestedItemsText) {
+        ensureVisible();
+        return MenuItemNavigation.visibleSubMenuTexts(getComponent().getItems(),
+                topLevelText, nestedItemsText);
     }
 
     private MenuItem findMenuItemByPath(String topLevelText,
