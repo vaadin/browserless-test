@@ -131,8 +131,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * @throws IllegalArgumentException
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
-     *             if there are multiple matching items at any level, or if the
-     *             item at the given path is disabled or not visible.
+     *             if there are multiple visible matching items at any level, or
+     *             if the item at the given path is disabled or not visible.
      */
     public void clickItem(String topLevelText, String... nestedItemsText) {
         ensureComponentIsUsable();

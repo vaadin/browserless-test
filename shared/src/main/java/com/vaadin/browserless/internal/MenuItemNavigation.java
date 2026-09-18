@@ -59,8 +59,8 @@ public final class MenuItemNavigation {
      * @throws IllegalArgumentException
      *             if the provided text does not identify a menu item
      * @throws IllegalStateException
-     *             if there are multiple matching items at any level, or if the
-     *             item at the given path is disabled or not visible
+     *             if there are multiple visible matching items at any level, or
+     *             if the item at the given path is disabled or not visible
      */
     public static <C extends ContextMenuBase<C, I, S>, I extends MenuItemBase<C, I, S>, S extends SubMenuBase<C, I, S>> I findByPath(
             List<I> rootItems, String topLevelText, String... nestedItemsText) {
@@ -177,13 +177,21 @@ public final class MenuItemNavigation {
             throw new IllegalArgumentException(
                     "Cannot find menu item with text " + text
                             + (fullPath != null ? " on path " + fullPath : ""));
-        } else if (items.size() > 1) {
+        }
+        // The path addresses the menu the way the browser shows it, so a
+        // hidden item neither matches nor makes the path ambiguous. A hidden
+        // item is still kept when nothing visible matches, so that the error
+        // says the item is not usable instead of claiming it does not exist.
+        List<I> visibleItems = items.stream().filter(Component::isVisible)
+                .collect(Collectors.toList());
+        if (visibleItems.size() > 1) {
             throw new IllegalStateException(
                     "Expecting a single menu item with text " + text
-                            + " but found " + items.size()
+                            + " but found " + visibleItems.size()
                             + (fullPath != null ? " on path " + fullPath : ""));
         }
-        I menuItem = items.get(0);
+        I menuItem = visibleItems.isEmpty() ? items.get(0)
+                : visibleItems.get(0);
         ensureMenuItemIsUsable(menuItem, fullPath);
         return menuItem;
     }

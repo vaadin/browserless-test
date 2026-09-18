@@ -208,9 +208,9 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * @throws IllegalArgumentException
      *             if the provided text does not identify a menu item.
      * @throws IllegalStateException
-     *             if the menu is not open, if there are multiple matching items
-     *             at any level, or if the item at the given path is disabled or
-     *             not visible.
+     *             if the menu is not open, if there are multiple visible
+     *             matching items at any level, or if the item at the given path
+     *             is disabled or not visible.
      */
     public void clickItem(String topLevelText, String... nestedItemsText) {
         ensureComponentIsUsable();
