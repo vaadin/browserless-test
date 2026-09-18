@@ -80,7 +80,15 @@ public class ContextMenuTester<T extends ContextMenu>
         }
         attachMenuToUI();
         roundTrip();
-        ensureComponentIsUsable();
+        try {
+            ensureComponentIsUsable();
+        } catch (RuntimeException e) {
+            // The before-open event above attached the menu content to the
+            // UI. A refused open must not leave it behind, otherwise a closed
+            // menu stays reachable through a top level find().
+            getComponent().getElement().removeFromParent();
+            throw e;
+        }
         // Simulate the overlay reporting itself as opened so that the
         // resulting OpenedChangeEvent is seen as a user action.
         setPropertyAsUser("opened", true);

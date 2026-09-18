@@ -88,10 +88,17 @@ class ContextMenuTesterTest extends BrowserlessTest {
     void openMenu_notUsable_throws() {
         view.menu.setVisible(false);
 
-        Assertions.assertThrows(IllegalStateException.class,
-                test(view.menu)::open);
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class, test(view.menu)::open);
+        Assertions.assertTrue(exception.getMessage().contains("is not usable"));
+
         Assertions.assertFalse(view.menu.isOpened(),
                 "a refused open should leave the menu closed");
+        Assertions.assertFalse(view.menu.isAttached(),
+                "a refused open should leave the menu detached from the UI");
+        Assertions.assertEquals(0,
+                find(Div.class).withText("Component Item").all().size(),
+                "a refused open should not leave the menu content reachable through a top level find()");
     }
 
     @Test
