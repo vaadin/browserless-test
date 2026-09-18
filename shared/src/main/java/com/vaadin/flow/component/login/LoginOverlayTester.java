@@ -17,7 +17,9 @@ package com.vaadin.flow.component.login;
 
 import java.util.function.Consumer;
 
+import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 
 /**
  * Tester for LoginOverlay components.
@@ -29,6 +31,18 @@ import com.vaadin.browserless.Tests;
 @Tests(LoginOverlay.class)
 public class LoginOverlayTester<T extends LoginOverlay>
         extends AbstractLoginTester<T> {
+
+    /**
+     * The slot an overlay puts the content of its
+     * {@link LoginOverlay#getFooter() footer} in.
+     */
+    private static final String FOOTER_SLOT = "footer";
+
+    /**
+     * The slot an overlay puts the content of its
+     * {@link LoginOverlay#getCustomFormArea() custom form area} in.
+     */
+    private static final String CUSTOM_FORM_AREA_SLOT = "custom-form-area";
 
     /**
      * Wrap given component for testing.
@@ -67,5 +81,50 @@ public class LoginOverlayTester<T extends LoginOverlay>
      */
     public boolean isOpen() {
         return getComponent().isOpened() && getComponent().isVisible();
+    }
+
+    /**
+     * Searches the overlay's footer for components of the given type.
+     * <p>
+     * The footer is the area below the login form, filled with
+     * {@code login.getFooter().add(...)}. Components nested inside the footer
+     * content are found too, so a button inside a footer layout is reached as
+     * well as a button added to the footer directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the overlay's footer
+     * @throws IllegalStateException
+     *             if the overlay is not usable, e.g. not open
+     */
+    public <R extends Component> ComponentQuery<R> findInFooter(
+            Class<R> componentType) {
+        ensureComponentIsUsable();
+        return find(componentType).withinSlot(FOOTER_SLOT);
+    }
+
+    /**
+     * Searches the overlay's custom form area for components of the given type.
+     * <p>
+     * The custom form area is the area inside the login form, filled with
+     * {@code login.getCustomFormArea().add(...)}. Components nested inside it
+     * are found too, so a field inside a layout added to the area is reached as
+     * well as a field added to the area directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the overlay's custom
+     *         form area
+     * @throws IllegalStateException
+     *             if the overlay is not usable, e.g. not open
+     */
+    public <R extends Component> ComponentQuery<R> findInCustomFormArea(
+            Class<R> componentType) {
+        ensureComponentIsUsable();
+        return find(componentType).withinSlot(CUSTOM_FORM_AREA_SLOT);
     }
 }

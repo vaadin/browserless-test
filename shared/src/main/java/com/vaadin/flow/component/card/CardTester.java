@@ -34,7 +34,8 @@ import com.vaadin.flow.component.html.Span;
  * case rather than reporting content that is not on screen.
  * <p>
  * The accessors return the component sitting in a slot. To reach a component
- * nested deeper inside a slot, use {@link #find(Class)}, which searches every
+ * nested deeper inside a slot, use {@link #findInHeader(Class)},
+ * {@link #findInFooter(Class)} or {@link #find(Class)}, which searches every
  * slot of the card and not only its default content slot.
  *
  * @param <T>
@@ -42,6 +43,17 @@ import com.vaadin.flow.component.html.Span;
  */
 @Tests(Card.class)
 public class CardTester<T extends Card> extends ComponentTester<T> {
+
+    /**
+     * The slot a card puts its {@link Card#setHeader(Component) header} in.
+     */
+    private static final String HEADER_SLOT = "header";
+
+    /**
+     * The slot a card puts the components added with
+     * {@link Card#addToFooter(Component...)} in.
+     */
+    private static final String FOOTER_SLOT = "footer";
 
     /**
      * Wrap given component for testing.
@@ -213,19 +225,66 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * Button book = cardTester.find(Button.class).withText("Book").single();
      * </pre>
      * <p>
-     * To narrow the search to a single named slot, filter on the {@code slot}
-     * attribute the card puts on the component it places in that slot, for
-     * example {@code find(Button.class).withAttribute("slot", "footer")}. Two
-     * limits are worth knowing: the attribute is only on the component sitting
-     * directly in the slot, not on the ones nested inside it, and components
-     * added with {@code Card.add(...)} sit in the unnamed default content slot
-     * and carry no {@code slot} attribute at all, so no named-slot filter
-     * matches them — use {@code withoutAttribute("slot")} to single those out.
+     * To narrow the search to the header or the footer, use
+     * {@link #findInHeader(Class)} or {@link #findInFooter(Class)}. Any other
+     * slot is reachable with {@link ComponentQuery#withinSlot(String)}, for
+     * example {@code find(Button.class).withinSlot("header-suffix")}.
+     * <p>
+     * The default content slot has no name, so it has no such filter:
+     * components added with {@code Card.add(...)} carry no {@code slot}
+     * attribute at all and are singled out with
+     * {@code withoutAttribute("slot")}, which — unlike
+     * {@link ComponentQuery#withinSlot(String)} — only sees the components
+     * sitting directly in the slot, not the ones nested inside them.
      */
     @Override
     public <R extends Component> ComponentQuery<R> find(
             Class<R> componentType) {
         return super.find(componentType);
+    }
+
+    /**
+     * Searches the card's header for components of the given type.
+     * <p>
+     * The header is the component set with {@link Card#setHeader(Component)},
+     * shown instead of the title and subtitle. Components nested inside it are
+     * found too, so a button inside a header layout is reached as well as a
+     * button set as the header itself.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the card's header
+     * @throws IllegalStateException
+     *             if the card is not visible to the user
+     */
+    public <R extends Component> ComponentQuery<R> findInHeader(
+            Class<R> componentType) {
+        ensureVisible();
+        return find(componentType).withinSlot(HEADER_SLOT);
+    }
+
+    /**
+     * Searches the card's footer for components of the given type.
+     * <p>
+     * The footer holds the components added with
+     * {@link Card#addToFooter(Component...)}. Components nested inside them are
+     * found too, so a button inside a footer layout is reached as well as a
+     * button added to the footer directly.
+     *
+     * @param componentType
+     *            the type of the components to search for
+     * @param <R>
+     *            the type of the components to search for
+     * @return a query for components of the given type in the card's footer
+     * @throws IllegalStateException
+     *             if the card is not visible to the user
+     */
+    public <R extends Component> ComponentQuery<R> findInFooter(
+            Class<R> componentType) {
+        ensureVisible();
+        return find(componentType).withinSlot(FOOTER_SLOT);
     }
 
     private void ensureHeaderNotShown(String part) {
