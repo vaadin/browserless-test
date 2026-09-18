@@ -32,6 +32,12 @@ import com.vaadin.flow.component.UI;
  */
 public class TreeOnFailureExtension implements AfterTestExecutionCallback {
 
+    /**
+     * Creates the extension; JUnit instantiates it through {@code @ExtendWith}.
+     */
+    public TreeOnFailureExtension() {
+    }
+
     @Override
     public void afterTestExecution(ExtensionContext extensionContext) {
         boolean testFailed = extensionContext.getExecutionException()

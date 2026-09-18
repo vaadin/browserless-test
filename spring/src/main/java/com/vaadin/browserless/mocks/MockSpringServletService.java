@@ -43,9 +43,24 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * @since 1.0
  */
 public class MockSpringServletService extends SpringVaadinServletService {
+    /**
+     * Produces the UI instances the sessions of this service hand out.
+     */
     @NonNull
     private final UIFactory uiFactory;
 
+    /**
+     * Creates the service.
+     *
+     * @param servlet
+     *            the servlet the service belongs to
+     * @param deploymentConfiguration
+     *            the deployment configuration to use
+     * @param ctx
+     *            the Spring context the views are instantiated from
+     * @param uiFactory
+     *            produces the UI instances the sessions hand out
+     */
     public MockSpringServletService(@NonNull MockSpringServlet servlet,
             @NonNull DeploymentConfiguration deploymentConfiguration,
             @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {

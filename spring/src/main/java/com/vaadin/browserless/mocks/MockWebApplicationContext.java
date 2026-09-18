@@ -50,6 +50,15 @@ public class MockWebApplicationContext implements WebApplicationContext {
     private final ApplicationContext appCtx;
     private final ServletContext servletContext;
 
+    /**
+     * Wraps a Spring context so that it also answers as a
+     * {@code WebApplicationContext}.
+     *
+     * @param appCtx
+     *            the context the calls are forwarded to
+     * @param servletContext
+     *            the servlet context to report
+     */
     public MockWebApplicationContext(ApplicationContext appCtx,
             ServletContext servletContext) {
         this.appCtx = appCtx;

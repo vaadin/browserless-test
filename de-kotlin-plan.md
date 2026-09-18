@@ -245,8 +245,8 @@ not the `tests="N"` attribute, which DynaTest under-reports. 1,448 before,
 
 ### Phase 7 — the doclint cleanup — done
 
-`shared` builds clean under doclint, errors and warnings both, and
-`<doclint>none</doclint>` is gone from its pom.
+Every module builds clean under doclint, errors and warnings both, and
+`<doclint>none</doclint>` is gone from `shared`'s pom.
 
 The "roughly 200 issues" the Phase 5 note quoted was **javadoc's output cap**,
 not the count: the tool stops after 100 errors and 100 warnings. The real
@@ -272,9 +272,11 @@ person reads a count rather than a ceiling.
   `[_rowSequence]`, `*skip*` — which render as literal brackets and asterisks.
   Those are now `{@link}`, `{@code}` and `<em>`.
 
-Still open, and untouched here because the ask was `shared`: `junit6`, `spring`
-and `quarkus` report 36 doclint warnings between them. They never failed a
-build, because doclint warnings do not.
+`junit6`, `spring` and `quarkus` accounted for a further 35 warnings — mostly
+the `AbstractBrowserlessExtension` builder helpers and the undocumented default
+constructor of every extension, test base and lookup initializer. They never
+failed a build, because doclint warnings do not, which is how they went
+unnoticed.
 
 ## Breaking changes
 

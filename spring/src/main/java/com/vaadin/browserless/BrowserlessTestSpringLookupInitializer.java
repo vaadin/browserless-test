@@ -47,6 +47,12 @@ import com.vaadin.flow.spring.SpringLookupInitializer;
 public class BrowserlessTestSpringLookupInitializer
         extends SpringLookupInitializer implements TestExecutionListener {
 
+    /**
+     * Creates the initializer; Vaadin looks it up through the service loader.
+     */
+    public BrowserlessTestSpringLookupInitializer() {
+    }
+
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
     @Override

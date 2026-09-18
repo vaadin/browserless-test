@@ -47,9 +47,10 @@ order:
   tester and fails there. Write `{@link com.vaadin.flow.component.html.Span
   Span}`. Same-package names and `{@link #member}` are fine — the processor
   rewrites the latter to point back at the tester.
-- **Every published member needs a comment.** `shared` builds clean under
-  doclint, so a missing `@param`, `@return` or description shows up in the
-  `-Djavadocs` build.
+- **Every published member needs a comment.** Every module builds clean under
+  doclint, warnings included, so a missing `@param`, `@return` or description
+  shows up in the `-Djavadocs` build. A class that would otherwise get an
+  undocumented default constructor declares an explicit one.
 
 ## Documenting the mocks
 

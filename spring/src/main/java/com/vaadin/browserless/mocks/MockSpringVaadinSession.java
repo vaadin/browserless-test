@@ -40,9 +40,20 @@ import com.vaadin.flow.server.VaadinSession;
  * @since 1.0
  */
 public class MockSpringVaadinSession extends VaadinSession {
+    /**
+     * Produces the UI instances this session hands out.
+     */
     @NonNull
     private final UIFactory uiFactory;
 
+    /**
+     * Creates the session.
+     *
+     * @param service
+     *            the service the session belongs to
+     * @param uiFactory
+     *            produces the UI instances this session hands out
+     */
     public MockSpringVaadinSession(@NonNull VaadinService service,
             @NonNull UIFactory uiFactory) {
         super(service);

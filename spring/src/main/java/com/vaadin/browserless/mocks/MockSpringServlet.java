@@ -53,13 +53,32 @@ import com.vaadin.flow.spring.SpringServlet;
  */
 public class MockSpringServlet extends SpringServlet {
 
+    /**
+     * The routes registered when the service is created.
+     */
     @NonNull
     public final Routes routes;
+    /**
+     * The Spring context the views are instantiated from.
+     */
     @NonNull
     public final ApplicationContext ctx;
+    /**
+     * Produces the UI instances the sessions of this servlet hand out.
+     */
     @NonNull
     public final UIFactory uiFactory;
 
+    /**
+     * Creates the servlet.
+     *
+     * @param routes
+     *            the routes to register
+     * @param ctx
+     *            the Spring context the views are instantiated from
+     * @param uiFactory
+     *            produces the UI instances the sessions hand out
+     */
     public MockSpringServlet(@NonNull Routes routes,
 
             @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
