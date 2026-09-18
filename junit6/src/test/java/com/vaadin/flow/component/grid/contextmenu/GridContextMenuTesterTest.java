@@ -54,6 +54,13 @@ class GridContextMenuTesterTest extends BrowserlessTest {
         Assertions.assertEquals(0, find(Checkbox.class).all().size(),
                 "menu content should not be in the tree before the menu opens");
 
+        List<Boolean> openedStates = new ArrayList<>();
+        List<Boolean> fromClient = new ArrayList<>();
+        view.menu.addGridContextMenuOpenedListener(event -> {
+            openedStates.add(event.isOpened());
+            fromClient.add(event.isFromClient());
+        });
+
         GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
                 view.menu);
         menu_.open(0);
@@ -71,6 +78,10 @@ class GridContextMenuTesterTest extends BrowserlessTest {
                 "context menu should be detached from the UI, but was not");
         Assertions.assertEquals(0, find(Checkbox.class).all().size(),
                 "component item of the closed menu should not be findable");
+        Assertions.assertIterableEquals(List.of(true, false), openedStates,
+                "the menu should report opening and then closing");
+        Assertions.assertIterableEquals(List.of(true, true), fromClient,
+                "opening and closing the menu should look like user gestures");
     }
 
     @Test
