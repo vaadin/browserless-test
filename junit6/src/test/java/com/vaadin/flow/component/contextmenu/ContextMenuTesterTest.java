@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.contextmenu;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -49,6 +50,19 @@ class ContextMenuTesterTest extends BrowserlessTest {
         test(view.menu).close();
         Assertions.assertFalse(view.menu.isAttached(),
                 "context menu should be detached from the UI, but was not");
+    }
+
+    @Test
+    void openCloseMenu_openedChangeEventsComeFromClient() {
+        List<Boolean> fromClient = new ArrayList<>();
+        view.menu.addOpenedChangeListener(
+                event -> fromClient.add(event.isFromClient()));
+
+        test(view.menu).open();
+        test(view.menu).close();
+
+        Assertions.assertEquals(List.of(true, true), fromClient,
+                "opening and closing the menu should be reported as user actions");
     }
 
     @Test
