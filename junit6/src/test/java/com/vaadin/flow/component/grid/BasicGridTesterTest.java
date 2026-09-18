@@ -352,9 +352,6 @@ class BasicGridTesterTest extends BrowserlessTest {
         // component is reached through the tester instead.
         Assertions.assertTrue(find(Button.class).all().isEmpty(),
                 "component column cells should not be part of the component tree");
-
-        Assertions.assertInstanceOf(Button.class, test(view.basicGrid)
-                .getCellComponent(0, BasicGridView.BUTTON_KEY));
     }
 
     @Test

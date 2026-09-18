@@ -428,9 +428,13 @@ class ContextMenuTesterTest extends BrowserlessTest {
     @Test
     void openAndFind_ContextMenuItemsCanBeAccessed() {
         var menuTester = test(view.menu);
-        menuTester.open();
         var div = menuTester.find(Div.class).withText("Component Item")
                 .single();
+        Assertions.assertFalse(div.isAttached(),
+                "items of a menu that was never opened should be found, but detached");
+
+        menuTester.open();
+        div = menuTester.find(Div.class).withText("Component Item").single();
         Assertions.assertTrue(div.isAttached());
 
         menuTester.close();

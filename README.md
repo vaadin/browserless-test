@@ -382,7 +382,7 @@ component reads as if it was never created.
 render one specific item, so they are not in the tree:
 
 ```java
-grid.addComponentColumn(person -> new Checkbox());
+grid.addComponentColumn(person -> new Checkbox()).setKey("subscriber");
 
 find(Checkbox.class).all();                      // empty
 
