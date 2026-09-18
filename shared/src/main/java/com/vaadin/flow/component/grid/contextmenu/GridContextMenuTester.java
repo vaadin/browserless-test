@@ -168,11 +168,11 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
             throw new IllegalStateException(
                     "Context menu did not open. Its dynamic content handler returned false for the target row.");
         }
+        ensureComponentIsUsableOrDetach();
         // opened is a synchronized property, so pushing it through the
         // client path makes the GridContextMenuOpenedEvent report
         // isFromClient() as true, the way a real open does
         setPropertyAsUser("opened", true);
-        ensureComponentIsUsable();
     }
 
     /**

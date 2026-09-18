@@ -80,8 +80,10 @@ public class ContextMenuTester<T extends ContextMenu>
         }
         attachMenuToUI();
         roundTrip();
-        getComponent().getElement().setProperty("opened", true);
-        ensureComponentIsUsable();
+        ensureComponentIsUsableOrDetach();
+        // Simulate the overlay reporting itself as opened so that the
+        // resulting OpenedChangeEvent is seen as a user action.
+        setPropertyAsUser("opened", true);
     }
 
     /**
@@ -89,7 +91,7 @@ public class ContextMenuTester<T extends ContextMenu>
      */
     public void close() {
         ensureComponentIsUsable();
-        getComponent().getElement().setProperty("opened", false);
+        setPropertyAsUser("opened", false);
     }
 
     /**
