@@ -399,11 +399,11 @@ on locators. Use whichever fits — they search the same component tree.
 
 `find(Class)`, `findInView(Class)` and the typed locators all walk the same
 thing: the server-side component tree. A component that another component
-renders per item does not exist until something renders it, and the content of
-an overlay is attached only while the overlay is open. Neither is in the tree
-until then — reach it through that component's tester instead. The lookup
-returns an empty result rather than an error, so the failure reads as "the
-component was never created".
+renders per item is rendered into that component and not into the tree, and
+the content of an overlay is attached only while the overlay is open. Neither
+is reachable that way — reach it through that component's tester instead. The
+lookup returns an empty result rather than an error, so the failure reads as
+"the component was never created".
 
 ### Components rendered per item
 
@@ -412,8 +412,9 @@ grid.addComponentColumn(person -> new Checkbox(person.isSubscriber()))
         .setKey("subscriber");
 ```
 
-No checkbox exists until the renderer is asked to render a *specific* item, so
-`find(Checkbox.class)` finds none. `GridTester` renders the cell on demand:
+A grid renders that checkbox into the column, not into the grid, so
+`find(Checkbox.class)` finds none of them, no matter how many rows are on
+screen. `GridTester` hands out the one the grid rendered:
 
 ```java
 var checkbox = (Checkbox) test(grid).getCellComponent(0, "subscriber");
@@ -421,11 +422,18 @@ test(checkbox).click();
 ```
 
 - `getCellComponent(int row, int column)` / `getCellComponent(int row, String
-  columnKey)` — the component a `ComponentRenderer` column renders for a row.
-  Every call renders the cell again and attaches the new instance to the grid,
-  so asking twice for the same cell leaves two instances behind, and a later
-  `find()` reports both. Hold on to the component the tester returns instead of
-  asking for it again.
+  columnKey)` — the component the grid rendered for the cell, which is the one
+  the browser shows. Reading the same cell twice gives the same instance, and
+  the instance is replaced when the row is rendered anew, for example after
+  `refreshItem(...)`. A row the client has not asked for yet is scrolled into
+  view first, the way a user reaches it. A cell the grid does not render at
+  all, such as one in a hidden column, throws.
+- `renderCellComponent(int row, int column)` / `renderCellComponent(int row,
+  String columnKey)` — renders the cell on its own, without the grid, and
+  attaches the copy to the grid so that it can be used. Every call renders the
+  cell again and leaves the copy behind, so a later `find()` reports every one
+  of them. It is for the cells the grid does not render, and for tests written
+  against the old behaviour of `getCellComponent`.
 - `getCellText(int row, int column)` — the text the cell sends to the client,
   for both value and component renderers.
 - `getLitRendererPropertyValue(...)` / `invokeLitRendererFunction(...)` — for

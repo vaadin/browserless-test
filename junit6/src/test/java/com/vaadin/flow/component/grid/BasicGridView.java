@@ -34,6 +34,7 @@ public class BasicGridView extends Component implements HasComponents {
     static final String SUBSCRIBER_KEY = "Subscriber";
     static final String DECEASED_KEY = "Deceased";
     static final String BUTTON_KEY = "Button";
+    static final String HIDDEN_BUTTON_KEY = "Hidden Button";
 
     final Grid<Person> basicGrid;
     final Person person1;
@@ -57,6 +58,9 @@ public class BasicGridView extends Component implements HasComponents {
                 .addComponentColumn(person -> new Button("Click",
                         e -> Notification.show("Clicked!")))
                 .setKey(BUTTON_KEY).setHeader("Button");
+        basicGrid.addComponentColumn(person -> new Button("Hidden"))
+                .setKey(HIDDEN_BUTTON_KEY).setHeader("Hidden Button")
+                .setVisible(false);
 
         add(basicGrid);
 
