@@ -81,8 +81,19 @@ for it — not enforced at set time.
 
 The exception is a control that physically cannot produce the value: a slider
 clamps to its range and snaps to its step, so `RangeInputTester` and
-`NumberSliderTester` do refuse out-of-range and off-step values. Structural
+`NumberSliderTester` do refuse out-of-range and off-step values. A text input
+truncates what is over `maxLength` and filters out the keystrokes
+`allowedCharPattern` does not match, so `TextFieldTester` and `TextAreaTester`
+refuse a value that breaks either one — while `minLength`, `pattern` and
+required stay validation-only and keep committing an invalid value. Structural
 refusals stay too, such as `null` on a field whose empty value is not `null`.
+
+Where the line falls is a question about the control, not about the constraint:
+ask whether a user sitting in front of the component could hand the field that
+value at all. When they could not, refuse it with an `IllegalArgumentException`
+whose message says what the browser does instead, rather than silently
+correcting the value — a test that asks for the impossible has a bug in it, and
+truncating or clamping behind its back would hide it.
 
 `isValid()` means "not marked invalid, and the current value passes the
 component's own default validator" — it delegates to `getDefaultValidator()`
