@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -47,8 +48,17 @@ class GetTextCellRendererTest extends BrowserlessTest {
     }
 
     @Test
-    void getCellText_renderNull_getsNull() {
-        Assertions.assertNull(grid_.getCellText(0, 1));
+    void getCellText_renderNull_getsEmptyString() {
+        // a renderer that returns no component renders an empty cell: the
+        // grid puts an empty text node in its place
+        Assertions.assertEquals("", grid_.getCellText(0, 1));
+    }
+
+    @Test
+    void getCellComponent_renderNull_getsTheEmptyTextTheGridRenders() {
+        // the grid renders an empty text node where the renderer produced
+        // nothing, so there is a component to hand out
+        Assertions.assertInstanceOf(Text.class, grid_.getCellComponent(0, 1));
     }
 
     @Test

@@ -38,16 +38,35 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
     }
 
     /**
-     * Set the value to the component if it is usable.
-     *
-     * For a non interactable component an IllegalStateException will be thrown
-     * as the end user would not be able to set a value.
+     * Set the given value for the component, as the user would type it.
+     * <p>
+     * A value that only breaks a validation constraint — shorter than
+     * {@literal minLength}, not matching {@literal pattern}, or the empty value
+     * on a required field — is committed all the same, because the browser
+     * commits it too and simply leaves the field invalid. Assert that outcome
+     * with {@link com.vaadin.flow.component.HasValidation#isInvalid()} instead
+     * of expecting this method to throw.
+     * <p>
+     * A value the user physically cannot type is refused: the browser truncates
+     * what is over {@literal maxLength} and filters out the keystrokes
+     * {@literal allowedCharPattern} does not match, so a longer value or a
+     * disallowed character fails with an {@link IllegalArgumentException}. So
+     * does {@code null}, as a text area has no null state — emptying the field
+     * is {@link #clear()}.
      *
      * @param value
      *            value to set
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if the value is one the user could not have typed
      */
     public void setValue(String value) {
         ensureComponentIsUsable();
+
+        TextInputConstraints.ensureValueIsNotNull(getComponent(), value);
+        TextInputConstraints.ensureValueCanBeTyped(getComponent(), value);
+
         setValueAsUser(value);
     }
 

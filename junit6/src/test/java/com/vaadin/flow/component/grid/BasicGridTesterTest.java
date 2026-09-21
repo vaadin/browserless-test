@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -374,23 +375,115 @@ class BasicGridTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void find_componentRenderedIntoCell_notInTreeButReachableThroughTester() {
-        // A ComponentRenderer component does not exist until the renderer is
-        // asked to render a specific item, so there is nothing for find() to
-        // walk into.
+    void getCellComponent_readTwice_returnsTheComponentTheGridRendered() {
+        // A ComponentRenderer component is created when the grid renders the
+        // row for the client, and it is rendered into the column rather than
+        // into the grid, so there is nothing for find() to walk into.
         Assertions.assertEquals(0, find(Button.class).all().size(),
                 "a component rendered into a grid cell should not be reachable through find()");
 
         final Component cellComponent = test(view.basicGrid).getCellComponent(1,
                 BasicGridView.BUTTON_KEY);
-        final Component renderedAgain = test(view.basicGrid).getCellComponent(1,
+        final Component readAgain = test(view.basicGrid).getCellComponent(1,
                 BasicGridView.BUTTON_KEY);
 
         Assertions.assertInstanceOf(Button.class, cellComponent);
-        Assertions.assertNotSame(cellComponent, renderedAgain,
+        Assertions.assertSame(cellComponent, readAgain,
+                "reading the same cell twice should give the one component the grid renders for it");
+        Assertions.assertEquals(0, find(Button.class).all().size(),
+                "reading a cell should not attach a component to the grid");
+    }
+
+    @Test
+    void getCellComponent_itemRefreshed_returnsTheComponentRenderedAnew() {
+        final Component beforeRefresh = test(view.basicGrid).getCellComponent(1,
+                BasicGridView.BUTTON_KEY);
+
+        view.basicGrid.getListDataView().refreshItem(view.person2);
+
+        final Component afterRefresh = test(view.basicGrid).getCellComponent(1,
+                BasicGridView.BUTTON_KEY);
+        Assertions.assertNotSame(beforeRefresh, afterRefresh,
+                "a refreshed row is rendered anew, so its cell has a new component");
+        Assertions.assertFalse(beforeRefresh.isAttached(),
+                "the component the refreshed row replaced should be gone");
+        Assertions.assertTrue(afterRefresh.isAttached(),
+                "the component of the refreshed row should be the rendered one");
+    }
+
+    @Test
+    void getCellComponent_rowOutsideRenderedRange_scrollsItIntoView() {
+        // the client has only asked for the first row
+        view.basicGrid.setPageSize(1);
+
+        final Component cellComponent = test(view.basicGrid).getCellComponent(1,
+                4);
+
+        Assertions.assertInstanceOf(Button.class, cellComponent);
+        Assertions.assertSame(cellComponent,
+                test(view.basicGrid).getCellComponent(1, 4),
+                "the row scrolled into view should stay rendered");
+    }
+
+    @Test
+    void getCellComponent_hiddenColumn_throwsAndSuggestsRendering() {
+        GridTester<Grid<Person>, Person> grid_ = test(view.basicGrid);
+
+        // the browser shows no cell for a hidden column, so the grid renders
+        // no component for it
+        Assertions.assertThrows(IllegalStateException.class, () -> grid_
+                .getCellComponent(1, BasicGridView.HIDDEN_BUTTON_KEY));
+
+        Assertions.assertInstanceOf(Button.class,
+                grid_.renderCellComponent(1, BasicGridView.HIDDEN_BUTTON_KEY));
+    }
+
+    @Test
+    void getCellComponent_itemsNotEqualAcrossFetches_throwsAndSuggestsRendering() {
+        // a data provider that hands out a new item instance on every fetch:
+        // the grid cannot tell that the item on the row is the item it
+        // rendered the row for
+        final Grid<Person> lazyGrid = new Grid<>();
+        lazyGrid.addComponentColumn(person -> new Button(person.getFirstName()))
+                .setKey(BasicGridView.BUTTON_KEY);
+        lazyGrid.setItems(query -> IntStream
+                .range(query.getOffset(), query.getOffset() + query.getLimit())
+                .mapToObj(index -> {
+                    final Person person = new Person();
+                    person.setFirstName("Person " + index);
+                    return person;
+                }), query -> 100);
+        view.add(lazyGrid);
+
+        GridTester<Grid<Person>, Person> lazyGrid_ = test(lazyGrid);
+        final IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> lazyGrid_.getCellComponent(0, BasicGridView.BUTTON_KEY));
+        Assertions.assertTrue(
+                exception.getMessage().contains("Grid rendered no component")
+                        && exception.getMessage()
+                                .contains("renderCellComponent"),
+                "the failure should say the grid rendered nothing and point at the way to render the cell anyway");
+
+        Assertions.assertInstanceOf(Button.class,
+                lazyGrid_.renderCellComponent(0, BasicGridView.BUTTON_KEY));
+    }
+
+    @Test
+    void renderCellComponent_rendersACopyAndAttachesItToTheGrid() {
+        final Component rendered = test(view.basicGrid).renderCellComponent(1,
+                4);
+        final Component renderedAgain = test(view.basicGrid)
+                .renderCellComponent(1, 4);
+
+        Assertions.assertNotSame(rendered, renderedAgain,
                 "every call should render the cell anew");
         Assertions.assertEquals(2, find(Button.class).all().size(),
-                "every rendered instance is attached to the grid and found from then on");
+                "every rendered copy is attached to the grid and found from then on");
+        Assertions.assertNotSame(rendered,
+                test(view.basicGrid).getCellComponent(1,
+                        BasicGridView.BUTTON_KEY),
+                "a rendered copy is not the component the grid shows");
     }
 
     @Test

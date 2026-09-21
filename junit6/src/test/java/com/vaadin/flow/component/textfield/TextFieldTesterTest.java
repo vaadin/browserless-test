@@ -102,20 +102,32 @@ public class TextFieldTesterTest extends BrowserlessTest
         tf_.setValue(faultyValue);
         Assertions.assertEquals(faultyValue, view.textField.getValue(),
                 "Value should have been set.");
+        Assertions.assertTrue(tf_.getComponent().isInvalid(),
+                "A validation-only constraint leaves the field invalid");
     }
 
     @Test
-    public void textFieldWithPattern_patternIsValidated() {
+    public void textFieldWithAllowedCharPattern_disallowedCharIsRefused() {
         TextField tf = view.textField;
         // Only accept numbers
-        tf.setAllowedCharPattern("\\d*");
+        tf.setAllowedCharPattern("\\d");
 
         final TextFieldTester<TextField, String> tf_ = test(tf);
         tf_.setValue("1234");
-
         Assertions.assertEquals("1234", tf.getValue());
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tf_.setValue("hello"),
+                "The browser filters out a keystroke the allowed char pattern "
+                        + "does not match");
+        Assertions.assertEquals("1234", tf.getValue(),
+                "A refused value should not have been committed");
+
+        // The browser only warns about a pattern it cannot compile.
+        tf.setAllowedCharPattern("[0-9");
         tf_.setValue("hello");
-        Assertions.assertFalse(tf_.getComponent().isInvalid());
+        Assertions.assertEquals("hello", tf.getValue(),
+                "A pattern that is not a regular expression restricts nothing");
     }
 
     @Test
@@ -129,13 +141,28 @@ public class TextFieldTesterTest extends BrowserlessTest
     }
 
     @Test
-    public void textFieldWithMaxLength_lengthIsChecked() {
+    public void textFieldWithMaxLength_longerValueIsRefused() {
         TextField tf = view.textField;
         tf.setMaxLength(3);
 
         final TextFieldTester<TextField, String> tf_ = test(tf);
-        tf_.setValue("1234");
-        Assertions.assertTrue(tf_.getComponent().isInvalid());
+        tf_.setValue("123");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A value at the limit should have been set");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tf_.setValue("1234"),
+                "The browser truncates the characters over maxLength");
+        Assertions.assertEquals("123", tf.getValue(),
+                "A refused value should not have been committed");
+
+        tf.setMaxLength(0);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> tf_.setValue("1"),
+                "A maxLength of zero is a limit of zero, not an unset limit");
+        tf_.setValue("");
+        Assertions.assertEquals("", tf.getValue(),
+                "Emptying the field stays possible under any limit");
     }
 
     @Test

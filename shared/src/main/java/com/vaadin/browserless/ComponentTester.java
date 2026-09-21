@@ -156,10 +156,10 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * <p>
      * The query walks the server-side component tree. A component that another
      * component renders per item, such as the component a
-     * {@code ComponentRenderer} column renders for a grid row, does not exist
-     * until something renders it, and the content of an overlay, such as a
-     * context menu, is attached only while the overlay is open. Neither is in
-     * the tree until then, and the lookup returns an empty result rather than
+     * {@code ComponentRenderer} column renders for a grid row, is rendered into
+     * the column and not into the tree, and the content of an overlay, such as
+     * a context menu, is attached only while the overlay is open. Neither is
+     * reachable this way, and the lookup returns an empty result rather than
      * failing, so reach those components through the owning component tester
      * instead: {@code GridTester.getCellComponent(row, column)} for grid cells,
      * {@code ContextMenuTester.open()} and then {@code clickItem(...)} for a

@@ -52,8 +52,12 @@ with `isValid()` rather than refusing the value at set time.
 
 Refuse a value only when the real control physically cannot produce it: a
 slider clamps to its range and snaps to its step, so `RangeInputTester` and
-`NumberSliderTester` do reject out-of-range and off-step values. Structural
-refusals stay too, such as `null` on a field whose empty value is not `null`.
+`NumberSliderTester` do reject out-of-range and off-step values, and a text
+input truncates at `maxLength` and filters the keystrokes `allowedCharPattern`
+does not match, so `TextFieldTester` and `TextAreaTester` reject a value that
+breaks either one. `minLength`, `pattern` and required are validation-only and
+keep committing an invalid value. Structural refusals stay too, such as `null`
+on a field whose empty value is not `null`.
 
 Read-only state counts towards usability. `isUsable()` is enabled + attached +
 effectively visible + not inert + not read-only, and effective visibility walks
