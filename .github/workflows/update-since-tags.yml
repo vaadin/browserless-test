@@ -36,7 +36,7 @@ jobs:
           cache: maven
 
       - id: since
-        uses: vaadin/github-actions/reconcile-since-tags@8743430abc47b783add936899c41a10f1d6d9987
+        uses: vaadin/github-actions/reconcile-since-tags@452570a6575db482f7a602673b26fbe891422f65
         with:
           group-id: com.vaadin
           version: ${{ inputs.dev }}
