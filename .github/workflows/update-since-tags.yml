@@ -40,11 +40,13 @@ jobs:
         with:
           group-id: com.vaadin
           version: ${{ inputs.dev }}
+          # Source roots are spelled out because the module directories are
+          # named after the module, not after the published artifact.
           artifacts: |
-            browserless-test-shared
-            browserless-test-junit6
-            browserless-test-spring
-            browserless-test-quarkus
+            browserless-test-shared=shared/src/main/java
+            browserless-test-junit6=junit6/src/main/java
+            browserless-test-spring=spring/src/main/java
+            browserless-test-quarkus=quarkus/src/main/java
 
       - name: Open pull request
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
