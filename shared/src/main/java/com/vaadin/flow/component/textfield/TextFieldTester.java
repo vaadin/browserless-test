@@ -102,6 +102,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
      *             visible
+     * @since 25.3
      */
     public void clickClearButton() {
         clickClearButtonAsUser();

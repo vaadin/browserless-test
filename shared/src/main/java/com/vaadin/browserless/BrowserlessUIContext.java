@@ -437,6 +437,7 @@ public class BrowserlessUIContext
      * their component instance and state; other views are recreated.
      *
      * @return the view shown after the reload
+     * @since 25.4
      */
     public HasElement reload() {
         activate();
@@ -452,6 +453,7 @@ public class BrowserlessUIContext
      * @param <T>
      *            the view type
      * @return the view shown after the reload
+     * @since 25.4
      */
     public <T extends Component> T reload(Class<T> expectedTarget) {
         activate();

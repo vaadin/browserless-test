@@ -61,6 +61,7 @@ public class BreadcrumbsTester<T extends Breadcrumbs>
      * from an empty string, which is the path of the application root.
      *
      * @return the item paths, with {@code null} for items that have no path
+     * @since 1.1.2
      */
     public List<String> getItemPaths() {
         ensureComponentIsUsable();

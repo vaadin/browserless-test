@@ -43,6 +43,7 @@ import com.vaadin.flow.data.renderer.Renderer;
  *            component type
  * @param <Y>
  *            item type
+ * @since 25.3
  */
 @Tests(fqn = { "com.vaadin.flow.component.treegrid.TreeGrid" })
 public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {

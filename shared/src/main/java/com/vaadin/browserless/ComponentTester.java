@@ -33,6 +33,7 @@ import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.AbstractCompositeField;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.AbstractFieldSupport;
@@ -105,6 +106,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * change its value, so it is considered not usable.
      *
      * @return {@code true} if the component is read-only
+     * @since 25.3
      */
     protected boolean isComponentReadOnly() {
         return getComponent() instanceof HasValue<?, ?> hasValue
@@ -201,6 +203,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @throws IllegalStateException
      *             if the component is not usable, with details on its current
      *             state.
+     * @since 25.3
      */
     protected void ensureComponentIsUsableOrDetach() {
         try {
@@ -314,6 +317,73 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
                     PrettyPrintTree.toPrettyString(component)
                             + " is not visible!");
         }
+    }
+
+    /**
+     * Simulates the user moving keyboard focus to the wrapped component.
+     * <p>
+     * Fires a blur event on the previously focused component and a focus event
+     * on this one, as if they came from the client. Focus also moves implicitly
+     * when interacting with components through testers, so calling this is
+     * rarely needed.
+     *
+     * @throws IllegalArgumentException
+     *             if the component cannot be focused because it is not a
+     *             {@link Focusable}
+     * @throws IllegalStateException
+     *             if the component cannot accept focus in its current state,
+     *             for example because it is disabled or not attached
+     * @since 25.4
+     */
+    public void focus() {
+        ensureComponentCanBeFocused();
+        FocusTracker.flush(FocusTracker.moveFocusTo(component));
+    }
+
+    /**
+     * Checks whether the wrapped component currently has keyboard focus in the
+     * simulated browser, including focus given with server-side
+     * {@link Focusable#focus()} calls.
+     *
+     * @return {@code true} if the component is focused
+     * @since 25.4
+     */
+    public boolean isFocused() {
+        return component.getUI().flatMap(FocusTracker::getFocusedComponent)
+                .filter(focused -> focused == component).isPresent();
+    }
+
+    /**
+     * Simulates the wrapped component losing keyboard focus, firing a blur
+     * event as if it came from the client. Blurring a component that does not
+     * have focus is a no-op, as in a browser.
+     * <p>
+     * Focus also moves implicitly when interacting with other components
+     * through testers, so calling this is only needed when nothing else is
+     * interacted with after this component.
+     *
+     * @throws IllegalArgumentException
+     *             if the component cannot be focused because it is not a
+     *             {@link Focusable}
+     * @throws IllegalStateException
+     *             if the component cannot accept focus in its current state,
+     *             for example because it is disabled or not attached
+     * @since 25.4
+     */
+    public void blur() {
+        ensureComponentCanBeFocused();
+        FocusTracker.flush(FocusTracker.blur(component));
+    }
+
+    private void ensureComponentCanBeFocused() {
+        if (!(component instanceof Focusable)) {
+            throw new IllegalArgumentException(
+                    PrettyPrintTreeKt.toPrettyString(component)
+                            + " is not Focusable");
+        }
+        // Unlike other interactions, focus does not care about read-only: a
+        // read-only field can still be focused, a disabled one cannot
+        ensureComponentIsUsable(component, c -> isUsable(c));
     }
 
     /**
@@ -548,6 +618,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *             if the component is not usable
      * @throws IllegalArgumentException
      *             if the component does not hold a value
+     * @since 25.3
      */
     protected void clearAsUser() {
         ensureComponentIsUsable();
@@ -573,6 +644,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *             visible
      * @throws IllegalArgumentException
      *             if the component does not hold a value
+     * @since 25.3
      */
     protected void clickClearButtonAsUser() {
         ensureComponentIsUsable();
@@ -607,7 +679,11 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the new value, may be null.
      */
     protected <V> void setValueAsUser(V value) {
-        setValueAsUser(asHasValue(), value);
+        final HasValue<?, V> field = asHasValue();
+        UI ui = FocusTracker.moveFocusTo(component);
+        setValueAsUser(field, value);
+        // Value change listeners may have called Focusable.focus()
+        FocusTracker.flush(ui);
     }
 
     /**
@@ -628,6 +704,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the field to set the value to, not {@literal null}.
      * @param value
      *            the new value, may be null.
+     * @since 25.3
      */
     protected <V> void setValueAsUser(HasValue<?, V> field, V value) {
         final AbstractFieldSupport<?, V> fs = getFieldSupport(field);
@@ -657,6 +734,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @param field
      *            the field to check, not {@literal null}.
      * @return {@literal true} if the value can be set as a user
+     * @since 25.3
      */
     protected boolean canSetValueAsUser(HasValue<?, ?> field) {
         return field instanceof AbstractField
@@ -678,6 +756,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the value as the client would send it, may be null.
      * @throws IllegalStateException
      *             if the property does not accept updates from the client
+     * @since 25.3
      */
     protected void setPropertyAsUser(String property, Serializable value) {
         try {

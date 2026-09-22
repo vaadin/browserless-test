@@ -73,6 +73,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *
      * @throws IllegalStateException
      *             if the component is not usable
+     * @since 25.3
      */
     public void clear() {
         clearAsUser();
@@ -88,6 +89,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
      *             visible
+     * @since 25.3
      */
     public void clickClearButton() {
         clickClearButtonAsUser();
@@ -108,6 +110,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *
      * @return {@code true} if the field is not marked invalid and its current
      *         value satisfies the constraints of the field
+     * @since 25.3
      */
     public boolean isValid() {
         final V value = getComponent().getValue();
@@ -126,6 +129,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
      *             {@literal min - max} range
+     * @since 25.3
      */
     public void stepUp() {
         stepUp(1);
@@ -147,6 +151,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
      *             {@literal min - max} range
+     * @since 25.3
      */
     public void stepUp(int times) {
         step(times, true);
@@ -163,6 +168,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
      *             {@literal min - max} range
+     * @since 25.3
      */
     public void stepDown() {
         stepDown(1);
@@ -185,6 +191,7 @@ public class NumberFieldTester<T extends AbstractNumberField<T, V>, V extends Nu
      *             if the component is not usable, the step buttons are not
      *             visible, or the new value would be outside the
      *             {@literal min - max} range
+     * @since 25.3
      */
     public void stepDown(int times) {
         step(times, false);

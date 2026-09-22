@@ -85,6 +85,7 @@ public class DialogTester extends ComponentTester<Dialog> {
      * @throws IllegalStateException
      *             if the dialog is not usable, e.g. not open, or close-on-Esc
      *             is disabled
+     * @since 25.3
      */
     public void pressEscape() {
         ensureComponentIsUsable();
@@ -105,6 +106,7 @@ public class DialogTester extends ComponentTester<Dialog> {
      * @throws IllegalStateException
      *             if the dialog is not usable, e.g. not open, or
      *             close-on-outside-click is disabled
+     * @since 25.3
      */
     public void clickOutside() {
         ensureComponentIsUsable();
@@ -119,6 +121,7 @@ public class DialogTester extends ComponentTester<Dialog> {
      * Check if the dialog is open.
      *
      * @return true if the dialog is open
+     * @since 25.3
      */
     public boolean isOpen() {
         return getComponent().isOpened();
@@ -152,6 +155,7 @@ public class DialogTester extends ComponentTester<Dialog> {
      * @return a query for components of the given type in the dialog's header
      * @throws IllegalStateException
      *             if the dialog is not usable, e.g. not open
+     * @since 25.3
      */
     public <R extends Component> ComponentQuery<R> findInHeader(
             Class<R> componentType) {
@@ -174,6 +178,7 @@ public class DialogTester extends ComponentTester<Dialog> {
      * @return a query for components of the given type in the dialog's footer
      * @throws IllegalStateException
      *             if the dialog is not usable, e.g. not open
+     * @since 25.3
      */
     public <R extends Component> ComponentQuery<R> findInFooter(
             Class<R> componentType) {

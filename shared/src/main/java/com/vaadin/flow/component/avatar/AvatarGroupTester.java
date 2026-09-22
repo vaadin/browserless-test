@@ -39,6 +39,7 @@ import com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupItem;
  *
  * @param <T>
  *            component type
+ * @since 25.3
  */
 @Tests(AvatarGroup.class)
 public class AvatarGroupTester<T extends AvatarGroup>

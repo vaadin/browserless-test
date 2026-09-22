@@ -703,6 +703,7 @@ public class ComponentQuery<T extends Component> {
      * @return this element query instance for chaining
      * @throws IllegalArgumentException
      *             if {@code slot} is {@literal null} or blank
+     * @since 25.3
      */
     public ComponentQuery<T> withinSlot(String slot) {
         if (slot == null || slot.isBlank()) {

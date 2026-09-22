@@ -228,6 +228,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      *            the name of the slot the component must sit in
      * @return this locator, for chaining
      * @see ComponentQuery#withinSlot(String)
+     * @since 25.3
      */
     public SELF withinSlot(String slot) {
         resetCache();

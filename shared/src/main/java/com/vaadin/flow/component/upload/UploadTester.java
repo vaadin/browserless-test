@@ -314,6 +314,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            name of the file to remove, as given when it was uploaded
      * @throws IllegalArgumentException
      *             if the file is not in the upload file list
+     * @since 25.3
      */
     public void removeFile(String fileName) {
         ensureComponentIsUsable();
@@ -339,6 +340,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            the file to remove
      * @throws IllegalArgumentException
      *             if the file is not in the upload file list
+     * @since 25.3
      */
     public void removeFile(File file) {
         removeFile(file.getName());
@@ -360,6 +362,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @return the outcome of the last simulated upload, one entry per file, or
      *         an empty list if no upload has been simulated yet
+     * @since 25.3
      */
     public List<FileStatus> getLastUploadStatus() {
         return state().lastUpload;
@@ -378,6 +381,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *             if no upload has been simulated on the component, or if any
      *             file of the last upload was not uploaded
      * @see #getLastUploadStatus()
+     * @since 25.3
      */
     public void ensureUploaded() {
         List<FileStatus> lastUpload = getLastUploadStatus();
@@ -885,6 +889,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
 
     /**
      * What became of a file handed to the tester for uploading.
+     * 
+     * @since 25.3
      */
     public enum UploadStatus {
         /**
@@ -920,6 +926,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * @param errorMessage
      *            the rejection or failure message, {@literal null} for an
      *            uploaded file
+     * @since 25.3
      */
     public record FileStatus(String fileName, UploadStatus status,
             String errorMessage) implements Serializable {

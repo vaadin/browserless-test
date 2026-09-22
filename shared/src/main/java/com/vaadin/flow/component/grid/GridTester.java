@@ -263,6 +263,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if not usable, if the row is not selected or if the grid
      *             doesn't support selection
+     * @since 25.3
      */
     public void deselect(int row) {
         ensureComponentIsUsable();
@@ -285,6 +286,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if not usable, not multi select or the select all checkbox is
      *             hidden
+     * @since 25.3
      */
     public void deselectAll() {
         ensureComponentIsUsable();
@@ -426,6 +428,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalArgumentException
      *             when the target column of the cell is not a component
      *             renderer
+     * @since 25.3
      */
     public Component renderCellComponent(int row, int column) {
         ensureVisible();
@@ -457,6 +460,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalArgumentException
      *             when column for property doesn't exist or the target column
      *             of the cell is not a component renderer
+     * @since 25.3
      */
     public Component renderCellComponent(int row, String columnName) {
         ensureVisible();
@@ -705,6 +709,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * as in the grid.
      * 
      * @return visible columns in the grid
+     * @since 25.3
      */
     protected List<Grid.Column<Y>> getColumns() {
         return getComponent().getColumns().stream().filter(Component::isVisible)
@@ -971,6 +976,7 @@ public class GridTester<T extends Grid<Y>, Y> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the grid is not usable, or if it has no context menu or
      *             more than one
+     * @since 25.3
      */
     @SuppressWarnings("unchecked")
     public GridContextMenuTester<GridContextMenu<Y>, Y> contextMenu(int row) {

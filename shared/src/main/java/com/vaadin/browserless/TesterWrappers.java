@@ -190,6 +190,7 @@ public interface TesterWrappers {
      * @param avatarGroup
      *            the component to wrap
      * @return a tester for the given component
+     * @since 25.3
      */
     default AvatarGroupTester<AvatarGroup> test(AvatarGroup avatarGroup) {
         return BaseBrowserlessTest.internalWrap(AvatarGroupTester.class,
@@ -225,6 +226,7 @@ public interface TesterWrappers {
      * @param card
      *            the component to wrap
      * @return a tester for the given component
+     * @since 25.3
      */
     default CardTester<Card> test(Card card) {
         return BaseBrowserlessTest.internalWrap(CardTester.class, card);
@@ -453,6 +455,7 @@ public interface TesterWrappers {
      *            the type of the items in the grid the menu is attached to
      * @return a GridContextMenuTester instance wrapping the given
      *         GridContextMenu
+     * @since 25.3
      */
     default <V> GridContextMenuTester<GridContextMenu<V>, V> test(
             GridContextMenu<V> gridContextMenu) {
@@ -770,6 +773,7 @@ public interface TesterWrappers {
      * @param splitLayout
      *            the component to wrap
      * @return a tester for the given component
+     * @since 25.3
      */
     default SplitLayoutTester<SplitLayout> test(SplitLayout splitLayout) {
         return BaseBrowserlessTest.internalWrap(SplitLayoutTester.class,
@@ -922,6 +926,7 @@ public interface TesterWrappers {
      * @param treeGrid
      *            the TreeGrid instance to be tested
      * @return a TreeGridTester instance wrapping the given TreeGrid
+     * @since 25.3
      */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid<V> treeGrid) {
         return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
@@ -943,6 +948,7 @@ public interface TesterWrappers {
      * @param itemType
      *            the type of the items in the TreeGrid
      * @return a TreeGridTester instance wrapping the given TreeGrid
+     * @since 25.3
      */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid treeGrid,
             Class<V> itemType) {

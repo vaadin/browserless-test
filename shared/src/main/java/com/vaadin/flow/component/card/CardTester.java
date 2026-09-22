@@ -40,6 +40,7 @@ import com.vaadin.flow.component.html.Span;
  *
  * @param <T>
  *            component type
+ * @since 25.3
  */
 @Tests(Card.class)
 public class CardTester<T extends Card> extends ComponentTester<T> {

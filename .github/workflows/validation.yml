@@ -87,7 +87,7 @@ jobs:
           rm -rf ~/.m2/repository
 
       - name: Build with Maven and Generate Javadoc
-        run: mvn clean install -DskipTests -Djavadocs -B
+        run: mvn clean install -DskipTests -Djavadocs -B -ntp
 
   unit-tests:
     name: Unit Tests
@@ -115,7 +115,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ github.run_id }}
 
       - name: Run unit tests
-        run: mvn test -B
+        run: mvn test -B -ntp
 
       - name: Upload test results
         if: always()
