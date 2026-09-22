@@ -554,6 +554,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * @throws IllegalArgumentException
          *             if the name is blank or reserved by the browserless
          *             environment
+         * @since 25.3
          */
         public Builder withApplicationProperty(String name, String value) {
             configuration.withApplicationProperty(name, value);
@@ -570,6 +571,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * @throws IllegalArgumentException
          *             if a name is blank or reserved by the browserless
          *             environment
+         * @since 25.3
          */
         public Builder withApplicationProperties(
                 Map<String, String> properties) {
@@ -587,6 +589,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          *            the identifiers of the features to enable; must not be
          *            {@code null}
          * @return this builder
+         * @since 25.3
          */
         public Builder withFeatureFlags(String... featureIds) {
             configuration.withFeatureFlags(featureIds);
@@ -602,6 +605,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * @param features
          *            the features to enable; must not be {@code null}
          * @return this builder
+         * @since 25.3
          */
         public Builder withFeatureFlags(Feature... features) {
             configuration.withFeatureFlags(features);
@@ -620,6 +624,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          *            {@code true} to enable the feature, {@code false} to
          *            disable it
          * @return this builder
+         * @since 25.3
          */
         public Builder withFeatureFlag(String featureId, boolean enabled) {
             configuration.withFeatureFlag(featureId, enabled);
@@ -638,6 +643,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          *            {@code true} to enable the feature, {@code false} to
          *            disable it
          * @return this builder
+         * @since 25.3
          */
         public Builder withFeatureFlag(Feature feature, boolean enabled) {
             configuration.withFeatureFlag(feature, enabled);
@@ -659,6 +665,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * @param testConfiguration
          *            the configuration to apply; must not be {@code null}
          * @return this builder
+         * @since 25.3
          */
         public Builder withConfiguration(
                 BrowserlessConfiguration testConfiguration) {

@@ -94,6 +94,7 @@ public abstract class BaseBrowserlessTest {
      *
      * @return the set of services implementation classes, never
      *         {@literal null}.
+     * @since 25.3
      */
     protected final Set<Class<?>> allLookupServices() {
         return allLookupServices(testConfiguration());
@@ -117,6 +118,7 @@ public abstract class BaseBrowserlessTest {
      *            {@literal null}
      * @return the set of services implementation classes, never
      *         {@literal null}.
+     * @since 25.3
      */
     @SuppressWarnings("deprecation")
     protected final Set<Class<?>> allLookupServices(

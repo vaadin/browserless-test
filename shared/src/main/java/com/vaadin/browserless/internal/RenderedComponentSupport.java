@@ -32,6 +32,8 @@ import com.vaadin.flow.internal.ReflectTools;
  * the client has asked for.
  * <p>
  * For internal use only.
+ * 
+ * @since 25.3
  */
 public final class RenderedComponentSupport {
 

@@ -39,7 +39,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *
  * @param <T>
  *            the dashboard type
- * @since 1.1
+ * @since 1.1.2
  */
 @Tests(Dashboard.class)
 public class DashboardTester<T extends Dashboard> extends ComponentTester<T> {
