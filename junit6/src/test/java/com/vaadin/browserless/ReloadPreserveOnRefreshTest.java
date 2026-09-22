@@ -66,6 +66,21 @@ class ReloadPreserveOnRefreshTest extends BrowserlessTest {
     }
 
     @Test
+    void reload_clearsFocus() {
+        navigate(PreservedCounterView.class);
+        Button increment = find(Button.class).withId("increment").single();
+        test(increment).focus();
+        Assertions.assertTrue(test(increment).isFocused());
+
+        reload(PreservedCounterView.class);
+
+        // Focus is tracked per UI and a reload builds a new one, so nothing
+        // is focused afterwards, just like after pressing F5
+        Assertions.assertFalse(test(increment).isFocused(),
+                "Focus must not survive a reload, not even in a preserved view");
+    }
+
+    @Test
     void reload_replaysRouteParameterAndQueryString() {
         ParameterizedCounterView view = navigate(
                 "param-counter/order-1?tab=history",
