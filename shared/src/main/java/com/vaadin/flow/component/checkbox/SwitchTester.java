@@ -26,6 +26,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 25.3
  */
 @Tests(Switch.class)
 public class SwitchTester<T extends Switch> extends ComponentTester<T> {

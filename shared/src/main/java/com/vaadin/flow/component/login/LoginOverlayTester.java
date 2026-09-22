@@ -98,6 +98,7 @@ public class LoginOverlayTester<T extends LoginOverlay>
      * @return a query for components of the given type in the overlay's footer
      * @throws IllegalStateException
      *             if the overlay is not usable, e.g. not open
+     * @since 25.3
      */
     public <R extends Component> ComponentQuery<R> findInFooter(
             Class<R> componentType) {
@@ -121,6 +122,7 @@ public class LoginOverlayTester<T extends LoginOverlay>
      *         form area
      * @throws IllegalStateException
      *             if the overlay is not usable, e.g. not open
+     * @since 25.3
      */
     public <R extends Component> ComponentQuery<R> findInCustomFormArea(
             Class<R> componentType) {

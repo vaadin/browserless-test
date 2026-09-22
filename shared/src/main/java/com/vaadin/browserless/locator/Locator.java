@@ -181,6 +181,7 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * {@link ComponentQuery#withinSlot(String)} for annotated component trees.
      *
      * @see ComponentQuery#withinSlot(String)
+     * @since 25.3
      */
     public SELF withinSlot(String slot) {
         resetCache();

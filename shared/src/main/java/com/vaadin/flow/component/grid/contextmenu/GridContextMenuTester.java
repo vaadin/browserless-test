@@ -47,6 +47,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *            component type
  * @param <Y>
  *            item type
+ * @since 25.3
  */
 @Tests(fqn = { "com.vaadin.flow.component.grid.contextmenu.GridContextMenu" })
 public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>

@@ -74,6 +74,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
      *
      * @return {@code true} if the field is not marked invalid and its current
      *         value satisfies the constraints of the field
+     * @since 25.3
      */
     public boolean isValid() {
         final LocalDateTime dateTime = getComponent().getValue();
@@ -91,6 +92,7 @@ public class DateTimePickerTester<T extends DateTimePicker>
      *
      * @throws IllegalStateException
      *             if the component is not usable
+     * @since 25.3
      */
     public void clear() {
         clearAsUser();

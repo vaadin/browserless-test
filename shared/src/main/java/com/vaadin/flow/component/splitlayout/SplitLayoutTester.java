@@ -32,6 +32,7 @@ import com.vaadin.flow.internal.JacksonUtils;
  *
  * @param <T>
  *            component type
+ * @since 25.3
  */
 @Tests(SplitLayout.class)
 public class SplitLayoutTester<T extends SplitLayout>

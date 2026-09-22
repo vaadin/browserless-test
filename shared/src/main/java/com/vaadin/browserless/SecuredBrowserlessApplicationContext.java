@@ -217,6 +217,7 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withApplicationProperty
+         * @since 25.3
          */
         public Builder<C> withApplicationProperty(String name, String value) {
             base.withApplicationProperty(name, value);
@@ -225,6 +226,7 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withApplicationProperties
+         * @since 25.3
          */
         public Builder<C> withApplicationProperties(
                 Map<String, String> properties) {
@@ -234,6 +236,7 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withFeatureFlags(String...)
+         * @since 25.3
          */
         public Builder<C> withFeatureFlags(String... featureIds) {
             base.withFeatureFlags(featureIds);
@@ -242,6 +245,7 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withFeatureFlags(Feature...)
+         * @since 25.3
          */
         public Builder<C> withFeatureFlags(Feature... features) {
             base.withFeatureFlags(features);
@@ -251,6 +255,7 @@ public class SecuredBrowserlessApplicationContext<C>
         /**
          * @see BrowserlessApplicationContext.Builder#withFeatureFlag(String,
          *      boolean)
+         * @since 25.3
          */
         public Builder<C> withFeatureFlag(String featureId, boolean enabled) {
             base.withFeatureFlag(featureId, enabled);
@@ -260,6 +265,7 @@ public class SecuredBrowserlessApplicationContext<C>
         /**
          * @see BrowserlessApplicationContext.Builder#withFeatureFlag(Feature,
          *      boolean)
+         * @since 25.3
          */
         public Builder<C> withFeatureFlag(Feature feature, boolean enabled) {
             base.withFeatureFlag(feature, enabled);
@@ -268,6 +274,7 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withConfiguration
+         * @since 25.3
          */
         public Builder<C> withConfiguration(
                 BrowserlessConfiguration configuration) {

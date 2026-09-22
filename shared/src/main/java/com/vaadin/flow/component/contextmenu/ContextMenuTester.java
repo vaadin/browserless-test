@@ -428,6 +428,7 @@ public class ContextMenuTester<T extends ContextMenu>
      *         are shown in
      * @throws IllegalStateException
      *             if the menu is not open, or is not visible
+     * @since 25.3
      */
     public List<String> getItemTexts() {
         ensureVisible();
@@ -475,6 +476,7 @@ public class ContextMenuTester<T extends ContextMenu>
      *             if the menu is not open or not visible, if there are multiple
      *             matching items at any level, or if the item at the given path
      *             is disabled or not visible.
+     * @since 25.3
      */
     public List<String> getItemTexts(String topLevelText,
             String... nestedItemsText) {
