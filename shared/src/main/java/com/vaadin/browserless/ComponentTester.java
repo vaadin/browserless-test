@@ -378,7 +378,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     private void ensureComponentCanBeFocused() {
         if (!(component instanceof Focusable)) {
             throw new IllegalArgumentException(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not Focusable");
         }
         // Unlike other interactions, focus does not care about read-only: a
