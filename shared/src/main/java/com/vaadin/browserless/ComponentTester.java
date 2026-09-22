@@ -106,6 +106,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * change its value, so it is considered not usable.
      *
      * @return {@code true} if the component is read-only
+     * @since 25.3
      */
     protected boolean isComponentReadOnly() {
         return getComponent() instanceof HasValue<?, ?> hasValue
@@ -200,6 +201,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @throws IllegalStateException
      *             if the component is not usable, with details on its current
      *             state.
+     * @since 25.3
      */
     protected void ensureComponentIsUsableOrDetach() {
         try {
@@ -320,6 +322,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @throws IllegalStateException
      *             if the component cannot accept focus in its current state,
      *             for example because it is disabled or not attached
+     * @since 25.4
      */
     public void focus() {
         ensureComponentCanBeFocused();
@@ -332,6 +335,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * {@link Focusable#focus()} calls.
      *
      * @return {@code true} if the component is focused
+     * @since 25.4
      */
     public boolean isFocused() {
         return component.getUI().flatMap(FocusTracker::getFocusedComponent)
@@ -353,6 +357,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @throws IllegalStateException
      *             if the component cannot accept focus in its current state,
      *             for example because it is disabled or not attached
+     * @since 25.4
      */
     public void blur() {
         ensureComponentCanBeFocused();
@@ -603,6 +608,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *             if the component is not usable
      * @throws IllegalArgumentException
      *             if the component does not hold a value
+     * @since 25.3
      */
     protected void clearAsUser() {
         ensureComponentIsUsable();
@@ -628,6 +634,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *             visible
      * @throws IllegalArgumentException
      *             if the component does not hold a value
+     * @since 25.3
      */
     protected void clickClearButtonAsUser() {
         ensureComponentIsUsable();
@@ -683,6 +690,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the field to set the value to, not {@literal null}.
      * @param value
      *            the new value, may be null.
+     * @since 25.3
      */
     protected <V> void setValueAsUser(HasValue<?, V> field, V value) {
         final AbstractFieldSupport<?, V> fs = getFieldSupport(field);
@@ -712,6 +720,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * @param field
      *            the field to check, not {@literal null}.
      * @return {@literal true} if the value can be set as a user
+     * @since 25.3
      */
     protected boolean canSetValueAsUser(HasValue<?, ?> field) {
         return field instanceof AbstractField
@@ -733,6 +742,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      *            the value as the client would send it, may be null.
      * @throws IllegalStateException
      *             if the property does not accept updates from the client
+     * @since 25.3
      */
     protected void setPropertyAsUser(String property, Serializable value) {
         try {

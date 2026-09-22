@@ -36,6 +36,7 @@ public interface CommercialTesterWrappers {
      * @param grid
      *            the GridPro instance to be tested
      * @return a GridProTester instance wrapping the given GridPro
+     * @since 25.3
      */
     default <V> GridProTester<GridPro<V>, V> test(GridPro<V> grid) {
         return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
@@ -49,6 +50,7 @@ public interface CommercialTesterWrappers {
      * @param itemType
      *            the type of the items in the GridPro
      * @return a GridProTester instance wrapping the given GridPro
+     * @since 25.3
      */
     default <V> GridProTester<GridPro<V>, V> test(GridPro grid,
             Class<V> itemType) {
@@ -72,7 +74,7 @@ public interface CommercialTesterWrappers {
      * @param dashboard
      *            the dashboard instance to be tested
      * @return a DashboardTester instance wrapping the given dashboard
-     * @since 1.1
+     * @since 1.1.2
      */
     default DashboardTester<Dashboard> test(Dashboard dashboard) {
         return BaseBrowserlessTest.internalWrap(DashboardTester.class,

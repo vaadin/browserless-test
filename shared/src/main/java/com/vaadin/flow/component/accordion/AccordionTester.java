@@ -55,6 +55,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      *
      * @throws IllegalStateException
      *             if the component is not usable or if no panel is open
+     * @since 25.3
      */
     public void closeDetails() {
         ensureComponentIsUsable();
@@ -76,6 +77,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      *             if no dropdown panel found for summary
      * @throws IllegalStateException
      *             if the component is not usable or if the panel is not open
+     * @since 25.3
      */
     public void closeDetails(String summary) {
         ensureComponentIsUsable();
@@ -99,6 +101,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
      *             if no dropdown panel found for summary
      * @throws IllegalStateException
      *             if the component is not usable
+     * @since 25.3
      */
     public void toggleDetails(String summary) {
         ensureComponentIsUsable();

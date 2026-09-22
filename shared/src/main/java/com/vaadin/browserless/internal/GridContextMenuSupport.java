@@ -33,6 +33,8 @@ import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
  * connector does.
  * <p>
  * For internal use only.
+ * 
+ * @since 25.3
  */
 public final class GridContextMenuSupport {
 

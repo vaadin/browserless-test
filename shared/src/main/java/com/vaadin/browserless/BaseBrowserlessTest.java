@@ -94,6 +94,7 @@ public abstract class BaseBrowserlessTest {
      *
      * @return the set of services implementation classes, never
      *         {@literal null}.
+     * @since 25.3
      */
     protected final Set<Class<?>> allLookupServices() {
         return allLookupServices(testConfiguration());
@@ -117,6 +118,7 @@ public abstract class BaseBrowserlessTest {
      *            {@literal null}
      * @return the set of services implementation classes, never
      *         {@literal null}.
+     * @since 25.3
      */
     @SuppressWarnings("deprecation")
     protected final Set<Class<?>> allLookupServices(
@@ -368,6 +370,7 @@ public abstract class BaseBrowserlessTest {
      * their component instance and state; other views are recreated.
      *
      * @return the view shown after the reload
+     * @since 25.4
      */
     public HasElement reload() {
         return BrowserlessDSL.reload(verifyAndGetUI());
@@ -382,6 +385,7 @@ public abstract class BaseBrowserlessTest {
      * @param <T>
      *            the view type
      * @return the view shown after the reload
+     * @since 25.4
      */
     public <T extends Component> T reload(Class<T> expectedTarget) {
         return BrowserlessDSL.reload(verifyAndGetUI(), expectedTarget);

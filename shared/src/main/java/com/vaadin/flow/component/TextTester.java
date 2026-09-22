@@ -31,6 +31,7 @@ import com.vaadin.browserless.Tests;
  *
  * @param <T>
  *            component type
+ * @since 1.1.2
  */
 @Tests(Text.class)
 public class TextTester<T extends Text> extends ComponentTester<T> {

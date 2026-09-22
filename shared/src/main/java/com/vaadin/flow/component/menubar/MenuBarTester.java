@@ -357,6 +357,7 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
      *         are shown in
      * @throws IllegalStateException
      *             if the menu bar is not visible
+     * @since 25.3
      */
     public List<String> getItemTexts() {
         ensureVisible();
@@ -401,6 +402,7 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
      *             if the menu bar is not visible, if there are multiple
      *             matching items at any level, or if the item at the given path
      *             is disabled or not visible.
+     * @since 25.3
      */
     public List<String> getItemTexts(String topLevelText,
             String... nestedItemsText) {
