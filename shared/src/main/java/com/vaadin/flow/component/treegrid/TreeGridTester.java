@@ -26,11 +26,12 @@ import com.vaadin.flow.data.renderer.Renderer;
 
 /**
  * Tester for TreeGrid components.
- * <p/>
+ * <p>
  * Adds the hierarchy interactions a user can perform on top of everything
- * {@link GridTester} offers. Row indexes address the rows the user actually
- * sees, so children of collapsed nodes are not counted.
- * <p/>
+ * {@link com.vaadin.flow.component.grid.GridTester GridTester} offers. Row
+ * indexes address the rows the user actually sees, so children of collapsed
+ * nodes are not counted.
+ * <p>
  * The expand toggle lives in the hierarchy column, and a {@code TreeGrid} can
  * be configured with none, one, or several of them. {@link #expand(int)} and
  * {@link #collapse(int)} require at least one visible hierarchy column, since
@@ -66,10 +67,10 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Expands the node on the given row, as if the user clicked its expand
      * toggle in the browser.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
-     * <p/>
+     * <p>
      * The resulting {@link ExpandEvent} reports
      * {@link ExpandEvent#isFromClient()} as {@literal true}.
      *
@@ -96,10 +97,10 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Collapses the node on the given row, as if the user clicked its collapse
      * toggle in the browser.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
-     * <p/>
+     * <p>
      * The resulting {@link CollapseEvent} reports
      * {@link CollapseEvent#isFromClient()} as {@literal true}.
      *
@@ -125,7 +126,7 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
 
     /**
      * Checks whether the node on the given row is expanded.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
      *
@@ -144,7 +145,7 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Checks whether the node on the given row has children, meaning the user
      * is shown an expand toggle for it.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
      *
@@ -163,12 +164,13 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Get the text that is shown on the client for the cell in the given
      * position.
-     * <p/>
+     * <p>
      * A hierarchy column added with
      * {@link TreeGrid#addHierarchyColumn(com.vaadin.flow.function.ValueProvider)}
      * renders the item through a {@code vaadin-grid-tree-toggle}, so its text
      * is read from the toggle's own value provider rather than from a column
-     * path. Every other column is read exactly as {@link GridTester} does.
+     * path. Every other column is read exactly as
+     * {@link com.vaadin.flow.component.grid.GridTester GridTester} does.
      *
      * @param row
      *            row of cell
@@ -220,7 +222,8 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
      * provider, or {@literal null} when the column is not one. Such a column
      * renders a {@code vaadin-grid-tree-toggle} straight from a
      * {@link LitRenderer}; the component variant is a {@link ComponentRenderer}
-     * instead and is handled by {@link GridTester}.
+     * instead and is handled by
+     * {@link com.vaadin.flow.component.grid.GridTester GridTester}.
      */
     private LitRenderer<Y> getTreeToggleRenderer(Grid.Column<Y> column) {
         final Renderer<Y> renderer = column.getRenderer();

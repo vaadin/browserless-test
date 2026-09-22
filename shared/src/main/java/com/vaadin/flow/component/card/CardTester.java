@@ -17,7 +17,7 @@ package com.vaadin.flow.component.card;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
@@ -114,12 +114,15 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
     /**
      * Gets the subtitle text shown on the card.
      * <p>
-     * {@link Card#setSubtitle(String)} wraps the text in a {@link Span}, so a
-     * subtitle set as text is reported here, and so is the text of a
-     * {@link Span} set with {@link Card#setSubtitle(Component)} — the card
-     * stores the two the same way and cannot tell them apart. A subtitle set as
-     * any other component is not text and reports {@code null}; use
-     * {@link #getSubtitle()} to get the component itself.
+     * {@link Card#setSubtitle(String)} wraps the text in a
+     * {@link com.vaadin.flow.component.html.Span Span}, so a subtitle set as
+     * text is reported here, and so is the text of a
+     * {@link com.vaadin.flow.component.html.Span Span} set with
+     * {@link Card#setSubtitle(com.vaadin.flow.component.Component)
+     * Card.setSubtitle(Component)} — the card stores the two the same way and
+     * cannot tell them apart. A subtitle set as any other component is not text
+     * and reports {@code null}; use {@link #getSubtitle()} to get the component
+     * itself.
      * <p>
      * Note that this differs from {@link #getTitleAsText()}, which reports an
      * empty string rather than {@code null} when the card shows no textual

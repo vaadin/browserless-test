@@ -42,8 +42,6 @@
         <failsafe.version>3.5.5</failsafe.version>
         <surefire.version>3.5.5</surefire.version>
         <spotless.plugin.version>3.2.1</spotless.plugin.version>
-        <kotlin.version>2.2.20</kotlin.version>
-        <dokka.version>2.1.0</dokka.version>
         <maven.compiler.source>${maven.compiler.release}</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.release}</maven.compiler.target>
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
@@ -123,40 +121,9 @@
                     <version>${failsafe.version}</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-maven-plugin</artifactId>
-                    <version>${kotlin.version}</version>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven.compiler.plugin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jetbrains.dokka</groupId>
-                    <artifactId>dokka-maven-plugin</artifactId>
-                    <version>${dokka.version}</version>
-                    <!-- Javadoc generation for mixed Java/Kotlin modules.
-                         Gated by maven.javadoc.skip (true by default); the
-                         javadocs and release profiles flip it to false. Only
-                         runs in modules that reference this plugin. -->
-                    <configuration>
-                        <skip>${maven.javadoc.skip}</skip>
-                        <jdkVersion>${maven.compiler.source}</jdkVersion>
-                        <sourceDirectories>
-                            <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
-                            <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-                        </sourceDirectories>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <id>attach-javadocs</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>javadocJar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -183,6 +150,13 @@
                          runs in modules that reference this plugin. -->
                     <configuration>
                         <quiet>true</quiet>
+                        <!-- javadoc stops reporting after 100 errors and 100
+                             warnings by default, which makes a large backlog
+                             look far smaller than it is. Report all of it. -->
+                        <additionalOptions>
+                            <additionalOption>-Xmaxerrs 9999</additionalOption>
+                            <additionalOption>-Xmaxwarns 9999</additionalOption>
+                        </additionalOptions>
                     </configuration>
                     <executions>
                         <execution>
@@ -216,20 +190,13 @@
                             <file>${maven.multiModuleProjectDirectory}/eclipse/apache2-license-header.txt</file>
                         </licenseHeader>
                     </java>
-                    <kotlin>
-                        <licenseHeader>
-                            <file>${maven.multiModuleProjectDirectory}/eclipse/apache2-license-header.txt</file>
-                        </licenseHeader>
-                    </kotlin>
                 </configuration>
             </plugin>
         </plugins>
     </build>
     <profiles>
         <!-- Activated during CI validation via -Djavadocs. Enables the
-             Javadoc executions declared in pluginManagement; the tool used
-             (Dokka vs maven-javadoc) is selected per module by which plugin
-             that module references. -->
+             Javadoc executions declared in pluginManagement. -->
         <profile>
             <id>javadocs</id>
             <activation>

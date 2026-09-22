@@ -20,6 +20,8 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 
 /**
+ * Tester for NativeDetails components.
+ *
  * @since 1.0
  */
 @Tests(NativeDetails.class)

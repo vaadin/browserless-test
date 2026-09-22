@@ -41,7 +41,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
 
     /**
      * Set the time to the component, as the user would enter it.
-     * <p/>
+     * <p>
      * A time that violates the component's constraints — outside
      * {@literal min - max}, or the empty value on a required field — is
      * committed all the same, because the browser commits it too and simply
@@ -84,7 +84,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
-     * <p/>
+     * <p>
      * Emptying is something the user can always do, so it needs no clear
      * button: a field may legitimately end up invalid — a required field, for
      * instance — once emptied.
@@ -99,7 +99,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
 
     /**
      * Empties the field by clicking its clear button, as the user would.
-     * <p/>
+     * <p>
      * Unlike {@link #clear()}, which models selecting the contents and deleting
      * them and is therefore always available, this requires the clear button to
      * be visible — a hidden clear button is not something the user can click.

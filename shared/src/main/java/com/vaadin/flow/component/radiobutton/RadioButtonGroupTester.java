@@ -20,7 +20,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -76,7 +76,7 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
         return getComponent().getValue();
     }
 
-    @NotNull
+    @NonNull
     private Stream<RadioButton> getRadioButtons(Predicate<RadioButton> filter) {
         return getComponent().getChildren()
                 .filter(RadioButton.class::isInstance)

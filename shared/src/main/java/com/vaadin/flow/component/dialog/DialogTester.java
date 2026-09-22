@@ -23,6 +23,8 @@ import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 
 /**
+ * Tester for Dialog components.
+ *
  * @since 1.0
  */
 @Tests(Dialog.class)

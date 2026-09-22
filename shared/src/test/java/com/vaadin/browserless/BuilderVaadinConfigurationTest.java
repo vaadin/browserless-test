@@ -28,6 +28,7 @@ import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.experimental.Feature;
 import com.vaadin.experimental.FeatureFlags;
 import com.vaadin.flow.function.DeploymentConfiguration;
+import com.vaadin.flow.server.ServiceException;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletContext;
 import com.vaadin.flow.server.VaadinServletService;
@@ -82,7 +83,8 @@ class BuilderVaadinConfigurationTest {
                         uiFactory) -> new MockVaadinServlet(routes, uiFactory) {
                             @Override
                             protected VaadinServletService createServletService(
-                                    DeploymentConfiguration deploymentConfiguration) {
+                                    DeploymentConfiguration deploymentConfiguration)
+                                    throws ServiceException {
                                 enabledDuringServiceInit.set(FeatureFlags
                                         .get(new VaadinServletContext(
                                                 getServletContext()))

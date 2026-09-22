@@ -27,12 +27,18 @@ import java.util.stream.Stream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.browserless.internal.BasicUtils;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
 
 /**
+ * Tester for MultiSelectComboBox components.
+ *
+ * @param <T>
+ *            component type
+ * @param <Y>
+ *            item type
  * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.combobox.MultiSelectComboBox")
@@ -50,7 +56,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
     /**
      * Simulate writing a filter to the combobox.
-     * <p/>
+     * <p>
      * Use {@link #getSuggestions()} to get the string values show in the
      * dropdown or {@link #getSuggestionItems()} to get the actual items in the
      * suggestion.
@@ -105,7 +111,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
     /**
      * Clears the selection by clicking the clear button, as the user would.
-     * <p/>
+     * <p>
      * Requires the clear button to be visible — a hidden clear button is not
      * something the user can click. {@link #selectItem(String...)} with
      * {@code null} clears the selection without that requirement.
@@ -163,8 +169,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
             final Method fetchFromProvider = getMethod(DataCommunicator.class,
                     "fetchFromProvider", int.class, int.class);
-            List<Y> result = ((Stream<Y>) fetchFromProvider.invoke(
-                    dataCommunicator, 0, BasicUtilsKt.get_saneFetchLimit()))
+            List<Y> result = ((Stream<Y>) fetchFromProvider
+                    .invoke(dataCommunicator, 0, BasicUtils._saneFetchLimit()))
                     .collect(Collectors.toList());
             return result;
         } catch (IllegalAccessException | InvocationTargetException e) {

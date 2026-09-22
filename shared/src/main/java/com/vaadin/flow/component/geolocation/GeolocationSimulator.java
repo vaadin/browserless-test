@@ -72,6 +72,9 @@ import com.vaadin.flow.component.UI;
  */
 public final class GeolocationSimulator implements Serializable {
 
+    /**
+     * The client the simulated positions are pushed into.
+     */
     private final BrowserlessGeolocationClient client;
 
     GeolocationSimulator(BrowserlessGeolocationClient client) {

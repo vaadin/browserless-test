@@ -53,10 +53,21 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public abstract class BaseBrowserlessTest {
 
+    /**
+     * Creates the test base; subclasses are instantiated by the test engine.
+     */
+    protected BaseBrowserlessTest() {
+    }
+
     private TestSignalEnvironment signalsTestEnvironment;
     private BrowserlessConfiguration resolvedConfiguration;
     private boolean classScopedConfiguration;
 
+    /**
+     * Equivalent to {@code discoverRoutes(scanPackages())}.
+     *
+     * @return the routes found in the scanned packages
+     */
     protected synchronized Routes discoverRoutes() {
         return discoverRoutes(scanPackages());
     }
@@ -64,6 +75,8 @@ public abstract class BaseBrowserlessTest {
     /**
      * Discover and return Routes for mocked Vaadin core system.
      *
+     * @param packageNames
+     *            the packages to scan for routes
      * @see #initVaadinEnvironment()
      * @return Routes
      */
@@ -129,6 +142,10 @@ public abstract class BaseBrowserlessTest {
         return services;
     }
 
+    /**
+     * Registers the signals test environment, so that signal-backed components
+     * work inside the mocked environment.
+     */
     protected void initSignalsSupport() {
         signalsTestEnvironment = TestSignalEnvironment.register();
     }
@@ -146,6 +163,12 @@ public abstract class BaseBrowserlessTest {
         }
     }
 
+    /**
+     * Collects the packages to scan for routes, from the {@code @ViewPackages}
+     * annotation on the test class.
+     *
+     * @return the packages to scan, empty to scan the whole classpath
+     */
     protected Set<String> scanPackages() {
         Set<String> packagesToScan = new HashSet<>();
 
@@ -284,10 +307,10 @@ public abstract class BaseBrowserlessTest {
     /**
      * Navigate to the given view class if it is registered.
      *
-     * @param navigationTarget
-     *            view class to navigate to
      * @param <T>
      *            view type
+     * @param navigationTarget
+     *            view class to navigate to
      * @return instantiated view
      */
     public <T extends Component> T navigate(Class<T> navigationTarget) {
@@ -297,14 +320,14 @@ public abstract class BaseBrowserlessTest {
     /**
      * Navigate to view with url parameter.
      *
+     * @param <C>
+     *            parameter type
+     * @param <T>
+     *            view type
      * @param navigationTarget
      *            view class to navigate to
      * @param parameter
      *            parameter to send to view
-     * @param <T>
-     *            view type
-     * @param <C>
-     *            parameter type
      * @return instantiated view
      */
     public <C, T extends Component & HasUrlParameter<C>> T navigate(
@@ -322,13 +345,13 @@ public abstract class BaseBrowserlessTest {
      * with a query string, write it into the location given to
      * {@link #navigate(String, Class)}.
      *
+     * @param <T>
+     *            view type
      * @param navigationTarget
      *            view class to navigate to
      * @param parameters
      *            route parameters of the target's route template, keyed by
      *            parameter name
-     * @param <T>
-     *            view type
      * @return instantiated view
      */
     public <T extends Component> T navigate(Class<T> navigationTarget,
@@ -346,13 +369,13 @@ public abstract class BaseBrowserlessTest {
      * {@code "order/ORD-1?tab=history"}, whose query parameters the view reads
      * from the navigation event.
      *
+     * @param <T>
+     *            view type
      * @param location
      *            location string for navigating, optionally with a query string
      *            and a fragment
      * @param expectedTarget
      *            class that is expected for navigation
-     * @param <T>
-     *            view type
      * @return instantiated view
      */
     public <T extends Component> T navigate(String location,
@@ -380,10 +403,10 @@ public abstract class BaseBrowserlessTest {
      * Simulates a page reload (see {@link #reload()}) and verifies the
      * resulting view is of the expected type.
      *
-     * @param expectedTarget
-     *            the expected view class after reload
      * @param <T>
      *            the view type
+     * @param expectedTarget
+     *            the expected view class after reload
      * @return the view shown after the reload
      * @since 25.4
      */
@@ -414,11 +437,36 @@ public abstract class BaseBrowserlessTest {
     }
 
     // Protected for access by adapter subclass in legacy module
+    /**
+     * Equivalent to {@code TesterRegistry.wrap(component)}.
+     *
+     * @param <T>
+     *            the item type
+     * @param component
+     *            the component to wrap
+     * @return a tester for the given component
+     * @param <Y>
+     *            the component type
+     */
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Y component) {
         return TesterRegistry.wrap(component);
     }
 
+    /**
+     * Wraps the component in the given tester type, preferring a more specific
+     * tester registered through {@code @Tests} when one exists.
+     *
+     * @param <T>
+     *            the tester type
+     * @param <Y>
+     *            the component type
+     * @param wrap
+     *            the tester type the caller asked for
+     * @param component
+     *            the component to wrap
+     * @return a tester for the given component
+     */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     protected static <T extends ComponentTester<Y>, Y extends Component> T internalWrap(
             Class<T> wrap, Y component) {
@@ -488,9 +536,9 @@ public abstract class BaseBrowserlessTest {
      * context menu, and {@code GridTester.contextMenu(row).open()} for a grid
      * context menu.
      *
-     * @param componentType
-     *            the type of the component(s) to search for
      * @param <T>
+     *            the type of the component(s) to search for
+     * @param componentType
      *            the type of the component(s) to search for
      * @return a query object for finding components
      * @since 1.1
@@ -508,12 +556,12 @@ public abstract class BaseBrowserlessTest {
      * Searches the same server-side component tree as {@link #find(Class)}, see
      * there for what that tree does not contain.
      *
+     * @param <T>
+     *            the type of the component(s) to search for
      * @param componentType
      *            the type of the component(s) to search for
      * @param fromThis
      *            component used as starting element for search.
-     * @param <T>
-     *            the type of the component(s) to search for
      * @return a query object for finding components
      * @since 1.1
      */
@@ -529,9 +577,9 @@ public abstract class BaseBrowserlessTest {
      * Searches the same server-side component tree as {@link #find(Class)}, see
      * there for what that tree does not contain.
      *
-     * @param componentType
-     *            the type of the component(s) to search for
      * @param <T>
+     *            the type of the component(s) to search for
+     * @param componentType
      *            the type of the component(s) to search for
      * @return a query object for finding components
      * @since 1.1
@@ -544,9 +592,9 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component inside the UI.
      *
-     * @param componentType
-     *            the type of the component(s) to search for
      * @param <T>
+     *            the type of the component(s) to search for
+     * @param componentType
      *            the type of the component(s) to search for
      * @return a query object for finding components
      * @deprecated since 1.1, for removal in 26.0; use {@link #find(Class)}
@@ -561,12 +609,12 @@ public abstract class BaseBrowserlessTest {
      * Gets a query object for finding a component nested inside the given
      * component.
      *
+     * @param <T>
+     *            the type of the component(s) to search for
      * @param componentType
      *            the type of the component(s) to search for
      * @param fromThis
      *            component used as starting element for search.
-     * @param <T>
-     *            the type of the component(s) to search for
      * @return a query object for finding components
      * @deprecated since 1.1, for removal in 26.0; use
      *             {@link #find(Class, Component)} instead.
@@ -580,9 +628,9 @@ public abstract class BaseBrowserlessTest {
     /**
      * Gets a query object for finding a component inside the current view.
      *
-     * @param componentType
-     *            the type of the component(s) to search for
      * @param <T>
+     *            the type of the component(s) to search for
+     * @param componentType
      *            the type of the component(s) to search for
      * @return a query object for finding components
      * @deprecated since 1.1, for removal in 26.0; use

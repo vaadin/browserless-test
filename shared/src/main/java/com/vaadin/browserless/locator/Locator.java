@@ -101,7 +101,13 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
                 .withCondition(c -> c == component);
     }
 
-    /** Requires the matched component to have the given id. */
+    /**
+     * Requires the matched component to have the given id.
+     *
+     * @param id
+     *            the expected component id
+     * @return this locator, for chaining
+     */
     public SELF withId(String id) {
         resetCache();
         query.withId(id);
@@ -112,6 +118,10 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Requires the matched component to have the given {@code data-testid}
      * attribute, as set by
      * {@link com.vaadin.flow.component.Component#setTestId(String)}.
+     *
+     * @param testId
+     *            the expected {@code data-testid} value
+     * @return this locator, for chaining
      */
     public SELF withTestId(String testId) {
         resetCache();
@@ -119,7 +129,13 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component to have all the given CSS class names. */
+    /**
+     * Requires the matched component to have all the given CSS class names.
+     *
+     * @param className
+     *            the CSS class names the component must have
+     * @return this locator, for chaining
+     */
     public SELF withClassName(String... className) {
         resetCache();
         query.withClassName(className);
@@ -128,6 +144,10 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     /**
      * Requires the matched component to have none of the given CSS class names.
+     *
+     * @param className
+     *            the CSS class names the component must not have
+     * @return this locator, for chaining
      */
     public SELF withoutClassName(String... className) {
         resetCache();
@@ -135,7 +155,13 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component to have the given attribute set. */
+    /**
+     * Requires the matched component to have the given attribute set.
+     *
+     * @param attribute
+     *            the attribute that must be present
+     * @return this locator, for chaining
+     */
     public SELF withAttribute(String attribute) {
         resetCache();
         query.withAttribute(attribute);
@@ -145,6 +171,12 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     /**
      * Requires the matched component to have the given attribute with the
      * expected value.
+     *
+     * @param attribute
+     *            the attribute that must be present
+     * @param value
+     *            the value the attribute must have
+     * @return this locator, for chaining
      */
     public SELF withAttribute(String attribute, String value) {
         resetCache();
@@ -152,7 +184,13 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component not to have the given attribute. */
+    /**
+     * Requires the matched component not to have the given attribute.
+     *
+     * @param attribute
+     *            the attribute that must be absent
+     * @return this locator, for chaining
+     */
     public SELF withoutAttribute(String attribute) {
         resetCache();
         query.withoutAttribute(attribute);
@@ -162,6 +200,12 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     /**
      * Requires the matched component not to have the given attribute value (or
      * not to have the attribute at all).
+     *
+     * @param attribute
+     *            the attribute to check
+     * @param value
+     *            the value the attribute must not have
+     * @return this locator, for chaining
      */
     public SELF withoutAttribute(String attribute, String value) {
         resetCache();
@@ -180,6 +224,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * names are component specific — see
      * {@link ComponentQuery#withinSlot(String)} for annotated component trees.
      *
+     * @param slot
+     *            the name of the slot the component must sit in
+     * @return this locator, for chaining
      * @see ComponentQuery#withinSlot(String)
      * @since 25.3
      */
@@ -189,7 +236,13 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         return self();
     }
 
-    /** Requires the matched component to satisfy the given predicate. */
+    /**
+     * Requires the matched component to satisfy the given predicate.
+     *
+     * @param condition
+     *            the predicate the component must satisfy
+     * @return this locator, for chaining
+     */
     public SELF withCondition(Predicate<C> condition) {
         resetCache();
         query.withCondition(condition);
@@ -212,6 +265,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * fluent chain just re-installs the same instance; an operator that builds
      * and returns a fresh query replaces the prior one wholesale.
      *
+     * @param op
+     *            the operator applied to the underlying query
+     * @return this locator, for chaining
      * @throws IllegalStateException
      *             if the operator returns {@code null} instead of a
      *             {@code ComponentQuery} — the operator is expected either to
@@ -236,6 +292,10 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Scopes the search to descendants of the given component. Replaces any
      * lazy parent previously installed by {@link #inside(Locator)} with a fixed
      * reference.
+     *
+     * @param parent
+     *            the component whose descendants are searched
+     * @return this locator, for chaining
      */
     public SELF inside(Component parent) {
         resetCache();
@@ -257,6 +317,10 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * fixed reference; calling {@code inside(Locator)} again replaces the lazy
      * parent.
      *
+     * @param parent
+     *            the locator matching the component whose descendants are
+     *            searched
+     * @return this locator, for chaining
      * @throws NullPointerException
      *             if {@code parent} is {@code null}
      * @throws IllegalArgumentException
@@ -278,6 +342,9 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * Picks the n-th match (1-based) when the filter chain yields multiple
      * matches. Without this, the default expectation is exactly one match.
      *
+     * @param index
+     *            the 1-based index of the match to pick
+     * @return this locator, for chaining
      * @throws IllegalArgumentException
      *             if {@code index} is zero or negative — mirrors
      *             {@link ComponentQuery#atIndex(int)}'s own contract, so the
@@ -315,6 +382,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     /**
      * Returns all matching components, bypassing the cache. Useful for
      * assertions on counts without committing to a single match.
+     *
+     * @return every component the filter chain matches
      */
     public List<C> components() {
         prepareQueryContext();
@@ -323,6 +392,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
 
     /**
      * Returns {@code true} if the filter chain matches at least one component.
+     *
+     * @return {@code true} if at least one component matches
      */
     public boolean exists() {
         prepareQueryContext();
@@ -339,6 +410,8 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
      * action to re-resolve, and also drops the pick so the next resolution
      * defaults back to "single match expected" until the caller re-applies
      * {@link #atIndex(int)}.
+     *
+     * @return this locator, for chaining
      */
     public SELF invalidate() {
         resetCache();
@@ -372,6 +445,12 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
         }
     }
 
+    /**
+     * Returns this locator, typed as the concrete subtype, so the filter steps
+     * can chain fluently.
+     *
+     * @return this locator
+     */
     @SuppressWarnings("unchecked")
     protected SELF self() {
         return (SELF) this;

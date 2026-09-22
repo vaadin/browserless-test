@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for OrderedList components.
+ *
  * @since 1.0
  */
 @Tests(OrderedList.class)
