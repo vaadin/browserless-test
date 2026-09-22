@@ -73,6 +73,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
      *
      * @return {@code true} if the field is not marked invalid and its current
      *         value satisfies the constraints of the field
+     * @since 25.3
      */
     public boolean isValid() {
         final LocalTime time = getComponent().getValue();
@@ -90,6 +91,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
      *
      * @throws IllegalStateException
      *             if the component is not usable
+     * @since 25.3
      */
     public void clear() {
         clearAsUser();
@@ -105,6 +107,7 @@ public class TimePickerTester<T extends TimePicker> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
      *             visible
+     * @since 25.3
      */
     public void clickClearButton() {
         clickClearButtonAsUser();

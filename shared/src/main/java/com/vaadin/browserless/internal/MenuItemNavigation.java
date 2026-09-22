@@ -33,6 +33,8 @@ import com.vaadin.flow.component.contextmenu.SubMenuBase;
  * since a user cannot click anything else.
  * <p>
  * For internal use only.
+ * 
+ * @since 25.3
  */
 public final class MenuItemNavigation {
 

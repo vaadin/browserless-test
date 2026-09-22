@@ -45,6 +45,7 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
      * Checks whether the checkbox is currently checked.
      *
      * @return {@code true} if the checkbox is checked, {@code false} otherwise
+     * @since 25.3
      */
     public boolean isChecked() {
         return getComponent().getValue();
@@ -55,6 +56,8 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
      * <p>
      * Does nothing if the checkbox is already checked, since a user would not
      * click it in that case. The checkbox must be usable either way.
+     * 
+     * @since 25.3
      */
     public void check() {
         clickIfNot(true);
@@ -65,6 +68,8 @@ public class CheckboxTester<T extends Checkbox> extends ComponentTester<T> {
      * <p>
      * Does nothing if the checkbox is already unchecked, since a user would not
      * click it in that case. The checkbox must be usable either way.
+     * 
+     * @since 25.3
      */
     public void uncheck() {
         clickIfNot(false);

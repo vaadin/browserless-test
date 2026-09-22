@@ -80,6 +80,7 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
      *
      * @throws IllegalStateException
      *             if the component is not usable
+     * @since 25.3
      */
     public void clear() {
         clearAsUser();
@@ -95,6 +96,7 @@ public class TextAreaTester<T extends TextArea> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
      *             visible
+     * @since 25.3
      */
     public void clickClearButton() {
         clickClearButtonAsUser();
