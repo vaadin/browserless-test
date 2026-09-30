@@ -17,7 +17,7 @@ package com.vaadin.flow.component.avatar;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -120,9 +120,11 @@ public class AvatarGroupTester<T extends AvatarGroup>
 
     /**
      * Gets the accessible label of the group, that is, the
-     * {@link AvatarGroupI18n#setOneActiveUser(String) one} or
-     * {@link AvatarGroupI18n#setManyActiveUsers(String) many} active users
-     * phrase with {@code {count}} replaced by the total number of items.
+     * {@link com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupI18n#setOneActiveUser(String)
+     * one} or
+     * {@link com.vaadin.flow.component.avatar.AvatarGroup.AvatarGroupI18n#setManyActiveUsers(String)
+     * many} active users phrase with {@code {count}} replaced by the total
+     * number of items.
      *
      * @return the accessible label, or {@code null} if no matching translation
      *         has been set on the component

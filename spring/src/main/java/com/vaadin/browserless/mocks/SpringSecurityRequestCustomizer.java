@@ -19,12 +19,18 @@ import com.vaadin.browserless.internal.MockRequestCustomizer;
 
 /**
  * Configures mock request with authentication details from Spring Security.
- *
- * For internal use only.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @since 1.0
  */
 public class SpringSecurityRequestCustomizer implements MockRequestCustomizer {
+
+    /**
+     * Creates the customizer; Vaadin looks it up through the service loader.
+     */
+    public SpringSecurityRequestCustomizer() {
+    }
 
     @Override
     public void apply(MockRequest request) {

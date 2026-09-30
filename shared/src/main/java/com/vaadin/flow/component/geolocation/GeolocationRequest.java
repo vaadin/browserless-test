@@ -28,22 +28,36 @@ import org.jspecify.annotations.Nullable;
  */
 public interface GeolocationRequest {
 
-    /** The options the application passed to get(...), or {@code null}. */
+    /**
+     * The options the application passed to get(...), or {@code null}.
+     *
+     * @return the options the request was made with
+     */
     @Nullable
     GeolocationOptions options();
 
-    /** Whether this request still awaits a response. */
+    /**
+     * Whether this request still awaits a response.
+     *
+     * @return {@code true} while the request is still waiting for a position
+     */
     boolean isPending();
 
     /**
      * Resolves the request with the given position. Throws
      * {@link IllegalStateException} if the request was already resolved.
+     *
+     * @param position
+     *            the caret position
      */
     void respondWith(GeolocationPosition position);
 
     /**
      * Resolves the request with the given error. Throws
      * {@link IllegalStateException} if the request was already resolved.
+     *
+     * @param error
+     *            the error view to register
      */
     void respondWith(GeolocationError error);
 }

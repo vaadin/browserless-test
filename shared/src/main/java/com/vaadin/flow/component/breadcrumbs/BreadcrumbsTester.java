@@ -24,6 +24,10 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 
 /**
+ * Tester for Breadcrumbs components.
+ *
+ * @param <T>
+ *            component type
  * @since 1.1
  */
 @Tests(Breadcrumbs.class)

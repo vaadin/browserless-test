@@ -28,7 +28,7 @@ import org.springframework.test.context.TestExecutionListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.browserless.mocks.MockWebApplicationContext;
 import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
 import com.vaadin.flow.function.VaadinApplicationInitializationBootstrap;
@@ -46,6 +46,12 @@ import com.vaadin.flow.spring.SpringLookupInitializer;
  */
 public class BrowserlessTestSpringLookupInitializer
         extends SpringLookupInitializer implements TestExecutionListener {
+
+    /**
+     * Creates the initializer; Vaadin looks it up through the service loader.
+     */
+    public BrowserlessTestSpringLookupInitializer() {
+    }
 
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
@@ -143,7 +149,7 @@ public class BrowserlessTestSpringLookupInitializer
             VaadinApplicationInitializationBootstrap bootstrap)
             throws ServletException {
         ApplicationContext appCtx = applicationContext.get();
-        ServletContext servletContext = UtilsKt.getContext(context);
+        ServletContext servletContext = Utils.getContext(context);
         WebApplicationContext webAppCtx = WebApplicationContextUtils
                 .getWebApplicationContext(servletContext);
         if (webAppCtx == null) {

@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * Dumps the object graph behind a serialization failure, so a test can see
+ * which field made a session unserializable.
+ *
  * @since 1.0
  */
 public final class SerializationDebugUtil {

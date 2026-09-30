@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.browserless.internal.MenuItemNavigation;
 import com.vaadin.flow.component.Component;
@@ -32,13 +32,13 @@ import com.vaadin.flow.internal.JacksonUtils;
 
 /**
  * Tester for GridContextMenu components.
- * <p/>
+ * <p>
  * A grid context menu is always about a row: the user right-clicks a row, and
  * the events the menu fires report that row. {@link #open(int)} therefore takes
  * the row to open the menu on, addressed by its zero-based index among the rows
  * the user sees, the same way {@link com.vaadin.flow.component.grid.GridTester}
  * addresses rows.
- * <p/>
+ * <p>
  * The menu content is not part of the UI until the menu opens, so
  * {@code clickItem(...)} and {@link #find(Class)} only see the items of an open
  * menu.
@@ -58,7 +58,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Wrap grid context menu for testing.
-     * <p/>
+     * <p>
      * The menu targets no row, so it has to be opened with {@link #open(int)}.
      *
      * @param component
@@ -71,7 +71,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Wrap grid context menu for testing, targeting the given row.
-     * <p/>
+     * <p>
      * The index is 0 based and counts the rows the user sees. Opening the menu
      * with {@link #open()} opens it on that row.
      *
@@ -88,12 +88,12 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
     /**
      * Opens the context menu on the row it currently targets, as if the user
      * had asked for it in the browser.
-     * <p/>
+     * <p>
      * The target row is the one given to
      * {@link com.vaadin.flow.component.grid.GridTester#contextMenu(int)}, so
      * this method is the counterpart of that entry point. Use
      * {@link #open(int)} to open the menu on a row directly.
-     * <p/>
+     * <p>
      * It does not render any client-side overlay, it only simulates the
      * server-side state changes that opening the menu produces: the menu is
      * attached to the UI, so its items become findable and clickable, and a
@@ -115,7 +115,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
     /**
      * Opens the context menu on the given row, as if the user had asked for it
      * in the browser.
-     * <p/>
+     * <p>
      * The index is 0 based and counts the rows the user sees. The row is
      * reported by the events the menu fires, so
      * {@code GridContextMenuItemClickEvent.getItem()} and
@@ -136,7 +136,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
     /**
      * Opens the context menu on the given row and column, as if the user had
      * asked for it in the browser.
-     * <p/>
+     * <p>
      * The column is reported by
      * {@code GridContextMenuOpenedEvent.getColumnId()}.
      *
@@ -159,7 +159,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         }
         Grid<Y> grid = getGrid();
         String itemKey = GridContextMenuSupport.getItemKey(grid,
-                GridKt._get(grid, row));
+                GridUtils._get(grid, row));
         String columnId = columnKey == null ? null
                 : GridContextMenuSupport.getColumnInternalId(grid, columnKey);
         GridContextMenuSupport.setTargetItem(grid, itemKey, columnId);
@@ -189,17 +189,17 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Simulates a click on the item that matches the given text.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the text of each menu item in the
      * hierarchy.
-     * <p/>
+     * <p>
      * The path to the menu item must reflect what is seen in the browser,
      * meaning that hidden items are ignored. If there are multiple visible
      * items at the same level with the same text, an
      * {@link IllegalStateException} is thrown because the target is ambiguous.
      * Disabled or invisible items cannot be clicked and will also cause an
      * {@link IllegalStateException}.
-     * <p/>
+     * <p>
      * The menu has to be open, since its items are not part of the UI before
      * that.
      *
@@ -222,15 +222,15 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Simulates a click on the item at the given position in the menu.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the position of each sub menu that should
      * be navigated to reach the requested item.
-     * <p/>
+     * <p>
      * Positions are zero-based and refer only to items that are visible at each
      * menu level, i.e. hidden items are ignored (the same way as in the
      * browser). Disabled or invisible items cannot be clicked and will cause an
      * {@link IllegalStateException}.
-     * <p/>
+     * <p>
      * The menu has to be open, since its items are not part of the UI before
      * that.
      *
@@ -254,7 +254,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Checks if the checkable menu item matching given text is checked.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the text of each menu item in the
      * hierarchy.
      *
@@ -284,7 +284,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Checks if the checkable menu item at given position is checked.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the position of each sub menu that should
      * be navigated to reach the requested item.
      *
@@ -315,7 +315,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Gets the tooltip text of the menu item matching the given text.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the text of each menu item in the
      * hierarchy.
      *
@@ -341,7 +341,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Gets the tooltip text of the menu item at the given position in the menu.
-     * <p/>
+     * <p>
      * For a nested menu item, provide the position of each sub menu that should
      * be navigated to reach the requested item.
      *
@@ -368,16 +368,16 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Gets the texts of the menu items, as the browser shows them.
-     * <p/>
+     * <p>
      * Hidden items are ignored, so the returned texts are aligned with the
      * positions used by {@link #clickItem(int, int...)}. A text can also be
      * given to {@link #clickItem(String, String...)}, as long as it identifies
      * a single enabled item: a text that several visible items share is
      * ambiguous, and a disabled item cannot be clicked.
-     * <p/>
+     * <p>
      * An item created from a component has no text of its own, and is reported
      * as an empty string. Use {@link #find(Class)} to reach such an item.
-     * <p/>
+     * <p>
      * The menu has to be open, since its items are not part of the UI before
      * that. The items are the ones the menu offers for the row it was opened
      * on, so a dynamic content handler has run by then.
@@ -411,13 +411,13 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
     /**
      * Gets the texts of the items of the sub menu of the item matching the
      * given text, as the browser shows them.
-     * <p/>
+     * <p>
      * For a nested sub menu, provide the text of each menu item in the
      * hierarchy, the same way as in {@link #clickItem(String, String...)}.
-     * <p/>
+     * <p>
      * Hidden items are ignored at every level, both when following the path and
      * in the returned texts.
-     * <p/>
+     * <p>
      * The menu has to be open, since its items are not part of the UI before
      * that.
      *

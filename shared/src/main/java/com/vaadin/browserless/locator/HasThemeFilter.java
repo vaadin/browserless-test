@@ -42,6 +42,10 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
      * <pre>{@code
      * ui.findButton().withTheme(ButtonVariant.LUMO_PRIMARY).click();
      * }</pre>
+     *
+     * @param variant
+     *            the theme variant
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withTheme(ThemeVariant variant) {
@@ -51,6 +55,9 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
     /**
      * Requires the matched component to have the given theme set.
      *
+     * @param theme
+     *            the theme name
+     * @return this locator, for chaining
      * @deprecated use {@link #withTheme(ThemeVariant)} with the component's
      *             typed variant enum where possible. This raw-string overload
      *             remains for themes not surfaced through a {@code
@@ -66,6 +73,10 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
      * Requires the matched component to not have the given theme variant set.
      * Prefer this over the raw-string {@link #withoutTheme(String)} for the
      * same reasons as {@link #withTheme(ThemeVariant)}.
+     *
+     * @param variant
+     *            the theme variant
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withoutTheme(ThemeVariant variant) {
@@ -76,6 +87,9 @@ public interface HasThemeFilter<C extends Component & HasTheme, SELF extends Loc
     /**
      * Requires the matched component to not have the given theme set.
      *
+     * @param theme
+     *            the theme name
+     * @return this locator, for chaining
      * @deprecated use {@link #withoutTheme(ThemeVariant)} with the component's
      *             typed variant enum where possible.
      */

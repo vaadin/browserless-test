@@ -34,7 +34,7 @@ import io.github.classgraph.ScanResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.Component;
 
 /**
@@ -116,7 +116,7 @@ final class TesterRegistry {
                             .extendsSuperclass(ComponentTester.class))
                     .forEach(classInfo -> {
                         try {
-                            final Class<?> tester = UtilsKt
+                            final Class<?> tester = Utils
                                     .findClassOrThrow(classInfo.getName());
                             final Class<? extends Component>[] annotation = tester
                                     .getAnnotation(Tests.class).value();
@@ -131,7 +131,7 @@ final class TesterRegistry {
                                     .getAnnotation(Tests.class).fqn();
                             Arrays.stream(classes).map(clazz -> {
                                 try {
-                                    return UtilsKt.findClassOrThrow(clazz);
+                                    return Utils.findClassOrThrow(clazz);
                                 } catch (ClassNotFoundException e) {
                                     logTypeLoadingIssue(e,
                                             "Tester '{}' cannot be loaded because of missing component class '{}' on classpath",

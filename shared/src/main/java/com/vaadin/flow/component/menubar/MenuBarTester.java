@@ -215,6 +215,8 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
      * @param nestedItemsPositions
      *            the zero-based position of the nested items, relative to the
      *            parent menu
+     * @return {@code true} if the checkable menu item at given position is
+     *         checked
      * @throws IllegalArgumentException
      *             if the provided position does not identify a menu item or if
      *             the menu item is not checkable.

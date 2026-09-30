@@ -125,6 +125,7 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
      *
      * @param label
      *            the tab label
+     * @return the visible tab with the given label
      * @throws IllegalStateException
      *             if tab is not visible
      */
@@ -171,6 +172,8 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
     /**
      * Gets the content of the visible tab with the given label.
      *
+     * @param <E>
+     *            the event type
      * @param label
      *            the tab label
      * @return the content of the tab with the given label
@@ -198,6 +201,8 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
      * is hidden, then to get the content of tab 'C', the call must be
      * {@code getTabContent(1)} and not {@code getTabContent(2)}.
      *
+     * @param <E>
+     *            the event type
      * @param index
      *            the zero-based index of the selected tab, negative value to
      *            unselect

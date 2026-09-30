@@ -22,10 +22,24 @@ package com.vaadin.browserless;
  * @since 1.0
  */
 public class BrowserlessTestSetupException extends RuntimeException {
+    /**
+     * Creates an exception with the given message.
+     *
+     * @param message
+     *            what went wrong while setting the test environment up
+     */
     public BrowserlessTestSetupException(String message) {
         super(message);
     }
 
+    /**
+     * Creates an exception with the given message and cause.
+     *
+     * @param message
+     *            what went wrong while setting the test environment up
+     * @param cause
+     *            the failure this one wraps
+     */
     public BrowserlessTestSetupException(String message, Throwable cause) {
         super(message, cause);
     }

@@ -21,6 +21,8 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for RangeInput components.
+ *
  * @since 1.0
  */
 @Tests(RangeInput.class)
@@ -54,7 +56,6 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
      * For a non interactable component an IllegalStateException will be thrown
      * as the end user would not be able to set a value.
      * <p>
-     * </p>
      * The value must be in the component {@literal min - max} range, and should
      * be valid according to the {@literal step} scale factor, otherwise an
      * {@link IllegalArgumentException} is thrown.
@@ -100,7 +101,6 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
     /**
      * Increase the value by the amount defined by component {@literal step}.
      * <p>
-     * </p>
      * If the {@literal step} is not defined, an {@link IllegalStateException}
      * is thrown. An {@link IllegalArgumentException} is thrown if increase
      * operation exceeds the {@literal max} boundaries.
@@ -116,7 +116,6 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
      * Increases the value by a specified multiple of the component step
      * setting.
      * <p>
-     * </p>
      * If the {@literal step} is not defined, an {@link IllegalStateException}
      * is thrown. An {@link IllegalArgumentException} is thrown if increase
      * operation exceeds the {@literal max} boundaries.
@@ -147,7 +146,6 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
     /**
      * Decreases the value by the amount defined by component {@literal step}.
      * <p>
-     * </p>
      * If the {@literal step} is not defined, an {@link IllegalStateException}
      * is thrown. An {@link IllegalArgumentException} is thrown if increase
      * operation exceeds the {@literal min} boundaries.
@@ -163,7 +161,6 @@ public class RangeInputTester extends ComponentTester<RangeInput> {
      * Decreases the value by a specified multiple of the component step
      * setting.
      * <p>
-     * </p>
      * If the {@literal step} is not defined, an {@link IllegalStateException}
      * is thrown. An {@link IllegalArgumentException} is thrown if increase
      * operation exceeds the {@literal min} boundaries.

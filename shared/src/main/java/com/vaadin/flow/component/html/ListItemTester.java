@@ -18,6 +18,8 @@ package com.vaadin.flow.component.html;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for ListItem components.
+ *
  * @since 1.0
  */
 @Tests(ListItem.class)

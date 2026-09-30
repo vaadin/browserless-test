@@ -41,6 +41,16 @@ order:
 - **Mark internal API as internal.** "For internal use only. May be renamed or
   removed in a future release." on classes like `BaseBrowserlessTest` is what
   keeps them changeable.
+- **Spell cross-package `@link` and `@throws` targets out in full** in a
+  tester. `locator-processor` copies a tester method's Javadoc into the
+  generated `*Locator`, which has no imports, so `{@link Span}` resolves in the
+  tester and fails there. Write `{@link com.vaadin.flow.component.html.Span
+  Span}`. Same-package names and `{@link #member}` are fine — the processor
+  rewrites the latter to point back at the tester.
+- **Every published member needs a comment.** Every module builds clean under
+  doclint, warnings included, so a missing `@param`, `@return` or description
+  shows up in the `-Djavadocs` build. A class that would otherwise get an
+  undocumented default constructor declares an explicit one.
 
 ## Documenting the mocks
 

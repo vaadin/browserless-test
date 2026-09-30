@@ -58,12 +58,15 @@ public class ChartTester<T extends Chart> extends ComponentTester<T> {
     /**
      * Gets the values for the series at given index.
      *
-     * At the moment only {@link ListSeries}, {@link DataSeries} and
-     * {@link DataProviderSeries} are supported. For all other series types an
+     * At the moment only
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries},
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} and
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} are supported. For all other series types an
      * exception will be thrown.
      *
-     * For {@link DataProviderSeries} Y value is expected to be a {@link Number}
-     * subtype.
+     * For {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} Y value is expected to be a {@link Number} subtype.
      *
      * @param seriesIndex
      *            zero-based index of the series
@@ -83,12 +86,15 @@ public class ChartTester<T extends Chart> extends ComponentTester<T> {
     /**
      * Gets the values for the series with the given name.
      *
-     * At the moment only {@link ListSeries}, {@link DataSeries} and
-     * {@link DataProviderSeries} are supported. For all other series types an
+     * At the moment only
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries},
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} and
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} are supported. For all other series types an
      * exception will be thrown.
      *
-     * For {@link DataProviderSeries} Y value is expected to be a {@link Number}
-     * subtype.
+     * For {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} Y value is expected to be a {@link Number} subtype.
      *
      * @param seriesName
      *            name of the series
@@ -107,13 +113,20 @@ public class ChartTester<T extends Chart> extends ComponentTester<T> {
      * Gets the value of the point with given name from the series at given
      * index.
      *
-     * The {@code name} depends on the series type. For {@link ListSeries} it is
-     * expected to refer to an X-Axis category, for {@link DataSeries} it refers
-     * to the item name, for {@link DataProviderSeries} it is matched against
-     * the value of the configured {@literal x attribute}.
+     * The {@code name} depends on the series type. For
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries} it
+     * is expected to refer to an X-Axis category, for
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} it
+     * refers to the item name, for
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} it is matched against the value of the configured
+     * {@literal x attribute}.
      *
-     * At the moment only {@link ListSeries}, {@link DataSeries} and
-     * {@link DataProviderSeries} are supported. For all other series types an
+     * At the moment only
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries},
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} and
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} are supported. For all other series types an
      * exception will be thrown.
      *
      * @param seriesIndex
@@ -133,13 +146,20 @@ public class ChartTester<T extends Chart> extends ComponentTester<T> {
      * Gets the value of the point with given name from the series at given
      * index.
      *
-     * The {@code name} depends on the series type. For {@link ListSeries} it is
-     * expected to refer to an X-Axis category, for {@link DataSeries} it refers
-     * to the item name, for {@link DataProviderSeries} it is matched against
-     * the value of the configured {@literal x attribute}.
+     * The {@code name} depends on the series type. For
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries} it
+     * is expected to refer to an X-Axis category, for
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} it
+     * refers to the item name, for
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} it is matched against the value of the configured
+     * {@literal x attribute}.
      *
-     * At the moment only {@link ListSeries}, {@link DataSeries} and
-     * {@link DataProviderSeries} are supported. For all other series types an
+     * At the moment only
+     * {@link com.vaadin.flow.component.charts.model.ListSeries ListSeries},
+     * {@link com.vaadin.flow.component.charts.model.DataSeries DataSeries} and
+     * {@link com.vaadin.flow.component.charts.model.DataProviderSeries
+     * DataProviderSeries} are supported. For all other series types an
      * exception will be thrown.
      *
      * @param seriesName

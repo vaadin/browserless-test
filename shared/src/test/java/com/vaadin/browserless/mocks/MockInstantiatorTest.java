@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.di.Instantiator;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "deprecation", "removal" })
 class MockInstantiatorTest {
 
     @Test

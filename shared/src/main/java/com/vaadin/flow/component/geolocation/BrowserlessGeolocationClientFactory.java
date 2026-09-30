@@ -30,6 +30,12 @@ import com.vaadin.flow.component.UI;
 public final class BrowserlessGeolocationClientFactory
         implements GeolocationClientFactory {
 
+    /**
+     * Creates the factory; Flow looks it up through the service loader.
+     */
+    public BrowserlessGeolocationClientFactory() {
+    }
+
     @Override
     public GeolocationClient create(UI ui) {
         BrowserlessGeolocationClient client = new BrowserlessGeolocationClient();

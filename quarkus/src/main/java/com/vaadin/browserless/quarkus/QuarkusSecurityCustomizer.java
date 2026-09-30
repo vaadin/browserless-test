@@ -30,6 +30,12 @@ import com.vaadin.browserless.mocks.MockRequest;
  */
 public class QuarkusSecurityCustomizer implements MockRequestCustomizer {
 
+    /**
+     * Creates the customizer; Vaadin looks it up through the service loader.
+     */
+    public QuarkusSecurityCustomizer() {
+    }
+
     @Override
     public void apply(MockRequest request) {
         request.principalProvider(() -> {

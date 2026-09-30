@@ -46,6 +46,12 @@ import org.springframework.security.core.userdetails.User;
 public class SpringSecurityContextHandler
         implements SecurityContextHandler<Authentication> {
 
+    /**
+     * Creates the handler.
+     */
+    public SpringSecurityContextHandler() {
+    }
+
     @Override
     public void setupAuthentication(Authentication credentials) {
         // SecurityContextHolder.getContext() never returns null — the strategy

@@ -40,8 +40,8 @@ import org.springframework.web.context.WebApplicationContext;
 /**
  * An adapter to make a generic Spring ApplicationContext act like a
  * WebApplicationContext.
- *
- * For internal use only.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @since 1.0
  */
@@ -50,6 +50,15 @@ public class MockWebApplicationContext implements WebApplicationContext {
     private final ApplicationContext appCtx;
     private final ServletContext servletContext;
 
+    /**
+     * Wraps a Spring context so that it also answers as a
+     * {@code WebApplicationContext}.
+     *
+     * @param appCtx
+     *            the context the calls are forwarded to
+     * @param servletContext
+     *            the servlet context to report
+     */
     public MockWebApplicationContext(ApplicationContext appCtx,
             ServletContext servletContext) {
         this.appCtx = appCtx;

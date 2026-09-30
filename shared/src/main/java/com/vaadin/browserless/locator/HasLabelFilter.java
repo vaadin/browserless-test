@@ -39,6 +39,10 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
      * Requires the matched component's {@code label} property to be exactly the
      * given value. Use this for form fields where the end user identifies a
      * field by its label.
+     *
+     * @param label
+     *            the expected label
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withLabel(String label) {
@@ -48,6 +52,10 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
     /**
      * Requires the matched component's {@code label} property to contain the
      * given text.
+     *
+     * @param text
+     *            the expected text
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withLabelContaining(String text) {

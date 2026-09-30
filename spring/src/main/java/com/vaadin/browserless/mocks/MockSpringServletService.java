@@ -15,12 +15,10 @@
  */
 package com.vaadin.browserless.mocks;
 
-import kotlin.jvm.functions.Function0;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationContext;
 
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinSession;
@@ -38,24 +36,34 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringServletService extends SpringVaadinServletService {
-    @NotNull
+    /**
+     * Produces the UI instances the sessions of this service hand out.
+     */
+    @NonNull
     private final UIFactory uiFactory;
 
-    @Deprecated(forRemoval = true)
-    public MockSpringServletService(@NotNull MockSpringServlet servlet,
-            @NotNull DeploymentConfiguration deploymentConfiguration,
-            @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
-        super(servlet, deploymentConfiguration, ctx);
-        this.uiFactory = uiFactory::invoke;
-    }
-
-    public MockSpringServletService(@NotNull MockSpringServlet servlet,
-            @NotNull DeploymentConfiguration deploymentConfiguration,
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+    /**
+     * Creates the service.
+     *
+     * @param servlet
+     *            the servlet the service belongs to
+     * @param deploymentConfiguration
+     *            the deployment configuration to use
+     * @param ctx
+     *            the Spring context the views are instantiated from
+     * @param uiFactory
+     *            produces the UI instances the sessions hand out
+     */
+    public MockSpringServletService(@NonNull MockSpringServlet servlet,
+            @NonNull DeploymentConfiguration deploymentConfiguration,
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(servlet, deploymentConfiguration, ctx);
         this.uiFactory = uiFactory;
     }
