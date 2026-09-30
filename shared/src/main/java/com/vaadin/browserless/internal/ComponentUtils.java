@@ -230,23 +230,6 @@ public final class ComponentUtils {
     }
 
     /**
-     * Finds component's parent, parent's parent (etc) which satisfies given
-     * {@code predicate}. Returns null if there is no such parent.
-     *
-     * @param component
-     *            the component to inspect
-     * @param predicate
-     *            the predicate the component must satisfy
-     * @return component's parent, parent's parent (etc) which satisfies given
-     *         {@code predicate}
-     */
-    public static Component findAncestor(Component component,
-            Predicate<Component> predicate) {
-        return findAncestorOrSelf(component,
-                c -> c != component && predicate.test(c));
-    }
-
-    /**
      * Finds component, component's parent, parent's parent (etc) which
      * satisfies given {@code predicate}. Returns null if no component on the
      * ancestor-or-self axis satisfies.
@@ -282,7 +265,7 @@ public final class ComponentUtils {
      */
     public static boolean isNestedIn(Component component,
             Component potentialAncestor) {
-        return findAncestor(component, c -> c == potentialAncestor) != null;
+        return component.findAncestor(c -> c == potentialAncestor).isPresent();
     }
 
     /**

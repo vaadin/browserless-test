@@ -117,38 +117,6 @@ class ComponentUtilsTest {
     }
 
     @Nested
-    class FindAncestor {
-
-        @Test
-        void noParent_returnsNull() {
-            assertNull(ComponentUtils.findAncestor(new Button(), c -> false));
-        }
-
-        @Test
-        void nothingAccepted_returnsNull() {
-            Button button = new Button();
-            UI.getCurrent().add(button);
-            assertNull(ComponentUtils.findAncestor(button, c -> false));
-        }
-
-        @Test
-        void acceptsTheUi_findsIt() {
-            Button button = new Button();
-            UI.getCurrent().add(button);
-            assertSame(UI.getCurrent(),
-                    ComponentUtils.findAncestor(button, c -> c instanceof UI));
-        }
-
-        @Test
-        void acceptsEverything_skipsSelfAndFindsTheParent() {
-            Button button = new Button();
-            UI.getCurrent().add(button);
-            assertSame(UI.getCurrent(),
-                    ComponentUtils.findAncestor(button, c -> true));
-        }
-    }
-
-    @Nested
     class FindAncestorOrSelf {
 
         @Test
