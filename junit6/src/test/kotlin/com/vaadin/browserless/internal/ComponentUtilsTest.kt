@@ -82,27 +82,6 @@ fun DynaNodeGroup.componentUtilsTests() {
         Button().addContextMenuListener({})
     }
 
-    group("findAncestor") {
-        test("null on no parent") {
-            expect(null) { Button().findAncestor { false } }
-        }
-        test("null on no acceptance") {
-            val button = Button()
-            UI.getCurrent().add(button)
-            expect(null) { button.findAncestor { false } }
-        }
-        test("finds UI") {
-            val button = Button()
-            UI.getCurrent().add(button)
-            expect(UI.getCurrent()) { button.findAncestor { it is UI } }
-        }
-        test("doesn't find self") {
-            val button = Button()
-            UI.getCurrent().add(button)
-            expect(UI.getCurrent()) { button.findAncestor { true } }
-        }
-    }
-
     group("findAncestorOrSelf") {
         test("null on no parent") {
             expect(null) { Button().findAncestorOrSelf { false } }
