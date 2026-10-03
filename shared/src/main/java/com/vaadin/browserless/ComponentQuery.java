@@ -88,8 +88,9 @@ public class ComponentQuery<T extends Component> {
     public <V> ComponentQuery<T> withPropertyValue(Function<T, V> getter,
             V expectedValue) {
         Objects.requireNonNull(getter, "getter function must not be null");
-        locatorSpec.predicates
-                .add(c -> Objects.equals(getter.apply(c), expectedValue));
+        locatorSpec.predicates.add(
+                ElementConditions.describedAs("propertyValue=" + expectedValue,
+                        c -> Objects.equals(getter.apply(c), expectedValue)));
         return this;
     }
 
@@ -708,7 +709,8 @@ public class ComponentQuery<T extends Component> {
             throw new IllegalArgumentException(
                     "slot must not be null nor blank");
         }
-        locatorSpec.predicates.add(component -> isInSlot(component, slot));
+        locatorSpec.predicates.add(ElementConditions.describedAs(
+                "slot='" + slot + "'", component -> isInSlot(component, slot)));
         return this;
     }
 
