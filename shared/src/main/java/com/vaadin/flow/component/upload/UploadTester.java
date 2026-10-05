@@ -258,6 +258,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * As in the browser, the interrupted file is dropped from the file list and
      * a {@code FileRemovedEvent} is fired, freeing a slot when
      * {@link Upload#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param fileName
      *            name of uploading file
@@ -274,6 +277,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * As in the browser, the interrupted file is dropped from the file list and
      * a {@code FileRemovedEvent} is fired, freeing a slot when
      * {@link Upload#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param file
      *            uploading file
@@ -287,6 +293,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * Simulates a failure during file upload.
      * <p>
      * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param file
      *            uploading file
@@ -300,6 +309,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * Simulates a failure during file upload.
      * <p>
      * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param fileName
      *            name of uploading file
@@ -646,6 +658,10 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     private void recordUploadStatus(List<UploadItem> items) {
         state().lastUpload = items.stream().map(UploadItem::toStatus)
                 .collect(Collectors.toUnmodifiableList());
+        // Only a file waiting to be started needs its contents, release the
+        // others so the file list does not keep every upload in memory
+        items.stream().filter(item -> item.status != UploadStatus.PENDING)
+                .forEach(item -> item.contentsProducer = null);
     }
 
     private void deliver(Collection<UploadItem> items) {

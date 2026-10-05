@@ -276,6 +276,10 @@ class UploadTesterTest extends BrowserlessTest {
                 uploadedDataToString(listener.assertFileReceived()));
         Assertions.assertEquals(1, allFinished.get());
         single_.ensureUploaded();
+        Assertions.assertEquals(
+                List.of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                single_.getFiles());
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> single_.startUpload(file1),
                 "An uploaded file cannot be started again");
@@ -310,6 +314,51 @@ class UploadTesterTest extends BrowserlessTest {
         multi_.startUpload("a.txt");
         Assertions.assertEquals(List.of("a.txt:older", "a.txt:newer"),
                 received);
+    }
+
+    @Test
+    void removeFile_sameNameTwice_newestEntryRemoved() {
+        List<String> received = new ArrayList<>();
+        view.uploadMulti.setUploadHandler(UploadHandler
+                .inMemory((metadata, data) -> received.add(metadata.fileName()
+                        + ":" + new String(data, StandardCharsets.UTF_8))));
+        view.uploadMulti.setAutoUpload(false);
+        multi_.upload("a.txt", "text/plain",
+                "older".getBytes(StandardCharsets.UTF_8));
+        multi_.upload("a.txt", "text/plain",
+                "newer".getBytes(StandardCharsets.UTF_8));
+
+        multi_.removeFile("a.txt");
+
+        Assertions.assertEquals(List.of("a.txt"), removed);
+        Assertions.assertEquals(1, multi_.getFiles().size());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(1));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(-1));
+        multi_.startUpload(0);
+        Assertions.assertEquals(List.of("a.txt:older"), received,
+                "The newest entry should have been removed");
+    }
+
+    @Test
+    void startUpload_handlerFails_fileListedAsFailed() {
+        view.uploadSingle.setUploadHandler(
+                new AssertingTransferProgressListener().asFailingHandler());
+        view.uploadSingle.setAutoUpload(false);
+        single_.upload(file1);
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> single_.startUpload(file1));
+
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getFiles().get(0).status(),
+                "A failed file should stay in the file list");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> single_.startUpload(file1),
+                "A failed file cannot be started again");
     }
 
     @Test
