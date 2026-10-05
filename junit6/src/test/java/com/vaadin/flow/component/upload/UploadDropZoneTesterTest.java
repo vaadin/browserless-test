@@ -50,6 +50,9 @@ class UploadDropZoneTesterTest extends BrowserlessTest {
 
     @Test
     void drop_filesDeliveredToUploadHandler() throws IOException {
+        Assertions.assertThrows(IllegalStateException.class,
+                dropZone_::ensureUploaded, "Nothing has been uploaded yet");
+
         dropZone_.drop(file("a.txt", "a"), file("b.txt", "b"));
 
         Assertions.assertEquals(List.of("a.txt:a", "b.txt:b"), view.received);

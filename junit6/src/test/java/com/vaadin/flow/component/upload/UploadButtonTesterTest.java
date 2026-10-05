@@ -60,6 +60,9 @@ class UploadButtonTesterTest extends BrowserlessTest {
 
     @Test
     void upload_fileDeliveredToUploadHandler() throws IOException {
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploaded, "Nothing has been uploaded yet");
+
         AtomicInteger allFinished = new AtomicInteger();
         view.manager
                 .addAllFinishedListener(ev -> allFinished.incrementAndGet());
