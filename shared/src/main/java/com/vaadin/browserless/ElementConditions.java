@@ -135,7 +135,8 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> hasAttribute(
             String attribute) {
-        return component -> component.getElement().hasAttribute(attribute);
+        return describedAs("hasAttribute('" + attribute + "')",
+                component -> component.getElement().hasAttribute(attribute));
     }
 
     /**
@@ -157,8 +158,9 @@ public final class ElementConditions {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }
-        return component -> Objects
-                .equals(component.getElement().getAttribute(attribute), value);
+        return describedAs("attribute '" + attribute + "'='" + value + "'",
+                component -> Objects.equals(
+                        component.getElement().getAttribute(attribute), value));
     }
 
     /**
@@ -174,7 +176,8 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> hasNotAttribute(
             String attribute) {
-        return component -> !component.getElement().hasAttribute(attribute);
+        return describedAs("hasNotAttribute('" + attribute + "')",
+                component -> !component.getElement().hasAttribute(attribute));
     }
 
     /**
@@ -196,8 +199,9 @@ public final class ElementConditions {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }
-        return component -> !Objects
-                .equals(component.getElement().getAttribute(attribute), value);
+        return describedAs("attribute '" + attribute + "'!='" + value + "'",
+                component -> !Objects.equals(
+                        component.getElement().getAttribute(attribute), value));
     }
 
     /**
@@ -225,7 +229,8 @@ public final class ElementConditions {
         if (label == null) {
             throw new IllegalArgumentException("label cannot be null");
         }
-        return component -> matchesLabel(component, label, false);
+        return describedAs("label='" + label + "'",
+                component -> matchesLabel(component, label, false));
     }
 
     /**
@@ -244,7 +249,8 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> matchesLabel(component, text, true);
+        return describedAs("labelContains('" + text + "')",
+                component -> matchesLabel(component, text, true));
     }
 
     private static boolean matchesLabel(Component component, String expected,
@@ -281,13 +287,13 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> {
+        return describedAs("placeholderContains('" + text + "')", component -> {
             if (component instanceof HasPlaceholder hp) {
                 String placeholder = hp.getPlaceholder();
                 return placeholder != null && placeholder.contains(text);
             }
             return false;
-        };
+        });
     }
 
     private static String referringLabelText(Component root, String id) {
@@ -322,7 +328,8 @@ public final class ElementConditions {
         if (ariaLabel == null) {
             throw new IllegalArgumentException("ariaLabel cannot be null");
         }
-        return component -> ariaLabel.equals(resolveAriaLabel(component));
+        return describedAs("ariaLabel='" + ariaLabel + "'",
+                component -> ariaLabel.equals(resolveAriaLabel(component)));
     }
 
     /**
@@ -342,10 +349,10 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> {
+        return describedAs("ariaLabelContains('" + text + "')", component -> {
             String label = resolveAriaLabel(component);
             return label != null && label.contains(text);
-        };
+        });
     }
 
     private static String resolveAriaLabel(Component component) {
@@ -393,6 +400,45 @@ public final class ElementConditions {
                         .contains(text.toLowerCase(Locale.ROOT));
             }
             return componentText.contains(text);
+        }
+
+        @Override
+        public String toString() {
+            return (ignoreCase ? "textContainsIgnoringCase('"
+                    : "textContains('") + text + "')";
+        }
+    }
+
+    /**
+     * Wraps the given predicate so that its {@link Object#toString()} returns
+     * the given description. {@link ComponentQuery} lists the conditions of a
+     * query in the message of a failed lookup, where a lambda would otherwise
+     * show up as an unreadable synthetic class name.
+     *
+     * @param description
+     *            human-readable description of the condition, not
+     *            {@literal null}
+     * @param predicate
+     *            the predicate to wrap, not {@literal null}
+     * @return a predicate that delegates to {@code predicate} and describes
+     *         itself with {@code description}
+     */
+    static <T extends Component> Predicate<T> describedAs(String description,
+            Predicate<T> predicate) {
+        return new DescribedPredicate<>(description, predicate);
+    }
+
+    private record DescribedPredicate<T extends Component>(String description,
+            Predicate<T> predicate) implements Predicate<T> {
+
+        @Override
+        public boolean test(T component) {
+            return predicate.test(component);
+        }
+
+        @Override
+        public String toString() {
+            return description;
         }
     }
 }

@@ -930,6 +930,27 @@ class ComponentQueryTest extends BrowserlessTest {
     }
 
     @Test
+    void single_noMatch_failureMessageDescribesConditions() {
+        TestComponent labelled = new TestComponent();
+        labelled.getElement().setProperty("label", "Full name");
+        UI.getCurrent().getElement().appendChild(labelled.getElement());
+
+        ComponentQuery<TestComponent> query = find(TestComponent.class)
+                .withLabel("Missing").withAttribute("role", "textbox")
+                .withTextContaining("Max")
+                .withCondition(c -> true, "custom condition");
+        NoSuchElementException exception = Assertions
+                .assertThrows(NoSuchElementException.class, query::single);
+        for (String condition : List.of("label='Missing'",
+                "attribute 'role'='textbox'", "textContains('Max')",
+                "custom condition")) {
+            Assertions.assertTrue(
+                    exception.getMessage().contains(" and " + condition),
+                    exception.getMessage());
+        }
+    }
+
+    @Test
     void withLabelContaining_substringMatch() {
         TestComponent fullName = new TestComponent();
         fullName.getElement().setProperty("label", "Full name");
