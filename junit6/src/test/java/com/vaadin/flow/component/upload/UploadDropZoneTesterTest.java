@@ -55,9 +55,9 @@ class UploadDropZoneTesterTest extends BrowserlessTest {
         Assertions.assertEquals(List.of("a.txt:a", "b.txt:b"), view.received);
         Assertions.assertEquals(
                 List.of(UploadStatus.UPLOADED, UploadStatus.UPLOADED),
-                dropZone_.getLastUploadStatus().stream()
+                test(view.fileList).getLastUploadStatus().stream()
                         .map(UploadTester.FileStatus::status).toList());
-        dropZone_.ensureUploaded();
+        test(view.fileList).ensureUploaded();
     }
 
     @Test

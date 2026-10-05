@@ -71,6 +71,39 @@ public class UploadFileListTester<T extends UploadFileList>
     }
 
     /**
+     * Returns what happened to each file the user last picked with an
+     * {@link UploadButton}, dropped on an {@link UploadDropZone} or started
+     * from this list, in the order the files were given.
+     * <p>
+     * Unlike {@link #getFiles()}, this also reports the files the manager
+     * refused, which never enter the list: they are
+     * {@link UploadTester.UploadStatus#REJECTED} with the client-side error
+     * code as the error message: {@code tooManyFiles}, {@code fileIsTooBig} or
+     * {@code incorrectFileType}. A file Flow's server-side accepted type
+     * validation refused is {@code REJECTED} as well.
+     *
+     * @return the outcome of the last upload, one entry per file, or an empty
+     *         list if nothing has been uploaded yet or the file list is not
+     *         linked to a manager
+     */
+    public List<UploadTester.FileStatus> getLastUploadStatus() {
+        return UploadManagerEmulation.lastUploadStatus(getComponent());
+    }
+
+    /**
+     * Checks that the last upload through the {@link UploadManager} the file
+     * list is linked to delivered every one of its files, and fails otherwise.
+     *
+     * @throws IllegalStateException
+     *             if no upload has been simulated, or if any file of the last
+     *             upload was not uploaded
+     * @see #getLastUploadStatus()
+     */
+    public void ensureUploaded() {
+        UploadManagerEmulation.require(getComponent()).ensureUploaded();
+    }
+
+    /**
      * Simulates the user clicking the remove button of a file in the list.
      * <p>
      * A {@link UploadManager.FileRemovedEvent} is fired and the file stops

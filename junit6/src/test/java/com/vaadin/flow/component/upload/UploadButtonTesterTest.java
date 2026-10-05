@@ -68,7 +68,7 @@ class UploadButtonTesterTest extends BrowserlessTest {
 
         Assertions.assertEquals(List.of("notes.txt:Some notes"), view.received);
         Assertions.assertEquals(1, allFinished.get());
-        button_.ensureUploaded();
+        test(view.fileList).ensureUploaded();
     }
 
     @Test
@@ -96,9 +96,9 @@ class UploadButtonTesterTest extends BrowserlessTest {
                         new FileStatus("c.txt", UploadStatus.UPLOADED, null),
                         new FileStatus("d.txt", UploadStatus.REJECTED,
                                 "tooManyFiles")),
-                button_.getLastUploadStatus());
+                test(view.fileList).getLastUploadStatus());
         Assertions.assertThrows(IllegalStateException.class,
-                button_::ensureUploaded);
+                test(view.fileList)::ensureUploaded);
 
         // the browser disables the button once the file list is full
         IllegalStateException exception = Assertions.assertThrows(
