@@ -279,6 +279,64 @@ final class UploadTesterSupport {
     }
 
     /**
+     * Fails unless every file of the given upload was uploaded.
+     *
+     * @param lastUpload
+     *            the outcome of the last upload
+     * @param source
+     *            what the upload was simulated on, for the exception message
+     * @throws IllegalStateException
+     *             if nothing has been uploaded, or a file was not uploaded
+     */
+    static void ensureUploaded(List<UploadTester.FileStatus> lastUpload,
+            String source) {
+        ensureUploadSimulated(lastUpload, source);
+        String failures = lastUpload.stream().filter(
+                file -> file.status() != UploadTester.UploadStatus.UPLOADED)
+                .map(UploadTester.FileStatus::describe)
+                .collect(Collectors.joining(", "));
+        if (!failures.isEmpty()) {
+            throw new IllegalStateException(
+                    "The last upload did not deliver every file: " + failures);
+        }
+    }
+
+    /**
+     * Fails unless at least one file of the given upload failed or was
+     * rejected.
+     *
+     * @param lastUpload
+     *            the outcome of the last upload
+     * @param source
+     *            what the upload was simulated on, for the exception message
+     * @throws IllegalStateException
+     *             if nothing has been uploaded, or no file failed or was
+     *             rejected
+     */
+    static void ensureUploadFailed(List<UploadTester.FileStatus> lastUpload,
+            String source) {
+        ensureUploadSimulated(lastUpload, source);
+        boolean failed = lastUpload.stream().anyMatch(
+                file -> file.status() == UploadTester.UploadStatus.FAILED
+                        || file.status() == UploadTester.UploadStatus.REJECTED);
+        if (!failed) {
+            throw new IllegalStateException(
+                    "No file of the last upload failed or was rejected: "
+                            + lastUpload.stream()
+                                    .map(UploadTester.FileStatus::describe)
+                                    .collect(Collectors.joining(", ")));
+        }
+    }
+
+    private static void ensureUploadSimulated(
+            List<UploadTester.FileStatus> lastUpload, String source) {
+        if (lastUpload.isEmpty()) {
+            throw new IllegalStateException(
+                    "No upload has been simulated on " + source);
+        }
+    }
+
+    /**
      * Counts the JavaScript invocations scheduled so far for the given
      * component that match the given condition.
      * <p>

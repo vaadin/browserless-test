@@ -62,6 +62,8 @@ class UploadButtonTesterTest extends BrowserlessTest {
     void upload_fileDeliveredToUploadHandler() throws IOException {
         Assertions.assertThrows(IllegalStateException.class,
                 button_::ensureUploaded, "Nothing has been uploaded yet");
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploadFailed, "Nothing has been uploaded yet");
 
         AtomicInteger allFinished = new AtomicInteger();
         view.manager
@@ -72,6 +74,8 @@ class UploadButtonTesterTest extends BrowserlessTest {
         Assertions.assertEquals(List.of("notes.txt:Some notes"), view.received);
         Assertions.assertEquals(1, allFinished.get());
         button_.ensureUploaded();
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploadFailed, "Every file was uploaded");
     }
 
     @Test
@@ -102,6 +106,7 @@ class UploadButtonTesterTest extends BrowserlessTest {
                 button_.getLastUploadStatus());
         Assertions.assertThrows(IllegalStateException.class,
                 button_::ensureUploaded);
+        button_.ensureUploadFailed();
 
         // the browser disables the button once the file list is full
         IllegalStateException exception = Assertions.assertThrows(

@@ -309,19 +309,20 @@ final class UploadManagerEmulation {
      *             was not uploaded
      */
     void ensureUploaded() {
-        List<UploadTester.FileStatus> lastUpload = getLastUploadStatus();
-        if (lastUpload.isEmpty()) {
-            throw new IllegalStateException(
-                    "No upload has been simulated on this UploadManager");
-        }
-        String failures = lastUpload.stream().filter(
-                file -> file.status() != UploadTester.UploadStatus.UPLOADED)
-                .map(UploadTester.FileStatus::describe)
-                .collect(Collectors.joining(", "));
-        if (!failures.isEmpty()) {
-            throw new IllegalStateException(
-                    "The last upload did not deliver every file: " + failures);
-        }
+        UploadTesterSupport.ensureUploaded(getLastUploadStatus(),
+                "this UploadManager");
+    }
+
+    /**
+     * Fails unless a file of the last upload failed or was rejected.
+     *
+     * @throws IllegalStateException
+     *             if nothing has been uploaded, or no file of the last upload
+     *             failed or was rejected
+     */
+    void ensureUploadFailed() {
+        UploadTesterSupport.ensureUploadFailed(getLastUploadStatus(),
+                "this UploadManager");
     }
 
     private String validate(State state, UploadItem item, long size) {

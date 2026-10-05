@@ -366,18 +366,28 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * @since 25.3
      */
     public void ensureUploaded() {
-        List<FileStatus> lastUpload = getLastUploadStatus();
-        if (lastUpload.isEmpty()) {
-            throw new IllegalStateException(
-                    "No upload has been simulated on this Upload component");
-        }
-        String failures = lastUpload.stream()
-                .filter(file -> file.status() != UploadStatus.UPLOADED)
-                .map(FileStatus::describe).collect(Collectors.joining(", "));
-        if (!failures.isEmpty()) {
-            throw new IllegalStateException(
-                    "The last upload did not deliver every file: " + failures);
-        }
+        UploadTesterSupport.ensureUploaded(getLastUploadStatus(),
+                "this Upload component");
+    }
+
+    /**
+     * Checks that the upload last simulated on this component did not deliver
+     * every file: at least one of its files failed or was rejected, and fails
+     * otherwise.
+     * <p>
+     * Counterpart of {@link #ensureUploaded()} for a test about the failure
+     * case, such as an upload handler that throws or a file the component
+     * refuses. Use {@link #getLastUploadStatus()} to check which file failed
+     * and why.
+     *
+     * @throws IllegalStateException
+     *             if no upload has been simulated on the component, or if no
+     *             file of the last upload failed or was rejected
+     * @see #getLastUploadStatus()
+     */
+    public void ensureUploadFailed() {
+        UploadTesterSupport.ensureUploadFailed(getLastUploadStatus(),
+                "this Upload component");
     }
 
     private void fireAllFinish() {

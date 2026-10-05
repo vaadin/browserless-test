@@ -139,6 +139,8 @@ class UploadTesterTest extends BrowserlessTest {
                 uploadedData.metadata().contentType());
         Assertions.assertEquals(FIRST_FILE_CONTENTS,
                 uploadedDataToString(uploadedData));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed(), "Every file was uploaded");
     }
 
     @Test
@@ -180,6 +182,7 @@ class UploadTesterTest extends BrowserlessTest {
                 single_.getLastUploadStatus().get(0).status());
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        single_.ensureUploadFailed();
     }
 
     @Test
@@ -388,12 +391,15 @@ class UploadTesterTest extends BrowserlessTest {
                 multi_.getLastUploadStatus().stream()
                         .map(UploadTester.FileStatus::status).toList(),
                 "The upload never got to the file following the failing one");
+        multi_.ensureUploadFailed();
     }
 
     @Test
     void ensureUploaded_noUploadSimulated_throws() {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed());
     }
 
     @Test

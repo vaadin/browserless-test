@@ -178,6 +178,25 @@ public class UploadButtonTester<T extends UploadButton>
         UploadManagerEmulation.require(getComponent()).ensureUploaded();
     }
 
+    /**
+     * Checks that the last upload through the {@link UploadManager} the button
+     * is linked to did not deliver every file: at least one of its files failed
+     * or was rejected, and fails otherwise.
+     * <p>
+     * Counterpart of {@link #ensureUploaded()} for a test about the failure
+     * case, such as an upload handler that throws or a file the manager
+     * refuses. Use {@link #getLastUploadStatus()} to check which file failed
+     * and why.
+     *
+     * @throws IllegalStateException
+     *             if no upload has been simulated, or if no file of the last
+     *             upload failed or was rejected
+     * @see #getLastUploadStatus()
+     */
+    public void ensureUploadFailed() {
+        UploadManagerEmulation.require(getComponent()).ensureUploadFailed();
+    }
+
     @Override
     public boolean isUsable() {
         // Picks up pending clearFileList() calls, which make room in a full
