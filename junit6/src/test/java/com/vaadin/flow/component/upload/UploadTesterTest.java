@@ -616,6 +616,8 @@ class UploadTesterTest extends BrowserlessTest {
                 "The list shows the most recently uploaded file first");
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> multi_.removeFile(1));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(-1));
         multi_.removeFile(0);
         Assertions.assertEquals(List.of(file2.getName(), file1.getName()),
                 removed);

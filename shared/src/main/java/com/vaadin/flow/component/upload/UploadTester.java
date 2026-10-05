@@ -366,7 +366,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         List<String> fileNames = syncedState().fileNames;
         if (index < 0 || index >= fileNames.size()) {
             throw new IllegalArgumentException("No file at index " + index
-                    + ". Files in the list, oldest first: " + fileNames);
+                    + ". Files in the list: " + fileNames.reversed());
         }
         // the emulated list keeps the oldest file first, the browser shows
         // the most recently uploaded one first
