@@ -108,6 +108,8 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.removeFile(file1));
         Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.startUpload(file1));
+        Assertions.assertThrows(IllegalStateException.class,
                 () -> multi_.uploadAll(file1, file2));
         // not being usable is reported before the file count is validated
         Assertions.assertThrows(IllegalStateException.class,
@@ -233,7 +235,7 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
                 rejected);
 
-        // removing by name removes one entry and frees one slot
+        // removing by name removes the newest entry and frees one slot
         multi_.removeFile(file1);
         Assertions.assertEquals(List.of(file1.getName()), removed);
         multi_.upload(file1);
@@ -242,6 +244,72 @@ class UploadTesterTest extends BrowserlessTest {
         multi_.upload(file1);
         Assertions.assertEquals(2, rejected.size(),
                 "The other entry should still occupy its slot");
+    }
+
+    @Test
+    void upload_autoUploadOff_fileUploadedOnlyWhenStarted() {
+        AtomicInteger allFinished = new AtomicInteger();
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle
+                .addAllFinishedListener(ev -> allFinished.incrementAndGet());
+        view.uploadSingle.setAutoUpload(false);
+
+        single_.upload(file1);
+
+        listener.assertNotStarted();
+        Assertions.assertEquals(0, allFinished.get());
+        List<UploadTester.FileStatus> pending = List
+                .of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.PENDING, null));
+        Assertions.assertEquals(pending, single_.getLastUploadStatus());
+        Assertions.assertEquals(pending, single_.getFiles());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed());
+
+        single_.startUpload(file1);
+
+        Assertions.assertEquals(FIRST_FILE_CONTENTS,
+                uploadedDataToString(listener.assertFileReceived()));
+        Assertions.assertEquals(1, allFinished.get());
+        single_.ensureUploaded();
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> single_.startUpload(file1),
+                "An uploaded file cannot be started again");
+    }
+
+    @Test
+    void upload_autoUploadOff_heldFilesCountTowardsMaxFiles() {
+        List<String> received = new ArrayList<>();
+        view.uploadMulti.setUploadHandler(UploadHandler
+                .inMemory((metadata, data) -> received.add(metadata.fileName()
+                        + ":" + new String(data, StandardCharsets.UTF_8))));
+        view.uploadMulti.setAutoUpload(false);
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.upload("a.txt", "text/plain",
+                "older".getBytes(StandardCharsets.UTF_8));
+        multi_.upload("a.txt", "text/plain",
+                "newer".getBytes(StandardCharsets.UTF_8));
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+
+        // the list shows the newest entry first
+        multi_.startUpload(1);
+        Assertions.assertEquals(List.of("a.txt:older"), received);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(1),
+                "An uploaded file cannot be started again");
+
+        // by name, the newest entry still waiting is started
+        multi_.startUpload("a.txt");
+        Assertions.assertEquals(List.of("a.txt:older", "a.txt:newer"),
+                received);
     }
 
     @Test

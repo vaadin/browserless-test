@@ -307,6 +307,27 @@ class UploadTesterDeprecatedAPITest extends BrowserlessTest {
                 "Only the files fitting maxFiles should have been received");
     }
 
+    @Test
+    void upload_autoUploadOff_fileReceivedOnlyWhenStarted() {
+        AtomicBoolean started = new AtomicBoolean();
+        AtomicBoolean allFinished = new AtomicBoolean();
+        view.uploadSingle.addStartedListener(ev -> started.set(true));
+        view.uploadSingle.addAllFinishedListener(ev -> allFinished.set(true));
+        view.uploadSingle.setAutoUpload(false);
+
+        single_.upload(file1);
+
+        Assertions.assertFalse(started.get(),
+                "The file should wait until it is started");
+        Assertions.assertFalse(allFinished.get());
+
+        single_.startUpload(file1);
+
+        Assertions.assertEquals(file1.getName(), view.receiver.getFileName());
+        Assertions.assertTrue(allFinished.get());
+        single_.ensureUploaded();
+    }
+
     void assertFailedUpload(BiConsumer<String, String> wrapperAction) {
         AtomicBoolean started = new AtomicBoolean();
         AtomicBoolean finished = new AtomicBoolean();
