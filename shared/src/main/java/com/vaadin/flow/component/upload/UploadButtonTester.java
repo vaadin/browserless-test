@@ -20,6 +20,7 @@ import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.button.ButtonTester;
@@ -99,7 +100,7 @@ public class UploadButtonTester<T extends UploadButton>
      *             if the component is not usable
      */
     public void upload(String fileName, String contentType, byte[] contents) {
-        addFiles(List.of(new UploadTesterSupport.UploadItem(fileName,
+        addFiles(() -> List.of(new UploadTesterSupport.UploadItem(fileName,
                 contentType, () -> contents)));
     }
 
@@ -136,8 +137,9 @@ public class UploadButtonTester<T extends UploadButton>
      *             if the component is not usable
      */
     public void uploadAll(Collection<File> files) {
-        ensureComponentIsUsable();
-        addFiles(UploadTesterSupport.toItems(files));
+        // the files are converted once the component is known to be usable,
+        // so that not being usable is reported first
+        addFiles(() -> UploadTesterSupport.toItems(files));
     }
 
     /**
@@ -159,9 +161,7 @@ public class UploadButtonTester<T extends UploadButton>
      *         to a manager
      */
     public List<UploadTester.FileStatus> getLastUploadStatus() {
-        return UploadManagerEmulation.of(getComponent())
-                .map(UploadManagerEmulation::getLastUploadStatus)
-                .orElse(List.of());
+        return UploadManagerEmulation.lastUploadStatus(getComponent());
     }
 
     /**
@@ -174,7 +174,7 @@ public class UploadButtonTester<T extends UploadButton>
      * @see #getLastUploadStatus()
      */
     public void ensureUploaded() {
-        emulation().ensureUploaded();
+        UploadManagerEmulation.require(getComponent()).ensureUploaded();
     }
 
     @Override
@@ -182,30 +182,23 @@ public class UploadButtonTester<T extends UploadButton>
         // Picks up pending clearFileList() calls, which make room in a full
         // file list
         roundTrip();
-        return super.isUsable() && UploadManagerEmulation.of(getComponent())
-                .filter(UploadManagerEmulation::isUsable)
-                .filter(manager -> !manager.isMaxFilesReached()).isPresent();
+        return super.isUsable()
+                && UploadManagerEmulation.isUsable(getComponent(), true);
     }
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
         super.notUsableReasons(collector);
-        UploadManagerEmulation.of(getComponent()).ifPresentOrElse(
-                manager -> manager.notUsableReasons(collector, true),
-                () -> collector.accept("not linked to an UploadManager"));
+        UploadManagerEmulation.notUsableReasons(getComponent(), collector,
+                true);
     }
 
-    private void addFiles(List<UploadTesterSupport.UploadItem> items) {
+    private void addFiles(
+            Supplier<List<UploadTesterSupport.UploadItem>> items) {
         ensureComponentIsUsable();
         // A round trip is necessary to ensure upload handler registration and
         // to pick up pending clearFileList() calls
         roundTrip();
-        emulation().addFiles(items);
-    }
-
-    private UploadManagerEmulation emulation() {
-        return UploadManagerEmulation.of(getComponent())
-                .orElseThrow(() -> new IllegalStateException(
-                        "UploadButton is not linked to an UploadManager"));
+        UploadManagerEmulation.require(getComponent()).addFiles(items.get());
     }
 }

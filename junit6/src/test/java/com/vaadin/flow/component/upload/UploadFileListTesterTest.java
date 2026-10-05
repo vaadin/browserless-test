@@ -15,9 +15,12 @@
  */
 package com.vaadin.flow.component.upload;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +105,32 @@ class UploadFileListTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> fileList_.startUpload("a.txt"),
                 "An uploaded file cannot be started again");
+    }
+
+    @Test
+    void upload_handlerFails_fileListedAsFailed() {
+        AtomicInteger allFinished = new AtomicInteger();
+        view.manager
+                .addAllFinishedListener(ev -> allFinished.incrementAndGet());
+        view.manager.setUploadHandler(event -> {
+            throw new IOException("Disk full");
+        });
+        view.manager.setAutoUpload(false);
+        upload("a.txt");
+
+        UncheckedIOException exception = Assertions.assertThrows(
+                UncheckedIOException.class,
+                () -> fileList_.startUpload("a.txt"));
+
+        Assertions.assertEquals("Disk full", exception.getCause().getMessage());
+        Assertions.assertEquals(1, allFinished.get());
+        Assertions.assertEquals(UploadStatus.FAILED,
+                button_.getLastUploadStatus().get(0).status());
+        // the failed file stays in the file list, as it does in the browser
+        Assertions.assertEquals(List.of(UploadStatus.FAILED),
+                fileList_.getFiles().stream().map(FileStatus::status).toList());
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploaded);
     }
 
     @Test

@@ -86,12 +86,81 @@ final class UploadManagerEmulation {
     }
 
     /**
+     * Gets the emulation of the upload manager linked to the given component,
+     * failing if there is none.
+     *
+     * @param component
+     *            a component linked to an upload manager
+     * @return the emulation of the linked manager
+     * @throws IllegalStateException
+     *             if the component is not linked to an upload manager
+     */
+    static UploadManagerEmulation require(HasUploadManager component) {
+        return of(component).orElseThrow(() -> new IllegalStateException(
+                component.getClass().getSimpleName()
+                        + " is not linked to an UploadManager"));
+    }
+
+    /**
+     * Whether the manager linked to the given component accepts files from it,
+     * as the browser decides whether to disable the component.
+     *
+     * @param component
+     *            a component linked to an upload manager
+     * @param checkMaxFiles
+     *            whether a file list holding the maximum number of files
+     *            disables the component, as it does an upload button and a drop
+     *            zone
+     * @return {@code true} if the component is linked to a usable manager
+     */
+    static boolean isUsable(HasUploadManager component, boolean checkMaxFiles) {
+        return of(component).filter(UploadManagerEmulation::isUsable).filter(
+                manager -> !checkMaxFiles || !manager.isMaxFilesReached())
+                .isPresent();
+    }
+
+    /**
+     * Provides the reasons why the manager linked to the given component does
+     * not accept files from it.
+     *
+     * @param component
+     *            a component linked to an upload manager
+     * @param collector
+     *            the consumer of the reasons
+     * @param checkMaxFiles
+     *            whether reaching the maximum number of files counts as well
+     * @see #isUsable(HasUploadManager, boolean)
+     */
+    static void notUsableReasons(HasUploadManager component,
+            Consumer<String> collector, boolean checkMaxFiles) {
+        of(component).ifPresentOrElse(
+                manager -> manager.collectNotUsableReasons(collector,
+                        checkMaxFiles),
+                () -> collector.accept("not linked to an UploadManager"));
+    }
+
+    /**
+     * Gets the outcome of the files last selected, dropped or started through
+     * the manager linked to the given component.
+     *
+     * @param component
+     *            a component linked to an upload manager
+     * @return one entry per file, or an empty list if nothing has been uploaded
+     *         yet or the component is not linked to a manager
+     */
+    static List<UploadTester.FileStatus> lastUploadStatus(
+            HasUploadManager component) {
+        return of(component).map(UploadManagerEmulation::getLastUploadStatus)
+                .orElse(List.of());
+    }
+
+    /**
      * Whether the client-side manager accepts files at all. The browser
      * disables the linked components otherwise.
      *
      * @return {@code true} if the manager is attached and enabled
      */
-    boolean isUsable() {
+    private boolean isUsable() {
         return connector.isAttached() && connector.getElement().isEnabled();
     }
 
@@ -101,7 +170,7 @@ final class UploadManagerEmulation {
      *
      * @return {@code true} if no more files can be added
      */
-    boolean isMaxFilesReached() {
+    private boolean isMaxFilesReached() {
         int maxFiles = manager.getMaxFiles();
         return maxFiles > 0 && syncedState().files.size() >= maxFiles;
     }
@@ -114,7 +183,8 @@ final class UploadManagerEmulation {
      * @param checkMaxFiles
      *            whether reaching the maximum number of files counts as well
      */
-    void notUsableReasons(Consumer<String> collector, boolean checkMaxFiles) {
+    private void collectNotUsableReasons(Consumer<String> collector,
+            boolean checkMaxFiles) {
         if (!connector.isAttached()) {
             collector.accept("linked to an UploadManager whose owner is not "
                     + "attached");

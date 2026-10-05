@@ -124,22 +124,21 @@ public class UploadFileListTester<T extends UploadFileList>
 
     @Override
     public boolean isUsable() {
-        return super.isUsable() && UploadManagerEmulation.of(getComponent())
-                .filter(UploadManagerEmulation::isUsable).isPresent();
+        return super.isUsable()
+                && UploadManagerEmulation.isUsable(getComponent(), false);
     }
 
     @Override
     protected void notUsableReasons(Consumer<String> collector) {
         super.notUsableReasons(collector);
-        UploadManagerEmulation.of(getComponent()).ifPresentOrElse(
-                manager -> manager.notUsableReasons(collector, false),
-                () -> collector.accept("not linked to an UploadManager"));
+        UploadManagerEmulation.notUsableReasons(getComponent(), collector,
+                false);
     }
 
     private UploadManagerEmulation prepare() {
         ensureComponentIsUsable();
         // Picks up pending clearFileList() calls
         roundTrip();
-        return UploadManagerEmulation.of(getComponent()).orElseThrow();
+        return UploadManagerEmulation.require(getComponent());
     }
 }
