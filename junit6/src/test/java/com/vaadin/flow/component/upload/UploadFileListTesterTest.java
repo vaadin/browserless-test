@@ -145,6 +145,30 @@ class UploadFileListTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void sameFileNameTwice_newestEntryStartedAndRemoved() {
+        view.manager.setAutoUpload(false);
+        button_.upload("a.txt", "text/plain", bytes("older"));
+        button_.upload("a.txt", "text/plain", bytes("newer"));
+
+        fileList_.startUpload("a.txt");
+
+        Assertions.assertEquals(List.of("a.txt:newer"), view.received);
+        Assertions.assertEquals(
+                List.of(new FileStatus("a.txt", UploadStatus.UPLOADED, null),
+                        new FileStatus("a.txt", UploadStatus.PENDING, null)),
+                fileList_.getFiles());
+
+        fileList_.removeFile("a.txt");
+
+        Assertions.assertEquals(
+                List.of(new FileStatus("a.txt", UploadStatus.PENDING, null)),
+                fileList_.getFiles(), "The newest entry should be removed");
+        fileList_.startUpload("a.txt");
+        Assertions.assertEquals(List.of("a.txt:newer", "a.txt:older"),
+                view.received);
+    }
+
+    @Test
     void removeFile_managerDisabled_throws() {
         upload("a.txt");
         view.manager.setEnabled(false);

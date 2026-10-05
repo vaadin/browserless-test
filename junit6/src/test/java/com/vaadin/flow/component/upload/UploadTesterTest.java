@@ -217,6 +217,7 @@ class UploadTesterTest extends BrowserlessTest {
         AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
         view.uploadMulti.setUploadHandler(
                 UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFiles(2);
 
         multi_.upload(file1);
         multi_.upload(file1);
@@ -225,6 +226,21 @@ class UploadTesterTest extends BrowserlessTest {
                 listener.assertFilesReceived(2).stream()
                         .map(ud -> ud.metadata().fileName()).toList());
         Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+
+        // both entries count towards maxFiles
+        multi_.upload(file1);
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+
+        // removing by name removes one entry and frees one slot
+        multi_.removeFile(file1);
+        Assertions.assertEquals(List.of(file1.getName()), removed);
+        multi_.upload(file1);
+        Assertions.assertEquals(1, rejected.size(),
+                "The removed entry should have freed exactly one slot");
+        multi_.upload(file1);
+        Assertions.assertEquals(2, rejected.size(),
+                "The other entry should still occupy its slot");
     }
 
     @Test
