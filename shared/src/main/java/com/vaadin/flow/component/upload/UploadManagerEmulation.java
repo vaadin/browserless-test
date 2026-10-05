@@ -252,11 +252,28 @@ final class UploadManagerEmulation {
                         + fileName
                         + "' is not waiting to be uploaded. Files in the list: "
                         + describeFiles()));
-        try {
-            deliver(List.of(item));
-        } finally {
-            recordLastUpload(List.of(item));
+        start(item);
+    }
+
+    /**
+     * Uploads the file at the given position of the file list, as clicking its
+     * start button does.
+     *
+     * @param index
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them
+     * @throws IllegalArgumentException
+     *             if there is no file at the position, or it does not wait to
+     *             be uploaded
+     */
+    void startUpload(int index) {
+        UploadItem item = fileAt(index);
+        if (item.status != UploadTester.UploadStatus.PENDING) {
+            throw new IllegalArgumentException("File '" + item.fileName
+                    + "' at index " + index
+                    + " is not waiting to be uploaded, it is " + item.status);
         }
+        start(item);
     }
 
     /**
@@ -275,9 +292,44 @@ final class UploadManagerEmulation {
                         + fileName
                         + "' is not in the upload file list. Files in the list: "
                         + describeFiles()));
-        state.files.remove(item);
+        remove(item);
+    }
+
+    /**
+     * Removes the file at the given position of the file list, as clicking its
+     * remove button does.
+     *
+     * @param index
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them
+     * @throws IllegalArgumentException
+     *             if there is no file at the position
+     */
+    void removeFile(int index) {
+        remove(fileAt(index));
+    }
+
+    private UploadItem fileAt(int index) {
+        List<UploadItem> files = syncedState().files;
+        if (index < 0 || index >= files.size()) {
+            throw new IllegalArgumentException("No file at index " + index
+                    + ". Files in the list: " + describeFiles());
+        }
+        return files.get(index);
+    }
+
+    private void start(UploadItem item) {
+        try {
+            deliver(List.of(item));
+        } finally {
+            recordLastUpload(List.of(item));
+        }
+    }
+
+    private void remove(UploadItem item) {
+        state().files.remove(item);
         ObjectNode eventData = JacksonUtils.createObjectNode();
-        eventData.put("event.detail.fileName", fileName);
+        eventData.put("event.detail.fileName", item.fileName);
         fireDomEvent("file-remove", eventData);
     }
 

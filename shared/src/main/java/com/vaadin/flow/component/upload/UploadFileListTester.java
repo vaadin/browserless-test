@@ -33,14 +33,15 @@ import com.vaadin.browserless.Tests;
  * not usable while it is not linked to a manager or while the manager is
  * disabled.
  * <p>
- * Entries are identified by file name. As in the browser, nothing prevents the
- * user from adding the same file, or another file with the same name, more than
- * once: every one becomes an entry of its own, is uploaded on its own and
- * counts towards {@link UploadManager#setMaxFiles(int)}. When several entries
- * share a name, {@link #removeFile(String)} removes the most recently added
- * one, which is the first one the list shows, and {@link #startUpload(String)}
- * starts the most recently added one that still waits to be started. Call them
- * again to reach the others.
+ * Entries are reached by file name or by position. As in the browser, nothing
+ * prevents the user from adding the same file, or another file with the same
+ * name, more than once: every one becomes an entry of its own, is uploaded on
+ * its own and counts towards {@link UploadManager#setMaxFiles(int)}. When
+ * several entries share a name, {@link #removeFile(String)} removes the most
+ * recently added one, which is the first one the list shows, and
+ * {@link #startUpload(String)} starts the most recently added one that still
+ * waits to be started. To act on a specific entry, use {@link #removeFile(int)}
+ * and {@link #startUpload(int)} with its position in {@link #getFiles()}.
  *
  * @param <T>
  *            the component type.
@@ -145,6 +146,26 @@ public class UploadFileListTester<T extends UploadFileList>
     }
 
     /**
+     * Simulates the user clicking the remove button of the file at the given
+     * position of the list, which reaches one entry when several share a name.
+     * <p>
+     * A {@link UploadManager.FileRemovedEvent} is fired and the file stops
+     * counting towards {@link UploadManager#setMaxFiles(int)}.
+     *
+     * @param index
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them: the most recently added file
+     *            first
+     * @throws IllegalArgumentException
+     *             if there is no file at the position
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void removeFile(int index) {
+        prepare().removeFile(index);
+    }
+
+    /**
      * Simulates the user clicking the start button of a file that waits in the
      * list because {@link UploadManager#setAutoUpload(boolean) auto upload} is
      * turned off, uploading it.
@@ -184,6 +205,28 @@ public class UploadFileListTester<T extends UploadFileList>
      */
     public void startUpload(File file) {
         startUpload(file.getName());
+    }
+
+    /**
+     * Simulates the user clicking the start button of the file at the given
+     * position of the list, which waits because
+     * {@link UploadManager#setAutoUpload(boolean) auto upload} is turned off,
+     * uploading it. This reaches one entry when several share a name.
+     *
+     * @param index
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them: the most recently added file
+     *            first
+     * @throws UncheckedIOException
+     *             if the upload handler fails to handle the file contents
+     * @throws IllegalArgumentException
+     *             if there is no file at the position, or it does not wait to
+     *             be uploaded
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void startUpload(int index) {
+        prepare().startUpload(index);
     }
 
     @Override
