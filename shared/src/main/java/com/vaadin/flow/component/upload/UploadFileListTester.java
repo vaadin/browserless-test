@@ -75,6 +75,11 @@ public class UploadFileListTester<T extends UploadFileList>
      * {@link UploadButton}, dropped on an {@link UploadDropZone} or started
      * from this list, in the order the files were given.
      * <p>
+     * A file is {@link UploadTester.UploadStatus#UPLOADED} once the upload
+     * handler has consumed it, {@link UploadTester.UploadStatus#FAILED} when
+     * the handler threw, and {@link UploadTester.UploadStatus#PENDING} while it
+     * waits for {@link #startUpload(String)} because auto upload is turned off.
+     * <p>
      * Unlike {@link #getFiles()}, this also reports the files the manager
      * refused, which never enter the list: they are
      * {@link UploadTester.UploadStatus#REJECTED} with the client-side error

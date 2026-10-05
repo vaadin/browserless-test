@@ -134,6 +134,18 @@ class UploadFileListTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getLastUploadStatus_noUpload_emptyAndNotEnsured() {
+        Assertions.assertEquals(List.of(), fileList_.getLastUploadStatus());
+        Assertions.assertThrows(IllegalStateException.class,
+                fileList_::ensureUploaded);
+
+        UploadFileList unlinked = new UploadFileList();
+        view.add(unlinked);
+        Assertions.assertEquals(List.of(),
+                test(unlinked).getLastUploadStatus());
+    }
+
+    @Test
     void removeFile_managerDisabled_throws() {
         upload("a.txt");
         view.manager.setEnabled(false);
