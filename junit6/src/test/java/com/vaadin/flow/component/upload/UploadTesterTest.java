@@ -38,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
@@ -642,6 +643,27 @@ class UploadTesterTest extends BrowserlessTest {
         view.uploadSingle.clearFileList();
         single_.upload(file2);
         // every clearFileList() has to be picked up, not only the first one
+        view.uploadSingle.clearFileList();
+        single_.upload(file3);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(3);
+    }
+
+    @Test
+    void clearFileList_afterPendingJavaScriptSent_slotsFreed() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        view.uploadSingle.clearFileList();
+        single_.upload(file2);
+        // a round trip that sends the pending JavaScript to the client empties
+        // the queue, which must not hide the next clearFileList() call
+        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
         view.uploadSingle.clearFileList();
         single_.upload(file3);
 

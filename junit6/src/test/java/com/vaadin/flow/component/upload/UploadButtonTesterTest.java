@@ -17,6 +17,7 @@ package com.vaadin.flow.component.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.UploadManager.FileRejectionReason;
 import com.vaadin.flow.component.upload.UploadTester.FileStatus;
 import com.vaadin.flow.component.upload.UploadTester.UploadStatus;
@@ -122,6 +124,39 @@ class UploadButtonTesterTest extends BrowserlessTest {
 
         Assertions.assertEquals(List.of("a.txt:a", "c.txt:c", "e.txt:e"),
                 view.received);
+    }
+
+    @Test
+    void clearFileList_afterPendingJavaScriptSent_slotsFreed() {
+        view.manager.setMaxFiles(1);
+
+        button_.upload("a.txt", "text/plain",
+                "a".getBytes(StandardCharsets.UTF_8));
+        view.manager.clearFileList();
+        button_.upload("b.txt", "text/plain",
+                "b".getBytes(StandardCharsets.UTF_8));
+        // a round trip that sends the pending JavaScript to the client empties
+        // the queue, which must not hide the next clearFileList() call
+        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+        view.manager.clearFileList();
+        button_.upload("c.txt", "text/plain",
+                "c".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertEquals(List.of("a.txt:a", "b.txt:b", "c.txt:c"),
+                view.received);
+        Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+    }
+
+    @Test
+    void uploadAll_unreadableFile_fileListUnchanged() throws IOException {
+        File existing = file("existing.txt", "existing");
+        File missing = tempDir.resolve("missing.txt").toFile();
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> button_.uploadAll(existing, missing));
+
+        Assertions.assertEquals(List.of(), view.received);
+        Assertions.assertEquals(List.of(), test(view.fileList).getFiles());
     }
 
     @Test

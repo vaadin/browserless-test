@@ -657,18 +657,12 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     private UploadState syncedState() {
         UploadState state = state();
-        int clearCount = countClearFileListInvocations();
-        if (clearCount > state.observedClearCount) {
+        if (state.clearFileListCalls.hasNewInvocations(getComponent(),
+                invocation -> invocation.getExpression()
+                        .contains(CLEAR_FILE_LIST_EXPRESSION))) {
             state.fileNames.clear();
         }
-        state.observedClearCount = clearCount;
         return state;
-    }
-
-    private int countClearFileListInvocations() {
-        return UploadTesterSupport.countPendingInvocations(getComponent(),
-                invocation -> invocation.getExpression()
-                        .contains(CLEAR_FILE_LIST_EXPRESSION));
     }
 
     private boolean useLegacyAPI() {
@@ -759,7 +753,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     private static class UploadState implements Serializable {
         private final List<String> fileNames = new ArrayList<>();
-        private int observedClearCount;
+        private final UploadTesterSupport.InvocationTracker clearFileListCalls = new UploadTesterSupport.InvocationTracker();
         private List<FileStatus> lastUpload = List.of();
     }
 

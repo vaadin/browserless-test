@@ -210,9 +210,16 @@ final class UploadManagerEmulation {
         State state = syncedState();
         List<UploadItem> accepted = new ArrayList<>();
         try {
+            // Read all contents before touching the file list, so that a file
+            // that cannot be read leaves the list unchanged
+            List<byte[]> allContents = new ArrayList<>();
             for (UploadItem item : items) {
-                byte[] contents = UploadTesterSupport
-                        .readContents(item.contentsProducer);
+                allContents.add(UploadTesterSupport
+                        .readContents(item.contentsProducer));
+            }
+            for (int i = 0; i < items.size(); i++) {
+                UploadItem item = items.get(i);
+                byte[] contents = allContents.get(i);
                 // Cache the contents, they are read again on delivery
                 item.contentsProducer = () -> contents;
                 String error = validate(state, item, contents.length);
@@ -450,14 +457,12 @@ final class UploadManagerEmulation {
         State state = state();
         // the function is called through a generic expression that takes the
         // function name as its first parameter
-        int clearCount = UploadTesterSupport.countPendingInvocations(connector,
+        if (state.clearFileListCalls.hasNewInvocations(connector,
                 invocation -> !invocation.getParameters().isEmpty()
                         && CLEAR_FILE_LIST_FUNCTION
-                                .equals(invocation.getParameters().get(0)));
-        if (clearCount > state.observedClearCount) {
+                                .equals(invocation.getParameters().get(0)))) {
             state.files.clear();
         }
-        state.observedClearCount = clearCount;
         return state;
     }
 
@@ -466,7 +471,7 @@ final class UploadManagerEmulation {
      */
     private static class State {
         private final List<UploadItem> files = new ArrayList<>();
-        private int observedClearCount;
+        private final UploadTesterSupport.InvocationTracker clearFileListCalls = new UploadTesterSupport.InvocationTracker();
         private List<UploadTester.FileStatus> lastUpload = List.of();
     }
 }
