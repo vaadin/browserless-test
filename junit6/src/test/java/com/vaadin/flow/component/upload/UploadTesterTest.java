@@ -38,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
@@ -139,6 +140,8 @@ class UploadTesterTest extends BrowserlessTest {
                 uploadedData.metadata().contentType());
         Assertions.assertEquals(FIRST_FILE_CONTENTS,
                 uploadedDataToString(uploadedData));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed(), "Every file was uploaded");
     }
 
     @Test
@@ -180,6 +183,7 @@ class UploadTesterTest extends BrowserlessTest {
                 single_.getLastUploadStatus().get(0).status());
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        single_.ensureUploadFailed();
     }
 
     @Test
@@ -207,6 +211,37 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertEquals(
                 Set.of(file1.getName(), file2.getName(), file3.getName()),
                 fileNames);
+    }
+
+    @Test
+    void upload_sameFileTwice_bothUploaded() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.upload(file1);
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName(), file1.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName()).toList());
+        Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+
+        // both entries count towards maxFiles
+        multi_.upload(file1);
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+
+        // removing by name removes one entry and frees one slot
+        multi_.removeFile(file1);
+        Assertions.assertEquals(List.of(file1.getName()), removed);
+        multi_.upload(file1);
+        Assertions.assertEquals(1, rejected.size(),
+                "The removed entry should have freed exactly one slot");
+        multi_.upload(file1);
+        Assertions.assertEquals(2, rejected.size(),
+                "The other entry should still occupy its slot");
     }
 
     @Test
@@ -388,12 +423,15 @@ class UploadTesterTest extends BrowserlessTest {
                 multi_.getLastUploadStatus().stream()
                         .map(UploadTester.FileStatus::status).toList(),
                 "The upload never got to the file following the failing one");
+        multi_.ensureUploadFailed();
     }
 
     @Test
     void ensureUploaded_noUploadSimulated_throws() {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed());
     }
 
     @Test
@@ -567,6 +605,26 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void removeFile_byIndex_newestFileFirst() {
+        view.uploadMulti.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        multi_.upload(file1);
+        multi_.upload(file2);
+
+        multi_.removeFile(0);
+
+        Assertions.assertEquals(List.of(file2.getName()), removed,
+                "The list shows the most recently uploaded file first");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(1));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(-1));
+        multi_.removeFile(0);
+        Assertions.assertEquals(List.of(file2.getName(), file1.getName()),
+                removed);
+    }
+
+    @Test
     void removeFile_fileNotInFileList_throws() {
         view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
         }));
@@ -585,6 +643,27 @@ class UploadTesterTest extends BrowserlessTest {
         view.uploadSingle.clearFileList();
         single_.upload(file2);
         // every clearFileList() has to be picked up, not only the first one
+        view.uploadSingle.clearFileList();
+        single_.upload(file3);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(3);
+    }
+
+    @Test
+    void clearFileList_afterPendingJavaScriptSent_slotsFreed() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        view.uploadSingle.clearFileList();
+        single_.upload(file2);
+        // a round trip that sends the pending JavaScript to the client empties
+        // the queue, which must not hide the next clearFileList() call
+        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
         view.uploadSingle.clearFileList();
         single_.upload(file3);
 

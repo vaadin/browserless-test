@@ -15,54 +15,38 @@
  */
 package com.vaadin.flow.component.upload;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.ComponentUtil;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
-import com.vaadin.flow.component.internal.UIInternals;
+import com.vaadin.flow.component.upload.UploadTesterSupport.UploadItem;
+import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
-import com.vaadin.flow.internal.StateNode;
-import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.StreamVariable;
-import com.vaadin.flow.server.VaadinRequest;
-import com.vaadin.flow.server.VaadinResponse;
-import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.server.communication.TransferUtil;
 import com.vaadin.flow.server.communication.streaming.StreamingEndEventImpl;
 import com.vaadin.flow.server.communication.streaming.StreamingErrorEventImpl;
 import com.vaadin.flow.server.communication.streaming.StreamingStartEventImpl;
-import com.vaadin.flow.server.streams.UploadEvent;
 import com.vaadin.flow.server.streams.UploadHandler;
-import com.vaadin.flow.server.streams.UploadResult;
 
 /**
  * Tester for Upload components.
@@ -87,6 +71,13 @@ import com.vaadin.flow.server.streams.UploadResult;
  * second one, because such an {@code Upload} implicitly sets {@code maxFiles}
  * to one. Use {@link #removeFile(String)} or {@link Upload#clearFileList()} to
  * make room, as the user would.
+ * <p>
+ * As in the browser, the same file, or another file with the same name, can be
+ * uploaded more than once: every upload adds an entry of its own to the file
+ * list, is delivered on its own and counts towards {@code maxFiles}. When
+ * several entries share a name, {@link #removeFile(String)} removes the one
+ * uploaded first; use {@link #removeFile(int)} to remove a specific entry by
+ * its position in the list.
  * <p>
  * The accepted file types are checked the way the web component does, against
  * the file name or the content type. That is a laxer rule than the server side
@@ -309,6 +300,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the given name, the one uploaded first is
+     * removed.
      *
      * @param fileName
      *            name of the file to remove, as given when it was uploaded
@@ -335,6 +329,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the name of the given file, the one uploaded
+     * first is removed.
      *
      * @param file
      *            the file to remove
@@ -344,6 +341,36 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     public void removeFile(File file) {
         removeFile(file.getName());
+    }
+
+    /**
+     * Simulates the user removing the file at the given position of the upload
+     * file list, as if clicking the remove button on that entry. This reaches
+     * one entry when several share a name.
+     * <p>
+     * A {@code FileRemovedEvent} is fired and the file stops counting towards
+     * {@link Upload#setMaxFiles(int)}.
+     *
+     * @param index
+     *            the position of the file in the list, in the order the browser
+     *            shows them: the most recently uploaded file first
+     * @throws IllegalArgumentException
+     *             if there is no file at the position
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void removeFile(int index) {
+        ensureComponentIsUsable();
+        // Flushes a potential pending clearFileList() call
+        roundTrip();
+        List<String> fileNames = syncedState().fileNames;
+        if (index < 0 || index >= fileNames.size()) {
+            throw new IllegalArgumentException("No file at index " + index
+                    + ". Files in the list: " + fileNames.reversed());
+        }
+        // the emulated list keeps the oldest file first, the browser shows
+        // the most recently uploaded one first
+        fireFileRemoved(fileNames.remove(fileNames.size() - 1 - index));
     }
 
     /**
@@ -382,18 +409,31 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * @since 25.3
      */
     public void ensureUploaded() {
-        List<FileStatus> lastUpload = getLastUploadStatus();
-        if (lastUpload.isEmpty()) {
-            throw new IllegalStateException(
-                    "No upload has been simulated on this Upload component");
-        }
-        String failures = lastUpload.stream()
-                .filter(file -> file.status() != UploadStatus.UPLOADED)
-                .map(FileStatus::describe).collect(Collectors.joining(", "));
-        if (!failures.isEmpty()) {
-            throw new IllegalStateException(
-                    "The last upload did not deliver every file: " + failures);
-        }
+        UploadTesterSupport.ensureUploaded(getLastUploadStatus(),
+                "this Upload component");
+    }
+
+    /**
+     * Checks that at least one file of the upload last simulated on this
+     * component failed or was rejected, and fails otherwise.
+     * <p>
+     * Counterpart of {@link #ensureUploaded()} for a test about the failure
+     * case, such as an upload handler that throws or a file the component
+     * refuses. Use {@link #getLastUploadStatus()} to check which file failed
+     * and why.
+     * <p>
+     * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
+     * failed: it was neither delivered nor refused, such as a file following
+     * one whose upload threw.
+     *
+     * @throws IllegalStateException
+     *             if no upload has been simulated on the component, or if no
+     *             file of the last upload failed or was rejected
+     * @see #getLastUploadStatus()
+     */
+    public void ensureUploadFailed() {
+        UploadTesterSupport.ensureUploadFailed(getLastUploadStatus(),
+                "this Upload component");
     }
 
     private void fireAllFinish() {
@@ -456,9 +496,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     }
 
     private void recordUploadStatus(List<UploadItem> items) {
-        state().lastUpload = items.stream()
-                .map(item -> new FileStatus(item.fileName, item.status,
-                        item.errorMessage))
+        state().lastUpload = items.stream().map(UploadItem::toStatus)
                 .collect(Collectors.toUnmodifiableList());
     }
 
@@ -466,30 +504,19 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         if (useLegacyAPI()) {
             doLegacyUpload(items);
         } else {
-            var target = getComponent().getElement().getAttribute("target");
-            StreamResourceRegistry.ElementStreamResource resource = VaadinSession
-                    .getCurrent().getResourceRegistry()
-                    .getResource(
-                            StreamResourceRegistry.ElementStreamResource.class,
-                            URI.create(target))
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Upload handler is not registered"));
-            if (resource
-                    .getElementRequestHandler() instanceof UploadHandler uploadHandler) {
-                RuntimeException caughtException;
-                try {
-                    items.forEach(item -> doUpload(item, uploadHandler));
-                } finally {
-                    caughtException = runUIQueue();
-                    fireAllFinish();
-                }
-                if (caughtException != null) {
-                    throw caughtException;
-                }
-            } else {
-                throw new IllegalStateException(
-                        "Invalid or null upload handler "
-                                + resource.getElementRequestHandler());
+            Element element = getComponent().getElement();
+            UploadHandler uploadHandler = UploadTesterSupport
+                    .uploadHandler(element);
+            RuntimeException caughtException;
+            try {
+                items.forEach(item -> UploadTesterSupport.deliver(item,
+                        uploadHandler, element));
+            } finally {
+                caughtException = UploadTesterSupport.runUIQueue();
+                fireAllFinish();
+            }
+            if (caughtException != null) {
+                throw caughtException;
             }
         }
     }
@@ -514,7 +541,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         for (UploadItem item : items) {
             long size = 0;
             if (item.contentsProducer != null) {
-                byte[] contents = getUploadedItemContent(item.contentsProducer);
+                byte[] contents = UploadTesterSupport
+                        .readContents(item.contentsProducer);
                 size = contents.length;
                 // Cache the contents, they are read again on delivery
                 item.contentsProducer = () -> contents;
@@ -545,10 +573,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
                     DEFAULT_FILE_IS_TOO_BIG));
             return false;
         }
-        Pattern acceptPattern = acceptPattern();
-        if (acceptPattern != null && !acceptPattern
-                .matcher(Objects.toString(item.contentType, "")).matches()
-                && !acceptPattern.matcher(item.fileName).matches()) {
+        if (!UploadTesterSupport.matchesAccept(acceptPattern(), item)) {
             reject(item, errorMessage(UploadI18N.Error::getIncorrectFileType,
                     DEFAULT_INCORRECT_FILE_TYPE));
             return false;
@@ -577,22 +602,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *         configured
      */
     private Pattern acceptPattern() {
-        String accept = getComponent().getElement().getProperty("accept");
-        if (accept == null || accept.isBlank()) {
-            return null;
-        }
-        String alternatives = Stream.of(accept.split(",")).map(token -> {
-            // Escape regex operators common to mime types
-            String processed = token.trim().replaceAll("([+.])", "\\\\$1");
-            // Make extension patterns match the end of the file name
-            if (processed.startsWith("\\.")) {
-                processed = ".*" + processed + "$";
-            }
-            // Handle star (*) wildcards
-            return processed.replace("/*", "/.*");
-        }).collect(Collectors.joining("|"));
-        return Pattern.compile("^(" + alternatives + ")$",
-                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        return UploadTesterSupport.acceptPattern(
+                getComponent().getElement().getProperty("accept"));
     }
 
     private String errorMessage(Function<UploadI18N.Error, String> getter,
@@ -646,123 +657,16 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     private UploadState syncedState() {
         UploadState state = state();
-        int clearCount = countClearFileListInvocations();
-        if (clearCount > state.observedClearCount) {
+        if (state.clearFileListCalls.hasNewInvocations(getComponent(),
+                invocation -> invocation.getExpression()
+                        .contains(CLEAR_FILE_LIST_EXPRESSION))) {
             state.fileNames.clear();
         }
-        state.observedClearCount = clearCount;
         return state;
-    }
-
-    @SuppressWarnings("unchecked")
-    private int countClearFileListInvocations() {
-        UI ui = getComponent().getUI().orElse(null);
-        if (ui == null) {
-            return 0;
-        }
-        StateNode node = getComponent().getElement().getNode();
-        Method method = getMethod(UIInternals.class,
-                "getPendingJavaScriptInvocations");
-        try {
-            return (int) ((Stream<PendingJavaScriptInvocation>) method
-                    .invoke(ui.getInternals()))
-                    .filter(invocation -> invocation.getOwner() == node)
-                    .filter(invocation -> invocation.getInvocation()
-                            .getExpression()
-                            .contains(CLEAR_FILE_LIST_EXPRESSION))
-                    .count();
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private boolean useLegacyAPI() {
         return getComponent().getReceiver() != null;
-    }
-
-    private RuntimeException runUIQueue() {
-        try {
-            MockVaadin.runUIQueue();
-        } catch (RuntimeException ex) {
-            return ex;
-        } catch (Exception ex) {
-            // upload callbacks are executed in UI.access blocks.
-            // we need to purge the queue to ensure listeners are
-            // invoked
-            // runUIQueue throws ExecutionException in case of failure
-            // but the method does not declare any thrown exception
-            // (kotlin magic)
-            if (ex instanceof ExecutionException) {
-                if (ex.getCause() instanceof RuntimeException re) {
-                    throw re;
-                } else {
-                    throw new RuntimeException(ex.getCause());
-                }
-            }
-            return new RuntimeException(ex);
-        }
-        return null;
-    }
-
-    private void doUpload(UploadItem item, UploadHandler uploadHandler) {
-        long contentLength;
-        InputStream inputStream;
-        if (item.contentsProducer == null) {
-            contentLength = 0L;
-            inputStream = new InputStream() {
-                @Override
-                public int read() throws IOException {
-                    throw new IOException("Simulated upload failure");
-                }
-            };
-        } else {
-            byte[] content = getUploadedItemContent(item.contentsProducer);
-            contentLength = content.length;
-            inputStream = new ByteArrayInputStream(content);
-        }
-
-        UploadEvent event = new UploadEvent(VaadinRequest.getCurrent(),
-                VaadinResponse.getCurrent(), VaadinSession.getCurrent(),
-                item.fileName, contentLength, item.contentType,
-                getComponent().getElement(), null) {
-            @Override
-            public InputStream getInputStream() {
-                return inputStream;
-            }
-        };
-        try {
-            Method method = TransferUtil.class.getDeclaredMethod(
-                    "handleUploadRequest", UploadHandler.class,
-                    UploadEvent.class);
-            method.setAccessible(true);
-            method.invoke(null, uploadHandler, event);
-            // Flow validates the accepted mime types and file extensions on
-            // the server as well, rejecting the request instead of throwing
-            if (event.isRejected()) {
-                item.status = UploadStatus.REJECTED;
-                item.errorMessage = event.getRejectionMessage();
-            } else {
-                item.status = UploadStatus.UPLOADED;
-            }
-            uploadHandler.responseHandled(
-                    new UploadResult(true, VaadinResponse.getCurrent()));
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new IllegalStateException("Cannot handle upload request", e);
-        } catch (InvocationTargetException e) {
-            RuntimeException cause;
-            if (e.getCause() instanceof RuntimeException re) {
-                cause = re;
-            } else if (e.getCause() instanceof IOException ioe) {
-                cause = new UncheckedIOException(ioe);
-            } else {
-                cause = new UncheckedIOException(new IOException(e));
-            }
-            item.status = UploadStatus.FAILED;
-            item.errorMessage = cause.getMessage();
-            uploadHandler.responseHandled(new UploadResult(false,
-                    VaadinResponse.getCurrent(), cause));
-            throw cause;
-        }
     }
 
     private void doLegacyUpload(Collection<UploadItem> items) {
@@ -800,7 +704,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         String contentType = item.contentType;
         Callable<byte[]> contentsProducer = item.contentsProducer;
 
-        byte[] contents = getUploadedItemContent(contentsProducer);
+        byte[] contents = UploadTesterSupport.readContents(contentsProducer);
 
         try {
             streamVariable.streamingStarted(new StreamingStartEventImpl(
@@ -823,22 +727,6 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         return Optional.empty();
     }
 
-    private static byte[] getUploadedItemContent(
-            Callable<byte[]> contentsProducer) {
-        byte[] contents;
-        try {
-            contents = contentsProducer.call();
-        } catch (RuntimeException ex) {
-            throw ex;
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        } catch (Exception ex) {
-            throw new UncheckedIOException(new IOException(ex));
-        }
-        Objects.requireNonNull(contents, "file contents cannot be null");
-        return contents;
-    }
-
     private void handleUploadResult(StreamVariable streamVariable,
             StreamVariable.StreamingEvent event) {
         if (event instanceof StreamVariable.StreamingErrorEvent) {
@@ -859,29 +747,13 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         }
     }
 
-    private static class UploadItem {
-        private final String fileName;
-        private final String contentType;
-        private Callable<byte[]> contentsProducer;
-        private UploadStatus status = UploadStatus.PENDING;
-        private String errorMessage;
-
-        UploadItem(String fileName, String contentType,
-                Callable<byte[]> contentsProducer) {
-            this.fileName = Objects.requireNonNull(fileName,
-                    "fileName cannot be null");
-            this.contentType = contentType;
-            this.contentsProducer = contentsProducer;
-        }
-    }
-
     /**
      * Emulation of the file list the {@code vaadin-upload} web component keeps
      * on the client, against which {@link Upload#setMaxFiles(int)} is checked.
      */
     private static class UploadState implements Serializable {
         private final List<String> fileNames = new ArrayList<>();
-        private int observedClearCount;
+        private final UploadTesterSupport.InvocationTracker clearFileListCalls = new UploadTesterSupport.InvocationTracker();
         private List<FileStatus> lastUpload = List.of();
     }
 
@@ -907,9 +779,11 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
          */
         FAILED,
         /**
-         * The file was accepted but its transfer never concluded, which only
-         * happens when the upload itself threw, for instance because no upload
-         * handler is configured.
+         * The file was accepted but its transfer never concluded. That happens
+         * when the upload itself threw, for instance because no upload handler
+         * is configured, and for a file added through an {@link UploadManager}
+         * with auto upload turned off, which waits in the file list until the
+         * user starts it.
          */
         PENDING
     }
@@ -929,7 +803,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     public record FileStatus(String fileName, UploadStatus status,
             String errorMessage) implements Serializable {
 
-        private String describe() {
+        String describe() {
             return fileName + " (" + status
                     + (errorMessage == null ? "" : ": " + errorMessage) + ")";
         }
