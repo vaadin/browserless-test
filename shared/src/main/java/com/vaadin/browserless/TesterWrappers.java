@@ -158,6 +158,12 @@ import com.vaadin.flow.component.timepicker.TimePickerTester;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.component.treegrid.TreeGridTester;
 import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.component.upload.UploadButton;
+import com.vaadin.flow.component.upload.UploadButtonTester;
+import com.vaadin.flow.component.upload.UploadDropZone;
+import com.vaadin.flow.component.upload.UploadDropZoneTester;
+import com.vaadin.flow.component.upload.UploadFileList;
+import com.vaadin.flow.component.upload.UploadFileListTester;
 import com.vaadin.flow.component.upload.UploadTester;
 import com.vaadin.flow.component.virtuallist.VirtualList;
 import com.vaadin.flow.component.virtuallist.VirtualListTester;
@@ -567,6 +573,36 @@ public interface TesterWrappers {
 
     default UploadTester<Upload> test(Upload upload) {
         return BaseBrowserlessTest.internalWrap(UploadTester.class, upload);
+    }
+
+    /**
+     * Create a tester for the given UploadButton instance.
+     * <p/>
+     * This overload is more specific than {@link #test(Button)}, so an
+     * {@code UploadButton} argument yields an {@link UploadButtonTester} rather
+     * than a {@link ButtonTester}. Code that assigned the result to an
+     * explicitly typed {@code ButtonTester<Button>} no longer compiles and has
+     * to widen the declaration, use {@code var}, or chain the call directly.
+     *
+     * @param uploadButton
+     *            the UploadButton instance to be tested
+     * @return an UploadButtonTester instance wrapping the given UploadButton
+     */
+    default UploadButtonTester<UploadButton> test(UploadButton uploadButton) {
+        return BaseBrowserlessTest.internalWrap(UploadButtonTester.class,
+                uploadButton);
+    }
+
+    default UploadDropZoneTester<UploadDropZone> test(
+            UploadDropZone uploadDropZone) {
+        return BaseBrowserlessTest.internalWrap(UploadDropZoneTester.class,
+                uploadDropZone);
+    }
+
+    default UploadFileListTester<UploadFileList> test(
+            UploadFileList uploadFileList) {
+        return BaseBrowserlessTest.internalWrap(UploadFileListTester.class,
+                uploadFileList);
     }
 
     default <V> VirtualListTester<VirtualList<V>, V> test(
