@@ -937,11 +937,13 @@ class ComponentQueryTest extends BrowserlessTest {
 
         ComponentQuery<TestComponent> query = find(TestComponent.class)
                 .withLabel("Missing").withAttribute("role", "textbox")
-                .withTextContaining("Max");
+                .withTextContaining("Max")
+                .withCondition(c -> true, "custom condition");
         NoSuchElementException exception = Assertions
                 .assertThrows(NoSuchElementException.class, query::single);
         for (String condition : List.of("label='Missing'",
-                "attribute 'role'='textbox'", "textContains('Max')")) {
+                "attribute 'role'='textbox'", "textContains('Max')",
+                "custom condition")) {
             Assertions.assertTrue(
                     exception.getMessage().contains(" and " + condition),
                     exception.getMessage());

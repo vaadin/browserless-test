@@ -161,6 +161,29 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
+     * Requires the components to satisfy the given condition, described by the
+     * given text. The description stands for the condition in the message of a
+     * failed lookup, so it should say what the condition checks, for example
+     * {@code "has children"}.
+     *
+     * @param condition
+     *            the condition to check against the components, not
+     *            {@literal null}
+     * @param description
+     *            human-readable description of the condition, not
+     *            {@literal null}
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withCondition(Predicate<T> condition,
+            String description) {
+        Objects.requireNonNull(condition, "condition must not be null");
+        Objects.requireNonNull(description, "description must not be null");
+        locatorSpec.predicates
+                .add(ElementConditions.describedAs(description, condition));
+        return this;
+    }
+
+    /**
      * Requires the components to have all the given CSS class names
      *
      * @param className
