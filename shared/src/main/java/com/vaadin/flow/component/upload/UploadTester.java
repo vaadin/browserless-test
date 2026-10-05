@@ -380,8 +380,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * and why.
      * <p>
      * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
-     * failed: it was neither delivered nor refused, as a file following one
-     * whose upload threw.
+     * failed: it was neither delivered nor refused, such as a file following
+     * one whose upload threw.
      *
      * @throws IllegalStateException
      *             if no upload has been simulated on the component, or if no

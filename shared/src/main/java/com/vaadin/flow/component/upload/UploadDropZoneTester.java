@@ -170,8 +170,8 @@ public class UploadDropZoneTester<T extends UploadDropZone>
      * and why.
      * <p>
      * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
-     * failed: it was neither delivered nor refused, as a file waiting because
-     * auto upload is turned off.
+     * failed: it was neither delivered nor refused, such as a file waiting
+     * because auto upload is turned off.
      *
      * @throws IllegalStateException
      *             if no upload has been simulated, or if no file of the last

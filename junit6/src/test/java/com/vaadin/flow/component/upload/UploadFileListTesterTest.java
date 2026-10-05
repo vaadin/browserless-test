@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.upload;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -98,7 +99,7 @@ class UploadFileListTesterTest extends BrowserlessTest {
                 List.of(new FileStatus("a.txt", UploadStatus.PENDING, null)),
                 fileList_.getFiles());
 
-        fileList_.startUpload("a.txt");
+        fileList_.startUpload(new File("a.txt"));
 
         Assertions.assertEquals(List.of("a.txt:a.txt"), view.received);
         Assertions.assertEquals(
