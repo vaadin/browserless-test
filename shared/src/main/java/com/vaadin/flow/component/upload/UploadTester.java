@@ -371,14 +371,17 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     }
 
     /**
-     * Checks that the upload last simulated on this component did not deliver
-     * every file: at least one of its files failed or was rejected, and fails
-     * otherwise.
+     * Checks that at least one file of the upload last simulated on this
+     * component failed or was rejected, and fails otherwise.
      * <p>
      * Counterpart of {@link #ensureUploaded()} for a test about the failure
      * case, such as an upload handler that throws or a file the component
      * refuses. Use {@link #getLastUploadStatus()} to check which file failed
      * and why.
+     * <p>
+     * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
+     * failed: it was neither delivered nor refused, as a file following one
+     * whose upload threw.
      *
      * @throws IllegalStateException
      *             if no upload has been simulated on the component, or if no

@@ -213,6 +213,21 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void upload_sameFileTwice_bothUploaded() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+
+        multi_.upload(file1);
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName(), file1.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName()).toList());
+        Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+    }
+
+    @Test
     void uploadAll_noFiles_throws() {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> multi_.uploadAll());

@@ -148,9 +148,9 @@ final class UploadManagerEmulation {
      * @return one entry per file, or an empty list if nothing has been uploaded
      *         yet or the component is not linked to a manager
      */
-    static List<UploadTester.FileStatus> lastUploadStatus(
+    static List<UploadTester.FileStatus> getLastUploadStatus(
             HasUploadManager component) {
-        return of(component).map(UploadManagerEmulation::getLastUploadStatus)
+        return of(component).map(manager -> manager.getLastUploadStatus())
                 .orElse(List.of());
     }
 

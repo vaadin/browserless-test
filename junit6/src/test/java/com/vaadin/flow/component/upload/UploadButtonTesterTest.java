@@ -125,6 +125,36 @@ class UploadButtonTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void upload_sameFileNameTwice_bothUploaded() {
+        view.manager.setMaxFiles(2);
+
+        button_.upload("a.txt", "text/plain",
+                "first".getBytes(StandardCharsets.UTF_8));
+        button_.upload("a.txt", "text/plain",
+                "second".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertEquals(List.of("a.txt:first", "a.txt:second"),
+                view.received);
+        Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+        Assertions.assertFalse(button_.isUsable(),
+                "Both files should count towards maxFiles");
+    }
+
+    @Test
+    void ensureUploadFailed_autoUploadOff_pendingFileNotFailed() {
+        view.manager.setAutoUpload(false);
+
+        button_.upload("a.txt", "text/plain",
+                "a".getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertEquals(UploadStatus.PENDING,
+                button_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploadFailed,
+                "A file waiting to be started has not failed");
+    }
+
+    @Test
     void upload_notUsable_throws() throws IOException {
         File file = file("notes.txt", "Some notes");
 

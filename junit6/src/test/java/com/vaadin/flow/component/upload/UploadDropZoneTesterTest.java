@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.upload.UploadManager.FileRejectionReason;
 import com.vaadin.flow.component.upload.UploadTester.UploadStatus;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -65,6 +67,34 @@ class UploadDropZoneTesterTest extends BrowserlessTest {
         dropZone_.ensureUploaded();
         Assertions.assertThrows(IllegalStateException.class,
                 dropZone_::ensureUploadFailed, "Every file was uploaded");
+    }
+
+    @Test
+    void drop_filesCheckedAgainstTheManagerConstraints() throws IOException {
+        List<String> rejected = new ArrayList<>();
+        view.manager.addFileRejectedListener(ev -> {
+            Assertions.assertTrue(ev.isFromClient());
+            rejected.add(ev.getFileName() + ":" + ev.getReason());
+        });
+        view.manager.setMaxFiles(1);
+        view.manager.setMaxFileSize(5);
+        view.manager.setAcceptedMimeTypes("text/plain");
+
+        dropZone_.drop(file("big.txt", "too big"), file("image.png", "b"),
+                file("a.txt", "a"), file("c.txt", "c"));
+
+        Assertions.assertEquals(List.of("a.txt:a"), view.received);
+        Assertions.assertEquals(
+                List.of("big.txt:" + FileRejectionReason.FILE_TOO_LARGE,
+                        "image.png:" + FileRejectionReason.INCORRECT_FILE_TYPE,
+                        "c.txt:" + FileRejectionReason.TOO_MANY_FILES),
+                rejected);
+        Assertions.assertEquals(
+                List.of(UploadStatus.REJECTED, UploadStatus.REJECTED,
+                        UploadStatus.UPLOADED, UploadStatus.REJECTED),
+                dropZone_.getLastUploadStatus().stream()
+                        .map(UploadTester.FileStatus::status).toList());
+        dropZone_.ensureUploadFailed();
     }
 
     @Test

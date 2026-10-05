@@ -92,7 +92,7 @@ public class UploadFileListTester<T extends UploadFileList>
      *         linked to a manager
      */
     public List<UploadTester.FileStatus> getLastUploadStatus() {
-        return UploadManagerEmulation.lastUploadStatus(getComponent());
+        return UploadManagerEmulation.getLastUploadStatus(getComponent());
     }
 
     /**
@@ -145,6 +145,24 @@ public class UploadFileListTester<T extends UploadFileList>
      */
     public void startUpload(String fileName) {
         prepare().startUpload(fileName);
+    }
+
+    /**
+     * Simulates the user clicking the start button of a file that waits in the
+     * list because {@link UploadManager#setAutoUpload(boolean) auto upload} is
+     * turned off, uploading it.
+     *
+     * @param file
+     *            the file to start
+     * @throws UncheckedIOException
+     *             if the upload handler fails to handle the file contents
+     * @throws IllegalArgumentException
+     *             if no such file waits in the file list
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void startUpload(File file) {
+        startUpload(file.getName());
     }
 
     @Override

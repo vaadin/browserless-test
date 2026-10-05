@@ -143,7 +143,7 @@ public class UploadDropZoneTester<T extends UploadDropZone>
      *         linked to a manager
      */
     public List<UploadTester.FileStatus> getLastUploadStatus() {
-        return UploadManagerEmulation.lastUploadStatus(getComponent());
+        return UploadManagerEmulation.getLastUploadStatus(getComponent());
     }
 
     /**
@@ -160,14 +160,18 @@ public class UploadDropZoneTester<T extends UploadDropZone>
     }
 
     /**
-     * Checks that the last upload through the {@link UploadManager} the drop
-     * zone is linked to did not deliver every file: at least one of its files
-     * failed or was rejected, and fails otherwise.
+     * Checks that at least one file of the last upload through the
+     * {@link UploadManager} the drop zone is linked to failed or was rejected,
+     * and fails otherwise.
      * <p>
      * Counterpart of {@link #ensureUploaded()} for a test about the failure
      * case, such as an upload handler that throws or a file the manager
      * refuses. Use {@link #getLastUploadStatus()} to check which file failed
      * and why.
+     * <p>
+     * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
+     * failed: it was neither delivered nor refused, as a file waiting because
+     * auto upload is turned off.
      *
      * @throws IllegalStateException
      *             if no upload has been simulated, or if no file of the last
