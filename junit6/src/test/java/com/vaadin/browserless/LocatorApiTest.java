@@ -343,6 +343,14 @@ class LocatorApiTest {
                     .click();
             Assertions.assertEquals("Saved: ",
                     window.findSpan().withId("echo").component().getText());
+
+            // withCondition with a description — named in the failure
+            // message instead of the predicate's class name.
+            NoSuchElementException exception = Assertions.assertThrows(
+                    NoSuchElementException.class, () -> window.findButton()
+                            .withCondition(b -> false, "never").component());
+            Assertions.assertTrue(exception.getMessage().contains(" and never"),
+                    exception.getMessage());
         }
     }
 

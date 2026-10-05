@@ -88,8 +88,9 @@ public class ComponentQuery<T extends Component> {
     public <V> ComponentQuery<T> withPropertyValue(Function<T, V> getter,
             V expectedValue) {
         Objects.requireNonNull(getter, "getter function must not be null");
-        locatorSpec.predicates
-                .add(c -> Objects.equals(getter.apply(c), expectedValue));
+        locatorSpec.predicates.add(
+                ElementConditions.describedAs("propertyValue=" + expectedValue,
+                        c -> Objects.equals(getter.apply(c), expectedValue)));
         return this;
     }
 
@@ -156,6 +157,29 @@ public class ComponentQuery<T extends Component> {
     public ComponentQuery<T> withCondition(Predicate<T> condition) {
         Objects.requireNonNull(condition, "condition must not be null");
         locatorSpec.predicates.add(condition);
+        return this;
+    }
+
+    /**
+     * Requires the components to satisfy the given condition, described by the
+     * given text. The description stands for the condition in the message of a
+     * failed lookup, so it should say what the condition checks, for example
+     * {@code "has children"}.
+     *
+     * @param condition
+     *            the condition to check against the components, not
+     *            {@literal null}
+     * @param description
+     *            human-readable description of the condition, not
+     *            {@literal null}
+     * @return this element query instance for chaining
+     */
+    public ComponentQuery<T> withCondition(Predicate<T> condition,
+            String description) {
+        Objects.requireNonNull(condition, "condition must not be null");
+        Objects.requireNonNull(description, "description must not be null");
+        locatorSpec.predicates
+                .add(ElementConditions.describedAs(description, condition));
         return this;
     }
 
@@ -708,7 +732,8 @@ public class ComponentQuery<T extends Component> {
             throw new IllegalArgumentException(
                     "slot must not be null nor blank");
         }
-        locatorSpec.predicates.add(component -> isInSlot(component, slot));
+        locatorSpec.predicates.add(ElementConditions.describedAs(
+                "slot='" + slot + "'", component -> isInSlot(component, slot)));
         return this;
     }
 
