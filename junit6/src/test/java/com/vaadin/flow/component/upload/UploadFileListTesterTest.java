@@ -101,7 +101,7 @@ class UploadFileListTesterTest extends BrowserlessTest {
         fileList_.startUpload("a.txt");
 
         Assertions.assertEquals(List.of("a.txt:a.txt"), view.received);
-        fileList_.ensureUploaded();
+        button_.ensureUploaded();
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> fileList_.startUpload("a.txt"),
                 "An uploaded file cannot be started again");
@@ -130,14 +130,14 @@ class UploadFileListTesterTest extends BrowserlessTest {
         Assertions.assertEquals(List.of(UploadStatus.FAILED),
                 fileList_.getFiles().stream().map(FileStatus::status).toList());
         Assertions.assertThrows(IllegalStateException.class,
-                fileList_::ensureUploaded);
+                button_::ensureUploaded);
     }
 
     @Test
     void getLastUploadStatus_noUpload_emptyAndNotEnsured() {
         Assertions.assertEquals(List.of(), fileList_.getLastUploadStatus());
         Assertions.assertThrows(IllegalStateException.class,
-                fileList_::ensureUploaded);
+                button_::ensureUploaded);
 
         UploadFileList unlinked = new UploadFileList();
         view.add(unlinked);

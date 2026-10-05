@@ -36,10 +36,9 @@ import com.vaadin.flow.component.button.ButtonTester;
  * types the same way the browser does: a file failing one of them fires a
  * {@link UploadManager.FileRejectedEvent} and never reaches the upload handler.
  * A refused file is no more of an error here than in the browser, so uploading
- * does not throw for it. Use {@link UploadFileListTester#getLastUploadStatus()}
- * to see what became of each file, or
- * {@link UploadFileListTester#ensureUploaded()} to fail the test unless every
- * file went through.
+ * does not throw for it. Use {@link #getLastUploadStatus()} to see what became
+ * of each file, or {@link #ensureUploaded()} to fail the test unless every file
+ * went through.
  * <p>
  * The manager keeps the files in a file list shared by every component linked
  * to it, and {@code maxFiles} is checked against that list. As in the browser,
@@ -141,6 +140,42 @@ public class UploadButtonTester<T extends UploadButton>
         // the files are converted once the component is known to be usable,
         // so that not being usable is reported first
         addFiles(() -> UploadTesterSupport.toItems(files));
+    }
+
+    /**
+     * Returns what happened to each file the user last selected, dropped or
+     * started through the {@link UploadManager} the button is linked to, in the
+     * order the files were given.
+     * <p>
+     * Files are reported as {@link UploadTester.UploadStatus#UPLOADED} once the
+     * upload handler has consumed them, as
+     * {@link UploadTester.UploadStatus#REJECTED} when the manager or Flow's
+     * server-side accepted type validation refused them, as
+     * {@link UploadTester.UploadStatus#FAILED} when the handler threw, and as
+     * {@link UploadTester.UploadStatus#PENDING} while they wait in the file
+     * list for auto upload being turned off. The error message of a file the
+     * manager refused is the client-side error code: {@code tooManyFiles},
+     * {@code fileIsTooBig} or {@code incorrectFileType}.
+     *
+     * @return the outcome of the last upload, one entry per file, or an empty
+     *         list if nothing has been uploaded yet or the button is not linked
+     *         to a manager
+     */
+    public List<UploadTester.FileStatus> getLastUploadStatus() {
+        return UploadManagerEmulation.lastUploadStatus(getComponent());
+    }
+
+    /**
+     * Checks that the last upload through the {@link UploadManager} the button
+     * is linked to delivered every one of its files, and fails otherwise.
+     *
+     * @throws IllegalStateException
+     *             if no upload has been simulated, or if any file of the last
+     *             upload was not uploaded
+     * @see #getLastUploadStatus()
+     */
+    public void ensureUploaded() {
+        UploadManagerEmulation.require(getComponent()).ensureUploaded();
     }
 
     @Override

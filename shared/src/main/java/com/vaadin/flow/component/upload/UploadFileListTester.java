@@ -96,19 +96,6 @@ public class UploadFileListTester<T extends UploadFileList>
     }
 
     /**
-     * Checks that the last upload through the {@link UploadManager} the file
-     * list is linked to delivered every one of its files, and fails otherwise.
-     *
-     * @throws IllegalStateException
-     *             if no upload has been simulated, or if any file of the last
-     *             upload was not uploaded
-     * @see #getLastUploadStatus()
-     */
-    public void ensureUploaded() {
-        UploadManagerEmulation.require(getComponent()).ensureUploaded();
-    }
-
-    /**
      * Simulates the user clicking the remove button of a file in the list.
      * <p>
      * A {@link UploadManager.FileRemovedEvent} is fired and the file stops
