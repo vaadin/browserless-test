@@ -72,6 +72,12 @@ import com.vaadin.flow.server.streams.UploadHandler;
  * to one. Use {@link #removeFile(String)} or {@link Upload#clearFileList()} to
  * make room, as the user would.
  * <p>
+ * As in the browser, the same file, or another file with the same name, can be
+ * uploaded more than once: every upload adds an entry of its own to the file
+ * list, is delivered on its own and counts towards {@code maxFiles}. When
+ * several entries share a name, {@link #removeFile(String)} removes the one
+ * uploaded first.
+ * <p>
  * The accepted file types are checked the way the web component does, against
  * the file name or the content type. That is a laxer rule than the server side
  * validation Flow applies to {@link Upload#setAcceptedMimeTypes(String...)} and
@@ -293,6 +299,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the given name, the one uploaded first is
+     * removed.
      *
      * @param fileName
      *            name of the file to remove, as given when it was uploaded
@@ -319,6 +328,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the name of the given file, the one uploaded
+     * first is removed.
      *
      * @param file
      *            the file to remove

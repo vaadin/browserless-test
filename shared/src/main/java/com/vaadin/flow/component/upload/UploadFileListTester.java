@@ -32,6 +32,15 @@ import com.vaadin.browserless.Tests;
  * and simulates the buttons on its entries. As in the browser, the file list is
  * not usable while it is not linked to a manager or while the manager is
  * disabled.
+ * <p>
+ * Entries are identified by file name. As in the browser, nothing prevents the
+ * user from adding the same file, or another file with the same name, more than
+ * once: every one becomes an entry of its own, is uploaded on its own and
+ * counts towards {@link UploadManager#setMaxFiles(int)}. When several entries
+ * share a name, {@link #removeFile(String)} removes the most recently added
+ * one, which is the first one the list shows, and {@link #startUpload(String)}
+ * starts the most recently added one that still waits to be started. Call them
+ * again to reach the others.
  *
  * @param <T>
  *            the component type.
@@ -100,6 +109,9 @@ public class UploadFileListTester<T extends UploadFileList>
      * <p>
      * A {@link UploadManager.FileRemovedEvent} is fired and the file stops
      * counting towards {@link UploadManager#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the given name, the most recently added one is
+     * removed.
      *
      * @param fileName
      *            name of the file to remove, as given when it was uploaded
@@ -117,6 +129,9 @@ public class UploadFileListTester<T extends UploadFileList>
      * <p>
      * A {@link UploadManager.FileRemovedEvent} is fired and the file stops
      * counting towards {@link UploadManager#setMaxFiles(int)}.
+     * <p>
+     * When several entries have the name of the given file, the most recently
+     * added one is removed.
      *
      * @param file
      *            the file to remove
@@ -133,6 +148,9 @@ public class UploadFileListTester<T extends UploadFileList>
      * Simulates the user clicking the start button of a file that waits in the
      * list because {@link UploadManager#setAutoUpload(boolean) auto upload} is
      * turned off, uploading it.
+     * <p>
+     * When several waiting entries have the given name, the most recently added
+     * one is started.
      *
      * @param fileName
      *            name of the file to start, as given when it was added
@@ -151,6 +169,9 @@ public class UploadFileListTester<T extends UploadFileList>
      * Simulates the user clicking the start button of a file that waits in the
      * list because {@link UploadManager#setAutoUpload(boolean) auto upload} is
      * turned off, uploading it.
+     * <p>
+     * When several waiting entries have the name of the given file, the most
+     * recently added one is started.
      *
      * @param file
      *            the file to start
