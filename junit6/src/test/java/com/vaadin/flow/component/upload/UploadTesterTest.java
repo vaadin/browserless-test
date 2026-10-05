@@ -604,6 +604,24 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void removeFile_byIndex_newestFileFirst() {
+        view.uploadMulti.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        multi_.upload(file1);
+        multi_.upload(file2);
+
+        multi_.removeFile(0);
+
+        Assertions.assertEquals(List.of(file2.getName()), removed,
+                "The list shows the most recently uploaded file first");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(1));
+        multi_.removeFile(0);
+        Assertions.assertEquals(List.of(file2.getName(), file1.getName()),
+                removed);
+    }
+
+    @Test
     void removeFile_fileNotInFileList_throws() {
         view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
         }));

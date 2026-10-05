@@ -267,7 +267,7 @@ final class UploadManagerEmulation {
      *             be uploaded
      */
     void startUpload(int index) {
-        UploadItem item = fileAt(index);
+        UploadItem item = getFileAt(index);
         if (item.status != UploadTester.UploadStatus.PENDING) {
             throw new IllegalArgumentException("File '" + item.fileName
                     + "' at index " + index
@@ -306,10 +306,10 @@ final class UploadManagerEmulation {
      *             if there is no file at the position
      */
     void removeFile(int index) {
-        remove(fileAt(index));
+        remove(getFileAt(index));
     }
 
-    private UploadItem fileAt(int index) {
+    private UploadItem getFileAt(int index) {
         List<UploadItem> files = syncedState().files;
         if (index < 0 || index >= files.size()) {
             throw new IllegalArgumentException("No file at index " + index

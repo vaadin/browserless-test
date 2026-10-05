@@ -76,7 +76,8 @@ import com.vaadin.flow.server.streams.UploadHandler;
  * uploaded more than once: every upload adds an entry of its own to the file
  * list, is delivered on its own and counts towards {@code maxFiles}. When
  * several entries share a name, {@link #removeFile(String)} removes the one
- * uploaded first.
+ * uploaded first; use {@link #removeFile(int)} to remove a specific entry by
+ * its position in the list.
  * <p>
  * The accepted file types are checked the way the web component does, against
  * the file name or the content type. That is a laxer rule than the server side
@@ -340,6 +341,36 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      */
     public void removeFile(File file) {
         removeFile(file.getName());
+    }
+
+    /**
+     * Simulates the user removing the file at the given position of the upload
+     * file list, as if clicking the remove button on that entry. This reaches
+     * one entry when several share a name.
+     * <p>
+     * A {@code FileRemovedEvent} is fired and the file stops counting towards
+     * {@link Upload#setMaxFiles(int)}.
+     *
+     * @param index
+     *            the position of the file in the list, in the order the browser
+     *            shows them: the most recently uploaded file first
+     * @throws IllegalArgumentException
+     *             if there is no file at the position
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void removeFile(int index) {
+        ensureComponentIsUsable();
+        // Flushes a potential pending clearFileList() call
+        roundTrip();
+        List<String> fileNames = syncedState().fileNames;
+        if (index < 0 || index >= fileNames.size()) {
+            throw new IllegalArgumentException("No file at index " + index
+                    + ". Files in the list, oldest first: " + fileNames);
+        }
+        // the emulated list keeps the oldest file first, the browser shows
+        // the most recently uploaded one first
+        fireFileRemoved(fileNames.remove(fileNames.size() - 1 - index));
     }
 
     /**
