@@ -71,6 +71,8 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItem("test-foo"));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.combo).selectItem((String[]) null));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItemContaining("fo"));
     }
 
     @Test
@@ -141,6 +143,45 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 view.combo.getSelectedItems());
         Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
         Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
+    }
+
+    @Test
+    void selectItemContaining_replacesSelectionWithMatchesAsUser() {
+        view.combo.setValue(Set.of(view.items.get(0)));
+        List<Boolean> fromClient = new ArrayList<>();
+        view.combo.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        test(view.combo).selectItemContaining("BA");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                test(view.combo).getSelected());
+
+        test(view.combo).selectItemContaining("fo", "ar");
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected());
+        Assertions.assertEquals(List.of(true, true), fromClient);
+        Assertions.assertEquals(2, test(view.combo).getSuggestions().size(),
+                "Filter should be cleared after selecting");
+    }
+
+    @Test
+    void selectItemContaining_anyTextWithoutSingleMatch_throws() {
+        IllegalArgumentException multiple = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining("fo", "test"));
+        Assertions.assertTrue(
+                multiple.getMessage().contains("[test-foo, test-bar]"),
+                multiple.getMessage());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining("baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining());
+
+        Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
+        Assertions.assertEquals(2, test(view.combo).getSuggestions().size(),
+                "Filter should be cleared after a failed selection");
     }
 
     // As with ComboBox, emptying without a clear button is selectItem(null).
