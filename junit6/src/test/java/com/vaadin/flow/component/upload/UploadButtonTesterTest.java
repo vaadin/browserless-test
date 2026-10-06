@@ -190,6 +190,96 @@ class UploadButtonTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void uploadFailed_fileKeptInFileListAsFailed() {
+        AtomicInteger allFinished = new AtomicInteger();
+        view.manager
+                .addAllFinishedListener(ev -> allFinished.incrementAndGet());
+        List<String> removed = new ArrayList<>();
+        view.manager
+                .addFileRemovedListener(ev -> removed.add(ev.getFileName()));
+        view.manager.setMaxFiles(2);
+
+        button_.uploadFailed("a.txt", "text/plain");
+
+        Assertions.assertEquals(List.of(), view.received,
+                "The handler cannot have read the broken stream");
+        Assertions.assertEquals(1, allFinished.get());
+        List<FileStatus> files = test(view.fileList).getFiles();
+        Assertions.assertEquals(1, files.size());
+        Assertions.assertEquals("a.txt", files.get(0).fileName());
+        Assertions.assertEquals(UploadStatus.FAILED, files.get(0).status());
+        Assertions.assertEquals(UploadStatus.FAILED,
+                button_.getLastUploadStatus().get(0).status());
+        button_.ensureUploadFailed();
+        Assertions.assertTrue(removed.isEmpty(), "Got " + removed);
+
+        // the failed file still takes a slot
+        button_.upload("b.txt", "text/plain",
+                "b".getBytes(StandardCharsets.UTF_8));
+        Assertions.assertFalse(button_.isUsable());
+    }
+
+    @Test
+    void uploadAborted_fileRemovedFromFileList() throws IOException {
+        List<String> removed = new ArrayList<>();
+        view.manager.addFileRemovedListener(ev -> {
+            Assertions.assertTrue(ev.isFromClient());
+            removed.add(ev.getFileName());
+        });
+        view.manager.setMaxFiles(1);
+        // the transfer is started even when auto upload is turned off
+        view.manager.setAutoUpload(false);
+
+        button_.uploadAborted(file("a.txt", "a"));
+
+        Assertions.assertEquals(List.of(), view.received);
+        Assertions.assertEquals(List.of("a.txt"), removed);
+        Assertions.assertEquals(List.of(), test(view.fileList).getFiles());
+        Assertions.assertEquals(UploadStatus.FAILED,
+                button_.getLastUploadStatus().get(0).status());
+        Assertions.assertTrue(button_.isUsable(),
+                "The aborted file should not occupy a slot");
+    }
+
+    @Test
+    void uploadFailed_handlerIgnoringTheStream_stillReportedAsFailed() {
+        List<String> handled = new ArrayList<>();
+        // a handler that only looks at the metadata never trips over the
+        // broken stream the simulated failure hands it
+        view.manager
+                .setUploadHandler(event -> handled.add(event.getFileName()));
+
+        button_.uploadFailed("a.txt", "text/plain");
+
+        Assertions.assertEquals(List.of("a.txt"), handled);
+        Assertions.assertEquals(UploadStatus.FAILED,
+                button_.getLastUploadStatus().get(0).status());
+        Assertions.assertThrows(IllegalStateException.class,
+                button_::ensureUploaded);
+    }
+
+    @Test
+    void uploadAborted_rejectedByTheManager_fileListUntouched() {
+        List<String> removed = new ArrayList<>();
+        view.manager
+                .addFileRemovedListener(ev -> removed.add(ev.getFileName()));
+        view.manager.setAcceptedFileExtensions(".txt");
+
+        button_.uploadAborted("image.png", "image/png");
+
+        Assertions.assertEquals(
+                List.of("image.png:" + FileRejectionReason.INCORRECT_FILE_TYPE),
+                rejected);
+        Assertions.assertTrue(removed.isEmpty(), "Got " + removed);
+        Assertions
+                .assertEquals(
+                        List.of(new FileStatus("image.png",
+                                UploadStatus.REJECTED, "incorrectFileType")),
+                        button_.getLastUploadStatus());
+        Assertions.assertEquals(List.of(), test(view.fileList).getFiles());
+    }
+
+    @Test
     void upload_notUsable_throws() throws IOException {
         File file = file("notes.txt", "Some notes");
 

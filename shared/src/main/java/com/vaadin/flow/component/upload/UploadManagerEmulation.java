@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.upload;
 
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -228,9 +229,7 @@ final class UploadManagerEmulation {
                     state.files.add(0, item);
                     accepted.add(item);
                 } else {
-                    item.status = UploadTester.UploadStatus.REJECTED;
-                    item.errorMessage = error;
-                    fireFileRejected(item.fileName, error);
+                    reject(item, error);
                 }
             }
             if (manager.isAutoUpload() && !accepted.isEmpty()) {
@@ -238,6 +237,49 @@ final class UploadManagerEmulation {
             }
         } finally {
             recordLastUpload(items);
+        }
+    }
+
+    /**
+     * Adds the given file to the file list as the client-side manager does when
+     * the user selects or drops it, and starts its transfer, which then fails
+     * or is aborted by the user.
+     * <p>
+     * The transfer is started whether or not auto upload is turned off. A
+     * failed file stays in the file list, whereas an aborted one is removed
+     * from it, as the client-side manager does.
+     *
+     * @param item
+     *            the file the user selected or dropped, without contents
+     * @param abort
+     *            {@literal true} to simulate the user aborting the transfer,
+     *            {@literal false} to simulate a transfer failure
+     */
+    void addFailedFile(UploadItem item, boolean abort) {
+        State state = syncedState();
+        try {
+            String error = validate(state, item, 0);
+            if (error != null) {
+                // the file never entered the file list, so there is nothing to
+                // fail and nothing to remove from it
+                reject(item, error);
+                return;
+            }
+            state.files.add(0, item);
+            try {
+                deliver(List.of(item));
+            } catch (UncheckedIOException ex) {
+                // an exception is expected since we are simulating an error
+            } finally {
+                // the upload is a simulated failure whatever the handler made
+                // of the broken stream
+                item.status = UploadTester.UploadStatus.FAILED;
+                if (abort) {
+                    remove(item);
+                }
+            }
+        } finally {
+            recordLastUpload(List.of(item));
         }
     }
 
@@ -425,9 +467,11 @@ final class UploadManagerEmulation {
                 .collect(Collectors.toUnmodifiableList());
     }
 
-    private void fireFileRejected(String fileName, String error) {
+    private void reject(UploadItem item, String error) {
+        item.status = UploadTester.UploadStatus.REJECTED;
+        item.errorMessage = error;
         ObjectNode eventData = JacksonUtils.createObjectNode();
-        eventData.put("event.detail.fileName", fileName);
+        eventData.put("event.detail.fileName", item.fileName);
         eventData.put("event.detail.errorMessage", error);
         fireDomEvent("file-reject", eventData);
     }

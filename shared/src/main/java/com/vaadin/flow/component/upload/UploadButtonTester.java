@@ -17,6 +17,7 @@ package com.vaadin.flow.component.upload;
 
 import java.io.File;
 import java.io.UncheckedIOException;
+import java.net.URLConnection;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
@@ -143,6 +144,92 @@ public class UploadButtonTester<T extends UploadButton>
     }
 
     /**
+     * Simulates the user picking the given file in the file dialog and then
+     * aborting its upload.
+     * <p>
+     * As in the browser, the aborted file is dropped from the file list and a
+     * {@link UploadManager.FileRemovedEvent} is fired, freeing a slot when
+     * {@link UploadManager#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link UploadManager#setAutoUpload(boolean) auto upload} is turned off.
+     * The content type is detected from the file name, and the file is not
+     * read.
+     *
+     * @param file
+     *            the file to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void uploadAborted(File file) {
+        uploadAborted(file.getName(),
+                URLConnection.guessContentTypeFromName(file.getName()));
+    }
+
+    /**
+     * Simulates the user picking a file with the given name and content type in
+     * the file dialog and then aborting its upload.
+     * <p>
+     * As in the browser, the aborted file is dropped from the file list and a
+     * {@link UploadManager.FileRemovedEvent} is fired, freeing a slot when
+     * {@link UploadManager#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link UploadManager#setAutoUpload(boolean) auto upload} is turned off.
+     *
+     * @param fileName
+     *            name of the file to upload
+     * @param contentType
+     *            content type of the file to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void uploadAborted(String fileName, String contentType) {
+        addFailedFile(fileName, contentType, true);
+    }
+
+    /**
+     * Simulates the user picking the given file in the file dialog and its
+     * upload then failing.
+     * <p>
+     * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link UploadManager#setAutoUpload(boolean) auto upload} is turned off.
+     * The content type is detected from the file name, and the file is not
+     * read.
+     *
+     * @param file
+     *            the file to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void uploadFailed(File file) {
+        uploadFailed(file.getName(),
+                URLConnection.guessContentTypeFromName(file.getName()));
+    }
+
+    /**
+     * Simulates the user picking a file with the given name and content type in
+     * the file dialog and its upload then failing.
+     * <p>
+     * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link UploadManager#setAutoUpload(boolean) auto upload} is turned off.
+     *
+     * @param fileName
+     *            name of the file to upload
+     * @param contentType
+     *            content type of the file to upload
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void uploadFailed(String fileName, String contentType) {
+        addFailedFile(fileName, contentType, false);
+    }
+
+    /**
      * Returns what happened to each file the user last selected, dropped or
      * started through the {@link UploadManager} the button is linked to, in the
      * order the files were given.
@@ -224,5 +311,16 @@ public class UploadButtonTester<T extends UploadButton>
         // to pick up pending clearFileList() calls
         roundTrip();
         UploadManagerEmulation.require(getComponent()).addFiles(items.get());
+    }
+
+    private void addFailedFile(String fileName, String contentType,
+            boolean abort) {
+        ensureComponentIsUsable();
+        // A round trip is necessary to ensure upload handler registration and
+        // to pick up pending clearFileList() calls
+        roundTrip();
+        UploadManagerEmulation.require(getComponent()).addFailedFile(
+                new UploadTesterSupport.UploadItem(fileName, contentType, null),
+                abort);
     }
 }
