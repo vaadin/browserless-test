@@ -196,12 +196,46 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     public static BrowserlessApplicationContext forComponent(
             Supplier<Component> componentFactory) {
+        return forComponent(BrowserlessConfiguration.empty(), componentFactory);
+    }
+
+    /**
+     * Creates a self-contained application context for ad-hoc testing of a
+     * single component, applying the given custom Vaadin configuration
+     * (application properties, feature flags, lookup services) to the mocked
+     * environment. Behaves like {@link #forComponent(Supplier)} otherwise.
+     *
+     * <pre>
+     * var configuration = BrowserlessConfiguration.builder()
+     *         .withFeatureFlags("myExperimentalFeature").build();
+     * try (var app = BrowserlessApplicationContext.forComponent(configuration,
+     *         MyForm::new)) {
+     *     var window = app.newUser().newWindow();
+     *     // ...
+     * }
+     * </pre>
+     *
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
+     * @param componentFactory
+     *            supplies the component to attach to each window; must not be
+     *            {@code null}
+     * @return a new self-closing application context with no routes
+     * @throws NullPointerException
+     *             if {@code configuration} or {@code componentFactory} is
+     *             {@code null}
+     * @see Builder#withConfiguration(BrowserlessConfiguration)
+     */
+    public static BrowserlessApplicationContext forComponent(
+            BrowserlessConfiguration configuration,
+            Supplier<Component> componentFactory) {
         Objects.requireNonNull(componentFactory,
                 "componentFactory must not be null");
+        Objects.requireNonNull(configuration, "configuration must not be null");
         // Self-reference: the detach listener must close the app, but the app
         // does not exist until create(...) returns — hold it in a one-slot ref.
         AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
-        ownerApp.set(create(b -> b.withoutRoutes().withUIFactory(() -> {
+        UIFactory uiFactory = () -> {
             // Build the component from UI.init() rather than an attach
             // listener: init() runs from UI.doInit() after the current
             // UI/session are set, so a component whose constructor reads
@@ -219,7 +253,9 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             // short-circuits.
             ui.addDetachListener(event -> ownerApp.get().close());
             return ui;
-        })));
+        };
+        ownerApp.set(create(b -> b.withoutRoutes()
+                .withConfiguration(configuration).withUIFactory(uiFactory)));
         return ownerApp.get();
     }
 

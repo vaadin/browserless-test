@@ -15,13 +15,16 @@
  */
 package com.vaadin.browserless;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.adhoc.CounterWidget;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.experimental.FeatureFlags;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.VaadinService;
 
 /**
  * Exercises the ad-hoc component testing path
@@ -91,6 +94,36 @@ class AdhocComponentTest {
                     "UI.getCurrent() should be set while the factory builds the component");
             Assertions.assertSame(window.getUI(), uiDuringConstruction.get(),
                     "The component should be built against this window's UI");
+        }
+    }
+
+    @Test
+    void forComponent_configuration_appliedBeforeComponentIsBuilt() {
+        BrowserlessConfiguration configuration = BrowserlessConfiguration
+                .builder().withApplicationProperty("custom.property", "value")
+                .withFeatureFlags(FeatureFlags.COLLABORATION_ENGINE_BACKEND)
+                .build();
+        AtomicReference<String> propertyDuringConstruction = new AtomicReference<>();
+        AtomicBoolean flagDuringConstruction = new AtomicBoolean();
+        try (var window = BrowserlessUIContext.forComponent(configuration,
+                () -> {
+                    VaadinService service = VaadinService.getCurrent();
+                    propertyDuringConstruction.set(service
+                            .getDeploymentConfiguration()
+                            .getStringProperty("custom.property", null));
+                    flagDuringConstruction.set(
+                            FeatureFlags.get(service.getContext()).isEnabled(
+                                    FeatureFlags.COLLABORATION_ENGINE_BACKEND));
+                    return new CounterWidget();
+                })) {
+            Assertions.assertEquals("value", propertyDuringConstruction.get(),
+                    "The application property should be visible to the component factory");
+            Assertions.assertTrue(flagDuringConstruction.get(),
+                    "The feature flag should be enabled for the component factory");
+
+            window.findButton().withText("Increment").click();
+            Assertions.assertEquals(1,
+                    window.find(CounterWidget.class).first().getCount());
         }
     }
 
