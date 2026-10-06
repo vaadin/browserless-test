@@ -270,8 +270,34 @@ public class BrowserlessUIContext
      * @return a window with the component attached
      */
     public static BrowserlessUIContext forComponent(Component component) {
+        return forComponent(component, BrowserlessConfiguration.empty());
+    }
+
+    /**
+     * Shorthand for ad-hoc component testing of a single component, applying
+     * the given custom Vaadin configuration (application properties, feature
+     * flags, lookup services) to the mocked environment. Behaves like
+     * {@link #forComponent(Component)} otherwise.
+     *
+     * <pre>
+     * var configuration = BrowserlessConfiguration.builder()
+     *         .withFeatureFlags("myExperimentalFeature").build();
+     * try (var window = BrowserlessUIContext.forComponent(new MyForm(),
+     *         configuration)) {
+     *     window.findButton().withCaption("Save").click();
+     * }
+     * </pre>
+     *
+     * @param component
+     *            the component to attach; must not be {@code null}
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
+     * @return a window with the component attached
+     */
+    public static BrowserlessUIContext forComponent(Component component,
+            BrowserlessConfiguration configuration) {
         Objects.requireNonNull(component, "component must not be null");
-        return forComponent(() -> component);
+        return forComponent(() -> component, configuration);
     }
 
     /**
@@ -302,11 +328,29 @@ public class BrowserlessUIContext
      */
     public static BrowserlessUIContext forComponent(
             Supplier<Component> componentFactory) {
-        Objects.requireNonNull(componentFactory,
-                "componentFactory must not be null");
+        return forComponent(componentFactory, BrowserlessConfiguration.empty());
+    }
+
+    /**
+     * Shorthand for ad-hoc component testing of a single component built by a
+     * factory, applying the given custom Vaadin configuration (application
+     * properties, feature flags, lookup services) to the mocked environment.
+     * Behaves like {@link #forComponent(Supplier)} otherwise; the configuration
+     * is already in effect when the factory runs.
+     *
+     * @param componentFactory
+     *            supplies the component to attach; must not be {@code null}
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
+     * @return a window with the produced component attached
+     */
+    public static BrowserlessUIContext forComponent(
+            Supplier<Component> componentFactory,
+            BrowserlessConfiguration configuration) {
         // noinspection resource
-        return BrowserlessApplicationContext.forComponent(componentFactory)
-                .newUser().newWindow();
+        return BrowserlessApplicationContext
+                .forComponent(componentFactory, configuration).newUser()
+                .newWindow();
     }
 
     /**
