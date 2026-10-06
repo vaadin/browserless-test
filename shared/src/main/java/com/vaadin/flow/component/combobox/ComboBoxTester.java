@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -123,6 +124,51 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
                     "No item found for '" + selection + "'");
         }
         setValueAsUser(filtered.get(0));
+    }
+
+    /**
+     * Selects the item matching a partial text, as if the user typed the text
+     * into the combobox and picked the only remaining suggestion.
+     * <p>
+     * The text is applied as a filter, so matching follows the component's own
+     * filtering: by default a case-insensitive "label contains" match, or the
+     * {@code ItemFilter} / data provider filter the application configured.
+     * Exactly one item has to match. The filter is cleared afterwards, as the
+     * browser does once a value is committed.
+     *
+     * <pre>
+     * // items "Berlin", "Bern", "Helsinki"
+     * comboBoxTester.selectItemContaining("hel"); // selects "Helsinki"
+     * </pre>
+     *
+     * @param text
+     *            the text the user types to find the item, not {@code null}
+     * @throws IllegalArgumentException
+     *             if no item or more than one item matches the text
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @see #selectItem(String)
+     */
+    public void selectItemContaining(String text) {
+        ensureComponentIsUsable();
+        Objects.requireNonNull(text, "text must not be null");
+        final List<Y> matches;
+        try {
+            setFilter(text);
+            matches = getSuggestionItems();
+        } finally {
+            setFilter("");
+        }
+        if (matches.size() != 1) {
+            final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                    .getItemLabelGenerator();
+            throw new IllegalArgumentException(matches.isEmpty()
+                    ? "No item found containing '" + text + "'"
+                    : "Multiple items found containing '" + text + "': "
+                            + matches.stream().map(itemLabelGenerator)
+                                    .collect(Collectors.toList()));
+        }
+        setValueAsUser(matches.get(0));
     }
 
     /**

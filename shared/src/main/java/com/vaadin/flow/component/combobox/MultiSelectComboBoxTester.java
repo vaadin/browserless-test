@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -101,6 +102,62 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
                     "No item found for '" + Arrays.toString(selection) + "'");
         }
         setValueAsUser(filtered);
+    }
+
+    /**
+     * Selects the items matching partial texts, as if the user typed each text
+     * into the combobox and picked the only remaining suggestion.
+     * <p>
+     * Each text is applied as a filter, so matching follows the component's own
+     * filtering: by default a case-insensitive "label contains" match, or the
+     * {@code ItemFilter} / data provider filter the application configured.
+     * Every text has to match exactly one item. Like
+     * {@link #selectItem(String...)}, the matched items replace the current
+     * selection. The filter is cleared afterwards, as the browser does once a
+     * value is committed.
+     *
+     * <pre>
+     * // items "Berlin", "Bern", "Helsinki"
+     * comboBoxTester.selectItemContaining("hel", "lin"); // Helsinki, Berlin
+     * </pre>
+     *
+     * @param texts
+     *            the texts the user types to find the items, at least one, none
+     *            of them {@code null}
+     * @throws IllegalArgumentException
+     *             if no text is given, or a text matches no item or more than
+     *             one item
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @see #selectItem(String...)
+     */
+    public void selectItemContaining(String... texts) {
+        ensureComponentIsUsable();
+        if (texts == null || texts.length == 0) {
+            throw new IllegalArgumentException(
+                    "At least one text has to be given");
+        }
+        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                .getItemLabelGenerator();
+        final Set<Y> selection = new LinkedHashSet<>();
+        try {
+            for (String text : texts) {
+                Objects.requireNonNull(text, "texts must not contain null");
+                setFilter(text);
+                final List<Y> matches = getSuggestionItems();
+                if (matches.size() != 1) {
+                    throw new IllegalArgumentException(matches.isEmpty()
+                            ? "No item found containing '" + text + "'"
+                            : "Multiple items found containing '" + text + "': "
+                                    + matches.stream().map(itemLabelGenerator)
+                                            .collect(Collectors.toList()));
+                }
+                selection.add(matches.get(0));
+            }
+        } finally {
+            setFilter("");
+        }
+        setValueAsUser(selection);
     }
 
     /**
