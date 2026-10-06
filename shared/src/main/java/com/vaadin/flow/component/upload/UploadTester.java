@@ -72,12 +72,20 @@ import com.vaadin.flow.server.streams.UploadHandler;
  * to one. Use {@link #removeFile(String)} or {@link Upload#clearFileList()} to
  * make room, as the user would.
  * <p>
+ * Accepted files are uploaded right away unless
+ * {@link Upload#setAutoUpload(boolean) auto upload} is turned off, in which
+ * case they wait in the file list, {@link UploadStatus#PENDING}, until the test
+ * starts them with {@link #startUpload(String)}, as the user would with the
+ * start button of the entry.
+ * <p>
  * As in the browser, the same file, or another file with the same name, can be
  * uploaded more than once: every upload adds an entry of its own to the file
  * list, is delivered on its own and counts towards {@code maxFiles}. When
- * several entries share a name, {@link #removeFile(String)} removes the one
- * uploaded first; use {@link #removeFile(int)} to remove a specific entry by
- * its position in the list.
+ * several entries share a name, {@link #removeFile(String)} removes the most
+ * recently added one, which is the first one the list shows, and
+ * {@link #startUpload(String)} starts the most recently added one that still
+ * waits to be started. To act on a specific entry, use {@link #removeFile(int)}
+ * and {@link #startUpload(int)} with its position in {@link #getFiles()}.
  * <p>
  * The accepted file types are checked the way the web component does, against
  * the file name or the content type. That is a laxer rule than the server side
@@ -124,7 +132,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * The file is rejected with a {@code FileRejectedEvent}, and never reaches
      * the upload handler, if it violates one of the client-side constraints of
-     * the component.
+     * the component. With {@link Upload#setAutoUpload(boolean) auto upload}
+     * turned off, an accepted file waits in the file list until
+     * {@link #startUpload(String)} is called.
      *
      * @param fileName
      *            name of the file to upload
@@ -149,7 +159,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * The file is rejected with a {@code FileRejectedEvent}, and never reaches
      * the upload handler, if it violates one of the client-side constraints of
-     * the component.
+     * the component. With {@link Upload#setAutoUpload(boolean) auto upload}
+     * turned off, an accepted file waits in the file list until
+     * {@link #startUpload(String)} is called.
      *
      * @param fileName
      *            name of the file to upload
@@ -175,7 +187,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * The file is rejected with a {@code FileRejectedEvent}, and never reaches
      * the upload handler, if it violates one of the client-side constraints of
-     * the component.
+     * the component. With {@link Upload#setAutoUpload(boolean) auto upload}
+     * turned off, an accepted file waits in the file list until
+     * {@link #startUpload(String)} is called.
      *
      * @param file
      *            the file to upload
@@ -195,7 +209,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * Files violating one of the client-side constraints of the component are
      * rejected with a {@code FileRejectedEvent} and never reach the upload
-     * handler; the remaining files are uploaded.
+     * handler; the remaining files are uploaded, or wait in the file list when
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param files
      *            files to upload
@@ -211,7 +226,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * Files violating one of the client-side constraints of the component are
      * rejected with a {@code FileRejectedEvent} and never reach the upload
-     * handler; the remaining files are uploaded.
+     * handler; the remaining files are uploaded, or wait in the file list when
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param files
      *            files to upload
@@ -242,6 +258,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * As in the browser, the interrupted file is dropped from the file list and
      * a {@code FileRemovedEvent} is fired, freeing a slot when
      * {@link Upload#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param fileName
      *            name of uploading file
@@ -258,6 +277,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * As in the browser, the interrupted file is dropped from the file list and
      * a {@code FileRemovedEvent} is fired, freeing a slot when
      * {@link Upload#setMaxFiles(int)} is in use.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param file
      *            uploading file
@@ -271,6 +293,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * Simulates a failure during file upload.
      * <p>
      * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param file
      *            uploading file
@@ -284,6 +309,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * Simulates a failure during file upload.
      * <p>
      * As in the browser, a file whose upload failed stays in the file list.
+     * <p>
+     * The file is added and its transfer started in one go, whether or not
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off.
      *
      * @param fileName
      *            name of uploading file
@@ -301,26 +329,25 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
      * <p>
-     * When several entries have the given name, the one uploaded first is
+     * When several entries have the given name, the most recently added one is
      * removed.
      *
      * @param fileName
      *            name of the file to remove, as given when it was uploaded
      * @throws IllegalArgumentException
      *             if the file is not in the upload file list
+     * @throws IllegalStateException
+     *             if the component is not usable
      * @since 25.3
      */
     public void removeFile(String fileName) {
-        ensureComponentIsUsable();
-        // Flushes a potential pending clearFileList() call
-        roundTrip();
-        UploadState state = syncedState();
-        if (!state.fileNames.remove(fileName)) {
-            throw new IllegalArgumentException("File '" + fileName
-                    + "' is not in the upload file list. Files in the list: "
-                    + state.fileNames);
-        }
-        fireFileRemoved(fileName);
+        UploadItem item = prepare().files.stream()
+                .filter(file -> file.fileName.equals(fileName)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File '"
+                        + fileName
+                        + "' is not in the upload file list. Files in the list: "
+                        + describeFiles()));
+        remove(item);
     }
 
     /**
@@ -330,13 +357,15 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * A {@code FileRemovedEvent} is fired and the file stops counting towards
      * {@link Upload#setMaxFiles(int)}.
      * <p>
-     * When several entries have the name of the given file, the one uploaded
-     * first is removed.
+     * When several entries have the name of the given file, the most recently
+     * added one is removed.
      *
      * @param file
      *            the file to remove
      * @throws IllegalArgumentException
      *             if the file is not in the upload file list
+     * @throws IllegalStateException
+     *             if the component is not usable
      * @since 25.3
      */
     public void removeFile(File file) {
@@ -352,25 +381,114 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * {@link Upload#setMaxFiles(int)}.
      *
      * @param index
-     *            the position of the file in the list, in the order the browser
-     *            shows them: the most recently uploaded file first
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them: the most recently added file
+     *            first
      * @throws IllegalArgumentException
      *             if there is no file at the position
      * @throws IllegalStateException
      *             if the component is not usable
      */
     public void removeFile(int index) {
-        ensureComponentIsUsable();
-        // Flushes a potential pending clearFileList() call
-        roundTrip();
-        List<String> fileNames = syncedState().fileNames;
-        if (index < 0 || index >= fileNames.size()) {
-            throw new IllegalArgumentException("No file at index " + index
-                    + ". Files in the list: " + fileNames.reversed());
+        remove(getFileAt(prepare(), index));
+    }
+
+    /**
+     * Simulates the user clicking the start button of a file that waits in the
+     * upload file list because {@link Upload#setAutoUpload(boolean) auto
+     * upload} is turned off, uploading it.
+     * <p>
+     * When several waiting entries have the given name, the most recently added
+     * one is started.
+     *
+     * @param fileName
+     *            name of the file to start, as given when it was added
+     * @throws UncheckedIOException
+     *             if the upload handler fails to handle the file contents
+     * @throws IllegalArgumentException
+     *             if no such file waits in the file list
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void startUpload(String fileName) {
+        UploadItem item = prepare().files.stream()
+                .filter(file -> file.fileName.equals(fileName)
+                        && file.status == UploadStatus.PENDING)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File '"
+                        + fileName
+                        + "' is not waiting to be uploaded. Files in the list: "
+                        + describeFiles()));
+        start(item);
+    }
+
+    /**
+     * Simulates the user clicking the start button of a file that waits in the
+     * upload file list because {@link Upload#setAutoUpload(boolean) auto
+     * upload} is turned off, uploading it.
+     * <p>
+     * When several waiting entries have the name of the given file, the most
+     * recently added one is started.
+     *
+     * @param file
+     *            the file to start
+     * @throws UncheckedIOException
+     *             if the upload handler fails to handle the file contents
+     * @throws IllegalArgumentException
+     *             if no such file waits in the file list
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void startUpload(File file) {
+        startUpload(file.getName());
+    }
+
+    /**
+     * Simulates the user clicking the start button of the file at the given
+     * position of the upload file list, which waits because
+     * {@link Upload#setAutoUpload(boolean) auto upload} is turned off,
+     * uploading it. This reaches one entry when several share a name.
+     *
+     * @param index
+     *            the position of the file in the list, in the order
+     *            {@link #getFiles()} returns them: the most recently added file
+     *            first
+     * @throws UncheckedIOException
+     *             if the upload handler fails to handle the file contents
+     * @throws IllegalArgumentException
+     *             if there is no file at the position, or it does not wait to
+     *             be uploaded
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void startUpload(int index) {
+        UploadItem item = getFileAt(prepare(), index);
+        if (item.status != UploadStatus.PENDING) {
+            throw new IllegalArgumentException("File '" + item.fileName
+                    + "' at index " + index
+                    + " is not waiting to be uploaded, it is " + item.status);
         }
-        // the emulated list keeps the oldest file first, the browser shows
-        // the most recently uploaded one first
-        fireFileRemoved(fileNames.remove(fileNames.size() - 1 - index));
+        start(item);
+    }
+
+    /**
+     * Gets the files the upload file list shows, in the order the browser shows
+     * them: the most recently added file first.
+     * <p>
+     * A file is {@link UploadStatus#UPLOADED} once the upload handler or
+     * receiver has consumed it, {@link UploadStatus#FAILED} or
+     * {@link UploadStatus#REJECTED} when its transfer failed or the server
+     * refused it, and {@link UploadStatus#PENDING} while it waits to be started
+     * because auto upload is turned off. Files the client-side constraints
+     * refused never enter the list.
+     *
+     * @return the files in the upload file list
+     */
+    public List<FileStatus> getFiles() {
+        // Picks up pending clearFileList() calls
+        roundTrip();
+        return syncedState().files.stream().map(UploadItem::toStatus)
+                .collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -383,7 +501,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * handler or receiver has consumed them, and as
      * {@link UploadStatus#REJECTED} both when the client-side gate refused them
      * and when Flow's server-side accepted type validation did, in which case
-     * neither shows up as a thrown exception.
+     * neither shows up as a thrown exception. A file waiting for
+     * {@link #startUpload(String)} because auto upload is turned off is
+     * {@link UploadStatus#PENDING}; once started, the last upload is that file.
      *
      * @return the outcome of the last simulated upload, one entry per file, or
      *         an empty list if no upload has been simulated yet
@@ -424,7 +544,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * <p>
      * A file left {@link UploadTester.UploadStatus#PENDING} does not count as
      * failed: it was neither delivered nor refused, such as a file following
-     * one whose upload threw.
+     * one whose upload threw or a file waiting because auto upload is turned
+     * off.
      *
      * @throws IllegalStateException
      *             if no upload has been simulated on the component, or if no
@@ -478,8 +599,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
             // receiver made of the broken stream
             accepted.forEach(item -> item.status = UploadStatus.FAILED);
             recordUploadStatus(items);
-            if (removeFromFileList && state().fileNames.remove(fileName)) {
-                fireFileRemoved(fileName);
+            if (removeFromFileList) {
+                accepted.forEach(this::remove);
             }
         }
     }
@@ -487,7 +608,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     private void doUpload(List<UploadItem> items) {
         List<UploadItem> accepted = acceptFiles(items);
         try {
-            if (!accepted.isEmpty()) {
+            if (getComponent().isAutoUpload() && !accepted.isEmpty()) {
                 deliver(accepted);
             }
         } finally {
@@ -495,9 +616,52 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         }
     }
 
+    private void start(UploadItem item) {
+        try {
+            deliver(List.of(item));
+        } finally {
+            recordUploadStatus(List.of(item));
+        }
+    }
+
+    private void remove(UploadItem item) {
+        state().files.remove(item);
+        fireFileRemoved(item.fileName);
+    }
+
+    /**
+     * Prepares a user action on an entry of the file list.
+     *
+     * @return the emulated state, synchronized with pending
+     *         {@link Upload#clearFileList()} calls
+     */
+    private UploadState prepare() {
+        ensureComponentIsUsable();
+        // Picks up pending clearFileList() calls
+        roundTrip();
+        return syncedState();
+    }
+
+    private UploadItem getFileAt(UploadState state, int index) {
+        if (index < 0 || index >= state.files.size()) {
+            throw new IllegalArgumentException("No file at index " + index
+                    + ". Files in the list: " + describeFiles());
+        }
+        return state.files.get(index);
+    }
+
+    private String describeFiles() {
+        return state().files.stream().map(file -> file.fileName)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
     private void recordUploadStatus(List<UploadItem> items) {
         state().lastUpload = items.stream().map(UploadItem::toStatus)
                 .collect(Collectors.toUnmodifiableList());
+        // Only a file waiting to be started needs its contents, release the
+        // others so the file list does not keep every upload in memory
+        items.stream().filter(item -> item.status != UploadStatus.PENDING)
+                .forEach(item -> item.contentsProducer = null);
     }
 
     private void deliver(Collection<UploadItem> items) {
@@ -537,7 +701,9 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         // to pick up pending clearFileList() calls
         roundTrip();
         UploadState state = syncedState();
-        List<UploadItem> accepted = new ArrayList<>();
+        // Read all contents before touching the file list, so that a file that
+        // cannot be read leaves the list unchanged
+        List<Long> sizes = new ArrayList<>();
         for (UploadItem item : items) {
             long size = 0;
             if (item.contentsProducer != null) {
@@ -547,8 +713,14 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
                 // Cache the contents, they are read again on delivery
                 item.contentsProducer = () -> contents;
             }
-            if (accept(state, item, size)) {
-                state.fileNames.add(item.fileName);
+            sizes.add(size);
+        }
+        List<UploadItem> accepted = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            UploadItem item = items.get(i);
+            if (accept(state, item, sizes.get(i))) {
+                // the web component shows the newest file first
+                state.files.add(0, item);
                 accepted.add(item);
             }
         }
@@ -561,7 +733,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         // whether the limit applies. This keeps setMaxFiles(0) meaning "reject
         // everything", as it does in the browser.
         if (hasProperty("maxFiles")
-                && state.fileNames.size() >= getComponent().getMaxFiles()) {
+                && state.files.size() >= getComponent().getMaxFiles()) {
             reject(item, errorMessage(UploadI18N.Error::getTooManyFiles,
                     DEFAULT_TOO_MANY_FILES));
             return false;
@@ -660,7 +832,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         if (state.clearFileListCalls.hasNewInvocations(getComponent(),
                 invocation -> invocation.getExpression()
                         .contains(CLEAR_FILE_LIST_EXPRESSION))) {
-            state.fileNames.clear();
+            state.files.clear();
         }
         return state;
     }
@@ -749,10 +921,12 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
 
     /**
      * Emulation of the file list the {@code vaadin-upload} web component keeps
-     * on the client, against which {@link Upload#setMaxFiles(int)} is checked.
+     * on the client, against which {@link Upload#setMaxFiles(int)} is checked
+     * and in which files wait while auto upload is turned off. The newest file
+     * comes first, as the browser shows it.
      */
-    private static class UploadState implements Serializable {
-        private final List<String> fileNames = new ArrayList<>();
+    private static class UploadState {
+        private final List<UploadItem> files = new ArrayList<>();
         private final UploadTesterSupport.InvocationTracker clearFileListCalls = new UploadTesterSupport.InvocationTracker();
         private List<FileStatus> lastUpload = List.of();
     }
@@ -781,9 +955,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
         /**
          * The file was accepted but its transfer never concluded. That happens
          * when the upload itself threw, for instance because no upload handler
-         * is configured, and for a file added through an {@link UploadManager}
-         * with auto upload turned off, which waits in the file list until the
-         * user starts it.
+         * is configured, and for a file added with auto upload turned off,
+         * which waits in the file list until the user starts it.
          */
         PENDING
     }
