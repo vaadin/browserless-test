@@ -303,7 +303,12 @@ class UploadButtonTesterTest extends BrowserlessTest {
         view.button.setVisible(false);
         Assertions.assertThrows(IllegalStateException.class,
                 () -> button_.upload(file));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> button_.uploadFailed(file));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> button_.uploadAborted(file));
         Assertions.assertTrue(view.received.isEmpty());
+        Assertions.assertEquals(List.of(), button_.getLastUploadStatus());
     }
 
     private File file(String name, String contents) throws IOException {
