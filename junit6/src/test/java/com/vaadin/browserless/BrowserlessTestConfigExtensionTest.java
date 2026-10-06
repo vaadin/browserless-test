@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import com.vaadin.experimental.Feature;
 import com.vaadin.experimental.FeatureFlags;
 import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.startup.ApplicationConfiguration;
 
 /**
  * Verifies how {@link BrowserlessExtension} combines the configuration declared
@@ -63,9 +64,27 @@ class BrowserlessTestConfigExtensionTest {
                 property("overridden.property"));
     }
 
+    @Test
+    void copilot_isDisabledByDefault() {
+        Assertions.assertFalse(copilotEnabled());
+    }
+
+    @Test
+    @BrowserlessTestConfig(applicationProperties = "copilot.enable=true")
+    void copilot_canBeEnabledByTestConfiguration() {
+        Assertions.assertTrue(copilotEnabled());
+    }
+
     private static String property(String name) {
         return VaadinService.getCurrent().getDeploymentConfiguration()
                 .getStringProperty(name, null);
+    }
+
+    // Copilot reads the property from the application configuration
+    private static boolean copilotEnabled() {
+        return ApplicationConfiguration
+                .get(VaadinService.getCurrent().getContext())
+                .getBooleanProperty("copilot.enable", true);
     }
 
     private static FeatureFlags featureFlags() {
