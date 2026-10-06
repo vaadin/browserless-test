@@ -235,30 +235,27 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         // Self-reference: the detach listener must close the app, but the app
         // does not exist until create(...) returns — hold it in a one-slot ref.
         AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
+        UIFactory uiFactory = () -> {
+            // Build the component from UI.init() rather than an attach
+            // listener: init() runs from UI.doInit() after the current
+            // UI/session are set, so a component whose constructor reads
+            // UI.getCurrent() observes the live instance. withoutRoutes()
+            // guarantees no initial navigate("") will later replace it.
+            MockedUI ui = new MockedUI() {
+                @Override
+                protected void init(VaadinRequest request) {
+                    add(componentFactory.get());
+                }
+            };
+            // Closing the UI tears down the bundled app. Safe against
+            // re-entrancy: BrowserlessUIContext.close() sets its closed flag
+            // before detaching the UI, so the cascade back through close()
+            // short-circuits.
+            ui.addDetachListener(event -> ownerApp.get().close());
+            return ui;
+        };
         ownerApp.set(create(b -> b.withoutRoutes()
-                .withConfiguration(configuration).withUIFactory(() -> {
-                    // Build the component from UI.init() rather than an attach
-                    // listener: init() runs from UI.doInit() after the current
-                    // UI/session are set, so a component whose constructor
-                    // reads
-                    // UI.getCurrent() observes the live instance.
-                    // withoutRoutes()
-                    // guarantees no initial navigate("") will later replace it.
-                    MockedUI ui = new MockedUI() {
-                        @Override
-                        protected void init(VaadinRequest request) {
-                            add(componentFactory.get());
-                        }
-                    };
-                    // Closing the UI tears down the bundled app. Safe against
-                    // re-entrancy: BrowserlessUIContext.close() sets its closed
-                    // flag
-                    // before detaching the UI, so the cascade back through
-                    // close()
-                    // short-circuits.
-                    ui.addDetachListener(event -> ownerApp.get().close());
-                    return ui;
-                })));
+                .withConfiguration(configuration).withUIFactory(uiFactory)));
         return ownerApp.get();
     }
 
