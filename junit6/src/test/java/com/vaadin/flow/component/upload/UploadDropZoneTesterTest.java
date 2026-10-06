@@ -98,6 +98,43 @@ class UploadDropZoneTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void uploadFailedAndAborted_failedFileKeptAbortedFileRemoved()
+            throws IOException {
+        List<String> removed = new ArrayList<>();
+        view.manager.addFileRemovedListener(ev -> {
+            Assertions.assertTrue(ev.isFromClient());
+            removed.add(ev.getFileName());
+        });
+
+        dropZone_.uploadFailed(file("failed.txt", "f"));
+
+        Assertions.assertEquals(UploadStatus.FAILED,
+                dropZone_.getLastUploadStatus().get(0).status());
+        dropZone_.ensureUploadFailed();
+
+        dropZone_.uploadAborted("aborted.txt", "text/plain");
+
+        Assertions.assertEquals(UploadStatus.FAILED,
+                dropZone_.getLastUploadStatus().get(0).status());
+        Assertions.assertEquals(List.of("aborted.txt"), removed);
+        Assertions.assertEquals(List.of("failed.txt"),
+                test(view.fileList).getFiles().stream()
+                        .map(UploadTester.FileStatus::fileName).toList());
+        Assertions.assertEquals(List.of(), view.received);
+    }
+
+    @Test
+    void uploadFailedAndAborted_notUsable_throws() {
+        view.dropZone.setEnabled(false);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dropZone_.uploadFailed("a.txt", "text/plain"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> dropZone_.uploadAborted("a.txt", "text/plain"));
+        Assertions.assertEquals(List.of(), dropZone_.getLastUploadStatus());
+    }
+
+    @Test
     void drop_notUsable_throws() throws IOException {
         File file = file("a.txt", "a");
 
