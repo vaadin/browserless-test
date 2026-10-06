@@ -100,6 +100,10 @@ object MockVaadin {
     private val reloadReplacements: MutableMap<UI, UI> =
         Collections.synchronizedMap(WeakHashMap())
 
+    // The application property Copilot reads, outside Spring, to decide whether
+    // it initializes. Copilot does not expose a constant for it.
+    private const val COPILOT_ENABLE = "copilot.enable"
+
     /**
      * Mocks Vaadin for the current test method:
      * ```
@@ -192,7 +196,11 @@ object MockVaadin {
             // Context init parameters are read by ApplicationConfiguration, which is
             // created and cached on first access, so they must be set before anything
             // else touches the context.
-            configuration.applicationProperties.forEach { (name, value) -> ctx.setInitParameter(name, value) }
+            // Copilot is a development tool for an application running in a browser,
+            // and its init listener scans the classpath on every servlet init. It is
+            // disabled by default, but the test configuration can enable it again.
+            val applicationProperties = mapOf(COPILOT_ENABLE to "false") + configuration.applicationProperties
+            applicationProperties.forEach { (name, value) -> ctx.setInitParameter(name, value) }
             // Installed before the servlet is initialized, so that feature flags read
             // during startup (e.g. by a VaadinServiceInitListener) already observe the
             // test configuration. Installed even without overrides, so that tests
@@ -200,7 +208,7 @@ object MockVaadin {
             // resources folder, from where other tests would then read them.
             BrowserlessFeatureFlags.install(VaadinServletContext(ctx), configuration.featureFlags)
             val config = MockServletConfig(ctx)
-            config.servletInitParams.putAll(configuration.applicationProperties)
+            config.servletInitParams.putAll(applicationProperties)
             // Enforced by the browserless environment, so it wins over test configuration
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)

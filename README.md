@@ -516,6 +516,20 @@ class CartViewTest extends BrowserlessTest {
 All of them are scoped to the Vaadin environment created for the test, so there
 is nothing to reset afterwards and nothing leaks into other tests.
 
+Copilot is disabled by default in the mock environment: there is no browser to
+show it in, and initializing it scans the classpath every time a test sets up
+the environment. A test that needs it can enable it again with the
+`copilot.enable` application property:
+
+```java
+@BrowserlessTestConfig(applicationProperties = "copilot.enable=true")
+```
+
+With Spring, Copilot reads `vaadin.copilot.enable` from the Spring
+`Environment` instead, so the default does not apply there. Set
+`vaadin.copilot.enable=false` in the test properties, for example with
+`@SpringBootTest(properties = "vaadin.copilot.enable=false")`.
+
 Every annotation a test inherits is merged in, rather than shadowed by the
 nearest one. The closer a declaration is to the test method, the higher it
 ranks: method, then test class, then superclasses from the nearest up, then —
