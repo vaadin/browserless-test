@@ -196,7 +196,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     public static BrowserlessApplicationContext forComponent(
             Supplier<Component> componentFactory) {
-        return forComponent(componentFactory, BrowserlessConfiguration.empty());
+        return forComponent(BrowserlessConfiguration.empty(), componentFactory);
     }
 
     /**
@@ -208,27 +208,27 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * <pre>
      * var configuration = BrowserlessConfiguration.builder()
      *         .withFeatureFlags("myExperimentalFeature").build();
-     * try (var app = BrowserlessApplicationContext.forComponent(MyForm::new,
-     *         configuration)) {
+     * try (var app = BrowserlessApplicationContext.forComponent(configuration,
+     *         MyForm::new)) {
      *     var window = app.newUser().newWindow();
      *     // ...
      * }
      * </pre>
      *
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
      * @param componentFactory
      *            supplies the component to attach to each window; must not be
      *            {@code null}
-     * @param configuration
-     *            the configuration to apply; must not be {@code null}
      * @return a new self-closing application context with no routes
      * @throws NullPointerException
-     *             if {@code componentFactory} or {@code configuration} is
+     *             if {@code configuration} or {@code componentFactory} is
      *             {@code null}
      * @see Builder#withConfiguration(BrowserlessConfiguration)
      */
     public static BrowserlessApplicationContext forComponent(
-            Supplier<Component> componentFactory,
-            BrowserlessConfiguration configuration) {
+            BrowserlessConfiguration configuration,
+            Supplier<Component> componentFactory) {
         Objects.requireNonNull(componentFactory,
                 "componentFactory must not be null");
         Objects.requireNonNull(configuration, "configuration must not be null");

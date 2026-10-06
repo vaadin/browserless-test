@@ -270,7 +270,7 @@ public class BrowserlessUIContext
      * @return a window with the component attached
      */
     public static BrowserlessUIContext forComponent(Component component) {
-        return forComponent(component, BrowserlessConfiguration.empty());
+        return forComponent(BrowserlessConfiguration.empty(), component);
     }
 
     /**
@@ -282,22 +282,22 @@ public class BrowserlessUIContext
      * <pre>
      * var configuration = BrowserlessConfiguration.builder()
      *         .withFeatureFlags("myExperimentalFeature").build();
-     * try (var window = BrowserlessUIContext.forComponent(new MyForm(),
-     *         configuration)) {
+     * try (var window = BrowserlessUIContext.forComponent(configuration,
+     *         new MyForm())) {
      *     window.findButton().withCaption("Save").click();
      * }
      * </pre>
      *
-     * @param component
-     *            the component to attach; must not be {@code null}
      * @param configuration
      *            the configuration to apply; must not be {@code null}
+     * @param component
+     *            the component to attach; must not be {@code null}
      * @return a window with the component attached
      */
-    public static BrowserlessUIContext forComponent(Component component,
-            BrowserlessConfiguration configuration) {
+    public static BrowserlessUIContext forComponent(
+            BrowserlessConfiguration configuration, Component component) {
         Objects.requireNonNull(component, "component must not be null");
-        return forComponent(() -> component, configuration);
+        return forComponent(configuration, () -> component);
     }
 
     /**
@@ -328,7 +328,7 @@ public class BrowserlessUIContext
      */
     public static BrowserlessUIContext forComponent(
             Supplier<Component> componentFactory) {
-        return forComponent(componentFactory, BrowserlessConfiguration.empty());
+        return forComponent(BrowserlessConfiguration.empty(), componentFactory);
     }
 
     /**
@@ -338,18 +338,18 @@ public class BrowserlessUIContext
      * Behaves like {@link #forComponent(Supplier)} otherwise; the configuration
      * is already in effect when the factory runs.
      *
-     * @param componentFactory
-     *            supplies the component to attach; must not be {@code null}
      * @param configuration
      *            the configuration to apply; must not be {@code null}
+     * @param componentFactory
+     *            supplies the component to attach; must not be {@code null}
      * @return a window with the produced component attached
      */
     public static BrowserlessUIContext forComponent(
-            Supplier<Component> componentFactory,
-            BrowserlessConfiguration configuration) {
+            BrowserlessConfiguration configuration,
+            Supplier<Component> componentFactory) {
         // noinspection resource
         return BrowserlessApplicationContext
-                .forComponent(componentFactory, configuration).newUser()
+                .forComponent(configuration, componentFactory).newUser()
                 .newWindow();
     }
 

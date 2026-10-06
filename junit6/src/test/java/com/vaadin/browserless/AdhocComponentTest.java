@@ -105,14 +105,17 @@ class AdhocComponentTest {
                 .build();
         AtomicReference<String> propertyDuringConstruction = new AtomicReference<>();
         AtomicBoolean flagDuringConstruction = new AtomicBoolean();
-        try (var window = BrowserlessUIContext.forComponent(() -> {
-            VaadinService service = VaadinService.getCurrent();
-            propertyDuringConstruction.set(service.getDeploymentConfiguration()
-                    .getStringProperty("custom.property", null));
-            flagDuringConstruction.set(FeatureFlags.get(service.getContext())
-                    .isEnabled(FeatureFlags.COLLABORATION_ENGINE_BACKEND));
-            return new CounterWidget();
-        }, configuration)) {
+        try (var window = BrowserlessUIContext.forComponent(configuration,
+                () -> {
+                    VaadinService service = VaadinService.getCurrent();
+                    propertyDuringConstruction.set(service
+                            .getDeploymentConfiguration()
+                            .getStringProperty("custom.property", null));
+                    flagDuringConstruction.set(
+                            FeatureFlags.get(service.getContext()).isEnabled(
+                                    FeatureFlags.COLLABORATION_ENGINE_BACKEND));
+                    return new CounterWidget();
+                })) {
             Assertions.assertEquals("value", propertyDuringConstruction.get(),
                     "The application property should be visible to the component factory");
             Assertions.assertTrue(flagDuringConstruction.get(),
