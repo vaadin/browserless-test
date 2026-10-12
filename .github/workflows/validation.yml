@@ -28,7 +28,7 @@ env:
 jobs:
   format-check:
     name: Format Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
 
     steps:
@@ -57,7 +57,7 @@ jobs:
   build:
     name: Build Project
     needs: format-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -93,7 +93,7 @@ jobs:
     name: Unit Tests
     needs: build
     if: ${{ !github.event.pull_request.head.repo.fork }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -135,7 +135,7 @@ jobs:
     # skipped (fork PR) — there is no artifact to publish in that case.
     if: ${{ always() && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure') }}
     needs: unit-tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
 
     steps:
@@ -167,7 +167,7 @@ jobs:
       pull-requests: write
     if: ${{ always() && !github.event.pull_request.head.repo.fork }}
     needs: [format-check, build, unit-tests]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Remove format hint comment
