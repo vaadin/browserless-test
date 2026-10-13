@@ -46,6 +46,27 @@ class RouterLinkTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void navigate_linkTargetNotRegistered_failureNamesLinkTarget() {
+        RouteConfiguration.forApplicationScope()
+                .removeRoute(RouterLinkStaticTargetView.class);
+        // leave the view so that navigating back creates a new instance
+        navigate(RouterLinkUrlParameterTargetView.class);
+
+        IllegalArgumentException exception = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> navigate(RouterLinkView.class));
+
+        Assertions.assertTrue(
+                exception.getMessage()
+                        .contains(RouterLinkStaticTargetView.class.getName()),
+                "Failure should name the unregistered RouterLink target: "
+                        + exception.getMessage());
+        Assertions.assertTrue(exception.getMessage().contains("@ViewPackages"),
+                "Failure should hint at @ViewPackages: "
+                        + exception.getMessage());
+    }
+
+    @Test
     void routerLink_targetless() {
         // get router link
         var $targetlessRouterLink = test(routerLinkView.targetlessRouterLink);
