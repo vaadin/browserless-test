@@ -15,10 +15,14 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
+import com.vaadin.browserless.internal.MockRouteNotFoundError;
 import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -26,6 +30,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteParameters;
 
 /**
@@ -87,12 +92,46 @@ final class BrowserlessDSL {
                 System.err.println(
                         currentView.getElement().getProperty("stackTrace"));
             }
-            throw new IllegalArgumentException(
-                    "Navigation resulted in unexpected class "
-                            + currentView.getClass().getName() + " instead of "
-                            + target.getName());
+            String message = "Navigation resulted in unexpected class "
+                    + currentView.getClass().getName() + " instead of "
+                    + target.getName();
+            if (currentView instanceof MockRouteNotFoundError notFound
+                    && notFound.getCause() != null) {
+                throw new IllegalArgumentException(
+                        message + "\n" + describeRouteNotFound(notFound),
+                        notFound.getCause());
+            }
+            throw new IllegalArgumentException(message);
         }
         return target.cast(currentView);
+    }
+
+    // Flow routes a NotFoundException thrown while creating the view, such as
+    // the one a RouterLink to an unregistered target throws, to the same error
+    // view as a missing route. The exception Flow caught then wraps the
+    // view's own failure, which is dug out to name the actual missing target.
+    private static String describeRouteNotFound(
+            MockRouteNotFoundError notFound) {
+        Throwable caught = notFound.getCause().getCause();
+        NotFoundException innermost = null;
+        Set<Throwable> visited = Collections
+                .newSetFromMap(new IdentityHashMap<>());
+        Throwable t = caught == null ? null : caught.getCause();
+        while (t != null && visited.add(t)) {
+            if (t instanceof NotFoundException nfe) {
+                innermost = nfe;
+            }
+            t = t.getCause();
+        }
+        if (innermost == null) {
+            return notFound.getCause().getMessage();
+        }
+        return "The view threw " + innermost.getClass().getName() + ": "
+                + innermost.getMessage()
+                + "\nIf a RouterLink or another route lookup in the view threw"
+                + " it, its target is not a registered route. Make sure the"
+                + " test discovers the target, for example by adding its"
+                + " package to @ViewPackages.";
     }
 
     static HasElement getCurrentView(UI ui) {
