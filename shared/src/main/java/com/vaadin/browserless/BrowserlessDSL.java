@@ -15,7 +15,10 @@
  */
 package com.vaadin.browserless;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
@@ -111,8 +114,10 @@ final class BrowserlessDSL {
             MockRouteNotFoundError notFound) {
         Throwable caught = notFound.getCause().getCause();
         NotFoundException innermost = null;
+        Set<Throwable> visited = Collections
+                .newSetFromMap(new IdentityHashMap<>());
         Throwable t = caught == null ? null : caught.getCause();
-        while (t != null) {
+        while (t != null && visited.add(t)) {
             if (t instanceof NotFoundException nfe) {
                 innermost = nfe;
             }

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouterLink;
 
@@ -56,6 +57,8 @@ class RouterLinkTesterTest extends BrowserlessTest {
                 IllegalArgumentException.class,
                 () -> navigate(RouterLinkView.class));
 
+        Assertions.assertInstanceOf(NotFoundException.class,
+                exception.getCause());
         Assertions.assertTrue(
                 exception.getMessage()
                         .contains(RouterLinkStaticTargetView.class.getName()),
