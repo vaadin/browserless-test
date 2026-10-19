@@ -106,7 +106,8 @@ final class TesterRegistry {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Map<Class<?>, Class<? extends ComponentTester>> scanForTesters(
             String... packages) {
-        try (ScanResult scan = new ClassGraph().enableClassInfo()
+        try (ScanResult scan = new ClassGraph().enableClasspath()
+                .enableNonSystemModules().enableClassInfo()
                 .enableAnnotationInfo().acceptPackages(packages).scan(2)) {
             ClassInfoList testerList = scan
                     .getClassesWithAnnotation(Tests.class.getName());

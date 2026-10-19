@@ -87,21 +87,23 @@ data class Routes(
      */
     @JvmOverloads
     fun autoDiscoverViews(vararg packageNames: String? = arrayOf()): Routes = apply {
-        val classGraph: ClassGraph = ClassGraph().enableClassInfo()
+        val classGraph: ClassGraph = ClassGraph()
+                .enableClasspath().enableNonSystemModules()
+                .enableClassInfo()
                 .enableAnnotationInfo()
                 .ignoreClassVisibility()
                 .acceptPackages(*(packageNames.map { it ?: "" }.toTypedArray()))
         classGraph.scan().use { scanResult: ScanResult ->
             scanResult.getClassesWithAnnotation(Route::class.java.name).mapTo(routes) { info: ClassInfo ->
-                scanResult.loadClass(info.name,Component::class.java, false)
+                info.load(Component::class.java)
             }
-            scanResult.getClassesImplementing(HasErrorParameter::class.java.name).mapTo(errorRoutes) { info: ClassInfo ->
-                scanResult.loadClass(info.name,HasErrorParameter::class.java, false)
+            scanResult.getAllClassesImplementing(HasErrorParameter::class.java.name).mapTo(errorRoutes) { info: ClassInfo ->
+                info.load(HasErrorParameter::class.java)
             }
             scanResult.getClassesWithAnnotation(Layout::class.java.name)
                     .filter { it.implementsInterface(RouterLayout::class.java.name) }
                     .mapTo(layouts) { info: ClassInfo ->
-                        scanResult.loadClass(info.name,RouterLayout::class.java, false)
+                        info.load(RouterLayout::class.java)
                     }
         }
 
@@ -187,6 +189,14 @@ open class MockRouteNotFoundError : RouteNotFoundError() {
         return "${navigationTarget.simpleName} at '$path'"
     }
 }
+
+/**
+ * Loads the class described by this [ClassInfo] without initializing it, the
+ * way ClassGraph 4's `ScanResult.loadClass()` did.
+ */
+private fun <T> ClassInfo.load(superclass: Class<T>): Class<out T> =
+        Class.forName(name, false, Thread.currentThread().contextClassLoader)
+                .asSubclass(superclass)
 
 @DefaultErrorHandler
 open class MockInternalSeverError : InternalServerError() {
