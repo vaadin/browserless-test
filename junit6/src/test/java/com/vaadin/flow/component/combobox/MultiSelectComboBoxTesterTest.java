@@ -150,6 +150,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     @Test
     void selectItemContaining_addsMatchToSelectionAsUser() {
         view.combo.setValue(Set.of(view.items.get(0)));
+        test(view.combo).setFilter("fo");
         List<Boolean> fromClient = new ArrayList<>();
         view.combo.addValueChangeListener(
                 ev -> fromClient.add(ev.isFromClient()));
@@ -209,6 +210,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         cities.setItems("Berlin", "Bern", "Helsinki", "Oslo");
         cities.setValue(Set.of("Bern", "Oslo"));
         view.add(cities);
+        test(cities).setFilter("osl");
         List<Boolean> fromClient = new ArrayList<>();
         cities.addValueChangeListener(ev -> fromClient.add(ev.isFromClient()));
 

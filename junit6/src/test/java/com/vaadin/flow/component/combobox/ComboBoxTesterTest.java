@@ -90,6 +90,8 @@ public class ComboBoxTesterTest extends BrowserlessTest
         final List<String> suggestions = test(view.combo).getSuggestions();
         Assertions.assertEquals(1, suggestions.size());
         Assertions.assertEquals("test-foo", suggestions.get(0));
+        Assertions.assertEquals("fo", view.combo.getFilter(),
+                "Filter should reach the component property as typing does");
     }
 
     @Test
@@ -109,6 +111,7 @@ public class ComboBoxTesterTest extends BrowserlessTest
 
     @Test
     void selectItemContaining_selectsSingleMatchAsUser() {
+        test(view.combo).setFilter("fo");
         List<Boolean> fromClient = new ArrayList<>();
         view.combo.addValueChangeListener(
                 ev -> fromClient.add(ev.isFromClient()));

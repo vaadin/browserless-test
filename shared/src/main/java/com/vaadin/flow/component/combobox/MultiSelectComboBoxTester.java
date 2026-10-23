@@ -49,7 +49,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     /**
-     * Simulate writing a filter to the combobox.
+     * Simulate writing a filter to the combobox. As typing does in the browser,
+     * the filter is applied to the data provider and to the component's
+     * {@code filter} property.
      * <p/>
      * Use {@link #getSuggestions()} to get the string values show in the
      * dropdown or {@link #getSuggestionItems()} to get the actual items in the
@@ -70,6 +72,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
                     "filterSlot");
             ((SerializableConsumer<String>) filterSlot.get(dataController))
                     .accept(filter);
+            setPropertyAsUser("filter", filter);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -238,23 +241,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
                         + matches.stream().map(itemLabelGenerator).toList());
     }
 
-    // Reads the filter that setFilter(String) applied to the data provider.
-    // ComboBoxBase.getFilter() cannot be used: it reads the element's
-    // "filter" property, which setFilter(String) does not write, since it
-    // feeds the filter straight to ComboBoxDataController. That controller
-    // keeps the current filter only in its private lastFilter field, with no
-    // accessor to read it.
     private String getFilter() {
-        try {
-            final Object dataController = getField(ComboBoxBase.class,
-                    "dataController").get(getComponent());
-            final String filter = (String) getField(
-                    ComboBoxDataController.class, "lastFilter")
-                    .get(dataController);
-            return filter == null ? "" : filter;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        final String filter = getComponent().getFilter();
+        return filter == null ? "" : filter;
     }
 
     /**
