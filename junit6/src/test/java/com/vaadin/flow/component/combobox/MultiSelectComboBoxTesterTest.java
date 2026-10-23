@@ -207,7 +207,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     void selectItemsContaining_addsAllMatchesToSelectionAsUser() {
         MultiSelectComboBox<String> cities = new MultiSelectComboBox<>();
         cities.setItems("Berlin", "Bern", "Helsinki", "Oslo");
-        cities.setValue(Set.of("Oslo"));
+        cities.setValue(Set.of("Bern", "Oslo"));
         view.add(cities);
         List<Boolean> fromClient = new ArrayList<>();
         cities.addValueChangeListener(ev -> fromClient.add(ev.isFromClient()));
@@ -216,7 +216,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki", "Oslo"),
                 test(cities).getSelected(),
-                "Every match should be added once to the existing selection");
+                "Every match should be added once, and a selected match stays selected");
         Assertions.assertEquals(List.of(true), fromClient);
         Assertions.assertEquals(4, test(cities).getSuggestions().size(),
                 "Filter should be cleared after selecting");
@@ -228,7 +228,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         test(view.combo).setFilter("fo");
 
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.combo).selectItemsContaining("fo", "baz"));
+                () -> test(view.combo).selectItemsContaining("ar", "baz"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).selectItemsContaining());
         Assertions.assertThrows(IllegalArgumentException.class,
