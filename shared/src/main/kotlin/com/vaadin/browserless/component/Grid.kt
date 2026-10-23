@@ -60,7 +60,6 @@ import com.vaadin.browserless.internal._saneFetchLimit
 import com.vaadin.browserless.internal.checkEditableByUser
 import com.vaadin.browserless.internal.filterNotBlank
 import com.vaadin.browserless.internal.size
-import com.vaadin.browserless.internal.template
 import com.vaadin.browserless.internal.toPrettyString
 import java.lang.reflect.Method
 import java.lang.reflect.Field
@@ -146,12 +145,10 @@ public fun <T : Any> Grid<T>._getOrNull(rowIndex: Int): T? {
  * Vaadin 19+ Grids support setting data providers which do not support retrieving
  * the number of available rows. See `FetchCallback` for more details.
  * @return true if the current data provider supports [_size] retrieval, false
- * if not. Returns true for Vaadin 14.
+ * if not.
  */
-public val Grid<*>._dataProviderSupportsSizeOp: Boolean get() {
-    val m = DataCommunicator::class.java.getDeclaredMethod("isDefinedSize")
-    return m.invoke(dataCommunicator) as Boolean
-}
+public val Grid<*>._dataProviderSupportsSizeOp: Boolean
+    get() = dataCommunicator.isDefinedSize
 
 /**
  * Returns items in given range from Grid's data provider. Uses current Grid sorting.
@@ -173,9 +170,6 @@ private val _DataCommunicator_fetchFromProvider: Method =
         isAccessible = true
     }
 
-private val _DataCommunicator_setPagingEnabled: Method? =
-    DataCommunicator::class.java.declaredMethods.firstOrNull { it.name == "setPagingEnabled" }
-
 
 /**
  * Returns items in given range from this data communicator. Uses current Grid sorting.
@@ -187,7 +181,7 @@ public fun <T> DataCommunicator<T>.fetch(offset: Int, limit: Int): List<T> {
     require(limit <= _saneFetchLimit) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is $_saneFetchLimit but you asked for $limit" }
 
     // make sure the DataCommunicator is not in paged mode: https://github.com/mvysny/karibu-testing/issues/99
-    _DataCommunicator_setPagingEnabled?.invoke(this, false)
+    isPagingEnabled = false
 
     @Suppress("UNCHECKED_CAST")
     val fetched: Stream<T> = _DataCommunicator_fetchFromProvider.invoke(this, offset, limit) as Stream<T>
@@ -244,9 +238,6 @@ public fun <T, F> DataProvider<T, F>._size(filter: F? = null): Int {
 public fun <T, F> HierarchicalDataProvider<T, F>._size(root: T? = null, filter: F? = null): Int =
     _rowSequence(root, filter = filter).count()
 
-private val _DataCommunicator_getDataProviderSize: Method =
-    DataCommunicator::class.java.getDeclaredMethod("getDataProviderSize").apply { isAccessible = true }
-
 /**
  * Returns the number of items in this Grid.
  *
@@ -265,7 +256,7 @@ public fun Grid<*>._size(): Int {
     if (!_dataProviderSupportsSizeOp) {
         return _findAll().size
     }
-    return _DataCommunicator_getDataProviderSize.invoke(dataCommunicator) as Int
+    return dataCommunicator.dataProviderSize
 }
 
 /**
@@ -775,9 +766,9 @@ public val Component.dataProvider: DataProvider<*, *>? get() = when (this) {
     // until https://github.com/vaadin/flow/issues/6296 is resolved
     is Grid<*> -> this.dataProvider
     is Select<*> -> this.dataProvider
-    is ListBoxBase<*, *, *> -> _Grid_getDataProvider.invoke(this) as DataProvider<*, *>
-    is RadioButtonGroup<*> -> _RadioButtonGroup_getDataProvider.invoke(this) as DataProvider<*, *>
-    is CheckboxGroup<*> -> _CheckboxGroup_getDataProvider.invoke(this) as DataProvider<*, *>
+    is ListBoxBase<*, *, *> -> this.dataProvider
+    is RadioButtonGroup<*> -> this.dataProvider
+    is CheckboxGroup<*> -> this.dataProvider
     is ComboBox<*> -> this.dataProvider
     else -> null
 }
@@ -892,10 +883,3 @@ public fun <T> Grid<T>._deselectAll() {
 public val Grid.Column<*>._internalId: String
     get() = _Column_getInternalId.invoke(this) as String
 
-
-private val _Grid_getDataProvider: Method =
-    Grid::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
-private val _CheckboxGroup_getDataProvider: Method =
-    CheckboxGroup::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
-private val _RadioButtonGroup_getDataProvider: Method =
-    RadioButtonGroup::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }

@@ -15,12 +15,12 @@
  */
 package com.vaadin.browserless.internal
 
-import java.lang.reflect.Method
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.contextmenu.MenuItemBase
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.littemplate.LitTemplate
@@ -156,11 +156,6 @@ val Component.isTemplate: Boolean
  */
 var testingLifecycleHook: TestingLifecycleHook = TestingLifecycleHook.default
 
-private val _ConfirmDialog_Class: Class<*>? = findClass("com.vaadin.flow.component.confirmdialog.ConfirmDialog")
-
-private val _ConfirmDialog_isOpened: Method? =
-    _ConfirmDialog_Class?.getMethod("isOpened")
-
 /**
  * Checks whether given [component] is a dialog and needs to be removed from the UI.
  * See [cleanupDialogs] for more info.
@@ -169,11 +164,7 @@ private fun isDialogAndNeedsRemoval(component: Component): Boolean {
     if (component is Dialog && !component.isOpened) {
         return true
     }
-    // also support ConfirmDialog. But be careful - this is a Pro component and may not be on classpath.
-    if (_ConfirmDialog_Class != null && _ConfirmDialog_isOpened != null && _ConfirmDialog_Class.isInstance(
-            component
-        ) && !(_ConfirmDialog_isOpened.invoke(component) as Boolean)
-    ) {
+    if (component is ConfirmDialog && !component.isOpened) {
         return true
     }
     return false
