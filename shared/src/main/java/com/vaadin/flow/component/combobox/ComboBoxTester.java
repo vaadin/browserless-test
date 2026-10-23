@@ -190,8 +190,12 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
                         + matches.stream().map(itemLabelGenerator).toList());
     }
 
-    // ComboBoxDataController keeps the filter typed by the user in a private
-    // field; a public getter for it belongs in ComboBoxBase.
+    // Reads the filter that setFilter(String) applied to the data provider.
+    // ComboBoxBase.getFilter() cannot be used: it reads the element's
+    // "filter" property, which setFilter(String) does not write, since it
+    // feeds the filter straight to ComboBoxDataController. That controller
+    // keeps the current filter only in its private lastFilter field, with no
+    // accessor to read it.
     private String getFilter() {
         try {
             final Object dataController = getField(ComboBoxBase.class,
