@@ -121,7 +121,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * As in the browser, the item is added to the current selection. Unlike the
      * browser, where picking an already selected item deselects it, an already
      * selected item stays selected. The filter is cleared afterwards, as the
-     * browser does once a value is committed. If the call throws, the selection
+     * browser does once a value is committed. If matching fails, the selection
      * is left unchanged and the filter set before the call is restored.
      *
      * <pre>
@@ -173,7 +173,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * Unlike the browser, where picking an already selected item deselects it,
      * already selected matches stay selected, so an item matched by more than
      * one text is selected once. The filter is cleared afterwards, as the
-     * browser does once a value is committed. If the call throws, the selection
+     * browser does once a value is committed. If matching fails, the selection
      * is left unchanged and the filter set before the call is restored.
      *
      * <pre>
