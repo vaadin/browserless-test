@@ -45,6 +45,8 @@ import com.vaadin.flow.server.VaadinServiceEventBus
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.VaadinServlet
 import com.vaadin.flow.server.VaadinServletContext
+import com.vaadin.flow.server.VaadinServletRequest
+import com.vaadin.flow.server.VaadinServletResponse
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
 import com.vaadin.flow.server.WrappedHttpSession
@@ -60,9 +62,6 @@ import com.vaadin.browserless.mocks.MockVaadinServlet
 import com.vaadin.browserless.mocks.MockedUI
 import com.vaadin.browserless.mocks.WebBrowser
 import com.vaadin.browserless.mocks._createVaadinSession
-import com.vaadin.browserless.mocks.createVaadinServletRequest
-import com.vaadin.browserless.mocks.createVaadinServletResponse
-import com.vaadin.browserless.mocks.serviceSafe
 
 /**
  * Holds the objects created during session initialization, before they are
@@ -225,7 +224,7 @@ object MockVaadin {
                             "uninitialized servlet instance, or move the configuration to the setup " +
                             "that initializes it. Discarded configuration: $configuration")
         }
-        val service: VaadinServletService = checkNotNull(servlet.serviceSafe)
+        val service: VaadinServletService = checkNotNull(servlet.service)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
         return service
     }
@@ -372,7 +371,7 @@ object MockVaadin {
         mockRequest.headers["User-Agent"] = listOf(userAgent)
         service.context.getAttribute(Lookup::class.java)
                 .lookup(MockRequestCustomizer::class.java)?.apply(mockRequest)
-        val request = createVaadinServletRequest(mockRequest, service)
+        val request = VaadinServletRequest(mockRequest, service)
 
         // init Session.
         val session: VaadinSession = service._createVaadinSession(request)
@@ -386,7 +385,7 @@ object MockVaadin {
         checkNotNull(session.browser.browserApplication) { "The WebBrowser has not been mocked properly" }
 
         // init Vaadin Response
-        val response = createVaadinServletResponse(MockResponse(), service)
+        val response = VaadinServletResponse(MockResponse(), service)
 
         return SessionObjects(session, request, response, httpSession)
     }

@@ -15,7 +15,6 @@
  */
 package com.vaadin.browserless.internal
 
-import java.lang.reflect.Method
 import com.vaadin.flow.component.ClickEvent
 import com.vaadin.flow.component.ClickNotifier
 import com.vaadin.flow.component.Component
@@ -23,6 +22,7 @@ import com.vaadin.flow.component.ComponentEvent
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.HasComponents
 import com.vaadin.flow.component.HasElement
+import com.vaadin.flow.component.HasLabel
 import com.vaadin.flow.component.HasOrderedComponents
 import com.vaadin.flow.component.HasPlaceholder
 import com.vaadin.flow.component.HasStyle
@@ -157,9 +157,9 @@ val Component.dataProvider: DataProvider<*, *>? get() = when (this) {
     is HasDataProvider<*> -> this.dataProvider
     is Grid<*> -> this.dataProvider
     is Select<*> -> this.dataProvider
-    is ListBoxBase<*, *, *> -> _ListBoxBase_getDataProvider.invoke(this) as DataProvider<*, *>
-    is RadioButtonGroup<*> -> _RadioButtonGroup_getDataProvider.invoke(this) as DataProvider<*, *>
-    is CheckboxGroup<*> -> _CheckboxGroup_getDataProvider.invoke(this) as DataProvider<*, *>
+    is ListBoxBase<*, *, *> -> this.dataProvider
+    is RadioButtonGroup<*> -> this.dataProvider
+    is CheckboxGroup<*> -> this.dataProvider
     is ComboBox<*> -> this.dataProvider
     else -> null
 }
@@ -304,14 +304,6 @@ val FormLayout.FormItem.label: String get() {
 }
 
 /**
- * The `HasLabel` interface has been introduced in Vaadin 21 but is missing in Vaadin 14.
- * Use reflection.
- */
-private val _HasLabel: Class<*>? = findClass("com.vaadin.flow.component.HasLabel")
-private val _HasLabel_getLabel: Method? = _HasLabel?.getDeclaredMethod("getLabel")
-private val _HasLabel_setLabel: Method? = _HasLabel?.getDeclaredMethod("setLabel", String::class.java)
-
-/**
  * Determines the component's `label` (usually it's the HTML element's `label` property, but it's [Checkbox.getLabel] for checkbox).
  * Intended to be used for fields such as [TextField].
 
@@ -333,7 +325,7 @@ private val _HasLabel_setLabel: Method? = _HasLabel?.getDeclaredMethod("setLabel
  */
 var Component.label: String
     get() = when {
-        _HasLabel != null && _HasLabel.isInstance(this) -> _HasLabel_getLabel!!.invoke(this) as String? ?: ""
+        this is HasLabel -> label ?: ""
         this is Checkbox -> label ?: ""
         this is FormLayout.FormItem -> this.label
         this is SideNav -> label ?: ""
@@ -342,7 +334,7 @@ var Component.label: String
     }
     set(value) {
         when {
-            _HasLabel != null && _HasLabel.isInstance(this) -> _HasLabel_setLabel!!.invoke(this, value)
+            this is HasLabel -> label = value
             this is Checkbox -> label = value
             this is FormLayout.FormItem -> throw IllegalArgumentException("Setting the caption of FormItem is currently unsupported")
             this is SideNav -> label = value
@@ -422,12 +414,3 @@ internal fun isPolymerTemplate(component: Component): Boolean {
     return polymerTemplateClass != null
             && polymerTemplateClass.isAssignableFrom(component.javaClass);
 }
-
-private val _ListBoxBase_getDataProvider: Method =
-    ListBoxBase::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
-private val _Grid_getDataProvider: Method =
-    Grid::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
-private val _CheckboxGroup_getDataProvider: Method =
-    CheckboxGroup::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
-private val _RadioButtonGroup_getDataProvider: Method =
-    RadioButtonGroup::class.java.getDeclaredMethod("getDataProvider").apply { isAccessible = true }
