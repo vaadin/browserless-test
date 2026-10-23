@@ -46,7 +46,9 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
     }
 
     /**
-     * Simulate writing a filter to the combobox.
+     * Simulate writing a filter to the combobox. As typing does in the browser,
+     * the filter is applied to the data provider and to the component's
+     * {@code filter} property.
      * <p/>
      * Use {@link #getSuggestions()} to get the string values show in the
      * dropdown or {@link #getSuggestionItems()} to get the actual items in the
@@ -67,6 +69,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
                     "filterSlot");
             ((SerializableConsumer<String>) filterSlot.get(dataController))
                     .accept(filter);
+            setPropertyAsUser("filter", filter);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -123,6 +126,76 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
                     "No item found for '" + selection + "'");
         }
         setValueAsUser(filtered.get(0));
+    }
+
+    /**
+     * Selects the item matching a partial text, as if the user typed the text
+     * into the combobox and picked the only remaining suggestion.
+     * <p>
+     * The text is applied as a filter, so matching follows the component's own
+     * filtering: by default a case-insensitive "label contains" match, or the
+     * {@code ItemFilter} / data provider filter the application configured.
+     * Exactly one item has to match; when several do, the one whose label
+     * equals the text (ignoring case) is picked, as the browser commits an
+     * exact label match on Enter. The filter is cleared afterwards, as the
+     * browser does once a value is committed. If matching fails, the selection
+     * is left unchanged and the filter set before the call is restored.
+     *
+     * <pre>
+     * // items "Berlin", "Bern", "Bernau", "Helsinki"
+     * comboBoxTester.selectItemContaining("hel"); // selects "Helsinki"
+     * comboBoxTester.selectItemContaining("bern"); // selects "Bern"
+     * </pre>
+     *
+     * @param text
+     *            the text the user types to find the item, not {@code null}
+     * @throws IllegalArgumentException
+     *             if the text is {@code null}, matches no item, or matches more
+     *             than one item without a single exact label match
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @see #selectItem(String)
+     */
+    public void selectItemContaining(String text) {
+        ensureComponentIsUsable();
+        if (text == null) {
+            throw new IllegalArgumentException("text must not be null");
+        }
+        final String previousFilter = getFilter();
+        final Y item;
+        try {
+            setFilter(text);
+            item = getSingleSuggestionMatching(text);
+        } catch (RuntimeException e) {
+            setFilter(previousFilter);
+            throw e;
+        }
+        setFilter("");
+        setValueAsUser(item);
+    }
+
+    private Y getSingleSuggestionMatching(String text) {
+        final List<Y> matches = getSuggestionItems();
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                .getItemLabelGenerator();
+        final List<Y> exactMatches = matches.stream().filter(
+                item -> text.equalsIgnoreCase(itemLabelGenerator.apply(item)))
+                .toList();
+        if (exactMatches.size() == 1) {
+            return exactMatches.get(0);
+        }
+        throw new IllegalArgumentException(matches.isEmpty()
+                ? "No item found containing '" + text + "'"
+                : "Multiple items found containing '" + text + "': "
+                        + matches.stream().map(itemLabelGenerator).toList());
+    }
+
+    private String getFilter() {
+        final String filter = getComponent().getFilter();
+        return filter == null ? "" : filter;
     }
 
     /**

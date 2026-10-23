@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.combobox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -65,6 +66,8 @@ public class ComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItem("test-foo"));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.combo).selectItem(null));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItemContaining("fo"));
     }
 
     @Test
@@ -87,6 +90,8 @@ public class ComboBoxTesterTest extends BrowserlessTest
         final List<String> suggestions = test(view.combo).getSuggestions();
         Assertions.assertEquals(1, suggestions.size());
         Assertions.assertEquals("test-foo", suggestions.get(0));
+        Assertions.assertEquals("fo", view.combo.getFilter(),
+                "Filter should reach the component property as typing does");
     }
 
     @Test
@@ -102,6 +107,70 @@ public class ComboBoxTesterTest extends BrowserlessTest
 
         Assertions.assertNull(test(view.combo).getSelected(),
                 "Selecting null should clear selection");
+    }
+
+    @Test
+    void selectItemContaining_selectsSingleMatchAsUser() {
+        test(view.combo).setFilter("fo");
+        List<Boolean> fromClient = new ArrayList<>();
+        view.combo.addValueChangeListener(
+                ev -> fromClient.add(ev.isFromClient()));
+
+        test(view.combo).selectItemContaining("BA");
+
+        Assertions.assertSame(view.items.get(1),
+                test(view.combo).getSelected());
+        Assertions.assertEquals(List.of(true), fromClient);
+        Assertions.assertEquals(List.of("test-foo", "test-bar"),
+                test(view.combo).getSuggestions(),
+                "Filter should be cleared after selecting");
+    }
+
+    @Test
+    void selectItemContaining_noOrAmbiguousMatch_throws() {
+        test(view.combo).setFilter("fo");
+
+        IllegalArgumentException multiple = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining("test"));
+        Assertions.assertTrue(
+                multiple.getMessage().contains("[test-foo, test-bar]"),
+                multiple.getMessage());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining("baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining(null));
+
+        Assertions.assertNull(test(view.combo).getSelected());
+        Assertions.assertEquals(List.of("test-foo"),
+                test(view.combo).getSuggestions(),
+                "Previous filter should be restored after a failed selection");
+    }
+
+    @Test
+    void selectItemContaining_prefersExactLabelMatch() {
+        ComboBox<String> cities = new ComboBox<>();
+        cities.setItems("Berlin", "Bern", "Bernau");
+        view.add(cities);
+
+        test(cities).selectItemContaining("BERN");
+
+        Assertions.assertEquals("Bern", test(cities).getSelected());
+    }
+
+    @Test
+    void selectItemContaining_followsComponentItemFilter() {
+        view.combo.setItems((item, filter) -> item.getName().startsWith(filter),
+                view.items);
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining("test-f"),
+                "Label text the item filter rejects should not match");
+
+        test(view.combo).selectItemContaining("fo");
+
+        Assertions.assertSame(view.items.get(0),
+                test(view.combo).getSelected());
     }
 
     // ComboBoxTester models unconditional emptying as selectItem(null) rather
