@@ -111,10 +111,11 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * Each text is applied as a filter, so matching follows the component's own
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured.
-     * Every text has to match exactly one item. Like
-     * {@link #selectItem(String...)}, the matched items replace the current
-     * selection. The filter is cleared afterwards, as the browser does once a
-     * value is committed.
+     * Every text has to match exactly one item; use
+     * {@link #selectItemsContaining(String)} to pick every item a text matches.
+     * As in the browser, the matched items are added to the current selection,
+     * and items that are already selected stay selected. The filter is cleared
+     * afterwards, as the browser does once a value is committed.
      *
      * <pre>
      * // items "Berlin", "Bern", "Helsinki"
@@ -139,25 +140,67 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
         }
         final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
                 .getItemLabelGenerator();
-        final Set<Y> selection = new LinkedHashSet<>();
-        try {
-            for (String text : texts) {
-                Objects.requireNonNull(text, "texts must not contain null");
-                setFilter(text);
-                final List<Y> matches = getSuggestionItems();
-                if (matches.size() != 1) {
-                    throw new IllegalArgumentException(matches.isEmpty()
-                            ? "No item found containing '" + text + "'"
-                            : "Multiple items found containing '" + text + "': "
-                                    + matches.stream().map(itemLabelGenerator)
-                                            .collect(Collectors.toList()));
-                }
-                selection.add(matches.get(0));
+        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
+        for (String text : texts) {
+            Objects.requireNonNull(text, "texts must not contain null");
+            final List<Y> matches = findItemsContaining(text);
+            if (matches.size() != 1) {
+                throw new IllegalArgumentException(matches.isEmpty()
+                        ? "No item found containing '" + text + "'"
+                        : "Multiple items found containing '" + text + "': "
+                                + matches.stream().map(itemLabelGenerator)
+                                        .collect(Collectors.toList()));
             }
+            selection.add(matches.get(0));
+        }
+        setValueAsUser(selection);
+    }
+
+    /**
+     * Selects every item matching a partial text, as if the user typed the
+     * text into the combobox and ticked all remaining suggestions.
+     * <p>
+     * The text is applied as a filter, so matching follows the component's own
+     * filtering: by default a case-insensitive "label contains" match, or the
+     * {@code ItemFilter} / data provider filter the application configured. At
+     * least one item has to match. As in the browser, the matched items are
+     * added to the current selection, and items that are already selected stay
+     * selected. The filter is cleared afterwards, as the browser does once a
+     * value is committed.
+     *
+     * <pre>
+     * // items "Berlin", "Bern", "Helsinki"
+     * comboBoxTester.selectItemsContaining("ber"); // Berlin, Bern
+     * </pre>
+     *
+     * @param text
+     *            the text the user types to find the items, not {@code null}
+     * @throws IllegalArgumentException
+     *             if no item matches the text
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @see #selectItemContaining(String...)
+     */
+    public void selectItemsContaining(String text) {
+        ensureComponentIsUsable();
+        Objects.requireNonNull(text, "text must not be null");
+        final List<Y> matches = findItemsContaining(text);
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No item found containing '" + text + "'");
+        }
+        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
+        selection.addAll(matches);
+        setValueAsUser(selection);
+    }
+
+    private List<Y> findItemsContaining(String text) {
+        try {
+            setFilter(text);
+            return getSuggestionItems();
         } finally {
             setFilter("");
         }
-        setValueAsUser(selection);
     }
 
     /**
