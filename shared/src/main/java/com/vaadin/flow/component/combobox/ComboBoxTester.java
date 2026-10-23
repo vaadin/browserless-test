@@ -138,8 +138,8 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * Exactly one item has to match; when several do, the one whose label
      * equals the text (ignoring case) is picked, as the browser commits an
      * exact label match on Enter. The filter is cleared afterwards, as the
-     * browser does once a value is committed. When nothing is selected, the
-     * filter that was set before is restored.
+     * browser does once a value is committed. If the call throws, the selection
+     * is left unchanged and the filter set before the call is restored.
      *
      * <pre>
      * // items "Berlin", "Bern", "Bernau", "Helsinki"
