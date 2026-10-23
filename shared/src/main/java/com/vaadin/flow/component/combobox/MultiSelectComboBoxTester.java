@@ -113,8 +113,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * {@code ItemFilter} / data provider filter the application configured.
      * Every text has to match exactly one item; use
      * {@link #selectItemsContaining(String)} to pick every item a text matches.
-     * As in the browser, the matched items are added to the current selection,
-     * and items that are already selected stay selected. The filter is cleared
+     * As in the browser, the matched items are added to the current selection.
+     * Unlike the browser, where picking an already selected item deselects it,
+     * already selected matches stay selected. The filter is cleared
      * afterwards, as the browser does once a value is committed.
      *
      * <pre>
@@ -164,7 +165,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured. At
      * least one item has to match. As in the browser, the matched items are
-     * added to the current selection, and items that are already selected stay
+     * added to the current selection. Unlike the browser, where picking an
+     * already selected item deselects it, already selected matches stay
      * selected. The filter is cleared afterwards, as the browser does once a
      * value is committed.
      *
