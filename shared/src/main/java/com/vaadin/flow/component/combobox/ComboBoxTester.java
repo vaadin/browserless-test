@@ -19,7 +19,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -133,42 +132,77 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * The text is applied as a filter, so matching follows the component's own
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured.
-     * Exactly one item has to match. The filter is cleared afterwards, as the
-     * browser does once a value is committed.
+     * Exactly one item has to match; when several do, the one whose label
+     * equals the text (ignoring case) is picked, as the browser commits an
+     * exact label match on Enter. The filter is cleared afterwards, as the
+     * browser does once a value is committed. When nothing is selected, the
+     * filter that was set before is restored.
      *
      * <pre>
-     * // items "Berlin", "Bern", "Helsinki"
+     * // items "Berlin", "Bern", "Bernau", "Helsinki"
      * comboBoxTester.selectItemContaining("hel"); // selects "Helsinki"
+     * comboBoxTester.selectItemContaining("bern"); // selects "Bern"
      * </pre>
      *
      * @param text
      *            the text the user types to find the item, not {@code null}
      * @throws IllegalArgumentException
-     *             if no item or more than one item matches the text
+     *             if the text is {@code null}, matches no item, or matches more
+     *             than one item without a single exact label match
      * @throws IllegalStateException
      *             if the component is not usable
      * @see #selectItem(String)
      */
     public void selectItemContaining(String text) {
         ensureComponentIsUsable();
-        Objects.requireNonNull(text, "text must not be null");
-        final List<Y> matches;
+        if (text == null) {
+            throw new IllegalArgumentException("text must not be null");
+        }
+        final String previousFilter = getFilter();
+        final Y item;
         try {
             setFilter(text);
-            matches = getSuggestionItems();
-        } finally {
-            setFilter("");
+            item = getSingleSuggestionMatching(text);
+        } catch (RuntimeException e) {
+            setFilter(previousFilter);
+            throw e;
         }
-        if (matches.size() != 1) {
-            final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
-                    .getItemLabelGenerator();
-            throw new IllegalArgumentException(matches.isEmpty()
-                    ? "No item found containing '" + text + "'"
-                    : "Multiple items found containing '" + text + "': "
-                            + matches.stream().map(itemLabelGenerator)
-                                    .collect(Collectors.toList()));
+        setFilter("");
+        setValueAsUser(item);
+    }
+
+    private Y getSingleSuggestionMatching(String text) {
+        final List<Y> matches = getSuggestionItems();
+        if (matches.size() == 1) {
+            return matches.get(0);
         }
-        setValueAsUser(matches.get(0));
+        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                .getItemLabelGenerator();
+        final List<Y> exactMatches = matches.stream().filter(
+                item -> text.equalsIgnoreCase(itemLabelGenerator.apply(item)))
+                .toList();
+        if (exactMatches.size() == 1) {
+            return exactMatches.get(0);
+        }
+        throw new IllegalArgumentException(matches.isEmpty()
+                ? "No item found containing '" + text + "'"
+                : "Multiple items found containing '" + text + "': "
+                        + matches.stream().map(itemLabelGenerator).toList());
+    }
+
+    // ComboBoxDataController keeps the filter typed by the user in a private
+    // field; a public getter for it belongs in ComboBoxBase.
+    private String getFilter() {
+        try {
+            final Object dataController = getField(ComboBoxBase.class,
+                    "dataController").get(getComponent());
+            final String filter = (String) getField(
+                    ComboBoxDataController.class, "lastFilter")
+                    .get(dataController);
+            return filter == null ? "" : filter;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

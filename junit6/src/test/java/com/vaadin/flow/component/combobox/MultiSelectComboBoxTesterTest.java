@@ -148,7 +148,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
-    void selectItemContaining_addsMatchesToSelectionAsUser() {
+    void selectItemContaining_addsMatchToSelectionAsUser() {
         view.combo.setValue(Set.of(view.items.get(0)));
         List<Boolean> fromClient = new ArrayList<>();
         view.combo.addValueChangeListener(
@@ -167,57 +167,78 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected(),
                 "An already selected match should stay selected");
-
-        view.combo.clear();
-        test(view.combo).selectItemContaining("fo", "ar");
-
-        Assertions.assertEquals(Set.copyOf(view.items),
-                test(view.combo).getSelected());
     }
 
     @Test
-    void selectItemContaining_anyTextWithoutSingleMatch_throws() {
+    void selectItemContaining_prefersExactLabelMatch() {
+        MultiSelectComboBox<String> cities = new MultiSelectComboBox<>();
+        cities.setItems("Berlin", "Bern", "Bernau");
+        view.add(cities);
+
+        test(cities).selectItemContaining("BERN");
+
+        Assertions.assertEquals(Set.of("Bern"), test(cities).getSelected());
+    }
+
+    @Test
+    void selectItemContaining_noOrAmbiguousMatch_throws() {
         view.combo.setValue(Set.of(view.items.get(1)));
+        test(view.combo).setFilter("fo");
 
         IllegalArgumentException multiple = Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () -> test(view.combo).selectItemContaining("fo", "test"));
+                () -> test(view.combo).selectItemContaining("test"));
         Assertions.assertTrue(
                 multiple.getMessage().contains("[test-foo, test-bar]"),
                 multiple.getMessage());
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).selectItemContaining("baz"));
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.combo).selectItemContaining());
+                () -> test(view.combo).selectItemContaining(null));
 
         Assertions.assertEquals(Set.of(view.items.get(1)),
                 test(view.combo).getSelected());
-        Assertions.assertEquals(2, test(view.combo).getSuggestions().size(),
-                "Filter should be cleared after a failed selection");
+        Assertions.assertEquals(List.of("test-foo"),
+                test(view.combo).getSuggestions(),
+                "Previous filter should be restored after a failed selection");
     }
 
     @Test
     void selectItemsContaining_addsAllMatchesToSelectionAsUser() {
         MultiSelectComboBox<String> cities = new MultiSelectComboBox<>();
-        cities.setItems("Berlin", "Bern", "Helsinki");
-        cities.setValue(Set.of("Helsinki"));
+        cities.setItems("Berlin", "Bern", "Helsinki", "Oslo");
+        cities.setValue(Set.of("Oslo"));
         view.add(cities);
         List<Boolean> fromClient = new ArrayList<>();
         cities.addValueChangeListener(ev -> fromClient.add(ev.isFromClient()));
 
-        test(cities).selectItemsContaining("BER");
+        test(cities).selectItemsContaining("BER", "bern", "hel");
 
-        Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki"),
-                test(cities).getSelected());
-        Assertions.assertEquals(List.of(true), fromClient);
-        Assertions.assertEquals(3, test(cities).getSuggestions().size(),
-                "Filter should be cleared after selecting");
-
-        test(cities).selectItemsContaining("ber");
-
-        Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki"),
+        Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki", "Oslo"),
                 test(cities).getSelected(),
-                "Already selected matches should stay selected");
+                "Every match should be added once to the existing selection");
+        Assertions.assertEquals(List.of(true), fromClient);
+        Assertions.assertEquals(4, test(cities).getSuggestions().size(),
+                "Filter should be cleared after selecting");
+    }
+
+    @Test
+    void selectItemsContaining_anyTextWithoutMatch_throws() {
+        view.combo.setValue(Set.of(view.items.get(1)));
+        test(view.combo).setFilter("fo");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemsContaining("fo", "baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemsContaining());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemsContaining("fo", null));
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                test(view.combo).getSelected());
+        Assertions.assertEquals(List.of("test-foo"),
+                test(view.combo).getSuggestions(),
+                "Previous filter should be restored after a failed selection");
     }
 
     @Test
@@ -236,19 +257,6 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
 
         Assertions.assertEquals(Set.of(view.items.get(0)),
                 test(view.combo).getSelected());
-    }
-
-    @Test
-    void selectItemsContaining_noMatch_throws() {
-        view.combo.setValue(Set.of(view.items.get(1)));
-
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> test(view.combo).selectItemsContaining("baz"));
-
-        Assertions.assertEquals(Set.of(view.items.get(1)),
-                test(view.combo).getSelected());
-        Assertions.assertEquals(2, test(view.combo).getSuggestions().size(),
-                "Filter should be cleared after a failed selection");
     }
 
     // As with ComboBox, emptying without a clear button is selectItem(null).

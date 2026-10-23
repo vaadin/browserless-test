@@ -124,7 +124,9 @@ public class ComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
-    void selectItemContaining_noOrMultipleMatches_throws() {
+    void selectItemContaining_noOrAmbiguousMatch_throws() {
+        test(view.combo).setFilter("fo");
+
         IllegalArgumentException multiple = Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> test(view.combo).selectItemContaining("test"));
@@ -133,10 +135,24 @@ public class ComboBoxTesterTest extends BrowserlessTest
                 multiple.getMessage());
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).selectItemContaining("baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItemContaining(null));
 
         Assertions.assertNull(test(view.combo).getSelected());
-        Assertions.assertEquals(2, test(view.combo).getSuggestions().size(),
-                "Filter should be cleared after a failed selection");
+        Assertions.assertEquals(List.of("test-foo"),
+                test(view.combo).getSuggestions(),
+                "Previous filter should be restored after a failed selection");
+    }
+
+    @Test
+    void selectItemContaining_prefersExactLabelMatch() {
+        ComboBox<String> cities = new ComboBox<>();
+        cities.setItems("Berlin", "Bern", "Bernau");
+        view.add(cities);
+
+        test(cities).selectItemContaining("BERN");
+
+        Assertions.assertEquals("Bern", test(cities).getSelected());
     }
 
     @Test

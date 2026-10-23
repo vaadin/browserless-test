@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,103 +104,152 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     /**
-     * Selects the items matching partial texts, as if the user typed each text
+     * Selects the item matching a partial text, as if the user typed the text
      * into the combobox and picked the only remaining suggestion.
+     * <p>
+     * The text is applied as a filter, so matching follows the component's own
+     * filtering: by default a case-insensitive "label contains" match, or the
+     * {@code ItemFilter} / data provider filter the application configured.
+     * Exactly one item has to match; when several do, the one whose label
+     * equals the text (ignoring case) is picked, as the browser commits an
+     * exact label match on Enter. Use {@link #selectItemsContaining(String...)}
+     * to pick every item a text matches.
+     * <p>
+     * As in the browser, the item is added to the current selection. Unlike the
+     * browser, where picking an already selected item deselects it, an already
+     * selected item stays selected. The filter is cleared afterwards, as the
+     * browser does once a value is committed. When nothing is selected, the
+     * filter that was set before is restored.
+     *
+     * <pre>
+     * // items "Berlin", "Bern", "Bernau", "Helsinki"
+     * comboBoxTester.selectItemContaining("hel"); // adds "Helsinki"
+     * comboBoxTester.selectItemContaining("bern"); // adds "Bern"
+     * </pre>
+     *
+     * @param text
+     *            the text the user types to find the item, not {@code null}
+     * @throws IllegalArgumentException
+     *             if the text is {@code null}, matches no item, or matches more
+     *             than one item without a single exact label match
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @see #selectItem(String...)
+     */
+    public void selectItemContaining(String text) {
+        ensureComponentIsUsable();
+        if (text == null) {
+            throw new IllegalArgumentException("text must not be null");
+        }
+        final String previousFilter = getFilter();
+        final Y item;
+        try {
+            setFilter(text);
+            item = getSingleSuggestionMatching(text);
+        } catch (RuntimeException e) {
+            setFilter(previousFilter);
+            throw e;
+        }
+        setFilter("");
+        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
+        selection.add(item);
+        setValueAsUser(selection);
+    }
+
+    /**
+     * Selects every item matching partial texts, as if the user typed each text
+     * into the combobox and ticked all remaining suggestions.
      * <p>
      * Each text is applied as a filter, so matching follows the component's own
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured.
-     * Every text has to match exactly one item; use
-     * {@link #selectItemsContaining(String)} to pick every item a text matches.
+     * Every text has to match at least one item. Use
+     * {@link #selectItemContaining(String)} to pick exactly one item.
+     * <p>
      * As in the browser, the matched items are added to the current selection.
      * Unlike the browser, where picking an already selected item deselects it,
-     * already selected matches stay selected. The filter is cleared
-     * afterwards, as the browser does once a value is committed.
+     * already selected matches stay selected, so an item matched by more than
+     * one text is selected once. The filter is cleared afterwards, as the
+     * browser does once a value is committed. When nothing is selected, the
+     * filter that was set before is restored.
      *
      * <pre>
      * // items "Berlin", "Bern", "Helsinki"
-     * comboBoxTester.selectItemContaining("hel", "lin"); // Helsinki, Berlin
+     * comboBoxTester.selectItemsContaining("ber"); // adds Berlin, Bern
+     * comboBoxTester.selectItemsContaining("hel", "lin"); // adds Helsinki,
+     *                                                     // Berlin
      * </pre>
      *
      * @param texts
      *            the texts the user types to find the items, at least one, none
      *            of them {@code null}
      * @throws IllegalArgumentException
-     *             if no text is given, or a text matches no item or more than
-     *             one item
+     *             if no text is given, a text is {@code null}, or a text
+     *             matches no item
      * @throws IllegalStateException
      *             if the component is not usable
      * @see #selectItem(String...)
      */
-    public void selectItemContaining(String... texts) {
+    public void selectItemsContaining(String... texts) {
         ensureComponentIsUsable();
         if (texts == null || texts.length == 0) {
             throw new IllegalArgumentException(
                     "At least one text has to be given");
         }
+        if (Arrays.asList(texts).contains(null)) {
+            throw new IllegalArgumentException("texts must not contain null");
+        }
+        final String previousFilter = getFilter();
+        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
+        try {
+            for (String text : texts) {
+                setFilter(text);
+                final List<Y> matches = getSuggestionItems();
+                if (matches.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "No item found containing '" + text + "'");
+                }
+                selection.addAll(matches);
+            }
+        } catch (RuntimeException e) {
+            setFilter(previousFilter);
+            throw e;
+        }
+        setFilter("");
+        setValueAsUser(selection);
+    }
+
+    private Y getSingleSuggestionMatching(String text) {
+        final List<Y> matches = getSuggestionItems();
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
         final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
                 .getItemLabelGenerator();
-        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
-        for (String text : texts) {
-            Objects.requireNonNull(text, "texts must not contain null");
-            final List<Y> matches = findItemsContaining(text);
-            if (matches.size() != 1) {
-                throw new IllegalArgumentException(matches.isEmpty()
-                        ? "No item found containing '" + text + "'"
-                        : "Multiple items found containing '" + text + "': "
-                                + matches.stream().map(itemLabelGenerator)
-                                        .collect(Collectors.toList()));
-            }
-            selection.add(matches.get(0));
+        final List<Y> exactMatches = matches.stream().filter(
+                item -> text.equalsIgnoreCase(itemLabelGenerator.apply(item)))
+                .toList();
+        if (exactMatches.size() == 1) {
+            return exactMatches.get(0);
         }
-        setValueAsUser(selection);
+        throw new IllegalArgumentException(matches.isEmpty()
+                ? "No item found containing '" + text + "'"
+                : "Multiple items found containing '" + text + "': "
+                        + matches.stream().map(itemLabelGenerator).toList());
     }
 
-    /**
-     * Selects every item matching a partial text, as if the user typed the
-     * text into the combobox and ticked all remaining suggestions.
-     * <p>
-     * The text is applied as a filter, so matching follows the component's own
-     * filtering: by default a case-insensitive "label contains" match, or the
-     * {@code ItemFilter} / data provider filter the application configured. At
-     * least one item has to match. As in the browser, the matched items are
-     * added to the current selection. Unlike the browser, where picking an
-     * already selected item deselects it, already selected matches stay
-     * selected. The filter is cleared afterwards, as the browser does once a
-     * value is committed.
-     *
-     * <pre>
-     * // items "Berlin", "Bern", "Helsinki"
-     * comboBoxTester.selectItemsContaining("ber"); // Berlin, Bern
-     * </pre>
-     *
-     * @param text
-     *            the text the user types to find the items, not {@code null}
-     * @throws IllegalArgumentException
-     *             if no item matches the text
-     * @throws IllegalStateException
-     *             if the component is not usable
-     * @see #selectItemContaining(String...)
-     */
-    public void selectItemsContaining(String text) {
-        ensureComponentIsUsable();
-        Objects.requireNonNull(text, "text must not be null");
-        final List<Y> matches = findItemsContaining(text);
-        if (matches.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "No item found containing '" + text + "'");
-        }
-        final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
-        selection.addAll(matches);
-        setValueAsUser(selection);
-    }
-
-    private List<Y> findItemsContaining(String text) {
+    // ComboBoxDataController keeps the filter typed by the user in a private
+    // field; a public getter for it belongs in ComboBoxBase.
+    private String getFilter() {
         try {
-            setFilter(text);
-            return getSuggestionItems();
-        } finally {
-            setFilter("");
+            final Object dataController = getField(ComboBoxBase.class,
+                    "dataController").get(getComponent());
+            final String filter = (String) getField(
+                    ComboBoxDataController.class, "lastFilter")
+                    .get(dataController);
+            return filter == null ? "" : filter;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
