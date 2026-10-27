@@ -80,18 +80,18 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     /**
      * Select items by client string representation.
      * <p/>
-     * Replaces the whole selection with the matching items, and empties it
-     * when {@code selection} is {@code null}.
+     * Replaces the whole selection with the matching items, and empties it when
+     * {@code selection} is {@code null}.
      *
      * @param selection
      *            item representations as strings
      * @throws IllegalStateException
      *             if the component is not usable
-     * @deprecated use {@link #selectItems(String...)}, which adds the items
-     *             to the current selection as ticking them in the overlay
-     *             does. To replace the selection, call
-     *             {@link #deselectAll()} first; to empty it, call
-     *             {@link #deselectAll()} instead of passing {@code null}.
+     * @deprecated use {@link #selectItems(String...)}, which adds the items to
+     *             the current selection as ticking them in the overlay does. To
+     *             replace the selection, call {@link #deselectAll()} first; to
+     *             empty it, call {@link #deselectAll()} instead of passing
+     *             {@code null}.
      */
     @Deprecated
     public void selectItem(String... selection) {
@@ -128,8 +128,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * @throws IllegalStateException
      *             if the component is not usable
      * @throws IllegalArgumentException
-     *             if {@code selection} is {@code null} or contains a label
-     *             that matches no item
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no item
      */
     public void selectItems(String... selection) {
         ensureComponentIsUsable();
@@ -139,8 +139,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     /**
-     * Deselects items by client string representation, as unticking them in
-     * the overlay does.
+     * Deselects items by client string representation, as unticking them in the
+     * overlay does.
      * <p/>
      * Other selected items stay selected. Labels are matched against the
      * current selection, so an item hidden by the filter can still be
@@ -151,8 +151,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * @throws IllegalStateException
      *             if the component is not usable
      * @throws IllegalArgumentException
-     *             if {@code selection} is {@code null} or contains a label
-     *             that matches no selected item
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no selected item
      */
     public void deselectItems(String... selection) {
         ensureComponentIsUsable();
@@ -202,8 +202,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * Clears the selection by clicking the clear button, as the user would.
      * <p/>
      * Requires the clear button to be visible — a hidden clear button is not
-     * something the user can click. {@link #deselectAll()} clears the
-     * selection without that requirement.
+     * something the user can click. {@link #deselectAll()} clears the selection
+     * without that requirement.
      *
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
