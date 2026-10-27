@@ -136,20 +136,38 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.of(view.items.get(0)),
                 test(view.combo).getSelected());
 
-        test(view.combo).selectItems("test-bar", "test-foo");
+        test(view.combo).selectItems("test-bar");
 
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected());
+
+        test(view.combo).selectItems("test-foo");
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected(),
+                "Selecting an already selected item should keep it selected");
     }
 
     @Test
     void deselectItems_removesOnlyGivenItems() {
         view.combo.setValue(Set.copyOf(view.items));
 
+        test(view.combo).setFilter("bar");
         test(view.combo).deselectItems("test-foo");
 
         Assertions.assertEquals(Set.of(view.items.get(1)),
-                test(view.combo).getSelected());
+                test(view.combo).getSelected(),
+                "An item hidden by the filter should still be deselectable");
+    }
+
+    @Test
+    void deselectAll_emptiesSelectionWithoutClearButton() {
+        view.combo.setValue(Set.copyOf(view.items));
+        view.combo.setClearButtonVisible(false);
+
+        test(view.combo).deselectAll();
+
+        Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
     }
 
     @Test
@@ -176,7 +194,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         view.combo.addValueChangeListener(
                 ev -> fromClient.add(ev.isFromClient()));
 
-        test(view.combo).selectItems("test-foo");
+        test(view.combo).selectItem("test-foo");
         test(view.combo).selectItems("test-bar");
         test(view.combo).deselectItems("test-foo");
         test(view.combo).deselectAll();
@@ -196,8 +214,6 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
         Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
     }
-
-    // Emptying without a clear button is deselectAll().
 
     @Override
     public HasValue<?, ?> fieldUnderTest() {

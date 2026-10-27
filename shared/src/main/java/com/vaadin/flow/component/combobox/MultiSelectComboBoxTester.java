@@ -19,8 +19,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -117,7 +119,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * overlay does.
      * <p/>
      * The items are added to the current selection; items that are already
-     * selected stay selected.
+     * selected stay selected. Labels are matched against the current
+     * suggestions, so a filter set with {@link #setFilter(String)} is taken
+     * into account.
      *
      * @param selection
      *            item representations as strings, not {@code null}
@@ -130,7 +134,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     public void selectItems(String... selection) {
         ensureComponentIsUsable();
         Set<Y> value = new LinkedHashSet<>(getSelected());
-        value.addAll(getItemsForLabels(selection));
+        value.addAll(getItemsForLabels(getSuggestionItems(), selection));
         setValueAsUser(value);
     }
 
@@ -138,7 +142,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * Deselects items by client string representation, as unticking them in
      * the overlay does.
      * <p/>
-     * Other selected items stay selected.
+     * Other selected items stay selected. Labels are matched against the
+     * current selection, so an item hidden by the filter can still be
+     * deselected, as removing its chip does.
      *
      * @param selection
      *            item representations as strings, not {@code null}
@@ -146,12 +152,12 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *             if the component is not usable
      * @throws IllegalArgumentException
      *             if {@code selection} is {@code null} or contains a label
-     *             that matches no item
+     *             that matches no selected item
      */
     public void deselectItems(String... selection) {
         ensureComponentIsUsable();
         Set<Y> value = new LinkedHashSet<>(getSelected());
-        value.removeAll(getItemsForLabels(selection));
+        value.removeAll(getItemsForLabels(value, selection));
         setValueAsUser(value);
     }
 
@@ -170,18 +176,18 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
         setValueAsUser(getComponent().getEmptyValue());
     }
 
-    private Set<Y> getItemsForLabels(String[] labels) {
+    private Set<Y> getItemsForLabels(Collection<Y> candidates,
+            String[] labels) {
         if (labels == null) {
             throw new IllegalArgumentException("Selection must not be null");
         }
         final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
                 .getItemLabelGenerator();
-        final List<Y> suggestionItems = getSuggestionItems();
         Set<Y> items = new LinkedHashSet<>();
         for (String label : labels) {
-            List<Y> matches = suggestionItems.stream()
-                    .filter(item -> itemLabelGenerator.apply(item)
-                            .equals(label))
+            List<Y> matches = candidates.stream()
+                    .filter(item -> Objects
+                            .equals(itemLabelGenerator.apply(item), label))
                     .toList();
             if (matches.isEmpty()) {
                 throw new IllegalArgumentException(
