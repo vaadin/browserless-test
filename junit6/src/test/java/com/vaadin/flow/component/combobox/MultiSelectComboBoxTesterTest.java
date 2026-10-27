@@ -171,7 +171,7 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
-    void selectItemsAndDeselectItems_unknownOrNullLabel_throws() {
+    void selectItemsAndDeselectItems_unmatchedLabel_throws() {
         view.combo.setValue(Set.of(view.items.get(0)));
 
         Assertions.assertThrows(IllegalArgumentException.class,
@@ -182,6 +182,13 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItems((String[]) null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).deselectItems((String[]) null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).deselectItems("test-bar"),
+                "An item that is not selected cannot be deselected");
+        test(view.combo).setFilter("bar");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItems("test-foo"),
+                "An item hidden by the filter cannot be selected");
 
         Assertions.assertEquals(Set.of(view.items.get(0)),
                 test(view.combo).getSelected(),
