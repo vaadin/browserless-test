@@ -77,12 +77,21 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
     /**
      * Select items by client string representation.
+     * <p/>
+     * Replaces the whole selection with the matching items, and empties it
+     * when {@code selection} is {@code null}.
      *
      * @param selection
      *            item representations as strings
      * @throws IllegalStateException
      *             if the component is not usable
+     * @deprecated use {@link #selectItems(String...)}, which adds the items
+     *             to the current selection as ticking them in the overlay
+     *             does. To replace the selection, call
+     *             {@link #deselectAll()} first; to empty it, call
+     *             {@link #deselectAll()} instead of passing {@code null}.
      */
+    @Deprecated
     public void selectItem(String... selection) {
         ensureComponentIsUsable();
         if (selection == null) {
@@ -104,11 +113,91 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     /**
+     * Selects items by client string representation, as ticking them in the
+     * overlay does.
+     * <p/>
+     * The items are added to the current selection; items that are already
+     * selected stay selected.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label
+     *             that matches no item
+     */
+    public void selectItems(String... selection) {
+        ensureComponentIsUsable();
+        Set<Y> value = new LinkedHashSet<>(getSelected());
+        value.addAll(getItemsForLabels(selection));
+        setValueAsUser(value);
+    }
+
+    /**
+     * Deselects items by client string representation, as unticking them in
+     * the overlay does.
+     * <p/>
+     * Other selected items stay selected.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label
+     *             that matches no item
+     */
+    public void deselectItems(String... selection) {
+        ensureComponentIsUsable();
+        Set<Y> value = new LinkedHashSet<>(getSelected());
+        value.removeAll(getItemsForLabels(selection));
+        setValueAsUser(value);
+    }
+
+    /**
+     * Deselects all items, as unticking every selected item in the overlay
+     * does.
+     * <p/>
+     * Unlike {@link #clickClearButton()}, this does not require the clear
+     * button to be visible.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void deselectAll() {
+        ensureComponentIsUsable();
+        setValueAsUser(getComponent().getEmptyValue());
+    }
+
+    private Set<Y> getItemsForLabels(String[] labels) {
+        if (labels == null) {
+            throw new IllegalArgumentException("Selection must not be null");
+        }
+        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                .getItemLabelGenerator();
+        final List<Y> suggestionItems = getSuggestionItems();
+        Set<Y> items = new LinkedHashSet<>();
+        for (String label : labels) {
+            List<Y> matches = suggestionItems.stream()
+                    .filter(item -> itemLabelGenerator.apply(item)
+                            .equals(label))
+                    .toList();
+            if (matches.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "No item found for '" + label + "'");
+            }
+            items.addAll(matches);
+        }
+        return items;
+    }
+
+    /**
      * Clears the selection by clicking the clear button, as the user would.
      * <p/>
      * Requires the clear button to be visible — a hidden clear button is not
-     * something the user can click. {@link #selectItem(String...)} with
-     * {@code null} clears the selection without that requirement.
+     * something the user can click. {@link #deselectAll()} clears the
+     * selection without that requirement.
      *
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
