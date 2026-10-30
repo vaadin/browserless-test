@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouterLink;
 
@@ -43,6 +44,29 @@ class RouterLinkTesterTest extends BrowserlessTest {
                 .setAnnotatedRoute(RouterLinkRouteParameterTargetView.class);
 
         routerLinkView = navigate(RouterLinkView.class);
+    }
+
+    @Test
+    void navigate_linkTargetNotRegistered_failureNamesLinkTarget() {
+        RouteConfiguration.forApplicationScope()
+                .removeRoute(RouterLinkStaticTargetView.class);
+        // leave the view so that navigating back creates a new instance
+        navigate(RouterLinkUrlParameterTargetView.class);
+
+        IllegalArgumentException exception = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> navigate(RouterLinkView.class));
+
+        Assertions.assertInstanceOf(NotFoundException.class,
+                exception.getCause());
+        Assertions.assertTrue(
+                exception.getMessage()
+                        .contains(RouterLinkStaticTargetView.class.getName()),
+                "Failure should name the unregistered RouterLink target: "
+                        + exception.getMessage());
+        Assertions.assertTrue(exception.getMessage().contains("@ViewPackages"),
+                "Failure should hint at @ViewPackages: "
+                        + exception.getMessage());
     }
 
     @Test
