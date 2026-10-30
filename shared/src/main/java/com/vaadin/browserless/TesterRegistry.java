@@ -303,8 +303,9 @@ final class TesterRegistry {
                 : ReflectTools.erase(componentType);
         if (erased == null) {
             throw new IllegalStateException(
-                    "Unable to detect the component type from "
-                            + componentType);
+                    "Unable to detect the component type of tester "
+                            + testerType.getName() + " (resolved: "
+                            + componentType + ")");
         }
         return erased;
     }
