@@ -19,7 +19,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vaadin.browserless.internal.UtilsKt;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.internal.ReflectTools;
 
 /**
  * Process-wide registry that resolves a Vaadin component to its
@@ -297,19 +297,16 @@ final class TesterRegistry {
             extractTypeArguments(typeMap, clazz);
             clazz = clazz.getSuperclass();
         }
-        return erase(typeMap.get(ComponentTester.class.getTypeParameters()[0]));
-    }
-
-    private static Class<?> erase(Type type) {
-        if (type instanceof Class<?> clazz) {
-            return clazz;
-        } else if (type instanceof ParameterizedType parameterizedType) {
-            return (Class<?>) parameterizedType.getRawType();
-        } else if (type instanceof TypeVariable<?> typeVariable) {
-            return erase(typeVariable.getBounds()[0]);
+        Type componentType = typeMap
+                .get(ComponentTester.class.getTypeParameters()[0]);
+        Class<?> erased = componentType == null ? null
+                : ReflectTools.erase(componentType);
+        if (erased == null) {
+            throw new IllegalStateException(
+                    "Unable to detect the component type from "
+                            + componentType);
         }
-        throw new IllegalStateException(
-                "Unable to detect the component type from " + type);
+        return erased;
     }
 
     private static void extractTypeArguments(Map<Type, Type> typeMap,
