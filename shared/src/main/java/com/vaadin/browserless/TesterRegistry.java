@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import com.googlecode.gentyref.GenericTypeReflector;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
@@ -36,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vaadin.browserless.internal.UtilsKt;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.internal.ReflectTools;
 
 /**
  * Process-wide registry that resolves a Vaadin component to its
@@ -297,8 +297,16 @@ final class TesterRegistry {
             extractTypeArguments(typeMap, clazz);
             clazz = clazz.getSuperclass();
         }
-        return GenericTypeReflector.erase(
-                typeMap.get(ComponentTester.class.getTypeParameters()[0]));
+        Type componentType = typeMap
+                .get(ComponentTester.class.getTypeParameters()[0]);
+        Class<?> erased = componentType == null ? null
+                : ReflectTools.erase(componentType);
+        if (erased == null) {
+            throw new IllegalStateException(
+                    "Unable to detect the component type from "
+                            + componentType);
+        }
+        return erased;
     }
 
     private static void extractTypeArguments(Map<Type, Type> typeMap,
