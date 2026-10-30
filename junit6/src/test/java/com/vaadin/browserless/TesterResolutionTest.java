@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dialog.DialogTester;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridTester;
 
 @ComponentTesterPackages("com.vaadin.browserless")
 @ViewPackages(packages = "com.vaadin.browserless")
@@ -97,6 +99,17 @@ public class TesterResolutionTest extends BrowserlessTest {
                 TesterRegistry.detectComponentType(MyExtendedTester.class));
         Assertions.assertEquals(TestComponentForConcreteTester.class,
                 TesterRegistry.detectComponentType(NonGenericTestTester.class));
+        Assertions.assertEquals(Grid.class,
+                TesterRegistry.detectComponentType(GridTester.class));
+    }
+
+    @Test
+    void detectComponentType_rawTester_throwsIllegalStateException() {
+        IllegalStateException exception = Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> TesterRegistry.detectComponentType(RawTester.class));
+        Assertions.assertTrue(exception.getMessage()
+                .contains(RawTester.class.getName()));
     }
 
     public static class MyTest extends TestComponent {
@@ -115,6 +128,13 @@ public class TesterResolutionTest extends BrowserlessTest {
 
     static class MyExtendedTester<Y> extends MyTester<Y, MyTest> {
         public MyExtendedTester(MyTest component) {
+            super(component);
+        }
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    static class RawTester extends ComponentTester {
+        public RawTester(Component component) {
             super(component);
         }
     }
