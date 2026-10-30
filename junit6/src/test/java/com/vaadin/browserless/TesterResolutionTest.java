@@ -108,8 +108,8 @@ public class TesterResolutionTest extends BrowserlessTest {
         IllegalStateException exception = Assertions.assertThrows(
                 IllegalStateException.class,
                 () -> TesterRegistry.detectComponentType(RawTester.class));
-        Assertions.assertTrue(exception.getMessage()
-                .contains(RawTester.class.getName()));
+        Assertions.assertTrue(
+                exception.getMessage().contains(RawTester.class.getName()));
     }
 
     public static class MyTest extends TestComponent {
