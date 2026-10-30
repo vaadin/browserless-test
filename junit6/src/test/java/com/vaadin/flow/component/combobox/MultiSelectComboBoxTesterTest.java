@@ -53,6 +53,12 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItem("test-foo"));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.combo).selectItem((String[]) null));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItems("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).deselectItems("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).deselectAll());
     }
 
     @Test
@@ -71,6 +77,12 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItem("test-foo"));
         Assertions.assertThrows(IllegalStateException.class,
                 () -> test(view.combo).selectItem((String[]) null));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).selectItems("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).deselectItems("test-foo"));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> test(view.combo).deselectAll());
     }
 
     @Test
@@ -118,32 +130,97 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
-    void selectItem_valueChangesLookLikeUserInteraction() {
+    void selectItems_addsToSelection() {
+        test(view.combo).selectItems("test-foo");
+
+        Assertions.assertEquals(Set.of(view.items.get(0)),
+                test(view.combo).getSelected());
+
+        test(view.combo).selectItems("test-bar");
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected());
+
+        test(view.combo).selectItems("test-foo");
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected(),
+                "Selecting an already selected item should keep it selected");
+    }
+
+    @Test
+    void deselectItems_removesOnlyGivenItems() {
+        view.combo.setValue(Set.copyOf(view.items));
+
+        test(view.combo).setFilter("bar");
+        test(view.combo).deselectItems("test-foo");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                test(view.combo).getSelected(),
+                "An item hidden by the filter should still be deselectable");
+    }
+
+    @Test
+    void deselectAll_emptiesSelectionWithoutClearButton() {
+        view.combo.setValue(Set.copyOf(view.items));
+        view.combo.setClearButtonVisible(false);
+
+        test(view.combo).deselectAll();
+
+        Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
+    }
+
+    @Test
+    void selectItemsAndDeselectItems_unmatchedLabel_throws() {
+        view.combo.setValue(Set.of(view.items.get(0)));
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItems("test-bar", "test-baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).deselectItems("test-foo", "test-baz"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItems((String[]) null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).deselectItems((String[]) null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).deselectItems("test-bar"),
+                "An item that is not selected cannot be deselected");
+        test(view.combo).setFilter("bar");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItems("test-foo"),
+                "An item hidden by the filter cannot be selected");
+
+        Assertions.assertEquals(Set.of(view.items.get(0)),
+                test(view.combo).getSelected(),
+                "A failed call should leave the selection unchanged");
+    }
+
+    @Test
+    void selectionChangesLookLikeUserInteraction() {
         List<Boolean> fromClient = new ArrayList<>();
         view.combo.addValueChangeListener(
                 ev -> fromClient.add(ev.isFromClient()));
 
         test(view.combo).selectItem("test-foo");
-        test(view.combo).selectItem("test-bar");
-        test(view.combo).selectItem(null);
+        test(view.combo).selectItems("test-bar");
+        test(view.combo).deselectItems("test-foo");
+        test(view.combo).deselectAll();
 
-        Assertions.assertEquals(3, fromClient.size(),
+        Assertions.assertEquals(4, fromClient.size(),
                 "Every interaction should fire a value change event");
         Assertions.assertFalse(fromClient.contains(false),
                 "Tester driven value changes should report isFromClient() == true");
     }
 
     @Test
-    void selectItem_selectionModelStaysInSyncWithValue() {
-        test(view.combo).selectItem("test-bar");
+    void selectItems_selectionModelStaysInSyncWithValue() {
+        test(view.combo).selectItems("test-bar");
 
         Assertions.assertEquals(Set.of(view.items.get(1)),
                 view.combo.getSelectedItems());
         Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
         Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
     }
-
-    // As with ComboBox, emptying without a clear button is selectItem(null).
 
     @Override
     public HasValue<?, ?> fieldUnderTest() {
