@@ -66,6 +66,12 @@ CI (`.github/workflows/validation.yml`) runs `spotless:check`, then
 surefire reports. Commenting `/format` on a pull request runs `spotless:apply`
 and pushes the result.
 
+`.github/workflows/code-review.yml` reviews pull requests against `main` with
+the shared `vaadin/github-actions/code-review` action when they are opened or
+marked ready for review, skipping drafts, `chore:` pull requests and forks.
+Commenting `/code-review` or requesting a review from `vaadin-review-bot`
+triggers a review on demand.
+
 ## Code style
 
 Formatting is applied by `mvn spotless:apply` and validated by

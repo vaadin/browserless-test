@@ -49,6 +49,12 @@ One practical note: run `mvn spotless:apply` before committing, and if the
 `Format Check` job fails anyway, comment `/format` on the pull request and the
 formatting is applied and pushed for you.
 
+Pull requests against `main` are reviewed automatically by Claude when they are
+opened or marked ready for review; drafts, `chore:` pull requests and pull
+requests from forks are skipped. To request a review explicitly — again after
+new commits, or on a draft or fork pull request — comment `/code-review` on the
+pull request or request a review from `vaadin-review-bot`.
+
 ## Javadoc `@since` tags
 
 Individual pull requests should **not** add `@since` tags to new public API.

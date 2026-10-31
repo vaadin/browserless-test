@@ -31,7 +31,9 @@ jobs:
     # repository. The pre-filter allows CONTRIBUTOR because on pull_request
     # events the author_association of a private org member is reported as
     # CONTRIBUTOR; the permission API call in the job is what actually
-    # confirms access.
+    # confirms access. An auto trigger is also skipped while vaadin-review-bot
+    # is a requested reviewer: a PR opened with the bot preselected fires
+    # review_requested as well, and that run already reviews it.
     if: |
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
@@ -45,6 +47,7 @@ jobs:
        !github.event.pull_request.head.repo.fork &&
        contains(fromJSON('["opened", "ready_for_review"]'), github.event.action) &&
        github.event.pull_request.draft == false &&
+       !contains(github.event.pull_request.requested_reviewers.*.login, 'vaadin-review-bot') &&
        !contains(fromJSON('["dependabot[bot]", "vaadin-bot"]'), github.event.pull_request.user.login) &&
        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.pull_request.author_association) &&
        !startsWith(github.event.pull_request.title, 'chore:') &&
