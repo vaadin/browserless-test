@@ -185,47 +185,11 @@ jobs:
 
   validation-status:
     name: Validation Status
-    permissions:
-      actions: write
-      issues: read
-      pull-requests: write
     if: ${{ always() && !github.event.pull_request.head.repo.fork }}
     needs: [format-check, build, unit-tests]
     runs-on: ubuntu-26.04
 
     steps:
-      - name: Minimize format-apply comments
-        if: always() && needs.format-check.result == 'success' && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-            // Minimize format-apply comments and mark them as outdated
-            const applyMarker = '<!-- format-apply-comment -->';
-            const outdatedMarker = '<!-- format-apply-comment-outdated -->';
-            const applyComments = comments.filter(c => c.body.includes(applyMarker));
-            for (const comment of applyComments) {
-              await github.graphql(`
-                mutation($id: ID!) {
-                  minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
-                    minimizedComment { isMinimized }
-                  }
-                }
-              `, { id: comment.node_id });
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: comment.id,
-                body: comment.body.replace(applyMarker, outdatedMarker)
-              });
-              console.log(`Minimized format-apply comment ${comment.id} as outdated.`);
-            }
-
       - name: Check all jobs status
         run: |
           echo "format-check: ${{ needs.format-check.result }}"

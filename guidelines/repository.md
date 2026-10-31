@@ -65,8 +65,7 @@ CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
 changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
 `mvn test`, and publishes the surefire reports. `formatter-suggestions.yml`
 posts the formatting changes as review suggestions on the pull request, also
-for forks. Commenting `/format` on a pull request runs `spotless:apply` and
-pushes the result.
+for forks.
 
 ## Code style
 

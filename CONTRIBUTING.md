@@ -47,8 +47,7 @@ uses. The full rules are in the Commit & PR Hygiene section of
 
 One practical note: run `mvn spotless:apply` before committing. If the
 `Format Check` job fails anyway, the formatting changes are posted as review
-suggestions you can commit from the pull request page, or comment `/format` on
-the pull request and the formatting is applied and pushed for you.
+suggestions you can commit from the pull request page.
 
 ## Javadoc `@since` tags
 
