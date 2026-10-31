@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
@@ -118,6 +120,9 @@ class SideNavTesterTest extends BrowserlessTest {
 
     @Test
     void clickItem_byText_parentWithoutPath_expandsAndCollapse() {
+        AtomicInteger clicks = new AtomicInteger();
+        view.adminSection.getElement().addEventListener("click",
+                event -> clicks.incrementAndGet());
         Assertions.assertFalse(view.adminSection.isExpanded(),
                 "Expected SideNavItem to be collapsed by default");
         sideNav_.clickItem("Admin");
@@ -126,6 +131,7 @@ class SideNavTesterTest extends BrowserlessTest {
         sideNav_.clickItem("Admin");
         Assertions.assertFalse(view.adminSection.isExpanded(),
                 "Expected SideNav to be collapsed again after second click");
+        Assertions.assertEquals(2, clicks.get());
     }
 
     @Test
@@ -138,11 +144,13 @@ class SideNavTesterTest extends BrowserlessTest {
         assertNavigatedToTargetViewWithParam("N/A");
     }
 
-    @Test
-    void clickItem_preventDefault_listenerRunsWithoutNavigation() {
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void clickItem_preventDefault_listenerRunsWithoutNavigation(
+            boolean routerIgnore) {
         AtomicInteger clicks = new AtomicInteger();
         SideNavItem logout = new SideNavItem("Log Out", "sidenav-target/out");
-        logout.setRouterIgnore(true);
+        logout.setRouterIgnore(routerIgnore);
         logout.getElement()
                 .addEventListener("click", event -> clicks.incrementAndGet())
                 .preventDefault();
