@@ -15,13 +15,19 @@
  */
 package com.vaadin.flow.component.sidenav;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.flow.component.HasElement;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -114,6 +120,9 @@ class SideNavTesterTest extends BrowserlessTest {
 
     @Test
     void clickItem_byText_parentWithoutPath_expandsAndCollapse() {
+        AtomicInteger clicks = new AtomicInteger();
+        view.adminSection.getElement().addEventListener("click",
+                event -> clicks.incrementAndGet());
         Assertions.assertFalse(view.adminSection.isExpanded(),
                 "Expected SideNavItem to be collapsed by default");
         sideNav_.clickItem("Admin");
@@ -122,6 +131,49 @@ class SideNavTesterTest extends BrowserlessTest {
         sideNav_.clickItem("Admin");
         Assertions.assertFalse(view.adminSection.isExpanded(),
                 "Expected SideNav to be collapsed again after second click");
+        Assertions.assertEquals(2, clicks.get());
+    }
+
+    @Test
+    void clickItem_withClickListener_listenerRunsAndNavigationHappens() {
+        AtomicInteger clicks = new AtomicInteger();
+        view.sideNav.getItems().get(0).getElement().addEventListener("click",
+                event -> clicks.incrementAndGet());
+        sideNav_.clickItem("Messages");
+        Assertions.assertEquals(1, clicks.get());
+        assertNavigatedToTargetViewWithParam("N/A");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void clickItem_preventDefault_listenerRunsWithoutNavigation(
+            boolean routerIgnore) {
+        AtomicInteger clicks = new AtomicInteger();
+        SideNavItem logout = new SideNavItem("Log Out", "sidenav-target/out");
+        logout.setRouterIgnore(routerIgnore);
+        logout.getElement()
+                .addEventListener("click", event -> clicks.incrementAndGet())
+                .preventDefault();
+        view.sideNav.addItem(logout);
+
+        sideNav_.clickItem("Log Out");
+
+        Assertions.assertEquals(1, clicks.get());
+        assertNoNavigation();
+        Assertions.assertNull(getExternalNavigationURL());
+    }
+
+    @Test
+    void clickItem_routerIgnore_navigatesOutsideRouter() {
+        SideNavItem item = new SideNavItem("Outside", "sidenav-target/out");
+        item.setRouterIgnore(true);
+        view.sideNav.addItem(item);
+
+        sideNav_.clickItem("Outside");
+
+        assertNoNavigation();
+        Assertions.assertEquals("sidenav-target/out",
+                getExternalNavigationURL());
     }
 
     @Test
@@ -320,6 +372,11 @@ class SideNavTesterTest extends BrowserlessTest {
         HasElement currentView = getCurrentView();
         Assertions.assertSame(view, currentView,
                 "Expecting click on SideNav item without path to stay on current view");
+    }
+
+    private static String getExternalNavigationURL() {
+        return ((MockPage) UI.getCurrent().getPage())
+                .getLastExternalNavigationURL();
     }
 
     private void navigateToSideNavView() {
