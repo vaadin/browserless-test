@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.jsoup.Jsoup;
 
@@ -28,6 +29,7 @@ import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -213,12 +215,18 @@ public final class ElementConditions {
      * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the text,
      * or</li>
      * <li>some {@code <label for="componentId">} element elsewhere in the UI
-     * has that text as its (recursive) content.</li>
+     * has that text as its (recursive) content, or</li>
+     * <li>the component has no {@code label} property of its own and is wrapped
+     * in a {@link FormLayout.FormItem} whose {@code label} slot has that text
+     * as its (recursive) content.</li>
      * </ul>
      *
      * The second form covers the HTML pattern where a separate
      * {@link com.vaadin.flow.component.html.NativeLabel} (or any
      * {@code <label>} element) targets an input via the {@code for} attribute.
+     * The third form covers fields added with
+     * {@link FormLayout#addFormItem(Component, String)}, where the label the
+     * user sees is rendered by the form item rather than by the field.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -236,8 +244,9 @@ public final class ElementConditions {
     /**
      * Checks if the component's label contains the given text. The label is
      * read in the same way as {@link #hasLabel(String)} (component's
-     * {@code label} property or a referring {@code <label for="...">} element).
-     * Comparison is case-sensitive.
+     * {@code label} property, a referring {@code <label for="...">} element or
+     * the label of an enclosing {@link FormLayout.FormItem}). Comparison is
+     * case-sensitive.
      *
      * @param text
      *            substring to find in the label, not {@literal null}
@@ -259,9 +268,29 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
+        if ((own == null || own.isEmpty())
+                && matches(formItemLabelText(component), expected, substring)) {
+            return true;
+        }
         return component.getId()
                 .map(id -> referringLabelText(component.getUI().get(), id))
                 .filter(text -> matches(text, expected, substring)).isPresent();
+    }
+
+    private static String formItemLabelText(Component component) {
+        Element element = component.getElement();
+        // Components in the form item's label slot are the label, not the
+        // labelled field.
+        if ("label".equals(element.getAttribute("slot"))) {
+            return null;
+        }
+        return component.getParent()
+                .filter(FormLayout.FormItem.class::isInstance)
+                .map(item -> item.getElement().getChildren().filter(
+                        child -> "label".equals(child.getAttribute("slot")))
+                        .map(Element::getTextRecursively)
+                        .collect(Collectors.joining()))
+                .filter(text -> !text.isEmpty()).orElse(null);
     }
 
     private static boolean matches(String actual, String expected,

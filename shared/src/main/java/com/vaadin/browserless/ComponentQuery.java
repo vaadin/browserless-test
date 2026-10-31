@@ -349,7 +349,9 @@ public class ComponentQuery<T extends Component> {
     /**
      * Requires the component's {@code label} property to be exactly the given
      * value. Use this for form fields (TextField, ComboBox, etc.) where the end
-     * user identifies a field by its label.
+     * user identifies a field by its label. A component labelled by a referring
+     * {@code <label for>} element, or by the label of an enclosing form item,
+     * also matches; see {@link ElementConditions#hasLabel(String)}.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -364,7 +366,8 @@ public class ComponentQuery<T extends Component> {
 
     /**
      * Requires the component's {@code label} property to contain the given
-     * text.
+     * text. The label is resolved in the same way as in
+     * {@link #withLabel(String)}.
      *
      * @param text
      *            substring to find in the label, not {@literal null}
