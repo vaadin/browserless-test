@@ -52,8 +52,9 @@ formatting is applied and pushed for you.
 Pull requests against `main` are reviewed automatically by Claude when they are
 opened or marked ready for review; drafts, `chore:` pull requests and pull
 requests from forks are skipped. To request a review explicitly — again after
-new commits, or on a draft or fork pull request — comment `/code-review` on the
-pull request or request a review from `vaadin-review-bot`.
+new commits, or on a draft pull request — comment `/code-review` on the pull
+request or request a review from `vaadin-review-bot`. On a pull request from a
+fork, only the `/code-review` comment works.
 
 ## Javadoc `@since` tags
 
