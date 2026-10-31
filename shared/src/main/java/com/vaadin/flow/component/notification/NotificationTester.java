@@ -46,7 +46,8 @@ public class NotificationTester<T extends Notification>
      *
      * This is the text set with {@link Notification#setText(String)}, or, when
      * the notification shows components instead, the text content of those
-     * components.
+     * components. Text from nested elements is concatenated without space
+     * separators, so it can differ from the rendered layout.
      *
      * If the notification is not displayed an IllegalStateException will be
      * thrown as the end user would not be able to see the contents.
