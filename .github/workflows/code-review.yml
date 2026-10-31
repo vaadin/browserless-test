@@ -28,9 +28,9 @@ jobs:
     # and known bots. Pull request events from forks are skipped, since they
     # get no secrets and a read-only token; a fork pull request can still be
     # reviewed with a "/code-review" comment, which runs in the context of this
-    # repository. The pre-filter allows CONTRIBUTOR because on pull_request
-    # events the author_association of a private org member is reported as
-    # CONTRIBUTOR; the permission API call in the job is what actually
+    # repository. The pre-filter allows CONTRIBUTOR because the
+    # author_association of a private org member is reported as CONTRIBUTOR;
+    # the permission API call in the job is what actually
     # confirms access. The opened trigger is also skipped when vaadin-review-bot
     # is already a requested reviewer: a PR opened with the bot preselected
     # fires review_requested as well, and that run already reviews it.
@@ -38,7 +38,7 @@ jobs:
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        github.event.comment.body == '/code-review' &&
-       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'pull_request' &&
        !github.event.pull_request.head.repo.fork &&
        github.event.action == 'review_requested' &&
