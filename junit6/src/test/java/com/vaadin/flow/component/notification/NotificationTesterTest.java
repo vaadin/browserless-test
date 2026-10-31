@@ -21,6 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.html.ListItem;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -164,6 +167,19 @@ class NotificationTesterTest extends BrowserlessTest {
         roundTrip();
 
         Assertions.assertEquals(notificationText, test(notification).getText());
+    }
+
+    @Test
+    void getText_notificationWithComponents_textOfComponentsReturned() {
+        UnorderedList errors = new UnorderedList(new ListItem("First error"),
+                new ListItem("Second error"));
+        Notification notification = new Notification(new Span("Errors: "),
+                errors);
+        notification.open();
+        roundTrip();
+
+        Assertions.assertEquals("Errors: First errorSecond error",
+                test(notification).getText());
     }
 
     @Test
