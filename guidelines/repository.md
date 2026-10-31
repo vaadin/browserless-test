@@ -61,10 +61,12 @@ The `locator-processor` module has to be installed before `shared` compiles,
 which `mvn install` at the root handles. When you build `shared` alone, include
 `-am` so the processor is built too.
 
-CI (`.github/workflows/validation.yml`) runs `spotless:check`, then
-`mvn clean install -DskipTests -Djavadocs`, then `mvn test`, and publishes the
-surefire reports. Commenting `/format` on a pull request runs `spotless:apply`
-and pushes the result.
+CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
+changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
+`mvn test`, and publishes the surefire reports. `formatter-suggestions.yml`
+posts the formatting changes as review suggestions on the pull request, also
+for forks. Commenting `/format` on a pull request runs `spotless:apply` and
+pushes the result.
 
 ## Code style
 
