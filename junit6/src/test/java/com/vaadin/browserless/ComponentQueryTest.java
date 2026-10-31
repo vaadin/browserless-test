@@ -34,6 +34,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
@@ -927,6 +928,26 @@ class ComponentQueryTest extends BrowserlessTest {
                 find(TestComponent.class).withLabel("Native").single());
         Assertions.assertTrue(
                 find(TestComponent.class).withLabel("Missing").all().isEmpty());
+    }
+
+    @Test
+    void withLabel_fieldInFormItem_matchesFormItemLabel() {
+        FormLayout form = new FormLayout();
+        TextField number = new TextField();
+        form.addFormItem(number, "Number");
+        // The field's own label wins over the form item's label.
+        TextField ownLabel = new TextField("Street");
+        form.addFormItem(ownLabel, "Address");
+        UI.getCurrent().add(form);
+
+        Assertions.assertSame(number,
+                find(Component.class).withLabel("Number").single());
+        Assertions.assertSame(number,
+                find(Component.class).withLabelContaining("umb").single());
+        Assertions.assertSame(ownLabel,
+                find(Component.class).withLabel("Street").single());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Address").all().isEmpty());
     }
 
     @Test
