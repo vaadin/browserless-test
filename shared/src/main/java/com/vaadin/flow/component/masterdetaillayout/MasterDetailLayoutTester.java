@@ -124,6 +124,7 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
         ensureComponentIsUsable();
         ensureDetailShown("press Escape in the detail area");
         fireDomEvent("detail-escape-press");
+        roundTrip();
     }
 
     /**
@@ -147,6 +148,7 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
         ensureComponentIsUsable();
         ensureDetailShown("click the backdrop");
         fireDomEvent("backdrop-click");
+        roundTrip();
     }
 
     private void ensureDetailShown(String action) {
