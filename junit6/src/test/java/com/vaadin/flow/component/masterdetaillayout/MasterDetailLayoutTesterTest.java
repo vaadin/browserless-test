@@ -15,13 +15,20 @@
  */
 package com.vaadin.flow.component.masterdetaillayout;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.RouteConfiguration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -147,5 +154,89 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
         view.layout.setVisible(false);
         assertThrows(IllegalStateException.class,
                 test(view.layout)::isDetailPlaceholderVisible);
+    }
+
+    @Test
+    void pressEscapeOnDetail_detailSet_firesClientEvent() {
+        List<ComponentEvent<?>> events = new ArrayList<>();
+        view.layout.addDetailEscapePressListener(events::add);
+        view.layout.setDetail(view.detail);
+
+        test(view.layout).pressEscapeOnDetail();
+
+        assertEquals(1, events.size(), "One escape press event expected");
+        assertTrue(events.get(0).isFromClient(),
+                "Escape press should be reported as a user action");
+    }
+
+    @Test
+    void clickBackdrop_detailSet_firesClientEvent() {
+        List<ComponentEvent<?>> events = new ArrayList<>();
+        view.layout.addBackdropClickListener(events::add);
+        view.layout.setForceOverlay(true);
+        view.layout.setDetail(view.detail);
+
+        test(view.layout).clickBackdrop();
+
+        assertEquals(1, events.size(), "One backdrop click event expected");
+        assertTrue(events.get(0).isFromClient(),
+                "Backdrop click should be reported as a user action");
+    }
+
+    @Test
+    void dismissDetail_listenerFocusesMaster_focusMovesWithinAction() {
+        // A typical listener closes the detail and returns focus to the master
+        TextField search = new TextField();
+        TextField filter = new TextField();
+        view.layout.setMaster(new Div(search, filter));
+        List<String> focused = new ArrayList<>();
+        search.addFocusListener(e -> focused.add("search"));
+        filter.addFocusListener(e -> focused.add("filter"));
+        view.layout.addDetailEscapePressListener(e -> {
+            view.layout.setDetail(null);
+            search.focus();
+        });
+        view.layout.addBackdropClickListener(e -> {
+            view.layout.setDetail(null);
+            filter.focus();
+        });
+
+        view.layout.setDetail(view.detail);
+        test(view.layout).pressEscapeOnDetail();
+        assertEquals(List.of("search"), focused,
+                "Focus requested by the escape listener should move before the action returns");
+
+        view.layout.setDetail(view.detail);
+        test(view.layout).clickBackdrop();
+        assertEquals(List.of("search", "filter"), focused,
+                "Focus requested by the backdrop listener should move before the action returns");
+    }
+
+    @Test
+    void dismissDetail_noDetailSet_throws() {
+        List<ComponentEvent<?>> events = new ArrayList<>();
+        view.layout.addDetailEscapePressListener(events::add);
+        view.layout.addBackdropClickListener(events::add);
+
+        assertThrows(IllegalStateException.class,
+                test(view.layout)::pressEscapeOnDetail);
+        assertThrows(IllegalStateException.class,
+                test(view.layout)::clickBackdrop);
+        assertTrue(events.isEmpty(), "No event should reach the application");
+    }
+
+    @Test
+    void dismissDetail_layoutNotUsable_throws() {
+        List<ComponentEvent<?>> events = new ArrayList<>();
+        view.layout.addDetailEscapePressListener(events::add);
+        view.layout.addBackdropClickListener(events::add);
+        view.layout.setDetail(view.detail);
+        view.layout.setVisible(false);
+
+        assertThrows(IllegalStateException.class,
+                test(view.layout)::pressEscapeOnDetail);
+        assertThrows(IllegalStateException.class,
+                test(view.layout)::clickBackdrop);
+        assertTrue(events.isEmpty(), "No event should reach the application");
     }
 }

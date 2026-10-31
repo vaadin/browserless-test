@@ -27,6 +27,8 @@ import com.vaadin.flow.component.Component;
  * Provides access to the state of the layout as a user would observe it: the
  * component shown in the master area, the component shown in the detail area,
  * and the detail placeholder that is displayed when no detail content is set.
+ * It also simulates the ways a user dismisses the detail: pressing Escape in
+ * the detail area and clicking the backdrop of the overlay.
  *
  * @param <T>
  *            component type
@@ -106,5 +108,53 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
         ensureVisible();
         return getComponent().getDetail() == null
                 && getComponent().getDetailPlaceholder() != null;
+    }
+
+    /**
+     * Simulates the user pressing Escape while focus is in the detail area.
+     * This fires a {@link MasterDetailLayout.DetailEscapePressEvent} as coming
+     * from the client. The layout itself does not close the detail; that is up
+     * to the application's listener.
+     *
+     * @throws IllegalStateException
+     *             if the layout is not usable, or if no detail content is set
+     *             so there is no detail area to press Escape in
+     */
+    public void pressEscapeOnDetail() {
+        ensureComponentIsUsable();
+        ensureDetailShown("press Escape in the detail area");
+        fireDomEvent("detail-escape-press");
+        roundTrip();
+    }
+
+    /**
+     * Simulates the user clicking the backdrop that covers the master area
+     * while the detail is shown as an overlay. This fires a
+     * {@link MasterDetailLayout.BackdropClickEvent} as coming from the client.
+     * The layout itself does not close the detail; that is up to the
+     * application's listener.
+     * <p>
+     * Whether the detail is shown as an overlay depends on the space available
+     * in the browser, which is not known on the server. This method therefore
+     * only requires detail content to be set, and leaves it to the test to put
+     * the layout in a state where the detail would be an overlay, for example
+     * with {@link MasterDetailLayout#setForceOverlay(boolean)}.
+     *
+     * @throws IllegalStateException
+     *             if the layout is not usable, or if no detail content is set
+     *             so there is no backdrop to click
+     */
+    public void clickBackdrop() {
+        ensureComponentIsUsable();
+        ensureDetailShown("click the backdrop");
+        fireDomEvent("backdrop-click");
+        roundTrip();
+    }
+
+    private void ensureDetailShown(String action) {
+        if (getComponent().getDetail() == null) {
+            throw new IllegalStateException(
+                    "No detail content is set, so the user cannot " + action);
+        }
     }
 }
