@@ -67,6 +67,14 @@ changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
 posts the formatting changes as review suggestions on the pull request, also
 for forks.
 
+`.github/workflows/code-review.yml` reviews pull requests against `main` with
+the shared `vaadin/github-actions/code-review` action when they are opened or
+marked ready for review, skipping drafts, `chore:` pull requests and forks.
+Commenting `/code-review` or requesting a review from `vaadin-review-bot`
+triggers a review on demand; on fork pull requests and pull requests against
+maintenance branches only the comment does.
+Every trigger needs write access to the repository from whoever caused it.
+
 ## Code style
 
 Formatting is applied by `mvn spotless:apply` and validated by
