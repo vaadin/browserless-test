@@ -167,6 +167,8 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
         assertEquals(1, events.size(), "One escape press event expected");
         assertTrue(events.get(0).isFromClient(),
                 "Escape press should be reported as a user action");
+        assertSame(view.detail, test(view.layout).getDetail(),
+                "Closing the detail is left to the application");
     }
 
     @Test
@@ -181,6 +183,8 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
         assertEquals(1, events.size(), "One backdrop click event expected");
         assertTrue(events.get(0).isFromClient(),
                 "Backdrop click should be reported as a user action");
+        assertSame(view.detail, test(view.layout).getDetail(),
+                "Closing the detail is left to the application");
     }
 
     @Test
@@ -210,6 +214,23 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
         test(view.layout).clickBackdrop();
         assertEquals(List.of("search", "filter"), focused,
                 "Focus requested by the backdrop listener should move before the action returns");
+    }
+
+    @Test
+    void clickBackdrop_fieldInDetailFocused_blursField() {
+        TextField name = new TextField();
+        List<String> events = new ArrayList<>();
+        name.addBlurListener(e -> events.add("blur"));
+        view.layout.addBackdropClickListener(e -> events.add("backdrop-click"));
+        view.layout.setDetail(name);
+        test(name).focus();
+
+        test(view.layout).clickBackdrop();
+
+        assertEquals(List.of("blur", "backdrop-click"), events,
+                "The click should blur the detail field before it is handled");
+        assertFalse(test(name).isFocused(),
+                "Nothing should be focused after clicking the backdrop");
     }
 
     @Test

@@ -131,8 +131,9 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
      * Simulates the user clicking the backdrop that covers the master area
      * while the detail is shown as an overlay. This fires a
      * {@link MasterDetailLayout.BackdropClickEvent} as coming from the client.
-     * The layout itself does not close the detail; that is up to the
-     * application's listener.
+     * Like any click on something that cannot take focus, it blurs the
+     * component that had focus. The layout itself does not close the detail;
+     * that is up to the application's listener.
      * <p>
      * Whether the detail is shown as an overlay depends on the space available
      * in the browser, which is not known on the server. This method therefore
@@ -147,6 +148,9 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
     public void clickBackdrop() {
         ensureComponentIsUsable();
         ensureDetailShown("click the backdrop");
+        // The backdrop cannot take focus, so the click blurs whatever was
+        // focused, typically a field in the detail
+        moveFocusAsUser();
         fireDomEvent("backdrop-click");
         roundTrip();
     }
