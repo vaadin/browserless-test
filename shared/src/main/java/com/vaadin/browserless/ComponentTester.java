@@ -330,14 +330,18 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
-     * Moves keyboard focus to the wrapped component the way a user interaction
-     * with it does, for example a click. Fires a blur event on the previously
-     * focused component and, if the wrapped component is a {@link Focusable}, a
-     * focus event on it, as if they came from the client. Interacting with a
-     * component that cannot take focus leaves nothing focused, as in a browser.
+     * Applies the focus change caused by a user interacting with the wrapped
+     * component, for testers that simulate a click or similar pointer action on
+     * it.
      * <p>
-     * Focus changes the application requests in its listeners are picked up on
-     * the next {@link #roundTrip()}.
+     * Unlike {@link #focus()}, which simulates the user deliberately focusing a
+     * {@link Focusable} component and refuses anything else, this accepts any
+     * component: a {@link Focusable} one gets focus, while for one that cannot
+     * take focus the previously focused component is blurred and nothing is
+     * focused, as when clicking a non-focusable element in a browser. Blur and
+     * focus events are fired as if they came from the client. Focus changes the
+     * application requests in its listeners are picked up on the next
+     * {@link #roundTrip()}, so that a tester can fire its own event in between.
      *
      * @throws IllegalStateException
      *             if the component is not attached to a UI
