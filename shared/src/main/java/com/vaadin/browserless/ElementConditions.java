@@ -30,6 +30,7 @@ import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -286,8 +287,7 @@ public final class ElementConditions {
         }
         return component.getParent()
                 .filter(FormLayout.FormItem.class::isInstance)
-                .map(item -> item.getElement().getChildren().filter(
-                        child -> "label".equals(child.getAttribute("slot")))
+                .map(item -> SlotUtils.getElementsInSlot(item, "label")
                         .map(Element::getTextRecursively)
                         .collect(Collectors.joining()))
                 .filter(text -> !text.isEmpty()).orElse(null);
