@@ -183,6 +183,15 @@ class NotificationTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void getText_notificationWithoutTextOrComponents_emptyStringReturned() {
+        Notification notification = new Notification();
+        notification.open();
+        roundTrip();
+
+        Assertions.assertEquals("", test(notification).getText());
+    }
+
+    @Test
     void getText_notOpenedNotification_throws() {
         Notification notification = new Notification("Some text");
 
