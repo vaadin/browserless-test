@@ -52,7 +52,8 @@ public class NotificationTester<T extends Notification>
      * If the notification is not displayed an IllegalStateException will be
      * thrown as the end user would not be able to see the contents.
      *
-     * @return the text of the notification
+     * @return the text of the notification, or an empty string if it shows
+     *         neither text nor text content; never {@code null}
      * @throws IllegalStateException
      *             is notification is not displayed
      */
