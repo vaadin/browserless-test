@@ -55,8 +55,8 @@ drafts, `chore:` pull requests, pull requests from forks and those opened by
 `dependabot[bot]` or `vaadin-bot` are skipped. To request a review explicitly —
 again after new commits, or on a draft pull request — comment `/code-review` on
 the pull request or request a review from `vaadin-review-bot`. This also
-requires write access, and on a pull request from a fork only the
-`/code-review` comment works.
+requires write access. On a pull request from a fork or against a maintenance
+branch such as `25.3`, only the `/code-review` comment works.
 
 ## Javadoc `@since` tags
 

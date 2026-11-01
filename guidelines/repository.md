@@ -70,7 +70,8 @@ and pushes the result.
 the shared `vaadin/github-actions/code-review` action when they are opened or
 marked ready for review, skipping drafts, `chore:` pull requests and forks.
 Commenting `/code-review` or requesting a review from `vaadin-review-bot`
-triggers a review on demand; on fork pull requests only the comment does.
+triggers a review on demand; on fork pull requests and pull requests against
+maintenance branches only the comment does.
 Every trigger needs write access to the repository from whoever caused it.
 
 ## Code style
