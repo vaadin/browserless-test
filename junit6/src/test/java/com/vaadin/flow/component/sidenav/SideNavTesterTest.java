@@ -15,6 +15,8 @@
  */
 package com.vaadin.flow.component.sidenav;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +30,7 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.dom.DomListenerRegistration;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -174,6 +177,71 @@ class SideNavTesterTest extends BrowserlessTest {
         assertNoNavigation();
         Assertions.assertEquals("sidenav-target/out",
                 getExternalNavigationURL());
+    }
+
+    @Test
+    void clickItem_preventDefaultRemovedByListener_navigationStillPrevented() {
+        SideNavItem item = new SideNavItem("Once", "sidenav-target/once");
+        DomListenerRegistration[] registration = new DomListenerRegistration[1];
+        registration[0] = item.getElement()
+                .addEventListener("click", event -> registration[0].remove())
+                .preventDefault();
+        view.sideNav.addItem(item);
+
+        sideNav_.clickItem("Once");
+
+        assertNoNavigation();
+    }
+
+    @Test
+    void clickItem_filteredListeners_evaluatedForLeftClick() {
+        List<String> runs = new ArrayList<>();
+        SideNavItem item = view.sideNav.getItems().get(0);
+        item.getElement().addEventListener("click", event -> runs.add("left"))
+                .setFilter("event.button === 0 && !event.ctrlKey");
+        item.getElement().addEventListener("click", event -> runs.add("right"))
+                .setFilter("event.button === 2");
+        // Prevents only a ctrl-click, which a left click is not
+        item.getElement().addEventListener("click", event -> runs.add("ctrl"))
+                .setFilter("event.ctrlKey").preventDefault();
+        item.getElement().addEventListener("click",
+                event -> runs.add(
+                        "button " + event.getEventData().get("event.button")))
+                .addEventData("event.button");
+
+        sideNav_.clickItem("Messages");
+
+        Assertions.assertEquals(List.of("button 0", "left"),
+                runs.stream().sorted().toList());
+        assertNavigatedToTargetViewWithParam("N/A");
+    }
+
+    @Test
+    void clickItem_absoluteUrl_navigatesOutsideRouter() {
+        SideNavItem item = new SideNavItem("Docs");
+        item.setUnsafePath("https://vaadin.com/docs");
+        view.sideNav.addItem(item);
+
+        sideNav_.clickItem("Docs");
+
+        assertNoNavigation();
+        Assertions.assertEquals("https://vaadin.com/docs",
+                getExternalNavigationURL());
+    }
+
+    @Test
+    void clickItem_openInNewBrowserTab_opensWindowWithoutNavigation() {
+        SideNavItem item = new SideNavItem("New Tab", "sidenav-target/tab");
+        item.setOpenInNewBrowserTab(true);
+        view.sideNav.addItem(item);
+
+        sideNav_.clickItem("New Tab");
+
+        assertNoNavigation();
+        Assertions.assertNull(getExternalNavigationURL());
+        Assertions.assertEquals(List.of("sidenav-target/tab"),
+                ((MockPage) UI.getCurrent().getPage()).getOpenedWindows()
+                        .get("_blank"));
     }
 
     @Test

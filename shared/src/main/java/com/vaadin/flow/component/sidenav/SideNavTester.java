@@ -16,19 +16,30 @@
 package com.vaadin.flow.component.sidenav;
 
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.browserless.internal.ClientDomEvent;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.dom.DomEvent;
-import com.vaadin.flow.internal.JacksonUtils;
-import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
 
 /**
  * @since 1.0
  */
 @Tests(SideNav.class)
 public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
+
+    // The native event properties of a plain left click, matching the data
+    // Clickable.click() sends
+    private static final Map<String, Object> LEFT_CLICK = Map.of("button", 0,
+            "detail", 0, "screenX", 0, "screenY", 0, "clientX", 0, "clientY", 0,
+            "ctrlKey", false, "shiftKey", false, "altKey", false, "metaKey",
+            false);
+
+    // An absolute URL with a scheme, or a protocol-relative one
+    private static final Pattern EXTERNAL_URL = Pattern
+            .compile("[a-zA-Z][a-zA-Z0-9+.-]*:|//");
 
     /**
      * Wrap given component for testing.
@@ -52,11 +63,14 @@ public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
      * {@link #expandAndClickItem(String, String...)} to expand intermediate
      * node and click on the desired item.
      * <p>
-     * The click is fired as a DOM {@code click} event on the item, so its click
-     * listeners run. Then, as in the browser, an item without a path is
-     * expanded or collapsed, and an item with a path navigates there unless a
-     * click listener prevents the default action. A router-ignored item
-     * navigates outside the router, recorded as an external navigation.
+     * The click is fired as a DOM {@code click} event with the left button on
+     * the item, so its click listeners run. Then, as in the browser, an item
+     * without a path is expanded or collapsed, and an item with a path
+     * navigates there unless a click listener prevents the default action. A
+     * router-ignored item, or one whose path is an absolute URL, navigates
+     * outside the router, recorded as an external navigation. An item with a
+     * target other than {@code _self}, such as one that opens in a new browser
+     * tab, opens its path in that window and leaves the current view as it is.
      *
      * <pre>
      * {@code
@@ -101,11 +115,14 @@ public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
      * meaning that hidden items are ignored. For the same reason, items inside
      * collapsed nodes cannot be clicked and an exception is thrown.
      * <p>
-     * The click is fired as a DOM {@code click} event on the item, so its click
-     * listeners run. Then, as in the browser, an item without a path is
-     * expanded or collapsed, and an item with a path navigates there unless a
-     * click listener prevents the default action. A router-ignored item
-     * navigates outside the router, recorded as an external navigation.
+     * The click is fired as a DOM {@code click} event with the left button on
+     * the item, so its click listeners run. Then, as in the browser, an item
+     * without a path is expanded or collapsed, and an item with a path
+     * navigates there unless a click listener prevents the default action. A
+     * router-ignored item, or one whose path is an absolute URL, navigates
+     * outside the router, recorded as an external navigation. An item with a
+     * target other than {@code _self}, such as one that opens in a new browser
+     * tab, opens its path in that window and leaves the current view as it is.
      *
      * <pre>
      * {@code
@@ -238,27 +255,34 @@ public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
         ensureComponentIsUsable();
         SideNavItem navItem = findSideNavItemByPath(expandNodes, topLevelLabel,
                 nestedItemLabels);
-        // The browser fires the click event on the item before the router
-        // link handler sees it. The router skips the link when a listener
-        // prevented the default action, and leaves a router-ignored item to
-        // the browser, which then loads the path as a new page.
-        fireDomEvent(new DomEvent(navItem.getElement(), "click",
-                JacksonUtils.createObjectNode()));
-        if (navItem.getPath() == null) {
+        // The browser dispatches the click to the item's listeners before
+        // the router link handler sees it, so whether a listener prevented
+        // the default action is settled at click time, before any listener
+        // runs on the server.
+        ClientDomEvent click = ClientDomEvent.dispatch(navItem.getElement(),
+                "click", LEFT_CLICK);
+        click.fire();
+        String path = navItem.getPath();
+        if (path == null) {
             navItem.setExpanded(!navItem.isExpanded());
-        } else if (!isClickDefaultPrevented(navItem)) {
-            if (navItem.isRouterIgnore()) {
-                UI.getCurrent().getPage().setLocation(navItem.getPath());
-            } else {
-                UI.getCurrent().navigate(navItem.getPath());
-            }
+        } else if (!click.isDefaultPrevented()) {
+            followLink(path, navItem.getTarget(), navItem.isRouterIgnore());
         }
     }
 
-    private static boolean isClickDefaultPrevented(SideNavItem navItem) {
-        return navItem.getElement().getNode()
-                .getFeature(ElementListenerMap.class).getExpressions("click")
-                .contains("event.preventDefault()");
+    // Follows an item link like the browser and the router link handler do:
+    // the router handles only a link to its own pages that opens in the
+    // current window. Anything else is left to the browser.
+    private static void followLink(String path, String target,
+            boolean routerIgnore) {
+        UI ui = UI.getCurrent();
+        if (target != null && !target.isEmpty() && !"_self".equals(target)) {
+            ui.getPage().open(path, target);
+        } else if (routerIgnore || EXTERNAL_URL.matcher(path).lookingAt()) {
+            ui.getPage().setLocation(path);
+        } else {
+            ui.navigate(path);
+        }
     }
 
     private SideNavItem findSideNavItemByPath(boolean expandNodes,
