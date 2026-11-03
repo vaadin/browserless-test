@@ -27,6 +27,7 @@ import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
+import com.vaadin.flow.shared.JsonConstants;
 
 /**
  * A DOM event as the browser dispatches it to the Flow client.
@@ -43,7 +44,10 @@ import com.vaadin.flow.internal.nodefeature.ElementListenerMap;
  * Only the subset of JavaScript that such expressions use is supported:
  * property reads and the {@code preventDefault()} and {@code stopPropagation()}
  * calls on {@code event}, literals, {@code !}, {@code &&}, {@code ||},
- * comparisons and parentheses.
+ * comparisons and parentheses. An expression outside that subset is left out of
+ * the event data, as if it were undefined, unless it calls
+ * {@code preventDefault()}: then the outcome of the event cannot be known and
+ * dispatching fails.
  * <p>
  * For internal use only.
  */
@@ -80,7 +84,8 @@ public final class ClientDomEvent {
      *            {@link String}
      * @return the dispatched event
      * @throws IllegalStateException
-     *             if a registered expression uses JavaScript that cannot be
+     *             if a registered expression that calls
+     *             {@code preventDefault()} uses JavaScript that cannot be
      *             evaluated without a browser
      */
     public static ClientDomEvent dispatch(Element element, String type,
@@ -91,8 +96,13 @@ public final class ClientDomEvent {
                 eventProperties);
         for (String expression : element.getNode()
                 .getFeature(ElementListenerMap.class).getExpressions(type)) {
-            event.putEventData(expression,
-                    new Parser(event, expression).parse());
+            // Property synchronization and event target mapping are resolved
+            // by the client itself, they are not simulated
+            if (!expression.startsWith(JsonConstants.SYNCHRONIZE_PROPERTY_TOKEN)
+                    && !expression.startsWith(
+                            JsonConstants.MAP_STATE_NODE_EVENT_DATA)) {
+                event.evaluate(expression);
+            }
         }
         return event;
     }
@@ -114,6 +124,27 @@ public final class ClientDomEvent {
     public void fire() {
         element.getNode().getFeature(ElementListenerMap.class)
                 .fireEvent(new DomEvent(element, type, eventData));
+    }
+
+    private void evaluate(String expression) {
+        Object value;
+        try {
+            value = new Parser(this, expression).parse();
+        } catch (UnsupportedExpressionException e) {
+            if (expression.contains("preventDefault")) {
+                // Whether the default action is prevented cannot be known
+                throw new IllegalStateException("Cannot evaluate the"
+                        + " expression '" + expression + "' of a DOM event"
+                        + " listener without a browser. Only property reads"
+                        + " and preventDefault() or stopPropagation() calls"
+                        + " on 'event', literals, '!', '&&', '||',"
+                        + " comparisons and parentheses are supported.");
+            }
+            // Event data that needs a browser to compute is left out, as an
+            // undefined value would be
+            return;
+        }
+        putEventData(expression, value);
     }
 
     private void putEventData(String expression, Object value) {
@@ -150,12 +181,16 @@ public final class ClientDomEvent {
         return value instanceof Number number ? number.doubleValue() : value;
     }
 
-    private static IllegalStateException unsupported(String expression) {
-        return new IllegalStateException("Cannot evaluate the expression '"
-                + expression + "' of a DOM event listener without a browser."
-                + " Only property reads and preventDefault() or"
-                + " stopPropagation() calls on 'event', literals, '!', '&&',"
-                + " '||', comparisons and parentheses are supported.");
+    private static UnsupportedExpressionException unsupported(
+            String expression) {
+        return new UnsupportedExpressionException(expression);
+    }
+
+    private static final class UnsupportedExpressionException
+            extends RuntimeException {
+        private UnsupportedExpressionException(String expression) {
+            super(expression, null, false, false);
+        }
     }
 
     /**

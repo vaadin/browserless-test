@@ -37,9 +37,10 @@ public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
             "ctrlKey", false, "shiftKey", false, "altKey", false, "metaKey",
             false);
 
-    // An absolute URL with a scheme, or a protocol-relative one
+    // An absolute URL, i.e. one with a scheme. SideNavItem strips the leading
+    // slashes of a path, so a protocol-relative URL cannot occur.
     private static final Pattern EXTERNAL_URL = Pattern
-            .compile("[a-zA-Z][a-zA-Z0-9+.-]*:|//");
+            .compile("[a-zA-Z][a-zA-Z0-9+.-]*:");
 
     /**
      * Wrap given component for testing.

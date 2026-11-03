@@ -216,17 +216,28 @@ class SideNavTesterTest extends BrowserlessTest {
         assertNavigatedToTargetViewWithParam("N/A");
     }
 
-    @Test
-    void clickItem_absoluteUrl_navigatesOutsideRouter() {
+    @ParameterizedTest
+    @ValueSource(strings = { "https://vaadin.com/docs",
+            "mailto:info@vaadin.com" })
+    void clickItem_absoluteUrl_navigatesOutsideRouter(String url) {
         SideNavItem item = new SideNavItem("Docs");
-        item.setUnsafePath("https://vaadin.com/docs");
+        item.setUnsafePath(url);
         view.sideNav.addItem(item);
 
         sideNav_.clickItem("Docs");
 
         assertNoNavigation();
-        Assertions.assertEquals("https://vaadin.com/docs",
-                getExternalNavigationURL());
+        Assertions.assertEquals(url, getExternalNavigationURL());
+    }
+
+    @Test
+    void clickItem_targetSelf_navigatesThroughRouter() {
+        view.sideNav.getItems().get(0).setTarget("_self");
+
+        sideNav_.clickItem("Messages");
+
+        assertNavigatedToTargetViewWithParam("N/A");
+        Assertions.assertNull(getExternalNavigationURL());
     }
 
     @Test
