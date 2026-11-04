@@ -232,7 +232,7 @@ public final class SearchSpec<T extends Component> {
     @Override
     public String toString() {
         List<String> list = new ArrayList<>();
-        list.add(UtilsKt.isBlank(clazz.getSimpleName()) ? clazz.getName()
+        list.add(Utils.isBlank(clazz.getSimpleName()) ? clazz.getName()
                 : clazz.getSimpleName());
         if (id != null) {
             list.add("id='" + id + "'");
@@ -249,16 +249,16 @@ public final class SearchSpec<T extends Component> {
         if (text != null) {
             list.add("text='" + text + "'");
         }
-        if (!UtilsKt.isBlank(classes)) {
+        if (!Utils.isBlank(classes)) {
             list.add("classes='" + classes + "'");
         }
-        if (!UtilsKt.isBlank(withoutClasses)) {
+        if (!Utils.isBlank(withoutClasses)) {
             list.add("withoutClasses='" + withoutClasses + "'");
         }
-        if (!UtilsKt.isBlank(themes)) {
+        if (!Utils.isBlank(themes)) {
             list.add("themes='" + themes + "'");
         }
-        if (!UtilsKt.isBlank(withoutThemes)) {
+        if (!Utils.isBlank(withoutThemes)) {
             list.add("withoutThemes='" + withoutThemes + "'");
         }
         if (value != null) {
@@ -296,7 +296,7 @@ public final class SearchSpec<T extends Component> {
         List<Function1<Component, Boolean>> p = new ArrayList<>();
         p.add(component -> clazz.isInstance(component));
         if (id != null) {
-            p.add(component -> Objects.equals(BasicUtilsKt.getId_(component),
+            p.add(component -> Objects.equals(BasicUtils.getId_(component),
                     id));
         }
         if (testId != null) {
@@ -304,26 +304,26 @@ public final class SearchSpec<T extends Component> {
         }
         if (caption != null) {
             p.add(component -> Objects
-                    .equals(ComponentUtilsKt.getCaption(component), caption));
+                    .equals(ComponentUtils.getCaption(component), caption));
         }
         if (placeholder != null) {
             p.add(component -> Objects.equals(
-                    ComponentUtilsKt.getPlaceholder(component), placeholder));
+                    ComponentUtils.getPlaceholder(component), placeholder));
         }
-        if (!UtilsKt.isBlank(classes)) {
-            p.add(component -> LocatorKt.hasAllClasses(component,
+        if (!Utils.isBlank(classes)) {
+            p.add(component -> Locator.hasAllClasses(component,
                     Objects.requireNonNull(classes)));
         }
-        if (!UtilsKt.isBlank(withoutClasses)) {
-            p.add(component -> LocatorKt.doesntHaveAnyClasses(component,
+        if (!Utils.isBlank(withoutClasses)) {
+            p.add(component -> Locator.doesntHaveAnyClasses(component,
                     Objects.requireNonNull(withoutClasses)));
         }
-        if (!UtilsKt.isBlank(themes)) {
-            p.add(component -> LocatorKt.hasAllThemes(component,
+        if (!Utils.isBlank(themes)) {
+            p.add(component -> Locator.hasAllThemes(component,
                     Objects.requireNonNull(themes)));
         }
-        if (!UtilsKt.isBlank(withoutThemes)) {
-            p.add(component -> LocatorKt.notContainsThemes(component,
+        if (!Utils.isBlank(withoutThemes)) {
+            p.add(component -> Locator.notContainsThemes(component,
                     Objects.requireNonNull(withoutThemes)));
         }
         if (text != null) {

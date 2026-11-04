@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference
 import com.vaadin.flow.router.NavigationTrigger
 import com.vaadin.flow.router.QueryParameters
 import com.vaadin.flow.router.Location
-import com.vaadin.browserless.internal.ComponentUtilsKt.simulateClosedEvent
+import com.vaadin.browserless.internal.ComponentUtils.simulateClosedEvent
 import java.lang.reflect.InvocationTargetException
 
 

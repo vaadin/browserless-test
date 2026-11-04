@@ -17,7 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.function.BooleanSupplier;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 
 /**
  * Detects whether Spring Security is present on the classpath.
@@ -34,7 +34,7 @@ final class SpringSecuritySupport {
 
     private static final String SECURITY_CONTEXT_HOLDER_CLASS = "org.springframework.security.core.context.SecurityContextHolder";
 
-    private static final BooleanSupplier DEFAULT_DETECTOR = () -> UtilsKt
+    private static final BooleanSupplier DEFAULT_DETECTOR = () -> Utils
             .findClass(SECURITY_CONTEXT_HOLDER_CLASS) != null;
 
     private static volatile BooleanSupplier detector = DEFAULT_DETECTOR;

@@ -15,28 +15,23 @@
  */
 package com.vaadin.browserless.internal;
 
-import com.vaadin.flow.component.Component;
-
 /**
- * Functions for walking the component tree.
+ * Forwards to {@link DepthFirstTreeIterator}, for code compiled against the
+ * former Kotlin file facade of the same name.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link DepthFirstTreeIterator} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class DepthFirstTreeIteratorKt {
 
     private DepthFirstTreeIteratorKt() {
     }
 
-    /**
-     * Walks the component child tree, depth-first: first the component, then
-     * its descendants, then its next sibling.
-     *
-     * @param component
-     *            the root component.
-     * @return the iterable over the component and all of its descendants.
-     */
-    public static Iterable<Component> walk(Component component) {
-        return () -> new DepthFirstTreeIterator<Component>(component,
-                c -> c.getChildren().toList());
+    public static java.lang.Iterable<com.vaadin.flow.component.Component> walk(
+            com.vaadin.flow.component.Component p0) {
+        return DepthFirstTreeIterator.walk(p0);
     }
 }

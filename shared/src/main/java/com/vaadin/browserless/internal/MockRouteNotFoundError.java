@@ -88,7 +88,7 @@ public class MockRouteNotFoundError extends RouteNotFoundError {
 
     private static String toPrettyString(RouteData routeData) {
         String template = routeData.getTemplate();
-        String path = UtilsKt.isBlank(template) ? "<root>" : "/" + template;
+        String path = Utils.isBlank(template) ? "<root>" : "/" + template;
         return routeData.getNavigationTarget().getSimpleName() + " at '" + path
                 + "'";
     }

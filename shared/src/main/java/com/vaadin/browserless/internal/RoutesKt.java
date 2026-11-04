@@ -15,43 +15,23 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.lang.reflect.Field;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.vaadin.flow.server.startup.ApplicationRouteRegistry;
-
 /**
- * Utilities for the route registry.
+ * Forwards to {@link Routes}, for code compiled against the former Kotlin file
+ * facade of the same name.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link Routes} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class RoutesKt {
 
     private RoutesKt() {
     }
 
-    /**
-     * Clears the PWA class config from the given registry.
-     *
-     * @param registry
-     *            the registry.
-     */
-    @SuppressWarnings("unchecked")
-    public static void clearPwaClass(ApplicationRouteRegistry registry) {
-        AtomicReference<Class<?>> ref;
-        try {
-            Field pwaClassField = ApplicationRouteRegistry.class
-                    .getDeclaredField("pwaConfigurationClass");
-            pwaClassField.setAccessible(true);
-            ref = (AtomicReference<Class<?>>) pwaClassField.get(registry);
-        } catch (ReflectiveOperationException e) {
-            throw UtilsKt.sneakyThrow(e);
-        }
-        ref.set(null);
-        if (registry.getPwaConfigurationClass() != null) {
-            throw new AssertionError(
-                    "PWA configuration class should have been removed");
-        }
+    public static void clearPwaClass(
+            com.vaadin.flow.server.startup.ApplicationRouteRegistry p0) {
+        Routes.clearPwaClass(p0);
     }
-
 }

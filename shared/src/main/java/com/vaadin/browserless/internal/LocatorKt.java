@@ -15,483 +15,101 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
-
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
-import kotlin.ranges.IntRange;
-
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasStyle;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.router.InternalServerError;
-import com.vaadin.flow.router.Location;
-
 /**
- * Functions for looking up components in the component tree.
+ * Forwards to {@link Locator}, for code compiled against the former Kotlin file
+ * facade of the same name.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link Locator} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class LocatorKt {
 
     private LocatorKt() {
     }
 
-    /**
-     * Returns the non-null, non-blank strings of given iterable.
-     *
-     * @param strings
-     *            the strings to filter, not null.
-     * @return the non-null, non-blank strings.
-     */
-    public static List<String> filterNotBlank(Iterable<String> strings) {
-        List<String> result = new ArrayList<>();
-        for (String s : strings) {
-            if (!UtilsKt.isBlank(s)) {
-                result.add(s);
-            }
-        }
-        return result;
+    public static java.util.List<java.lang.String> filterNotBlank(
+            java.lang.Iterable<java.lang.String> p0) {
+        return Locator.filterNotBlank(p0);
     }
 
-    private static List<String> splitBySpace(String s) {
-        return filterNotBlank(Arrays.asList(s.split(" ", -1)));
+    public static <T extends com.vaadin.flow.component.Component> T _get(
+            com.vaadin.flow.component.Component p0, java.lang.Class<T> p1,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p2) {
+        return Locator._get(p0, p1, p2);
     }
 
-    static boolean hasAllClasses(Component component, String classes) {
-        if (classes.contains(" ")) {
-            return splitBySpace(classes).stream()
-                    .allMatch(it -> hasAllClasses(component, it));
-        }
-        if (!(component instanceof HasStyle hasStyle)) {
-            return false;
-        }
-        return hasStyle.getClassNames().contains(classes);
+    public static <T extends com.vaadin.flow.component.Component> T _get(
+            java.lang.Class<T> p0,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p1) {
+        return Locator._get(p0, p1);
     }
 
-    static boolean doesntHaveAnyClasses(Component component, String classes) {
-        if (classes.contains(" ")) {
-            return splitBySpace(classes).stream()
-                    .allMatch(it -> !hasAllClasses(component, it));
-        }
-        if (!(component instanceof HasStyle hasStyle)) {
-            return true;
-        }
-        return !hasStyle.getClassNames().contains(classes);
+    public static <T extends com.vaadin.flow.component.Component> java.util.List<T> _find(
+            com.vaadin.flow.component.Component p0, java.lang.Class<T> p1,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p2) {
+        return Locator._find(p0, p1, p2);
     }
 
-    static boolean hasAllThemes(Component component, String themes) {
-        return splitBySpace(themes).stream().allMatch(
-                it -> component.getElement().getThemeList().contains(it));
+    public static <T extends com.vaadin.flow.component.Component> java.util.List<T> _find(
+            java.lang.Class<T> p0,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p1) {
+        return Locator._find(p0, p1);
     }
 
-    static boolean notContainsThemes(Component component, String themes) {
-        return splitBySpace(themes).stream().allMatch(
-                it -> !component.getElement().getThemeList().contains(it));
+    public static java.lang.Iterable<com.vaadin.flow.component.Component> _walkAll(
+            com.vaadin.flow.component.Component p0) {
+        return Locator._walkAll(p0);
     }
 
-    /**
-     * Finds a VISIBLE component of given {@code clazz} which matches given
-     * {@code block}. This component and all of its descendants are searched.
-     *
-     * @param receiver
-     *            the component to search in.
-     * @param clazz
-     *            the component must be of this class.
-     * @param block
-     *            the search specification
-     * @return the only matching component, never null.
-     * @throws AssertionError
-     *             if no component matched, or if more than one component
-     *             matches.
-     */
-    public static <T extends Component> T _get(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
-        List<T> result = _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(1, 1));
-            block.invoke(spec);
-            if (!spec.getCount().equals(new IntRange(1, 1))) {
-                throw new IllegalStateException(
-                        "You're calling _get which is supposed to return exactly 1 component, yet you tried to specify the count of "
-                                + spec.getCount());
-            }
-            return Unit.INSTANCE;
-        });
-        return clazz.cast(single(result));
+    public static <T extends com.vaadin.flow.component.Component> void _expectNone(
+            com.vaadin.flow.component.Component p0, java.lang.Class<T> p1,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p2) {
+        Locator._expectNone(p0, p1, p2);
     }
 
-    /**
-     * Finds a VISIBLE component in the current UI of given {@code clazz} which
-     * matches given {@code block}. The current UI and all of its descendants
-     * are searched.
-     *
-     * @param clazz
-     *            the component must be of this class.
-     * @param block
-     *            the search specification
-     * @return the only matching component, never null.
-     * @throws AssertionError
-     *             if no component matched, or if more than one component
-     *             matches.
-     */
-    public static <T extends Component> T _get(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        return _get(UtilsKt.getCurrentUI(), clazz, block);
-    }
-
-    /**
-     * Finds a list of VISIBLE components of given {@code clazz} which matches
-     * {@code block}. This component and all of its descendants are searched.
-     *
-     * @param receiver
-     *            the component to search in.
-     * @param clazz
-     *            the component must be of this class.
-     * @param block
-     *            the search specification
-     * @return the list of matching components, may be empty.
-     * @throws AssertionError
-     *             if the number of matching components is not within the
-     *             expected count.
-     */
-    public static <T extends Component> List<T> _find(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
-        SearchSpec<T> spec = new SearchSpec<>(clazz);
-        block.invoke(spec);
-        List<Component> result = find(receiver, spec.toPredicate());
-        IntRange count = spec.getCount();
-        if (!count.contains(result.size())) {
-            String path = getCurrentPath();
-            String loc = path != null ? path : "?";
-
-            String message;
-            if (result.isEmpty()) {
-                message = "/" + loc + ": No visible " + clazz.getSimpleName();
-            } else if (result.size() < count.getFirst()) {
-                message = "/" + loc + ": Too few (" + result.size()
-                        + ") visible " + clazz.getSimpleName() + "s";
-            } else {
-                message = "/" + loc + ": Too many visible "
-                        + clazz.getSimpleName() + "s (" + result.size() + ")";
-            }
-            message = message + " in "
-                    + PrettyPrintTreeKt.toPrettyString(receiver) + " matching "
-                    + spec + ": ["
-                    + result.stream().map(PrettyPrintTreeKt::toPrettyString)
-                            .collect(Collectors.joining(", "))
-                    + "]. Component tree:\n"
-                    + PrettyPrintTreeKt.toPrettyTree(receiver);
-
-            // if there's a PolymerTemplate, warn that Browserless Testing
-            // can't really locate components in there:
-            // https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#polymer-templates
-            // fixes https://github.com/mvysny/karibu-testing/issues/35
-            boolean hasPolymerTemplates = false;
-            if (UtilsKt.hasPolymerTemplates()) {
-                for (Component c : _walkAll(receiver)) {
-                    if (ComponentUtilsKt.isPolymerTemplate(c)) {
-                        hasPolymerTemplates = true;
-                        break;
-                    }
-                }
-            }
-            if (hasPolymerTemplates) {
-                message = message
-                        + "\nWarning: Browserless Testing is not able to look up components from inside of PolymerTemplate. Please see https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#polymer-templates for more details.";
-            }
-
-            // find() used to fail with IllegalArgumentException which makes
-            // sense for a general-purpose utility method. However, since
-            // find() is used in tests overwhelmingly, not finding the correct
-            // set of components is generally treated as an assertion error.
-            throw new AssertionError(message);
-        }
-        List<T> filtered = new ArrayList<>();
-        for (Component c : result) {
-            if (clazz.isInstance(c)) {
-                filtered.add(clazz.cast(c));
-            }
-        }
-        return filtered;
-    }
-
-    /**
-     * Finds a list of VISIBLE components of given {@code clazz} which matches
-     * {@code block}. The {@link UI#getCurrent()} and all of its descendants are
-     * searched.
-     *
-     * @param clazz
-     *            the component must be of this class.
-     * @param block
-     *            the search specification
-     * @return the list of matching components, may be empty.
-     */
-    public static <T extends Component> List<T> _find(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        return _find(UtilsKt.getCurrentUI(), clazz, block);
-    }
-
-    private static List<Component> find(Component receiver,
-            Function1<Component, Boolean> predicate) {
-        TestingLifecycleHookKt.getTestingLifecycleHook().awaitBeforeLookup();
-        List<Component> descendants = new ArrayList<>();
-        _walkAll(receiver).forEach(descendants::add);
-        TestingLifecycleHookKt.getTestingLifecycleHook().awaitAfterLookup();
-        InternalServerError error = firstInternalServerError(descendants);
-        if (error != null) {
-            throw new AssertionError(
-                    "An internal server error occurred; please check log for the actual stack-trace. Error text: "
-                            + BasicUtilsKt.getErrorMessage(error) + "\n"
-                            + PrettyPrintTreeKt
-                                    .toPrettyTree(UtilsKt.getCurrentUI()));
-        }
-        List<Component> result = new ArrayList<>();
-        for (Component c : descendants) {
-            if (BasicUtilsKt.isEffectivelyVisible(c) && predicate.invoke(c)) {
-                result.add(c);
-            }
-        }
-        return result;
-    }
-
-    private static InternalServerError firstInternalServerError(
-            List<Component> components) {
-        for (Component c : components) {
-            if (c instanceof InternalServerError error) {
-                return error;
-            }
-        }
-        return null;
-    }
-
-    private static <T> T single(List<T> list) {
-        if (list.isEmpty()) {
-            throw new NoSuchElementException("List is empty.");
-        }
-        if (list.size() > 1) {
-            throw new IllegalArgumentException(
-                    "List has more than one element.");
-        }
-        return list.get(0);
-    }
-
-    /**
-     * Walks the component child/descendant tree, depth-first: first the
-     * component, then its descendants, then its next sibling.
-     *
-     * @param receiver
-     *            the root component.
-     * @return the iterable over the component and all of its descendants.
-     */
-    public static Iterable<Component> _walkAll(Component receiver) {
-        return () -> new DepthFirstTreeIterator<Component>(receiver,
-                component -> TestingLifecycleHookKt.getTestingLifecycleHook()
-                        .getAllChildren(component));
-    }
-
-    /**
-     * Expects that there are no VISIBLE components of given {@code clazz} which
-     * matches {@code block}. This component and all of its descendants are
-     * searched.
-     *
-     * @param receiver
-     *            the component to search in.
-     * @param clazz
-     *            the component class.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if one or more components matched.
-     */
-    public static <T extends Component> void _expectNone(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
-        List<T> result = _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(0, 0));
-            block.invoke(spec);
-            if (!spec.getCount().equals(new IntRange(0, 0))) {
-                throw new IllegalStateException(
-                        "You're calling _expectNone which expects 0 component, yet you tried to specify the count of "
-                                + spec.getCount());
-            }
-            return Unit.INSTANCE;
-        });
-        // safety check that _find works as expected
-        if (!result.isEmpty()) {
-            throw new IllegalStateException("Check failed.");
-        }
-    }
-
-    /**
-     * Expects that there are no dialogs shown.
-     */
     public static void _expectNoDialogs() {
-        _expectNone(Dialog.class, spec -> Unit.INSTANCE);
+        Locator._expectNoDialogs();
     }
 
-    /**
-     * Expects that there are no VISIBLE components in the current UI of given
-     * {@code clazz} which matches {@code block}. The current UI and all of its
-     * descendants are searched.
-     *
-     * @param clazz
-     *            the component class.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if one or more components matched.
-     */
-    public static <T extends Component> void _expectNone(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        _expectNone(UtilsKt.getCurrentUI(), clazz, block);
+    public static <T extends com.vaadin.flow.component.Component> void _expectNone(
+            java.lang.Class<T> p0,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p1) {
+        Locator._expectNone(p0, p1);
     }
 
-    /**
-     * Expects that there is exactly one VISIBLE components of given
-     * {@code clazz} which matches {@code block}. This component and all of its
-     * descendants are searched.
-     *
-     * @param receiver
-     *            the component to search in.
-     * @param clazz
-     *            the component class.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if none, or more than one components matched.
-     */
-    public static <T extends Component> void _expectOne(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
-        // technically _expectOne is the same as _get, but the semantics differ
-        // - with _get() we're "just" doing a lookup (and asserting on the
-        // component later). _expectOne() explicitly declares in the test
-        // sources that we want to check that there is exactly one such
-        // component.
-        _get(receiver, clazz, block);
+    public static <T extends com.vaadin.flow.component.Component> void _expectOne(
+            com.vaadin.flow.component.Component p0, java.lang.Class<T> p1,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p2) {
+        Locator._expectOne(p0, p1, p2);
     }
 
-    /**
-     * Expects that there is exactly one VISIBLE components in the current UI of
-     * given {@code clazz} which matches {@code block}. The current UI and all
-     * of its descendants are searched.
-     *
-     * @param clazz
-     *            the component class.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if none, or more than one components matched.
-     */
-    public static <T extends Component> void _expectOne(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        _expectOne(UtilsKt.getCurrentUI(), clazz, block);
+    public static <T extends com.vaadin.flow.component.Component> void _expectOne(
+            java.lang.Class<T> p0,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p1) {
+        Locator._expectOne(p0, p1);
     }
 
-    /**
-     * Expects that there are exactly {@code count} VISIBLE components of given
-     * {@code clazz} match {@code block}. This component and all of its
-     * descendants are searched.
-     * <p>
-     * Special cases: for asserting one component use {@code _expectOne}. For
-     * asserting no components use {@code _expectNone}.
-     *
-     * @param receiver
-     *            the component to search in.
-     * @param clazz
-     *            the component class.
-     * @param count
-     *            the expected number of matching components.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if incorrect count of component matched.
-     */
-    public static <T extends Component> void _expect(Component receiver,
-            Class<T> clazz, int count,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        // technically _expect is the same as _find, but the semantics differ -
-        // with _find() we're "just" doing a lookup (and asserting on the
-        // components later). _expect() explicitly declares in the test sources
-        // that we want to check that there are exactly x components that match
-        // given spec.
-        _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(count, count));
-            block.invoke(spec);
-            return Unit.INSTANCE;
-        });
+    public static <T extends com.vaadin.flow.component.Component> void _expect(
+            com.vaadin.flow.component.Component p0, java.lang.Class<T> p1,
+            int p2,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p3) {
+        Locator._expect(p0, p1, p2, p3);
     }
 
-    /**
-     * Expects that there are exactly {@code count} VISIBLE components in the
-     * current UI with given {@code clazz} match {@code block}. The current UI
-     * and all of its descendants are searched.
-     * <p>
-     * Special cases: for asserting one component use {@code _expectOne}. For
-     * asserting no components use {@code _expectNone}. They provide a better
-     * error message in case of a failure, and also communicate your intent as a
-     * test writer better in the test code.
-     *
-     * @param clazz
-     *            the component class.
-     * @param count
-     *            the expected number of matching components.
-     * @param block
-     *            the search specification
-     * @throws AssertionError
-     *             if incorrect count of component matched.
-     */
-    public static <T extends Component> void _expect(Class<T> clazz, int count,
-            Function1<? super SearchSpec<T>, Unit> block) {
-        _expect(UtilsKt.getCurrentUI(), clazz, count, block);
+    public static <T extends com.vaadin.flow.component.Component> void _expect(
+            java.lang.Class<T> p0, int p1,
+            kotlin.jvm.functions.Function1<? super com.vaadin.browserless.internal.SearchSpec<T>, kotlin.Unit> p2) {
+        Locator._expect(p0, p1, p2);
     }
 
-    /**
-     * Asserts that the {@link InternalServerError} page is currently being
-     * shown, optionally with given {@code expectedErrorMessage}.
-     *
-     * @param expectedErrorMessage
-     *            the text the error message must contain; an empty string
-     *            matches any message.
-     */
-    public static void _expectInternalServerError(String expectedErrorMessage) {
-        TestingLifecycleHookKt.getTestingLifecycleHook().awaitBeforeLookup();
-        List<Component> descendants = new ArrayList<>();
-        _walkAll(UtilsKt.getCurrentUI()).forEach(descendants::add);
-        TestingLifecycleHookKt.getTestingLifecycleHook().awaitAfterLookup();
-        InternalServerError error = firstInternalServerError(descendants);
-        if (error == null) {
-            throw new AssertionError(
-                    "Expected an internal server error but none happened. Component tree:\n"
-                            + PrettyPrintTreeKt
-                                    .toPrettyTree(UtilsKt.getCurrentUI()));
-        }
-        String errorMessage = BasicUtilsKt.getErrorMessage(error);
-        if (!errorMessage.contains(expectedErrorMessage)) {
-            throw new AssertionError(
-                    "Expected InternalServerError with message '"
-                            + expectedErrorMessage + "' but was '"
-                            + errorMessage + "'. Component tree:\n"
-                            + PrettyPrintTreeKt
-                                    .toPrettyTree(UtilsKt.getCurrentUI()));
-        }
+    public static void _expectInternalServerError(java.lang.String p0) {
+        Locator._expectInternalServerError(p0);
     }
 
-    /**
-     * Returns the browser's current path. Returns null if there is no current
-     * UI.
-     *
-     * @return the current path with query parameters, or null.
-     */
-    public static String getCurrentPath() {
-        UI ui = UI.getCurrent();
-        if (ui == null || ui.getInternals() == null) {
-            return null;
-        }
-        Location location = ui.getInternals().getActiveViewLocation();
-        return location == null ? null : location.getPathWithQueryParameters();
+    public static java.lang.String getCurrentPath() {
+        return Locator.getCurrentPath();
     }
 }

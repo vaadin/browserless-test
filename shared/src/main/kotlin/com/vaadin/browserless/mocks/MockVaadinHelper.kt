@@ -15,8 +15,8 @@
  */
 package com.vaadin.browserless.mocks
 
-import com.vaadin.browserless.internal.UtilsKt.findClass
-import com.vaadin.browserless.internal.UtilsKt.findClassOrThrow
+import com.vaadin.browserless.internal.Utils.findClass
+import com.vaadin.browserless.internal.Utils.findClassOrThrow
 import com.vaadin.flow.component.geolocation.BrowserlessGeolocationClientFactory
 import com.vaadin.flow.component.geolocation.GeolocationClientFactory
 import com.vaadin.flow.di.Lookup

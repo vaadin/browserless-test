@@ -33,7 +33,7 @@ import com.vaadin.flow.component.menubar.MenuBar;
  * If you need to hook into the testing lifecycle (e.g. you need to wait for any
  * async operations to finish), provide your own custom implementation of this
  * interface, then set it via
- * {@link TestingLifecycleHookKt#setTestingLifecycleHook(TestingLifecycleHook)}.
+ * {@link TestingLifecycleHooks#setTestingLifecycleHook(TestingLifecycleHook)}.
  *
  * <h2>Mocking server request end</h2>
  *
@@ -139,7 +139,7 @@ public interface TestingLifecycleHook {
             // MenuItems appear two times.
             return toList(component.getChildren());
         }
-        if (TestingLifecycleHookKt.isTemplate(component)) {
+        if (TestingLifecycleHooks.isTemplate(component)) {
             // don't include virtual children since those will include nested
             // components. however, those components are only they are only
             // "shallow shells" of components constructed server-side - almost

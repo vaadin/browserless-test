@@ -15,96 +15,35 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.littemplate.LitTemplate;
-
 /**
- * Holds the current {@link TestingLifecycleHook} and the dialog clean-up.
+ * Forwards to {@link TestingLifecycleHooks}, for code compiled against the
+ * former Kotlin file facade of the same name.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link TestingLifecycleHooks} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class TestingLifecycleHookKt {
-
-    private static TestingLifecycleHook testingLifecycleHook = TestingLifecycleHook.Companion
-            .getDefault();
 
     private TestingLifecycleHookKt() {
     }
 
-    /**
-     * Checks whether the given component is a Lit or Polymer template.
-     *
-     * @param component
-     *            the component.
-     * @return true if the component is a template.
-     */
-    public static boolean isTemplate(Component component) {
-        return component instanceof LitTemplate
-                || ComponentUtilsKt.isPolymerTemplate(component);
+    public static boolean isTemplate(com.vaadin.flow.component.Component p0) {
+        return TestingLifecycleHooks.isTemplate(p0);
     }
 
-    /**
-     * If you need to hook into the testing lifecycle (e.g. you need to wait for
-     * any async operations to finish), set your custom implementation via
-     * {@link #setTestingLifecycleHook(TestingLifecycleHook)}. See
-     * {@link TestingLifecycleHook} for more info on where exactly you can hook
-     * into.
-     *
-     * @return the current hook.
-     */
-    public static TestingLifecycleHook getTestingLifecycleHook() {
-        return testingLifecycleHook;
+    public static com.vaadin.browserless.internal.TestingLifecycleHook getTestingLifecycleHook() {
+        return TestingLifecycleHooks.getTestingLifecycleHook();
     }
 
-    /**
-     * Sets the testing lifecycle hook, see {@link TestingLifecycleHook}.
-     *
-     * @param testingLifecycleHook
-     *            the hook, not null.
-     */
     public static void setTestingLifecycleHook(
-            TestingLifecycleHook testingLifecycleHook) {
-        TestingLifecycleHookKt.testingLifecycleHook = testingLifecycleHook;
+            com.vaadin.browserless.internal.TestingLifecycleHook p0) {
+        TestingLifecycleHooks.setTestingLifecycleHook(p0);
     }
 
-    /**
-     * Checks whether given component is a dialog and needs to be removed from
-     * the UI. See {@link #cleanupDialogs()} for more info.
-     */
-    private static boolean isDialogAndNeedsRemoval(Component component) {
-        if (component instanceof Dialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        if (component instanceof ConfirmDialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Flow Server does not close the dialog when {@link Dialog#close()} is
-     * called; instead it tells client-side dialog to close, which then fires
-     * event back to the server that the dialog was closed, and removes itself
-     * from the DOM. Since there's no browser with browserless testing, we need
-     * to cleanup closed dialogs manually, hence this method.
-     */
     public static void cleanupDialogs() {
-        // Starting with Vaadin 23, nested dialogs are also nested within
-        // respective modal dialog within the UI. This is probably related to
-        // the "server-side modality curtain" feature. Also see
-        // https://github.com/mvysny/karibu-testing/issues/102
-        List<Component> dialogs = StreamSupport
-                .stream(DepthFirstTreeIteratorKt.walk(UI.getCurrent())
-                        .spliterator(), false)
-                .filter(TestingLifecycleHookKt::isDialogAndNeedsRemoval)
-                .collect(Collectors.toList());
-        dialogs.forEach(it -> it.getElement().removeFromParent());
+        TestingLifecycleHooks.cleanupDialogs();
     }
 }
