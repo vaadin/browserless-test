@@ -43,6 +43,7 @@ import com.vaadin.flow.component.login.LoginOverlay
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup
 import com.vaadin.flow.component.select.Select
+import com.vaadin.flow.component.shared.SlotUtils
 import com.vaadin.flow.component.sidenav.SideNav
 import com.vaadin.flow.component.sidenav.SideNavItem
 import com.vaadin.flow.component.textfield.PasswordField
@@ -54,6 +55,7 @@ import com.vaadin.flow.dom.DomEventListener
 import com.vaadin.flow.dom.DomListenerRegistration
 import com.vaadin.flow.router.Location
 import com.vaadin.browserless.component.dataProvider
+import java.util.stream.Collectors
 
 /**
  * Fires given event on the component.
@@ -295,13 +297,16 @@ var Component.placeholder: String?
     }
 
 /**
- * Concatenates texts from all elements placed in the `label` slot. This effectively
+ * Joins the (recursive) texts of all elements placed in the `label` slot with a space,
+ * collapsing runs of whitespace and trimming the result. This effectively
  * returns whatever was provided in the String label via [FormLayout.addFormItem].
  */
-val FormLayout.FormItem.label: String get() {
-    val captions: List<Component> = children.toList().filter { it.element.getAttribute("slot") == "label" }
-    return captions.joinToString("") { (it as? HasText)?.text ?: "" }
-}
+val FormLayout.FormItem.label: String get() =
+    SlotUtils.getElementsInSlot(this, "label")
+        .map { it.textRecursively }
+        .collect(Collectors.joining(" "))
+        .replace(Regex("\\s+"), " ")
+        .trim()
 
 /**
  * Determines the component's `label` (usually it's the HTML element's `label` property, but it's [Checkbox.getLabel] for checkbox).

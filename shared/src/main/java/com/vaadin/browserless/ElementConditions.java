@@ -17,20 +17,21 @@ package com.vaadin.browserless;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.jsoup.Jsoup;
 
+import com.vaadin.browserless.internal.ComponentUtilsKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasAriaLabel;
 import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasText;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -41,6 +42,13 @@ import com.vaadin.flow.dom.Element;
  * @since 1.0
  */
 public final class ElementConditions {
+
+    /**
+     * Tags of native elements that have a {@code checkValidity} method and are
+     * thus treated as fields by {@code <vaadin-form-item>}.
+     */
+    private static final Set<String> NATIVE_FORM_CONTROL_TAGS = Set.of("input",
+            "select", "textarea", "button", "fieldset", "output");
 
     private ElementConditions() {
         throw new AssertionError("Must not be instantiated");
@@ -217,9 +225,10 @@ public final class ElementConditions {
      * or</li>
      * <li>some {@code <label for="componentId">} element elsewhere in the UI
      * has that text as its (recursive) content, or</li>
-     * <li>the component has no {@code label} property of its own and is wrapped
-     * in a {@link FormLayout.FormItem} whose {@code label} slot has that text
-     * as its (recursive) content.</li>
+     * <li>the component has no name of its own (no {@code label} property,
+     * referring {@code <label>} element or {@code aria-label}) and is the field
+     * a {@link FormLayout.FormItem} labels, and the texts in the form item's
+     * {@code label} slot, joined with single spaces, equal the text.</li>
      * </ul>
      *
      * The second form covers the HTML pattern where a separate
@@ -227,7 +236,12 @@ public final class ElementConditions {
      * {@code <label>} element) targets an input via the {@code for} attribute.
      * The third form covers fields added with
      * {@link FormLayout#addFormItem(Component, String)}, where the label the
-     * user sees is rendered by the form item rather than by the field.
+     * user sees is rendered by the form item rather than by the field. As in
+     * the browser, a form item labels only the first field (a component
+     * implementing {@link HasValue} or a native form control) among its direct
+     * children; other children, such as a unit text next to the field or a
+     * layout wrapping it, are not labelled. Wrap several fields in a
+     * {@code CustomField} to label them together.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -269,28 +283,56 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
-        if ((own == null || own.isEmpty())
-                && matches(formItemLabelText(component), expected, substring)) {
+        String referring = component.getId()
+                .map(id -> referringLabelText(component.getUI().get(), id))
+                .orElse(null);
+        if (matches(referring, expected, substring)) {
             return true;
         }
-        return component.getId()
-                .map(id -> referringLabelText(component.getUI().get(), id))
-                .filter(text -> matches(text, expected, substring)).isPresent();
+        // A form item label only names a field that has no name of its own.
+        if (isNullOrEmpty(own) && isNullOrEmpty(referring)
+                && isNullOrEmpty(resolveAriaLabel(component))) {
+            return matches(formItemLabelText(component), expected, substring);
+        }
+        return false;
     }
 
+    /**
+     * Gets the label text of the form item that labels the given component.
+     * Like the {@code <vaadin-form-item>} web component, a form item labels
+     * only the first field among its direct children outside the label slot;
+     * other children, such as a unit {@code Span} next to the field or a layout
+     * wrapping it, are not labelled.
+     */
     private static String formItemLabelText(Component component) {
-        Element element = component.getElement();
-        // Components in the form item's label slot are the label, not the
-        // labelled field.
-        if ("label".equals(element.getAttribute("slot"))) {
-            return null;
-        }
         return component.getParent()
                 .filter(FormLayout.FormItem.class::isInstance)
-                .map(item -> SlotUtils.getElementsInSlot(item, "label")
-                        .map(Element::getTextRecursively)
-                        .collect(Collectors.joining()))
-                .filter(text -> !text.isEmpty()).orElse(null);
+                .map(FormLayout.FormItem.class::cast)
+                .filter(item -> item.getChildren()
+                        .filter(child -> !"label".equals(
+                                child.getElement().getAttribute("slot")))
+                        .filter(ElementConditions::isFormItemField).findFirst()
+                        .orElse(null) == component)
+                .map(ComponentUtilsKt::getLabel).filter(text -> !text.isEmpty())
+                .orElse(null);
+    }
+
+    /**
+     * Mirrors the {@code <vaadin-form-item>} field detection, which treats an
+     * element with a {@code validate} or {@code checkValidity} method as a
+     * field: Vaadin fields and native form controls.
+     */
+    private static boolean isFormItemField(Component component) {
+        if (component instanceof HasValue<?, ?>) {
+            return true;
+        }
+        Element element = component.getElement();
+        return !element.isTextNode() && NATIVE_FORM_CONTROL_TAGS
+                .contains(element.getTag().toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isNullOrEmpty(String text) {
+        return text == null || text.isEmpty();
     }
 
     private static boolean matches(String actual, String expected,

@@ -38,6 +38,7 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
+import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -948,6 +949,52 @@ class ComponentQueryTest extends BrowserlessTest {
                 find(Component.class).withLabel("Street").single());
         Assertions.assertTrue(
                 find(Component.class).withLabel("Address").all().isEmpty());
+        // A field named by aria-label or a <label for> keeps that name too.
+        TextField ariaNamed = new TextField();
+        ariaNamed.setAriaLabel("Phone");
+        form.addFormItem(ariaNamed, "Contact");
+        TextField forNamed = new TextField();
+        forNamed.setId("zip");
+        NativeLabel zipLabel = new NativeLabel("Zip");
+        zipLabel.setFor("zip");
+        form.add(zipLabel);
+        form.addFormItem(forNamed, "Postal");
+        // Label slot texts are joined with spaces.
+        TextField name = new TextField();
+        FormLayout.FormItem nameItem = form.addFormItem(name, "First");
+        SlotUtils.addToSlot(nameItem, "label", new Div("  name "));
+
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Contact").all().isEmpty());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Postal").all().isEmpty());
+        Assertions.assertSame(forNamed,
+                find(Component.class).withLabel("Zip").single());
+        Assertions.assertSame(name,
+                find(Component.class).withLabel("First name").single());
+    }
+
+    @Test
+    void withLabel_formItemWithSeveralChildren_matchesOnlyFirstField() {
+        FormLayout form = new FormLayout();
+        TextField amount = new TextField();
+        TextField second = new TextField();
+        Div unit = new Div("kg");
+        FormLayout.FormItem item = new FormLayout.FormItem(unit, amount,
+                second);
+        SlotUtils.addToSlot(item, "label", new Div("Amount"));
+        form.add(item);
+        // As in the browser, a field wrapped in a layout is not labelled.
+        TextField wrapped = new TextField();
+        form.addFormItem(new Div(wrapped), "Wrapped");
+        UI.getCurrent().add(form);
+
+        Assertions.assertSame(amount,
+                find(Component.class).withLabel("Amount").single());
+        Assertions.assertSame(amount,
+                find(Component.class).withLabelContaining("").single());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Wrapped").all().isEmpty());
     }
 
     @Test
