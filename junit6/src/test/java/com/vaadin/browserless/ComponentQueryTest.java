@@ -36,6 +36,7 @@ import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
 import com.vaadin.flow.component.shared.SlotUtils;
@@ -949,7 +950,8 @@ class ComponentQueryTest extends BrowserlessTest {
                 find(Component.class).withLabel("Street").single());
         Assertions.assertTrue(
                 find(Component.class).withLabel("Address").all().isEmpty());
-        // A field named by aria-label or a <label for> keeps that name too.
+        // A <label for> keeps naming the field; an aria-label does not hide
+        // the visible form item label.
         TextField ariaNamed = new TextField();
         ariaNamed.setAriaLabel("Phone");
         form.addFormItem(ariaNamed, "Contact");
@@ -964,8 +966,8 @@ class ComponentQueryTest extends BrowserlessTest {
         FormLayout.FormItem nameItem = form.addFormItem(name, "First");
         SlotUtils.addToSlot(nameItem, "label", new Div("  name "));
 
-        Assertions.assertTrue(
-                find(Component.class).withLabel("Contact").all().isEmpty());
+        Assertions.assertSame(ariaNamed,
+                find(Component.class).withLabel("Contact").single());
         Assertions.assertTrue(
                 find(Component.class).withLabel("Postal").all().isEmpty());
         Assertions.assertSame(forNamed,
@@ -987,12 +989,21 @@ class ComponentQueryTest extends BrowserlessTest {
         // As in the browser, a field wrapped in a layout is not labelled.
         TextField wrapped = new TextField();
         form.addFormItem(new Div(wrapped), "Wrapped");
+        // A native form control is a field too.
+        NativeButton nativeButton = new NativeButton("x");
+        TextField afterButton = new TextField();
+        FormLayout.FormItem buttonItem = new FormLayout.FormItem(nativeButton,
+                afterButton);
+        SlotUtils.addToSlot(buttonItem, "label", new Div("Native"));
+        form.add(buttonItem);
         UI.getCurrent().add(form);
 
         Assertions.assertSame(amount,
                 find(Component.class).withLabel("Amount").single());
-        Assertions.assertSame(amount,
-                find(Component.class).withLabelContaining("").single());
+        Assertions.assertSame(nativeButton,
+                find(Component.class).withLabel("Native").single());
+        Assertions.assertEquals(List.of(amount, nativeButton),
+                find(Component.class).withLabelContaining("").all());
         Assertions.assertTrue(
                 find(Component.class).withLabel("Wrapped").all().isEmpty());
     }

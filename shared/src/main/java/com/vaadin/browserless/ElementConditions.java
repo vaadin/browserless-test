@@ -225,10 +225,11 @@ public final class ElementConditions {
      * or</li>
      * <li>some {@code <label for="componentId">} element elsewhere in the UI
      * has that text as its (recursive) content, or</li>
-     * <li>the component has no name of its own (no {@code label} property,
-     * referring {@code <label>} element or {@code aria-label}) and is the field
-     * a {@link FormLayout.FormItem} labels, and the texts in the form item's
-     * {@code label} slot, joined with single spaces, equal the text.</li>
+     * <li>the component has no label of its own (neither a {@code label}
+     * property nor a referring {@code <label>} element), is the field a
+     * {@link FormLayout.FormItem} labels, and the texts in the form item's
+     * {@code label} slot, joined with spaces and whitespace-normalized, match
+     * the text.</li>
      * </ul>
      *
      * The second form covers the HTML pattern where a separate
@@ -289,9 +290,9 @@ public final class ElementConditions {
         if (matches(referring, expected, substring)) {
             return true;
         }
-        // A form item label only names a field that has no name of its own.
-        if (isNullOrEmpty(own) && isNullOrEmpty(referring)
-                && isNullOrEmpty(resolveAriaLabel(component))) {
+        // A form item label only names a field that has no visible label of
+        // its own.
+        if (isNullOrEmpty(own) && isNullOrEmpty(referring)) {
             return matches(formItemLabelText(component), expected, substring);
         }
         return false;

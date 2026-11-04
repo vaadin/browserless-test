@@ -312,7 +312,8 @@ val FormLayout.FormItem.label: String get() =
  * Determines the component's `label` (usually it's the HTML element's `label` property, but it's [Checkbox.getLabel] for checkbox).
  * Intended to be used for fields such as [TextField].
 
- * *For `FormItem`:* Concatenates texts from all elements placed in the `label` slot. This effectively
+ * *For `FormItem`:* Joins the (recursive) texts of all elements placed in the `label` slot with a space,
+ * collapsing runs of whitespace and trimming the result. This effectively
  * returns whatever was provided in the String label via [FormLayout.addFormItem].
  *
  * [Button.caption] is displayed directly on the component
