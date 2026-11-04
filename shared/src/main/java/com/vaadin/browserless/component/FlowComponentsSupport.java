@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.browserless.internal.ComponentSupport;
-import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -163,7 +163,7 @@ public class FlowComponentsSupport implements ComponentSupport {
     @Override
     public String getLabel(Component component) {
         if (component instanceof FormLayout.FormItem formItem) {
-            return ComponentUtils.getLabel(formItem);
+            return getFormItemLabel(formItem);
         } else if (component instanceof SideNav sideNav) {
             return Objects.requireNonNullElse(sideNav.getLabel(), "");
         } else if (component instanceof SideNavItem sideNavItem) {
@@ -202,6 +202,22 @@ public class FlowComponentsSupport implements ComponentSupport {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Concatenates texts from all elements placed in the {@code label} slot,
+     * which is whatever was passed as the String label to
+     * {@link FormLayout#addFormItem(Component, String)}.
+     */
+    private static String getFormItemLabel(FormLayout.FormItem formItem) {
+        return formItem.getChildren().filter(
+                it -> "label".equals(it.getElement().getAttribute("slot")))
+                .map(it -> {
+                    String text = it instanceof HasText hasText
+                            ? hasText.getText()
+                            : null;
+                    return text != null ? text : "";
+                }).collect(Collectors.joining(""));
     }
 
     private static List<Component> toList(Stream<? extends Component> stream) {

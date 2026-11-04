@@ -16,7 +16,6 @@
 package com.vaadin.browserless.internal;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import kotlin.jvm.functions.Function1;
 
@@ -29,12 +28,9 @@ import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.HasOrderedComponents;
 import com.vaadin.flow.component.HasStyle;
-import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.dom.DomListenerRegistration;
@@ -64,7 +60,7 @@ public final class ComponentUtils {
     }
 
     /**
-     * Adds {@link Button#click()} functionality to all {@link ClickNotifier}s.
+     * Adds {@code Button.click()} functionality to all {@link ClickNotifier}s.
      * This function directly calls all click listeners, thus it avoids the
      * roundtrip to client and back. It even works with browserless testing.
      *
@@ -437,36 +433,29 @@ public final class ComponentUtils {
     /**
      * Concatenates texts from all elements placed in the {@code label} slot.
      * This effectively returns whatever was provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
+     * {@code FormLayout.addFormItem(Component, String)}.
      *
      * @param formItem
      *            the form item, not null.
      * @return the label.
      */
     public static String getLabel(FormLayout.FormItem formItem) {
-        List<Component> captions = formItem.getChildren().filter(
-                it -> "label".equals(it.getElement().getAttribute("slot")))
-                .toList();
-        return captions.stream().map(it -> {
-            String text = it instanceof HasText hasText ? hasText.getText()
-                    : null;
-            return text != null ? text : "";
-        }).collect(Collectors.joining(""));
+        return ComponentSupports.getLabel(formItem);
     }
 
     /**
      * Determines the component's {@code label} (usually it's the HTML element's
-     * {@code label} property, but it's {@link Checkbox#getLabel()} for
-     * checkbox). Intended to be used for fields such as {@link TextField}.
+     * {@code label} property, but it's {@code Checkbox.getLabel()} for
+     * checkbox). Intended to be used for fields such as {@code TextField}.
      * <p>
      * <em>For {@code FormItem}:</em> Concatenates texts from all elements
      * placed in the {@code label} slot. This effectively returns whatever was
      * provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
+     * {@code FormLayout.addFormItem(Component, String)}.
      * <p>
      * {@link #getCaption(Button)} is displayed directly on the component while
      * label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      * <p>
      * Vote for <a href="https://github.com/vaadin/flow/issues/3241">issue
      * #3241</a>.
@@ -485,9 +474,9 @@ public final class ComponentUtils {
      * <b>WARNING:</b> the label is displayed by the component itself, rather
      * than by the parent layout. If a component doesn't contain necessary
      * machinery to display a label, setting this property will have no visual
-     * effect. For example, setting a label to a {@link FormLayout} nested
+     * effect. For example, setting a label to a {@code FormLayout} nested
      * within a {@code VerticalLayout} will show nothing since
-     * {@link FormLayout} doesn't display a label itself.
+     * {@code FormLayout} doesn't display a label itself.
      *
      * @param component
      *            the component, not null.
@@ -499,19 +488,19 @@ public final class ComponentUtils {
     }
 
     /**
-     * The Component's caption: {@link Button#getText()} for {@link Button},
-     * {@link #getLabel(Component)} for fields such as {@link TextField}.
+     * The Component's caption: {@code Button.getText()} for {@code Button},
+     * {@link #getLabel(Component)} for fields such as {@code TextField}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      *
      * @param component
      *            the component, not null.
      * @return the caption.
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
-     *             Also, there's only a {@link Button} which has the notion of a
+     *             Also, there's only a {@code Button} which has the notion of a
      *             caption. Will be removed with no replacement.
      */
     @Deprecated
@@ -549,22 +538,22 @@ public final class ComponentUtils {
     }
 
     /**
-     * The Button's caption. Alias for {@link Button#getText()}.
+     * The Button's caption. Alias for {@code Button.getText()}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      *
      * @param button
      *            the button, not null.
      * @return the button text.
      */
     public static String getCaption(Button button) {
-        return button.getText();
+        return ComponentSupports.getCaption(button);
     }
 
     /**
-     * Sets the Button's caption. Alias for {@link Button#setText(String)}.
+     * Sets the Button's caption. Alias for {@code Button.setText(String)}.
      *
      * @param button
      *            the button, not null.
@@ -572,7 +561,7 @@ public final class ComponentUtils {
      *            the button text.
      */
     public static void setCaption(Button button, String value) {
-        button.setText(value);
+        ComponentSupports.setCaption(button, value);
     }
 
     /**
