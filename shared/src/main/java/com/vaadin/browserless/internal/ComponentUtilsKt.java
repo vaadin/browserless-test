@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 import kotlin.jvm.functions.Function1;
 
-import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ClickNotifier;
 import com.vaadin.flow.component.Component;
@@ -28,33 +27,14 @@ import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.HasElement;
-import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasOrderedComponents;
-import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.contextmenu.ContextMenuBase;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.listbox.ListBoxBase;
-import com.vaadin.flow.component.login.LoginOverlay;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
-import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.sidenav.SideNav;
-import com.vaadin.flow.component.sidenav.SideNavItem;
-import com.vaadin.flow.component.textfield.PasswordField;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.HasDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.dom.DomListenerRegistration;
@@ -268,23 +248,7 @@ public final class ComponentUtilsKt {
      * @return the data provider, or null.
      */
     public static DataProvider<?, ?> getDataProvider(Component component) {
-        // until https://github.com/vaadin/flow/issues/6296 is resolved
-        if (component instanceof HasDataProvider<?>) {
-            return GridKt.getDataProvider(component);
-        } else if (component instanceof Grid<?> grid) {
-            return grid.getDataProvider();
-        } else if (component instanceof Select<?> select) {
-            return select.getDataProvider();
-        } else if (component instanceof ListBoxBase<?, ?, ?> listBox) {
-            return listBox.getDataProvider();
-        } else if (component instanceof RadioButtonGroup<?> radioButtonGroup) {
-            return radioButtonGroup.getDataProvider();
-        } else if (component instanceof CheckboxGroup<?> checkboxGroup) {
-            return checkboxGroup.getDataProvider();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getDataProvider();
-        }
-        return null;
+        return ComponentSupports.getDataProvider(component);
     }
 
     /**
@@ -451,21 +415,7 @@ public final class ComponentUtilsKt {
      * @return the placeholder, or null.
      */
     public static String getPlaceholder(Component component) {
-        // modify when this is fixed: https://github.com/vaadin/flow/issues/4068
-        if (component instanceof TextField textField) {
-            return textField.getPlaceholder();
-        } else if (component instanceof TextArea textArea) {
-            return textArea.getPlaceholder();
-        } else if (component instanceof PasswordField passwordField) {
-            return passwordField.getPlaceholder();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getPlaceholder();
-        } else if (component instanceof DatePicker datePicker) {
-            return datePicker.getPlaceholder();
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
-            return hasPlaceholder.getPlaceholder();
-        }
-        return null;
+        return ComponentSupports.getPlaceholder(component);
     }
 
     /**
@@ -479,22 +429,7 @@ public final class ComponentUtilsKt {
      *             if the component doesn't support a placeholder.
      */
     public static void setPlaceholder(Component component, String value) {
-        if (component instanceof TextField textField) {
-            textField.setPlaceholder(value);
-        } else if (component instanceof TextArea textArea) {
-            textArea.setPlaceholder(value);
-        } else if (component instanceof PasswordField passwordField) {
-            passwordField.setPlaceholder(value);
-        } else if (component instanceof ComboBox<?> comboBox) {
-            comboBox.setPlaceholder(value);
-        } else if (component instanceof DatePicker datePicker) {
-            datePicker.setPlaceholder(value);
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
-            hasPlaceholder.setPlaceholder(value);
-        } else {
-            throw new IllegalStateException(component.getClass().getSimpleName()
-                    + " doesn't support setting placeholder");
-        }
+        ComponentSupports.setPlaceholder(component, value);
     }
 
     /**
@@ -539,21 +474,7 @@ public final class ComponentUtilsKt {
      * @return the label, never null.
      */
     public static String getLabel(Component component) {
-        String label;
-        if (component instanceof HasLabel hasLabel) {
-            label = hasLabel.getLabel();
-        } else if (component instanceof Checkbox checkbox) {
-            label = checkbox.getLabel();
-        } else if (component instanceof FormLayout.FormItem formItem) {
-            return getLabel(formItem);
-        } else if (component instanceof SideNav sideNav) {
-            label = sideNav.getLabel();
-        } else if (component instanceof SideNavItem sideNavItem) {
-            label = sideNavItem.getLabel();
-        } else {
-            label = component.getElement().getProperty("label");
-        }
-        return label != null ? label : "";
+        return ComponentSupports.getLabel(component);
     }
 
     /**
@@ -572,21 +493,7 @@ public final class ComponentUtilsKt {
      *            the label, not null.
      */
     public static void setLabel(Component component, String value) {
-        if (component instanceof HasLabel hasLabel) {
-            hasLabel.setLabel(value);
-        } else if (component instanceof Checkbox checkbox) {
-            checkbox.setLabel(value);
-        } else if (component instanceof FormLayout.FormItem) {
-            throw new IllegalArgumentException(
-                    "Setting the caption of FormItem is currently unsupported");
-        } else if (component instanceof SideNav sideNav) {
-            sideNav.setLabel(value);
-        } else if (component instanceof SideNavItem sideNavItem) {
-            sideNavItem.setLabel(value);
-        } else {
-            component.getElement().setProperty("label",
-                    UtilsKt.isBlank(value) ? null : value);
-        }
+        ComponentSupports.setLabel(component, value);
     }
 
     /**
@@ -607,10 +514,7 @@ public final class ComponentUtilsKt {
      */
     @Deprecated
     public static String getCaption(Component component) {
-        if (component instanceof Button button) {
-            return getCaption(button);
-        }
-        return getLabel(component);
+        return ComponentSupports.getCaption(component);
     }
 
     /**
@@ -626,11 +530,7 @@ public final class ComponentUtilsKt {
      */
     @Deprecated
     public static void setCaption(Component component, String value) {
-        if (component instanceof Button button) {
-            setCaption(button, value);
-        } else {
-            setLabel(component, value);
-        }
+        ComponentSupports.setCaption(component, value);
     }
 
     /**
@@ -643,22 +543,7 @@ public final class ComponentUtilsKt {
      *            the component, not null.
      */
     public static void simulateClosedEvent(Component component) {
-        if (ComponentUtil.getData(component,
-                "hasSimulatedClosedEvent") != null) {
-            return;
-        }
-        if (component instanceof Dialog || component instanceof ConfirmDialog
-                || component instanceof LoginOverlay
-                || component instanceof ContextMenuBase<?, ?, ?>
-                || component instanceof Notification) {
-            ComponentUtil.setData(component, "hasSimulatedClosedEvent", true);
-            component.getElement().addPropertyChangeListener("opened",
-                    event -> {
-                        if (Boolean.FALSE.equals(event.getValue())) {
-                            BasicUtilsKt._fireDomEvent(component, "closed");
-                        }
-                    });
-        }
+        ComponentSupports.simulateClosedEvent(component);
     }
 
     /**
@@ -733,8 +618,6 @@ public final class ComponentUtilsKt {
      * @return true if the component is a {@code PolymerTemplate}.
      */
     public static boolean isPolymerTemplate(Component component) {
-        Class<?> polymerTemplateClass = UtilsKt.getPolymerTemplateClass();
-        return polymerTemplateClass != null
-                && polymerTemplateClass.isAssignableFrom(component.getClass());
+        return UtilsKt.isPolymerTemplate(component);
     }
 }

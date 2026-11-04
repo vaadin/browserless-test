@@ -302,11 +302,11 @@ public final class SearchSpec<T extends Component> {
         }
         if (caption != null) {
             p.add(component -> Objects
-                    .equals(ComponentUtilsKt.getCaption(component), caption));
+                    .equals(ComponentSupports.getCaption(component), caption));
         }
         if (placeholder != null) {
             p.add(component -> Objects.equals(
-                    ComponentUtilsKt.getPlaceholder(component), placeholder));
+                    ComponentSupports.getPlaceholder(component), placeholder));
         }
         if (!UtilsKt.isBlank(classes)) {
             p.add(component -> LocatorKt.hasAllClasses(component,

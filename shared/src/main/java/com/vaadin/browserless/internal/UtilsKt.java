@@ -33,6 +33,7 @@ import kotlin.ranges.IntRange;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.ReflectTools;
 import com.vaadin.flow.router.HasErrorParameter;
@@ -429,6 +430,15 @@ public final class UtilsKt {
             throw new ClassNotFoundException(className);
         }
         return clazz;
+    }
+
+    /**
+     * Checks whether given component is a {@code PolymerTemplate}.
+     */
+    static boolean isPolymerTemplate(Component component) {
+        Class<?> polymerTemplateClass = getPolymerTemplateClass();
+        return polymerTemplateClass != null
+                && polymerTemplateClass.isAssignableFrom(component.getClass());
     }
 
     /**

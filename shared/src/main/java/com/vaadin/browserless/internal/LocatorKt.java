@@ -28,7 +28,6 @@ import kotlin.ranges.IntRange;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.router.InternalServerError;
 import com.vaadin.flow.router.Location;
 
@@ -192,7 +191,7 @@ public final class LocatorKt {
             boolean hasPolymerTemplates = false;
             if (UtilsKt.hasPolymerTemplates()) {
                 for (Component c : _walkAll(receiver)) {
-                    if (ComponentUtilsKt.isPolymerTemplate(c)) {
+                    if (UtilsKt.isPolymerTemplate(c)) {
                         hasPolymerTemplates = true;
                         break;
                     }
@@ -328,7 +327,10 @@ public final class LocatorKt {
      * Expects that there are no dialogs shown.
      */
     public static void _expectNoDialogs() {
-        _expectNone(Dialog.class, spec -> Unit.INSTANCE);
+        for (Class<? extends Component> dialogType : ComponentSupports
+                .getDialogTypes()) {
+            _expectNone(dialogType, spec -> Unit.INSTANCE);
+        }
     }
 
     /**
