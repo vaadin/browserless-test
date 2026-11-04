@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 
@@ -53,14 +52,14 @@ class TestingLifecycleHookTest {
     }
 
     @Test
-    void defaultImplsGetAllChildren_matchesTheInterfaceDefault() {
+    void defaultImplsGetAllChildren_returnsTheChildren() {
         TestingLifecycleHook hook = new TestingLifecycleHook() {
         };
-        Div parent = new Div(new Span("a"), new Span("b"));
+        Span a = new Span("a");
+        Span b = new Span("b");
+        Div parent = new Div(a, b);
 
-        List<Component> expected = hook.getAllChildren(parent);
-        Assertions.assertEquals(2, expected.size());
-        Assertions.assertEquals(expected,
+        Assertions.assertEquals(List.of(a, b),
                 TestingLifecycleHook.DefaultImpls.getAllChildren(hook, parent));
     }
 }
