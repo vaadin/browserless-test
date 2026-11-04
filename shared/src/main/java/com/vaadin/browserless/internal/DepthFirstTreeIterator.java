@@ -26,6 +26,8 @@ import kotlin.jvm.functions.Function1;
 /**
  * Walks the child tree, depth-first: first the node, then its descendants, then
  * its next sibling.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @param <T>
  *            the type of the tree nodes.

@@ -28,6 +28,8 @@ import com.vaadin.flow.component.Component;
  * <p>
  * To create a pretty tree dump of a Vaadin component, just use
  * {@link Companion#ofVaadin(Component)}.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class PrettyPrintTree {
 

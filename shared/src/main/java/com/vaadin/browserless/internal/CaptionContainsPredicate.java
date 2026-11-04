@@ -22,6 +22,8 @@ import com.vaadin.flow.component.Component;
 
 /**
  * Matches components whose caption contains given substring.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 final class CaptionContainsPredicate<T extends Component>
         implements Predicate<T> {

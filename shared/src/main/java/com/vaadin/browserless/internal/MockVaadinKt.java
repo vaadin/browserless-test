@@ -25,6 +25,8 @@ import com.vaadin.flow.server.VaadinServiceEventBus;
 
 /**
  * Helpers for firing Vaadin service events in the mocked environment.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class MockVaadinKt {
 

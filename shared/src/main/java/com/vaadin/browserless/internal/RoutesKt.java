@@ -22,6 +22,8 @@ import com.vaadin.flow.server.startup.ApplicationRouteRegistry;
 
 /**
  * Utilities for the route registry.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class RoutesKt {
 

@@ -27,6 +27,8 @@ import com.vaadin.flow.component.littemplate.LitTemplate;
 
 /**
  * Holds the current {@link TestingLifecycleHook} and the dialog clean-up.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class TestingLifecycleHookKt {
 

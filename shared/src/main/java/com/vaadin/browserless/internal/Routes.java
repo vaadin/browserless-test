@@ -56,6 +56,8 @@ import com.vaadin.flow.server.startup.RouteRegistryInitializer;
  * {@link MockVaadin#setup} from 2 seconds to 50ms. Since that's usually what
  * you want to do, this defaults to true.</li>
  * </ul>
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class Routes implements Serializable {
 

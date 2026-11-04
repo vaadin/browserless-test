@@ -42,6 +42,8 @@ import com.vaadin.flow.server.VaadinSession;
 
 /**
  * Basic utilities for firing events on components and checking their state.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class BasicUtilsKt {
 

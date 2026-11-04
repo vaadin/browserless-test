@@ -71,6 +71,8 @@ import com.vaadin.flow.shared.communication.PushMode;
 /**
  * Mocks the Vaadin environment: the servlet, the service, the session and the
  * UI.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class MockVaadin {
 

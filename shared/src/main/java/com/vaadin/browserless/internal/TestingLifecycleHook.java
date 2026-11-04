@@ -49,6 +49,8 @@ import com.vaadin.flow.component.menubar.MenuBar;
  * component lookup via the {@code _get}/{@code _find}/{@code _expectNone}/
  * {@code _expectOne} call. Therefore, {@link MockVaadin#clientRoundtrip()} is
  * called from {@link #awaitBeforeLookup()} by default.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public interface TestingLifecycleHook {
 

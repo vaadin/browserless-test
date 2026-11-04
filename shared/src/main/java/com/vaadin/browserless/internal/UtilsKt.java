@@ -50,6 +50,8 @@ import com.vaadin.flow.server.WrappedHttpSession;
 /**
  * General-purpose utilities: serialization, string helpers, class lookup and
  * accessors for the current request, response and UI.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class UtilsKt {
 

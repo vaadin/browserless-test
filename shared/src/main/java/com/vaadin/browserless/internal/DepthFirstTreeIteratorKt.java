@@ -19,6 +19,8 @@ import com.vaadin.flow.component.Component;
 
 /**
  * Functions for walking the component tree.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class DepthFirstTreeIteratorKt {
 

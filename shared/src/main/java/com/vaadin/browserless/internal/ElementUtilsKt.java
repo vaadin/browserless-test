@@ -36,6 +36,8 @@ import com.vaadin.flow.internal.nodefeature.VirtualChildrenList;
 
 /**
  * Utilities for working with {@link Element}s.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class ElementUtilsKt {
 

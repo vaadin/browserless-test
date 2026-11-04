@@ -63,6 +63,8 @@ import com.vaadin.flow.router.Location;
 
 /**
  * Utilities for working with {@link Component}s.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class ComponentUtilsKt {
 

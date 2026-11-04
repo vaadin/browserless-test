@@ -30,6 +30,8 @@ import com.vaadin.flow.router.internal.DefaultErrorHandler;
  * This route gets registered by default in {@link Routes}, so that Browserless
  * Testing can catch any navigation to a missing route and can respond with an
  * informative exception.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @Tag(Tag.DIV)
 @DefaultErrorHandler

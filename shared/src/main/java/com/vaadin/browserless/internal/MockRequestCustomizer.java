@@ -20,6 +20,8 @@ import com.vaadin.browserless.mocks.MockRequest;
 /**
  * Customizes the {@link MockRequest} created for every new mocked session.
  * Looked up from the Vaadin {@link com.vaadin.flow.di.Lookup}.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @FunctionalInterface
 public interface MockRequestCustomizer {

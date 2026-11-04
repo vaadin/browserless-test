@@ -39,6 +39,8 @@ import com.vaadin.flow.data.provider.DataProvider;
 /**
  * Pretty-printing of Vaadin components, see {@link #toPrettyString(Component)}
  * and {@link #toPrettyTree(Component)}.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class PrettyPrintTreeKt {
 

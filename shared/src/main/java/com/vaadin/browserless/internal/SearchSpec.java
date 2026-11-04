@@ -32,6 +32,8 @@ import com.vaadin.flow.component.HasValue;
  * <p>
  * You can add more properties, simply by creating a write-only property which
  * will register a new {@link #getPredicates() predicate} on write.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @param <T>
  *            the type of the component we are searching for.

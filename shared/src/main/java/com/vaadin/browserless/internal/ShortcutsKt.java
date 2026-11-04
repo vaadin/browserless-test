@@ -23,6 +23,8 @@ import com.vaadin.flow.component.Key;
 
 /**
  * Functions for firing keyboard shortcuts.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class ShortcutsKt {
 

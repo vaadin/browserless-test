@@ -34,6 +34,8 @@ import com.vaadin.flow.router.Location;
 
 /**
  * Functions for looking up components in the component tree.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class LocatorKt {
 

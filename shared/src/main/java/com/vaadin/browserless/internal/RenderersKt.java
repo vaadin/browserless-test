@@ -32,6 +32,8 @@ import com.vaadin.flow.function.ValueProvider;
 
 /**
  * Functions for computing the output of renderers.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class RenderersKt {
 
