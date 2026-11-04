@@ -165,7 +165,7 @@ public final class Routes implements Serializable {
             new RouteRegistryInitializer().onStartup(classSet,
                     UtilsKt.getContext(sc));
         } catch (Exception e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
         if (UtilsKt.getContext(sc).getAttribute(
                 "com.vaadin.flow.server.startup.ApplicationRouteRegistry$ApplicationRouteRegistryWrapper") == null) {
@@ -370,12 +370,6 @@ public final class Routes implements Serializable {
                 && errorRoutes.equals(that.errorRoutes)
                 && layouts.equals(that.layouts)
                 && skipPwaInit == that.skipPwaInit;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
-        throw (E) e;
     }
 
     /**

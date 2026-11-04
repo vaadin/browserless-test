@@ -184,7 +184,8 @@ public final class PrettyPrintTreeKt {
             list.add("icon='" + icon.getElement().getAttribute("icon") + "'");
         }
         if (component instanceof Html) {
-            String outerHtml = component.getElement().getOuterHTML().trim()
+            String outerHtml = UtilsKt
+                    .trim(component.getElement().getOuterHTML())
                     .replaceAll("\\s+", " ");
             list.add(UtilsKt.ellipsize(outerHtml, 100, "..."));
         }
@@ -210,8 +211,9 @@ public final class PrettyPrintTreeKt {
                 });
         if (!(component instanceof Html) && !UtilsKt
                 .isBlank(component.getElement().getProperty("innerHTML"))) {
-            String innerHTML = component.getElement().getProperty("innerHTML")
-                    .trim().replaceAll("\\s+", " ");
+            String innerHTML = UtilsKt
+                    .trim(component.getElement().getProperty("innerHTML"))
+                    .replaceAll("\\s+", " ");
             list.add("innerHTML='" + innerHTML + "'");
         }
         if (UtilsKt.hasCustomToString(component.getClass())) {
@@ -313,7 +315,7 @@ public final class PrettyPrintTreeKt {
                 value = null;
             }
         } catch (ReflectiveOperationException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
         return value != null && !UtilsKt.isBlank(value.toString()) ? value
                 : null;
@@ -372,9 +374,4 @@ public final class PrettyPrintTreeKt {
         PrettyPrintTreeKt.dontDumpAttributes = dontDumpAttributes;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
-        throw (E) e;
-    }
 }

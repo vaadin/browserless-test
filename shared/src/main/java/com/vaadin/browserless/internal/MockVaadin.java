@@ -311,7 +311,7 @@ public final class MockVaadin {
             try {
                 servlet.init(config);
             } catch (Exception e) {
-                throw sneakyThrow(e);
+                throw UtilsKt.sneakyThrow(e);
             }
         } else if (!configuration.isEmpty()) {
             // Application properties, feature flags and lookup services are
@@ -597,7 +597,7 @@ public final class MockVaadin {
             page.setAccessible(true);
             page.set(ui, new MockPage(ui, uiFactory, session));
         } catch (ReflectiveOperationException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
         ui.getInternals().setSession(session);
 
@@ -764,7 +764,7 @@ public final class MockVaadin {
             for (Throwable suppressed : errors.subList(1, errors.size())) {
                 errors.get(0).addSuppressed(suppressed);
             }
-            throw sneakyThrow(errors.get(0));
+            throw UtilsKt.sneakyThrow(errors.get(0));
         }
     }
 
@@ -884,13 +884,4 @@ public final class MockVaadin {
         return value;
     }
 
-    /**
-     * Rethrows given throwable without wrapping it, even if it is a checked
-     * exception, the same way Kotlin code throws it.
-     */
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> RuntimeException sneakyThrow(Throwable t)
-            throws E {
-        throw (E) t;
-    }
 }

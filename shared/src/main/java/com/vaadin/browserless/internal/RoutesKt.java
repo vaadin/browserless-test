@@ -43,7 +43,7 @@ public final class RoutesKt {
             pwaClassField.setAccessible(true);
             ref = (AtomicReference<Class<?>>) pwaClassField.get(registry);
         } catch (ReflectiveOperationException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
         ref.set(null);
         if (registry.getPwaConfigurationClass() != null) {
@@ -52,9 +52,4 @@ public final class RoutesKt {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
-        throw (E) e;
-    }
 }

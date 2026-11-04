@@ -79,7 +79,7 @@ final class MockFilterJsonObject extends ObjectNode {
                     GENERATE_EVENT_MODIFIER_FILTER
                             .invoke(null, hashableModifiers).toString();
         } catch (ReflectiveOperationException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
 
         // populate the json object so that KeyDownEvent can be created from it
@@ -96,12 +96,6 @@ final class MockFilterJsonObject extends ObjectNode {
     private static Object getHashableKey(Key keyModifier)
             throws ReflectiveOperationException {
         return HASHABLE_KEY.newInstance(keyModifier);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
-        throw (E) e;
     }
 
     @Override

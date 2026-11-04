@@ -49,7 +49,7 @@ modules that declare testers.
   `MockHttpSession`, `MockedUI`.
 - **Internal helpers** live in `com.vaadin.browserless.internal` (Java,
   ported from Kotlin, so the classes keep their `*Kt` facade names):
-  `MockVaadin`, `Routes`, `Locator`, `PrettyPrintTree`, `Shortcuts`.
+  `MockVaadin`, `Routes`, `LocatorKt`, `PrettyPrintTree`, `ShortcutsKt`.
 - **Tests** live in `junit6/src/test/java`, mirroring the package of the code
   they cover. See [Testing](testing.md).
 

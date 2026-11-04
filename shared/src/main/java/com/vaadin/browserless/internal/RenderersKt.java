@@ -38,29 +38,35 @@ public final class RenderersKt {
     private RenderersKt() {
     }
 
-    private static final class BasicRendererGetFormattedValue {
-        private static final Method METHOD;
-        static {
-            Method m = Arrays.stream(BasicRenderer.class.getDeclaredMethods())
+    private static volatile Method basicRendererGetFormattedValue;
+
+    private static volatile Field basicRendererValueProvider;
+
+    private static Method getBasicRendererGetFormattedValue() {
+        Method m = basicRendererGetFormattedValue;
+        if (m == null) {
+            m = Arrays.stream(BasicRenderer.class.getDeclaredMethods())
                     .filter(it -> it.getName().equals("getFormattedValue"))
                     .findFirst().orElseThrow(() -> new NoSuchElementException(
                             "Array contains no element matching the predicate."));
             m.setAccessible(true);
-            METHOD = m;
+            basicRendererGetFormattedValue = m;
         }
+        return m;
     }
 
-    private static final class BasicRendererValueProvider {
-        private static final Field FIELD;
-        static {
+    private static Field getBasicRendererValueProvider() {
+        Field f = basicRendererValueProvider;
+        if (f == null) {
             try {
-                Field f = BasicRenderer.class.getDeclaredField("valueProvider");
-                f.setAccessible(true);
-                FIELD = f;
+                f = BasicRenderer.class.getDeclaredField("valueProvider");
             } catch (NoSuchFieldException e) {
-                throw new ExceptionInInitializerError(e);
+                throw UtilsKt.sneakyThrow(e);
             }
+            f.setAccessible(true);
+            basicRendererValueProvider = f;
         }
+        return f;
     }
 
     /**
@@ -81,7 +87,7 @@ public final class RenderersKt {
         try {
             if (renderer instanceof BasicRenderer<T, ?> basicRenderer) {
                 Object value = getValueProvider(basicRenderer).apply(rowObject);
-                return (String) BasicRendererGetFormattedValue.METHOD
+                return (String) getBasicRendererGetFormattedValue()
                         .invoke(basicRenderer, value);
             }
             if (renderer instanceof TextRenderer<T> textRenderer) {
@@ -113,7 +119,7 @@ public final class RenderersKt {
             }
             return null;
         } catch (ReflectiveOperationException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
     }
 
@@ -176,16 +182,11 @@ public final class RenderersKt {
     public static <T, V> ValueProvider<T, V> getValueProvider(
             BasicRenderer<T, V> renderer) {
         try {
-            return (ValueProvider<T, V>) BasicRendererValueProvider.FIELD
+            return (ValueProvider<T, V>) getBasicRendererValueProvider()
                     .get(renderer);
         } catch (IllegalAccessException e) {
-            throw sneakyThrow(e);
+            throw UtilsKt.sneakyThrow(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
-        throw (E) e;
-    }
 }

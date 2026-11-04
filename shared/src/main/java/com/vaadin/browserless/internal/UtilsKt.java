@@ -432,6 +432,22 @@ public final class UtilsKt {
     }
 
     /**
+     * Removes leading and trailing whitespace from given string, using the same
+     * definition as Kotlin's {@code String.trim()}.
+     */
+    static String trim(String string) {
+        int start = 0;
+        int end = string.length();
+        while (start < end && isWhitespace(string.charAt(start))) {
+            start++;
+        }
+        while (end > start && isWhitespace(string.charAt(end - 1))) {
+            end--;
+        }
+        return string.substring(start, end);
+    }
+
+    /**
      * Checks whether given character is a whitespace, using the same definition
      * as Kotlin's {@code Char.isWhitespace()}.
      */
@@ -461,8 +477,8 @@ public final class UtilsKt {
      * Kotlin code propagates checked exceptions.
      */
     @SuppressWarnings("unchecked")
-    private static <E extends Throwable> RuntimeException sneakyThrow(
-            Throwable e) throws E {
+    static <E extends Throwable> RuntimeException sneakyThrow(Throwable e)
+            throws E {
         throw (E) e;
     }
 }

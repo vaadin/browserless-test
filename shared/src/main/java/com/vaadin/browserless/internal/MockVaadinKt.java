@@ -36,7 +36,7 @@ public final class MockVaadinKt {
      */
     static final SerializableBiConsumer<EventObject, Exception> RETHROW_LISTENER_FAILURE = (
             event, error) -> {
-        throw MockVaadin.sneakyThrow(error);
+        throw UtilsKt.sneakyThrow(error);
     };
 
     private MockVaadinKt() {
