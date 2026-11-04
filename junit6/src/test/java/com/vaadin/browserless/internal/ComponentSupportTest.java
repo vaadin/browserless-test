@@ -260,6 +260,11 @@ class ComponentSupportTest {
                 panel.title = label;
                 return true;
             }
+            if (component instanceof LabelledPanel) {
+                // claims the component without setting anything, so a
+                // HasLabel component only gets its label if HasLabel wins
+                return true;
+            }
             return false;
         }
     }

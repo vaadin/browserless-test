@@ -326,7 +326,13 @@ public final class Locator {
     }
 
     /**
-     * Expects that there are no dialogs shown.
+     * Expects that there are no dialogs shown. The dialog types come from the
+     * registered {@link ComponentSupport} implementations.
+     *
+     * @throws AssertionError
+     *             if a dialog is shown.
+     * @throws IllegalStateException
+     *             if no {@link ComponentSupport} reports any dialog type.
      */
     public static void _expectNoDialogs() {
         List<Class<? extends Component>> dialogTypes = ComponentSupports
