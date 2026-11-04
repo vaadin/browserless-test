@@ -549,7 +549,7 @@ public final class ComponentUtils {
      * @return the button text.
      */
     public static String getCaption(Button button) {
-        return ComponentSupports.getCaption(button);
+        return button.getText();
     }
 
     /**
@@ -561,7 +561,7 @@ public final class ComponentUtils {
      *            the button text.
      */
     public static void setCaption(Button button, String value) {
-        ComponentSupports.setCaption(button, value);
+        button.setText(value);
     }
 
     /**
