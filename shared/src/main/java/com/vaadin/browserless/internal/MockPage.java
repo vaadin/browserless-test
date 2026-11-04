@@ -28,6 +28,8 @@ import com.vaadin.flow.server.VaadinSession;
 /**
  * A {@link Page} which records the external navigations and recreates the UI on
  * {@link #reload()}, to simulate the browser's F5.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class MockPage extends Page {
 

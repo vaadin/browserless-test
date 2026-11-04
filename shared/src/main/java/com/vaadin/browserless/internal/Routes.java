@@ -16,9 +16,11 @@
 package com.vaadin.browserless.internal;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import io.github.classgraph.ClassGraph;
@@ -56,6 +58,8 @@ import com.vaadin.flow.server.startup.RouteRegistryInitializer;
  * {@link MockVaadin#setup} from 2 seconds to 50ms. Since that's usually what
  * you want to do, this defaults to true.</li>
  * </ul>
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class Routes implements Serializable {
 
@@ -163,11 +167,11 @@ public final class Routes implements Serializable {
         classSet.addAll(layouts);
         try {
             new RouteRegistryInitializer().onStartup(classSet,
-                    UtilsKt.getContext(sc));
+                    Utils.getContext(sc));
         } catch (Exception e) {
-            throw UtilsKt.sneakyThrow(e);
+            throw Utils.sneakyThrow(e);
         }
-        if (UtilsKt.getContext(sc).getAttribute(
+        if (Utils.getContext(sc).getAttribute(
                 "com.vaadin.flow.server.startup.ApplicationRouteRegistry$ApplicationRouteRegistryWrapper") == null) {
             throw new IllegalStateException(
                     "RouteRegistryInitializer did not register the ApplicationRouteRegistry!");
@@ -177,7 +181,7 @@ public final class Routes implements Serializable {
         registry.setErrorNavigationTargets(
                 (Set) new LinkedHashSet<>(errorRoutes));
         if (skipPwaInit) {
-            RoutesKt.clearPwaClass(registry);
+            Routes.clearPwaClass(registry);
         }
     }
 
@@ -283,7 +287,7 @@ public final class Routes implements Serializable {
         // MockRouteNotFoundError
         if (errorRoutes.stream()
                 .anyMatch(it -> it != MockRouteNotFoundError.class
-                        && UtilsKt.isRouteNotFound(it))) {
+                        && Utils.isRouteNotFound(it))) {
             errorRoutes.remove(MockRouteNotFoundError.class);
         }
 
@@ -377,6 +381,30 @@ public final class Routes implements Serializable {
      */
     public static final class Companion {
         private Companion() {
+        }
+    }
+
+    /**
+     * Clears the PWA class config from the given registry.
+     *
+     * @param registry
+     *            the registry.
+     */
+    @SuppressWarnings("unchecked")
+    public static void clearPwaClass(ApplicationRouteRegistry registry) {
+        AtomicReference<Class<?>> ref;
+        try {
+            Field pwaClassField = ApplicationRouteRegistry.class
+                    .getDeclaredField("pwaConfigurationClass");
+            pwaClassField.setAccessible(true);
+            ref = (AtomicReference<Class<?>>) pwaClassField.get(registry);
+        } catch (ReflectiveOperationException e) {
+            throw Utils.sneakyThrow(e);
+        }
+        ref.set(null);
+        if (registry.getPwaConfigurationClass() != null) {
+            throw new AssertionError(
+                    "PWA configuration class should have been removed");
         }
     }
 }

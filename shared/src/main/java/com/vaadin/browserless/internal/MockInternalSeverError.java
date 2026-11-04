@@ -27,6 +27,8 @@ import com.vaadin.flow.router.internal.DefaultErrorHandler;
  * Replaces the default {@link InternalServerError} exception handler with an
  * implementation that exposes the error details as element properties, so that
  * they show up in the pretty-printed component tree.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @DefaultErrorHandler
 public class MockInternalSeverError extends InternalServerError {

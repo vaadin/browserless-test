@@ -15,40 +15,30 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.EventObject;
-
-import com.vaadin.flow.function.SerializableBiConsumer;
-import com.vaadin.flow.server.ServiceDestroyEvent;
-import com.vaadin.flow.server.SessionInitEvent;
-import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.server.VaadinServiceEventBus;
-
 /**
- * Helpers for firing Vaadin service events in the mocked environment.
+ * Forwards to {@link MockVaadin}, for code compiled against the former Kotlin
+ * file facade of the same name.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link MockVaadin} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class MockVaadinKt {
-
-    /**
-     * Hands a listener failure back to the caller instead of logging it, which
-     * is what {@link VaadinServiceEventBus#fireEvent} does by default. A
-     * listener that throws during a test should fail that test rather than only
-     * leave a line in the log.
-     */
-    static final SerializableBiConsumer<EventObject, Exception> RETHROW_LISTENER_FAILURE = (
-            event, error) -> {
-        throw UtilsKt.sneakyThrow(error);
-    };
 
     private MockVaadinKt() {
     }
 
-    public static void fireSessionInitListeners(VaadinService service,
-            SessionInitEvent event) {
-        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
+    public static void fireSessionInitListeners(
+            com.vaadin.flow.server.VaadinService p0,
+            com.vaadin.flow.server.SessionInitEvent p1) {
+        MockVaadin.fireSessionInitListeners(p0, p1);
     }
 
-    public static void fireServiceDestroyListeners(VaadinService service,
-            ServiceDestroyEvent event) {
-        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
+    public static void fireServiceDestroyListeners(
+            com.vaadin.flow.server.VaadinService p0,
+            com.vaadin.flow.server.ServiceDestroyEvent p1) {
+        MockVaadin.fireServiceDestroyListeners(p0, p1);
     }
 }

@@ -45,193 +45,193 @@ import tools.jackson.databind.node.ObjectNode
  * `_get<Button> { ... }` and so on.
  */
 
-// BasicUtilsKt
+// BasicUtils
 
 fun Component._fireDomEvent(eventType: String, eventData: ObjectNode? = null) {
-    if (eventData == null) BasicUtilsKt._fireDomEvent(this, eventType)
-    else BasicUtilsKt._fireDomEvent(this, eventType, eventData)
+    if (eventData == null) BasicUtils._fireDomEvent(this, eventType)
+    else BasicUtils._fireDomEvent(this, eventType, eventData)
 }
 
 var Component.id_: String?
-    get() = BasicUtilsKt.getId_(this)
-    set(value) = BasicUtilsKt.setId_(this, value)
+    get() = BasicUtils.getId_(this)
+    set(value) = BasicUtils.setId_(this, value)
 
-val Component._text: String? get() = BasicUtilsKt.get_text(this)
+val Component._text: String? get() = BasicUtils.get_text(this)
 
-fun Component.checkEditableByUser() = BasicUtilsKt.checkEditableByUser(this)
+fun Component.checkEditableByUser() = BasicUtils.checkEditableByUser(this)
 
-fun Component.expectNotEditableByUser() = BasicUtilsKt.expectNotEditableByUser(this)
+fun Component.expectNotEditableByUser() = BasicUtils.expectNotEditableByUser(this)
 
 fun Component.matches(spec: SearchSpec<Component>.() -> Unit): Boolean =
-    BasicUtilsKt.matches(this, spec)
+    BasicUtils.matches(this, spec)
 
-fun <T> T._focus() where T : Focusable<*>, T : Component = BasicUtilsKt._focus(this)
+fun <T> T._focus() where T : Focusable<*>, T : Component = BasicUtils._focus(this)
 
-fun <T> T._blur() where T : Focusable<*>, T : Component = BasicUtilsKt._blur(this)
+fun <T> T._blur() where T : Focusable<*>, T : Component = BasicUtils._blur(this)
 
-fun UI._close() = BasicUtilsKt._close(this)
+fun UI._close() = BasicUtils._close(this)
 
-// ComponentUtilsKt
+// ComponentUtils
 
 fun <T : ClickNotifier<*>> T.serverClick() =
-    ComponentUtilsKt.serverClick(this, true, 0, 1, false, false, false, false)
+    ComponentUtils.serverClick(this, true, 0, 1, false, false, false, false)
 
 fun Component.addContextMenuListener(listener: DomEventListener): DomListenerRegistration =
-    ComponentUtilsKt.addContextMenuListener(this, listener)
+    ComponentUtils.addContextMenuListener(this, listener)
 
 fun Component.findAncestorOrSelf(predicate: (Component) -> Boolean): Component? =
-    ComponentUtilsKt.findAncestorOrSelf(this, predicate)
+    ComponentUtils.findAncestorOrSelf(this, predicate)
 
 fun Component.isNestedIn(potentialAncestor: Component): Boolean =
-    ComponentUtilsKt.isNestedIn(this, potentialAncestor)
+    ComponentUtils.isNestedIn(this, potentialAncestor)
 
 fun HasOrderedComponents.insertBefore(newComponent: Component, existing: Component) =
-    ComponentUtilsKt.insertBefore(this, newComponent, existing)
+    ComponentUtils.insertBefore(this, newComponent, existing)
 
-val HasComponents.hasChildren: Boolean get() = ComponentUtilsKt.getHasChildren(this)
+val HasComponents.hasChildren: Boolean get() = ComponentUtils.getHasChildren(this)
 
 fun HasStyle.addClassNames2(vararg classNames: String) =
-    ComponentUtilsKt.addClassNames2(this, *classNames)
+    ComponentUtils.addClassNames2(this, *classNames)
 
 fun HasStyle.removeClassNames2(vararg classNames: String) =
-    ComponentUtilsKt.removeClassNames2(this, *classNames)
+    ComponentUtils.removeClassNames2(this, *classNames)
 
 fun HasStyle.setClassNames2(vararg classNames: String) =
-    ComponentUtilsKt.setClassNames2(this, *classNames)
+    ComponentUtils.setClassNames2(this, *classNames)
 
 var Component.placeholder: String?
-    get() = ComponentUtilsKt.getPlaceholder(this)
-    set(value) = ComponentUtilsKt.setPlaceholder(this, value)
+    get() = ComponentUtils.getPlaceholder(this)
+    set(value) = ComponentUtils.setPlaceholder(this, value)
 
 var Component.label: String
-    get() = ComponentUtilsKt.getLabel(this)
-    set(value) = ComponentUtilsKt.setLabel(this, value)
+    get() = ComponentUtils.getLabel(this)
+    set(value) = ComponentUtils.setLabel(this, value)
 
 @Suppress("DEPRECATION")
 var Component.caption: String
-    get() = ComponentUtilsKt.getCaption(this)
-    set(value) = ComponentUtilsKt.setCaption(this, value)
+    get() = ComponentUtils.getCaption(this)
+    set(value) = ComponentUtils.setCaption(this, value)
 
 var Button.caption: String
-    get() = ComponentUtilsKt.getCaption(this)
-    set(value) = ComponentUtilsKt.setCaption(this, value)
+    get() = ComponentUtils.getCaption(this)
+    set(value) = ComponentUtils.setCaption(this, value)
 
-// ElementUtilsKt
+// ElementUtils
 
 fun Element.setOrRemoveAttribute(attribute: String, value: String?) =
-    ElementUtilsKt.setOrRemoveAttribute(this, attribute, value)
+    ElementUtils.setOrRemoveAttribute(this, attribute, value)
 
-fun ClassList.toggle(className: String) = ElementUtilsKt.toggle(this, className)
+fun ClassList.toggle(className: String) = ElementUtils.toggle(this, className)
 
 fun Element.insertBefore(newNode: Element, existingNode: Element) =
-    ElementUtilsKt.insertBefore(this, newNode, existingNode)
+    ElementUtils.insertBefore(this, newNode, existingNode)
 
-val Element.textRecursively2: String get() = ElementUtilsKt.getTextRecursively2(this)
+val Element.textRecursively2: String get() = ElementUtils.getTextRecursively2(this)
 
-fun Element.getVirtualChildren(): List<Element> = ElementUtilsKt.getVirtualChildren(this)
+fun Element.getVirtualChildren(): List<Element> = ElementUtils.getVirtualChildren(this)
 
 fun Element.getChildrenInSlot(slotName: String): List<Element> =
-    ElementUtilsKt.getChildrenInSlot(this, slotName)
+    ElementUtils.getChildrenInSlot(this, slotName)
 
-fun Element.clearSlot(slotName: String) = ElementUtilsKt.clearSlot(this, slotName)
+fun Element.clearSlot(slotName: String) = ElementUtils.clearSlot(this, slotName)
 
-fun Element._fireDomEvent(event: DomEvent) = ElementUtilsKt._fireDomEvent(this, event)
+fun Element._fireDomEvent(event: DomEvent) = ElementUtils._fireDomEvent(this, event)
 
-// UtilsKt
+// Utils
 
-val currentRequest: VaadinRequest get() = UtilsKt.getCurrentRequest()
+val currentRequest: VaadinRequest get() = Utils.getCurrentRequest()
 
-val currentResponse: VaadinResponse get() = UtilsKt.getCurrentResponse()
+val currentResponse: VaadinResponse get() = Utils.getCurrentResponse()
 
-val currentUI: UI get() = UtilsKt.getCurrentUI()
+val currentUI: UI get() = Utils.getCurrentUI()
 
-val VaadinRequest.mock: MockRequest get() = UtilsKt.getMock(this)
+val VaadinRequest.mock: MockRequest get() = Utils.getMock(this)
 
-val VaadinResponse.mock: MockResponse get() = UtilsKt.getMock(this)
+val VaadinResponse.mock: MockResponse get() = Utils.getMock(this)
 
-val VaadinSession.mock: MockHttpSession get() = UtilsKt.getMock(this)
+val VaadinSession.mock: MockHttpSession get() = Utils.getMock(this)
 
-// LocatorKt
+// Locator
 
 inline fun <reified T : Component> Component._get(noinline block: SearchSpec<T>.() -> Unit = {}): T =
-    LocatorKt._get(this, T::class.java, block)
+    Locator._get(this, T::class.java, block)
 
 inline fun <reified T : Component> _get(noinline block: SearchSpec<T>.() -> Unit = {}): T =
-    LocatorKt._get(T::class.java, block)
+    Locator._get(T::class.java, block)
 
 inline fun <reified T : Component> Component._find(noinline block: SearchSpec<T>.() -> Unit = {}): List<T> =
-    LocatorKt._find(this, T::class.java, block)
+    Locator._find(this, T::class.java, block)
 
 inline fun <reified T : Component> _find(noinline block: SearchSpec<T>.() -> Unit = {}): List<T> =
-    LocatorKt._find(T::class.java, block)
+    Locator._find(T::class.java, block)
 
 inline fun <reified T : Component> Component._expectNone(noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectNone(this, T::class.java, block)
+    Locator._expectNone(this, T::class.java, block)
 
 inline fun <reified T : Component> _expectNone(noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectNone(T::class.java, block)
+    Locator._expectNone(T::class.java, block)
 
 inline fun <reified T : Component> Component._expectOne(noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectOne(this, T::class.java, block)
+    Locator._expectOne(this, T::class.java, block)
 
 inline fun <reified T : Component> _expectOne(noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectOne(T::class.java, block)
+    Locator._expectOne(T::class.java, block)
 
 inline fun <reified T : Component> Component._expect(count: Int = 1, noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expect(this, T::class.java, count, block)
+    Locator._expect(this, T::class.java, count, block)
 
 inline fun <reified T : Component> _expect(count: Int = 1, noinline block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expect(T::class.java, count, block)
+    Locator._expect(T::class.java, count, block)
 
 fun <T : Component> Component._get(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}): T =
-    LocatorKt._get(this, clazz, block)
+    Locator._get(this, clazz, block)
 
 fun <T : Component> _get(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}): T =
-    LocatorKt._get(clazz, block)
+    Locator._get(clazz, block)
 
 fun <T : Component> Component._find(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}): List<T> =
-    LocatorKt._find(this, clazz, block)
+    Locator._find(this, clazz, block)
 
 fun <T : Component> _find(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}): List<T> =
-    LocatorKt._find(clazz, block)
+    Locator._find(clazz, block)
 
 fun <T : Component> Component._expectNone(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectNone(this, clazz, block)
+    Locator._expectNone(this, clazz, block)
 
 fun <T : Component> _expectNone(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectNone(clazz, block)
+    Locator._expectNone(clazz, block)
 
 fun <T : Component> Component._expectOne(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectOne(this, clazz, block)
+    Locator._expectOne(this, clazz, block)
 
 fun <T : Component> _expectOne(clazz: Class<T>, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expectOne(clazz, block)
+    Locator._expectOne(clazz, block)
 
 fun <T : Component> Component._expect(clazz: Class<T>, count: Int = 1, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expect(this, clazz, count, block)
+    Locator._expect(this, clazz, count, block)
 
 fun <T : Component> _expect(clazz: Class<T>, count: Int = 1, block: SearchSpec<T>.() -> Unit = {}) =
-    LocatorKt._expect(clazz, count, block)
+    Locator._expect(clazz, count, block)
 
-fun _expectNoDialogs() = LocatorKt._expectNoDialogs()
+fun _expectNoDialogs() = Locator._expectNoDialogs()
 
 fun _expectInternalServerError(expectedErrorMessage: String = "") =
-    LocatorKt._expectInternalServerError(expectedErrorMessage)
+    Locator._expectInternalServerError(expectedErrorMessage)
 
-// PrettyPrintTreeKt, TestingLifecycleHookKt, ShortcutsKt, DepthFirstTreeIteratorKt
+// PrettyPrintTree, TestingLifecycleHooks, Shortcuts, DepthFirstTreeIterator
 
-fun Component.toPrettyTree(): String = PrettyPrintTreeKt.toPrettyTree(this)
+fun Component.toPrettyTree(): String = PrettyPrintTree.toPrettyTree(this)
 
-fun Component.toPrettyString(): String = PrettyPrintTreeKt.toPrettyString(this)
+fun Component.toPrettyString(): String = PrettyPrintTree.toPrettyString(this)
 
 var testingLifecycleHook: TestingLifecycleHook
-    get() = TestingLifecycleHookKt.getTestingLifecycleHook()
-    set(value) = TestingLifecycleHookKt.setTestingLifecycleHook(value)
+    get() = TestingLifecycleHooks.getTestingLifecycleHook()
+    set(value) = TestingLifecycleHooks.setTestingLifecycleHook(value)
 
-val Component.isTemplate: Boolean get() = TestingLifecycleHookKt.isTemplate(this)
+val Component.isTemplate: Boolean get() = TestingLifecycleHooks.isTemplate(this)
 
-fun cleanupDialogs() = TestingLifecycleHookKt.cleanupDialogs()
+fun cleanupDialogs() = TestingLifecycleHooks.cleanupDialogs()
 
-fun fireShortcut(key: Key, vararg modifiers: Key) = ShortcutsKt.fireShortcut(key, *modifiers)
+fun fireShortcut(key: Key, vararg modifiers: Key) = Shortcuts.fireShortcut(key, *modifiers)
 
-fun Component.walk(): Iterable<Component> = DepthFirstTreeIteratorKt.walk(this)
+fun Component.walk(): Iterable<Component> = DepthFirstTreeIterator.walk(this)

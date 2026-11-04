@@ -30,6 +30,8 @@ import com.vaadin.flow.router.internal.DefaultErrorHandler;
  * This route gets registered by default in {@link Routes}, so that Browserless
  * Testing can catch any navigation to a missing route and can respond with an
  * informative exception.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @Tag(Tag.DIV)
 @DefaultErrorHandler
@@ -86,7 +88,7 @@ public class MockRouteNotFoundError extends RouteNotFoundError {
 
     private static String toPrettyString(RouteData routeData) {
         String template = routeData.getTemplate();
-        String path = UtilsKt.isBlank(template) ? "<root>" : "/" + template;
+        String path = Utils.isBlank(template) ? "<root>" : "/" + template;
         return routeData.getNavigationTarget().getSimpleName() + " at '" + path
                 + "'";
     }

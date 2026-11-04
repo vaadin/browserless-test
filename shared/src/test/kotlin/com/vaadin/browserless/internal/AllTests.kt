@@ -16,7 +16,7 @@
 package com.vaadin.browserless.internal
 
 import kotlin.test.expect
-import com.vaadin.browserless.internal.TestingLifecycleHookKt.isTemplate
+import com.vaadin.browserless.internal.TestingLifecycleHooks.isTemplate
 import com.vaadin.flow.component.Tag
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.littemplate.LitTemplate

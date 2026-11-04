@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 import kotlin.Unit;
 import kotlin.ranges.IntRange;
 
-import com.vaadin.browserless.internal.LocatorKt;
+import com.vaadin.browserless.internal.Locator;
 import com.vaadin.browserless.internal.SearchSpec;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.shared.ThemeVariant;
@@ -950,10 +950,9 @@ public class ComponentQuery<T extends Component> {
      */
     public List<T> all() {
         if (context != null) {
-            return LocatorKt._find(context, componentType,
-                    locatorSpec::populate);
+            return Locator._find(context, componentType, locatorSpec::populate);
         }
-        return LocatorKt._find(componentType, locatorSpec::populate);
+        return Locator._find(componentType, locatorSpec::populate);
     }
 
     /**
@@ -979,10 +978,10 @@ public class ComponentQuery<T extends Component> {
         locatorSpec.count = new IntRange(1, 1);
         try {
             if (context != null) {
-                return LocatorKt._get(context, componentType,
+                return Locator._get(context, componentType,
                         locatorSpec::populate);
             }
-            return LocatorKt._get(componentType, locatorSpec::populate);
+            return Locator._get(componentType, locatorSpec::populate);
         } catch (AssertionError e) {
             // Happens when found component(s) are not of the expected type
             throw new NoSuchElementException(e.getMessage());

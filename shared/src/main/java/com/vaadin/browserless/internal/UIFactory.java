@@ -24,6 +24,8 @@ import com.vaadin.flow.component.UI;
 /**
  * Produces {@link UI} instances. The factory must provide a new, fresh instance
  * of the UI on every invocation.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @FunctionalInterface
 public interface UIFactory extends Function0<UI>, Serializable {

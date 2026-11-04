@@ -69,7 +69,7 @@ public interface ComponentSupport {
     }
 
     /**
-     * Returns the dialog types that {@link LocatorKt#_expectNoDialogs()} checks
+     * Returns the dialog types that {@link Locator#_expectNoDialogs()} checks
      * for.
      *
      * @return the dialog types, not null.
@@ -93,7 +93,7 @@ public interface ComponentSupport {
 
     /**
      * Adds component-specific details to the one-line description produced by
-     * {@link PrettyPrintTreeKt#toPrettyString(Component)}.
+     * {@link PrettyPrintTree#toPrettyString(Component)}.
      *
      * @param component
      *            the component, not null.

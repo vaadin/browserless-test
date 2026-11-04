@@ -23,9 +23,13 @@ import java.util.NoSuchElementException;
 
 import kotlin.jvm.functions.Function1;
 
+import com.vaadin.flow.component.Component;
+
 /**
  * Walks the child tree, depth-first: first the node, then its descendants, then
  * its next sibling.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  *
  * @param <T>
  *            the type of the tree nodes.
@@ -71,5 +75,18 @@ public final class DepthFirstTreeIterator<T> implements Iterator<T> {
     public void remove() {
         throw new UnsupportedOperationException(
                 "Operation is not supported for read-only collection");
+    }
+
+    /**
+     * Walks the component child tree, depth-first: first the component, then
+     * its descendants, then its next sibling.
+     *
+     * @param component
+     *            the root component.
+     * @return the iterable over the component and all of its descendants.
+     */
+    public static Iterable<Component> walk(Component component) {
+        return () -> new DepthFirstTreeIterator<Component>(component,
+                c -> c.getChildren().toList());
     }
 }

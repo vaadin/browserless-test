@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.browserless.internal.ComponentSupport;
-import com.vaadin.browserless.internal.ComponentUtilsKt;
+import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.button.Button;
@@ -163,7 +163,7 @@ public class FlowComponentsSupport implements ComponentSupport {
     @Override
     public String getLabel(Component component) {
         if (component instanceof FormLayout.FormItem formItem) {
-            return ComponentUtilsKt.getLabel(formItem);
+            return ComponentUtils.getLabel(formItem);
         } else if (component instanceof SideNav sideNav) {
             return Objects.requireNonNullElse(sideNav.getLabel(), "");
         } else if (component instanceof SideNavItem sideNavItem) {

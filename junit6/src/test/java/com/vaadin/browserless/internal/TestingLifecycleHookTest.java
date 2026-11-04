@@ -16,6 +16,7 @@
 package com.vaadin.browserless.internal;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 
@@ -44,23 +46,51 @@ class TestingLifecycleHookTest {
     }
 
     @Test
-    void companionDefault_returnsTheBuiltInHook() {
-        TestingLifecycleHook hook = TestingLifecycleHook.Companion.getDefault();
-        Span child = new Span("child");
-        Div parent = new Div(child);
+    void companionDefault_runsRoundtripBeforeLookup() {
+        AtomicBoolean roundtrip = expectRoundtrip();
 
-        Assertions.assertEquals(List.of(child), hook.getAllChildren(parent));
+        TestingLifecycleHook.Companion.getDefault().awaitBeforeLookup();
+
+        Assertions.assertTrue(roundtrip.get());
     }
 
     @Test
-    void defaultImplsGetAllChildren_matchesTheInterfaceDefault() {
-        TestingLifecycleHook hook = new TestingLifecycleHook() {
-        };
-        Div parent = new Div(new Span("a"), new Span("b"));
+    void defaultImplsAwaitBeforeLookup_runsRoundtrip() {
+        AtomicBoolean roundtrip = expectRoundtrip();
 
-        List<Component> expected = hook.getAllChildren(parent);
-        Assertions.assertEquals(2, expected.size());
-        Assertions.assertEquals(expected,
+        TestingLifecycleHook.DefaultImpls
+                .awaitBeforeLookup(new TestingLifecycleHook() {
+                    @Override
+                    public void awaitBeforeLookup() {
+                        // overridden, so only DefaultImpls can run the
+                        // roundtrip
+                    }
+                });
+
+        Assertions.assertTrue(roundtrip.get());
+    }
+
+    @Test
+    void defaultImplsGetAllChildren_ignoresTheOverride() {
+        TestingLifecycleHook hook = new TestingLifecycleHook() {
+            @Override
+            public List<Component> getAllChildren(Component component) {
+                return List.of();
+            }
+        };
+        Span a = new Span("a");
+        Span b = new Span("b");
+        Div parent = new Div(a, b);
+
+        Assertions.assertEquals(List.of(), hook.getAllChildren(parent));
+        Assertions.assertEquals(List.of(a, b),
                 TestingLifecycleHook.DefaultImpls.getAllChildren(hook, parent));
+    }
+
+    private static AtomicBoolean expectRoundtrip() {
+        AtomicBoolean roundtrip = new AtomicBoolean();
+        UI ui = UI.getCurrent();
+        ui.beforeClientResponse(ui, context -> roundtrip.set(true));
+        return roundtrip;
     }
 }

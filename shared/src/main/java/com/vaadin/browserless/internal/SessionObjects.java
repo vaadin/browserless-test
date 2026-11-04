@@ -28,6 +28,8 @@ import com.vaadin.flow.server.VaadinSession;
  * {@link MockVaadin#createSessionObjects(com.vaadin.flow.server.VaadinServletService)}
  * to allow callers (e.g. multi-user context) to manage thread-locals
  * themselves.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class SessionObjects {
     private final VaadinSession session;

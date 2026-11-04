@@ -54,17 +54,16 @@ class ComponentSupportTest {
         UI.getCurrent().add(new PanelWithHiddenContent(hidden));
 
         Assertions.assertSame(hidden,
-                LocatorKt._get(Span.class, spec -> kotlin.Unit.INSTANCE));
+                Locator._get(Span.class, spec -> kotlin.Unit.INSTANCE));
     }
 
     @Test
     void label_comesFromSupport() {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
-        Assertions.assertEquals("panel title",
-                ComponentUtilsKt.getLabel(panel));
-        ComponentUtilsKt.setLabel(panel, "renamed");
-        Assertions.assertEquals("renamed", ComponentUtilsKt.getLabel(panel));
+        Assertions.assertEquals("panel title", ComponentUtils.getLabel(panel));
+        ComponentUtils.setLabel(panel, "renamed");
+        Assertions.assertEquals("renamed", ComponentUtils.getLabel(panel));
     }
 
     @SuppressWarnings("deprecation")
@@ -73,9 +72,9 @@ class ComponentSupportTest {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertEquals("panel title",
-                ComponentUtilsKt.getCaption(panel));
-        ComponentUtilsKt.setCaption(panel, "renamed");
-        Assertions.assertEquals("renamed", ComponentUtilsKt.getLabel(panel));
+                ComponentUtils.getCaption(panel));
+        ComponentUtils.setCaption(panel, "renamed");
+        Assertions.assertEquals("renamed", ComponentUtils.getLabel(panel));
     }
 
     @Test
@@ -83,8 +82,8 @@ class ComponentSupportTest {
         LabelledPanel panel = new LabelledPanel();
         panel.setLabel("own label");
 
-        Assertions.assertEquals("own label", ComponentUtilsKt.getLabel(panel));
-        ComponentUtilsKt.setLabel(panel, "renamed");
+        Assertions.assertEquals("own label", ComponentUtils.getLabel(panel));
+        ComponentUtils.setLabel(panel, "renamed");
         Assertions.assertEquals("renamed", panel.getLabel());
     }
 
@@ -94,12 +93,12 @@ class ComponentSupportTest {
         CaptionedPanel panel = new CaptionedPanel();
         UI.getCurrent().add(panel);
 
-        Assertions.assertEquals("caption", ComponentUtilsKt.getCaption(panel));
-        ComponentUtilsKt.setCaption(panel, "new caption");
+        Assertions.assertEquals("caption", ComponentUtils.getCaption(panel));
+        ComponentUtils.setCaption(panel, "new caption");
         Assertions.assertEquals("new caption", panel.caption);
-        Assertions.assertEquals("label", ComponentUtilsKt.getLabel(panel));
+        Assertions.assertEquals("label", ComponentUtils.getLabel(panel));
         Assertions.assertSame(panel,
-                LocatorKt._get(CaptionedPanel.class, spec -> {
+                Locator._get(CaptionedPanel.class, spec -> {
                     spec.setCaption("new caption");
                     return kotlin.Unit.INSTANCE;
                 }));
@@ -110,7 +109,7 @@ class ComponentSupportTest {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertSame(panel.dataProvider,
-                ComponentUtilsKt.getDataProvider(panel));
+                ComponentUtils.getDataProvider(panel));
     }
 
     @Test
@@ -120,8 +119,8 @@ class ComponentSupportTest {
         dialog.getElement().addEventListener("closed",
                 event -> closedEvents.incrementAndGet());
 
-        ComponentUtilsKt.simulateClosedEvent(dialog);
-        ComponentUtilsKt.simulateClosedEvent(dialog);
+        ComponentUtils.simulateClosedEvent(dialog);
+        ComponentUtils.simulateClosedEvent(dialog);
         dialog.getElement().setProperty("opened", true);
         dialog.getElement().setProperty("opened", false);
 
@@ -134,14 +133,14 @@ class ComponentSupportTest {
         UI.getCurrent().add(dialog);
 
         Assertions.assertThrows(AssertionError.class,
-                LocatorKt::_expectNoDialogs);
+                Locator::_expectNoDialogs);
 
         dialog.opened = false;
         MockVaadin.clientRoundtrip();
 
         Assertions.assertFalse(dialog.isAttached(),
                 "A dialog the support reports as closed should be removed");
-        LocatorKt._expectNoDialogs();
+        Locator._expectNoDialogs();
     }
 
     @Test
@@ -149,8 +148,8 @@ class ComponentSupportTest {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertTrue(
-                PrettyPrintTreeKt.toPrettyString(panel).contains("hidden=1"),
-                PrettyPrintTreeKt.toPrettyString(panel));
+                PrettyPrintTree.toPrettyString(panel).contains("hidden=1"),
+                PrettyPrintTree.toPrettyString(panel));
     }
 
     /**

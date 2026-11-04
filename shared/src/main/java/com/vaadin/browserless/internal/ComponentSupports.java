@@ -196,7 +196,7 @@ public final class ComponentSupports {
             }
         }
         component.getElement().setProperty("label",
-                UtilsKt.isBlank(value) ? null : value);
+                Utils.isBlank(value) ? null : value);
     }
 
     /**
@@ -284,7 +284,7 @@ public final class ComponentSupports {
             component.getElement().addPropertyChangeListener("opened",
                     event -> {
                         if (Boolean.FALSE.equals(event.getValue())) {
-                            BasicUtilsKt._fireDomEvent(component, "closed");
+                            BasicUtils._fireDomEvent(component, "closed");
                         }
                     });
         }

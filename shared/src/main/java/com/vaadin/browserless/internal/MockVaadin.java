@@ -20,6 +20,7 @@ import jakarta.servlet.ServletContext;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EventObject;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,6 +47,7 @@ import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
 import com.vaadin.flow.di.Lookup;
+import com.vaadin.flow.function.SerializableBiConsumer;
 import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.internal.StateTree;
 import com.vaadin.flow.router.Location;
@@ -59,6 +61,7 @@ import com.vaadin.flow.server.UIInitEvent;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServiceEventBus;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletContext;
 import com.vaadin.flow.server.VaadinServletRequest;
@@ -71,6 +74,8 @@ import com.vaadin.flow.shared.communication.PushMode;
 /**
  * Mocks the Vaadin environment: the servlet, the service, the session and the
  * UI.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 public final class MockVaadin {
 
@@ -273,7 +278,7 @@ public final class MockVaadin {
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices,
             BrowserlessConfiguration configuration) {
-        if (!UtilsKt.isInitialized(servlet)) {
+        if (!Utils.isInitialized(servlet)) {
             // Lookup services can be given both explicitly and through the
             // configuration (e.g. by a @BrowserlessTestConfig annotation);
             // they accumulate.
@@ -311,7 +316,7 @@ public final class MockVaadin {
             try {
                 servlet.init(config);
             } catch (Exception e) {
-                throw UtilsKt.sneakyThrow(e);
+                throw Utils.sneakyThrow(e);
             }
         } else if (!configuration.isEmpty()) {
             // Application properties, feature flags and lookup services are
@@ -394,7 +399,7 @@ public final class MockVaadin {
         lastWindowName.set(
                 ui.getInternals().getExtendedClientDetails().getWindowName());
         if (ui.isClosing() && ui.getInternals().getSession() != null) {
-            BasicUtilsKt._close(ui);
+            BasicUtils._close(ui);
         }
         if (fireUIDetach) {
             ComponentUtil.onComponentDetach(ui);
@@ -417,7 +422,7 @@ public final class MockVaadin {
         clearVaadinInstances(false);
         VaadinService service = VaadinService.getCurrent();
         if (service != null) {
-            MockVaadinKt.fireServiceDestroyListeners(service,
+            MockVaadin.fireServiceDestroyListeners(service,
                     new ServiceDestroyEvent(service));
             VaadinService.setCurrent(null);
         }
@@ -573,7 +578,7 @@ public final class MockVaadin {
         CurrentInstance.set(VaadinResponse.class, objs.getResponse());
 
         // fire session init listeners
-        MockVaadinKt.fireSessionInitListeners(service, new SessionInitEvent(
+        MockVaadin.fireSessionInitListeners(service, new SessionInitEvent(
                 service, objs.getSession(), objs.getRequest()));
 
         // create UI
@@ -597,7 +602,7 @@ public final class MockVaadin {
             page.setAccessible(true);
             page.set(ui, new MockPage(ui, uiFactory, session));
         } catch (ReflectiveOperationException e) {
-            throw UtilsKt.sneakyThrow(e);
+            throw Utils.sneakyThrow(e);
         }
         ui.getInternals().setSession(session);
 
@@ -629,7 +634,7 @@ public final class MockVaadin {
         session.addUI(ui);
         session.getService().getEventBus().fireEvent(
                 new UIInitEvent(ui, session.getService()),
-                MockVaadinKt.RETHROW_LISTENER_FAILURE);
+                MockVaadin.RETHROW_LISTENER_FAILURE);
 
         // navigate to the initial page
         if (lastNavigation.get() != null) {
@@ -682,7 +687,7 @@ public final class MockVaadin {
         runUIQueue();
         UI.getCurrent().getInternals().getStateTree()
                 .runExecutionsBeforeClientResponse();
-        TestingLifecycleHookKt.cleanupDialogs();
+        TestingLifecycleHooks.cleanupDialogs();
     }
 
     /**
@@ -764,7 +769,7 @@ public final class MockVaadin {
             for (Throwable suppressed : errors.subList(1, errors.size())) {
                 errors.get(0).addSuppressed(suppressed);
             }
-            throw UtilsKt.sneakyThrow(errors.get(0));
+            throw Utils.sneakyThrow(errors.get(0));
         }
     }
 
@@ -817,7 +822,7 @@ public final class MockVaadin {
             // Vaadin 20.0.5+: closing session also clears the wrapped
             // VaadinSession.getSession(). Acquire the wrapped session
             // beforehand.
-            MockHttpSession mockSession = UtilsKt.getMock(session);
+            MockHttpSession mockSession = Utils.getMock(session);
             clearVaadinInstances(true);
             mockSession.destroy();
             createSession(mockSession.getServletContext(), uiFactory);
@@ -830,7 +835,7 @@ public final class MockVaadin {
      */
     public static void fireSessionInit(VaadinService service,
             VaadinSession session, VaadinRequest request) {
-        MockVaadinKt.fireSessionInitListeners(service,
+        MockVaadin.fireSessionInitListeners(service,
                 new SessionInitEvent(service, session, request));
     }
 
@@ -839,7 +844,7 @@ public final class MockVaadin {
      * static wrapper for the internal extension function.
      */
     public static void fireServiceDestroy(VaadinService service) {
-        MockVaadinKt.fireServiceDestroyListeners(service,
+        MockVaadin.fireServiceDestroyListeners(service,
                 new ServiceDestroyEvent(service));
     }
 
@@ -884,4 +889,24 @@ public final class MockVaadin {
         return value;
     }
 
+    /**
+     * Hands a listener failure back to the caller instead of logging it, which
+     * is what {@link VaadinServiceEventBus#fireEvent} does by default. A
+     * listener that throws during a test should fail that test rather than only
+     * leave a line in the log.
+     */
+    static final SerializableBiConsumer<EventObject, Exception> RETHROW_LISTENER_FAILURE = (
+            event, error) -> {
+        throw Utils.sneakyThrow(error);
+    };
+
+    public static void fireSessionInitListeners(VaadinService service,
+            SessionInitEvent event) {
+        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
+    }
+
+    public static void fireServiceDestroyListeners(VaadinService service,
+            ServiceDestroyEvent event) {
+        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
+    }
 }

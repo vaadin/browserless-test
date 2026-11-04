@@ -15,178 +15,39 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
-import org.jsoup.Jsoup;
-
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.data.renderer.BasicRenderer;
-import com.vaadin.flow.data.renderer.ComponentRenderer;
-import com.vaadin.flow.data.renderer.Renderer;
-import com.vaadin.flow.data.renderer.TextRenderer;
-import com.vaadin.flow.function.ValueProvider;
-
 /**
- * Functions for computing the output of renderers.
+ * Forwards to {@link Renderers}, for code compiled against the former Kotlin
+ * file facade of the same name.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ *
+ * @deprecated use {@link Renderers} instead.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings({ "deprecation", "removal" })
 public final class RenderersKt {
 
     private RenderersKt() {
     }
 
-    private static volatile Method basicRendererGetFormattedValue;
-
-    private static volatile Field basicRendererValueProvider;
-
-    private static Method getBasicRendererGetFormattedValue() {
-        Method m = basicRendererGetFormattedValue;
-        if (m == null) {
-            m = Arrays.stream(BasicRenderer.class.getDeclaredMethods())
-                    .filter(it -> it.getName().equals("getFormattedValue"))
-                    .findFirst().orElseThrow(() -> new NoSuchElementException(
-                            "Array contains no element matching the predicate."));
-            m.setAccessible(true);
-            basicRendererGetFormattedValue = m;
-        }
-        return m;
+    public static <T> java.lang.String _getPresentationValue(
+            com.vaadin.flow.data.renderer.Renderer<T> p0, T p1) {
+        return Renderers._getPresentationValue(p0, p1);
     }
 
-    private static Field getBasicRendererValueProvider() {
-        Field f = basicRendererValueProvider;
-        if (f == null) {
-            try {
-                f = BasicRenderer.class.getDeclaredField("valueProvider");
-            } catch (NoSuchFieldException e) {
-                throw UtilsKt.sneakyThrow(e);
-            }
-            f.setAccessible(true);
-            basicRendererValueProvider = f;
-        }
-        return f;
+    public static <T> java.lang.String renderLitTemplate(java.lang.String p0,
+            java.util.Map<java.lang.String, ? extends com.vaadin.flow.function.ValueProvider<T, ?>> p1,
+            T p2) {
+        return Renderers.renderLitTemplate(p0, p1, p2);
     }
 
-    /**
-     * Returns the output of this renderer for given {@code rowObject} formatted
-     * as close as possible to the client-side output.
-     *
-     * @param renderer
-     *            the renderer, not null.
-     * @param rowObject
-     *            the item to render.
-     * @param <T>
-     *            the item type.
-     * @return the rendered value, or null if the renderer is not supported.
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> String _getPresentationValue(Renderer<T> renderer,
-            T rowObject) {
-        try {
-            if (renderer instanceof BasicRenderer<T, ?> basicRenderer) {
-                Object value = getValueProvider(basicRenderer).apply(rowObject);
-                return (String) getBasicRendererGetFormattedValue()
-                        .invoke(basicRenderer, value);
-            }
-            if (renderer instanceof TextRenderer<T> textRenderer) {
-                return renderText(textRenderer, rowObject);
-            }
-            if (renderer instanceof ComponentRenderer<?, T> componentRenderer) {
-                Component component = componentRenderer
-                        .createComponent(rowObject);
-                return PrettyPrintTreeKt.toPrettyString(component);
-            }
-            if ("LitRenderer".equals(renderer.getClass().getSimpleName())) {
-                // LitRenderer re-declares private members
-                Field templateProperty = renderer.getClass()
-                        .getDeclaredField("templateExpression");
-                templateProperty.setAccessible(true);
-                String templateExpression = (String) templateProperty
-                        .get(renderer);
-
-                Field valueProvidersProperty = renderer.getClass()
-                        .getDeclaredField("valueProviders");
-                valueProvidersProperty.setAccessible(true);
-                Map<String, ValueProvider<T, ?>> valueProviders = (Map<String, ValueProvider<T, ?>>) valueProvidersProperty
-                        .get(renderer);
-
-                String renderedLitTemplateHtml = renderLitTemplate(
-                        templateExpression, valueProviders, rowObject);
-                return ElementUtilsKt.getTextRecursively(
-                        Jsoup.parse(renderedLitTemplateHtml));
-            }
-            return null;
-        } catch (ReflectiveOperationException e) {
-            throw UtilsKt.sneakyThrow(e);
-        }
+    public static <T> java.lang.String renderText(
+            com.vaadin.flow.data.renderer.TextRenderer<T> p0, T p1) {
+        return Renderers.renderText(p0, p1);
     }
 
-    /**
-     * Renders the given lit {@code template}, replacing each
-     * <code>${item.key}</code> with the output of the corresponding value
-     * provider.
-     *
-     * @param template
-     *            the lit template expression.
-     * @param valueProviders
-     *            the value providers, keyed by property name.
-     * @param item
-     *            the item to render.
-     * @param <T>
-     *            the item type.
-     * @return the rendered template.
-     */
-    public static <T> String renderLitTemplate(String template,
-            Map<String, ? extends ValueProvider<T, ?>> valueProviders, T item) {
-        String renderedTemplate = template;
-        for (Map.Entry<String, ? extends ValueProvider<T, ?>> entry : valueProviders
-                .entrySet()) {
-            String placeholder = "${item." + entry.getKey() + "}";
-            if (renderedTemplate.contains(placeholder)) {
-                renderedTemplate = renderedTemplate.replace(placeholder,
-                        entry.getValue().apply(item).toString());
-            }
-        }
-        return renderedTemplate;
+    public static <T, V> com.vaadin.flow.function.ValueProvider<T, V> getValueProvider(
+            com.vaadin.flow.data.renderer.BasicRenderer<T, V> p0) {
+        return Renderers.getValueProvider(p0);
     }
-
-    /**
-     * Returns the text rendered for given {@code item}.
-     *
-     * @param renderer
-     *            the text renderer, not null.
-     * @param item
-     *            the item to render.
-     * @param <T>
-     *            the item type.
-     * @return the rendered text.
-     */
-    public static <T> String renderText(TextRenderer<T> renderer, T item) {
-        return renderer.createComponent(item).getElement().getText();
-    }
-
-    /**
-     * Returns the {@link ValueProvider} set to {@link BasicRenderer}.
-     *
-     * @param renderer
-     *            the renderer, not null.
-     * @param <T>
-     *            the item type.
-     * @param <V>
-     *            the value type.
-     * @return the value provider.
-     */
-    @SuppressWarnings("unchecked")
-    public static <T, V> ValueProvider<T, V> getValueProvider(
-            BasicRenderer<T, V> renderer) {
-        try {
-            return (ValueProvider<T, V>) getBasicRendererValueProvider()
-                    .get(renderer);
-        } catch (IllegalAccessException e) {
-            throw UtilsKt.sneakyThrow(e);
-        }
-    }
-
 }

@@ -53,21 +53,21 @@ import com.vaadin.flow.function.SerializablePredicate
 import com.vaadin.flow.function.ValueProvider
 import com.vaadin.browserless.internal.DepthFirstTreeIterator
 import com.vaadin.browserless.internal.MockVaadin
-import com.vaadin.browserless.internal.BasicUtilsKt.get_saneFetchLimit
-import com.vaadin.browserless.internal.UtilsKt.getSize
+import com.vaadin.browserless.internal.BasicUtils.get_saneFetchLimit
+import com.vaadin.browserless.internal.Utils.getSize
 import com.vaadin.browserless.internal.PrettyPrintTree
-import com.vaadin.browserless.internal.BasicUtilsKt._fireEvent
-import com.vaadin.browserless.internal.RenderersKt._getPresentationValue
-import com.vaadin.browserless.internal.BasicUtilsKt.checkEditableByUser
-import com.vaadin.browserless.internal.LocatorKt.filterNotBlank
-import com.vaadin.browserless.internal.PrettyPrintTreeKt.toPrettyString
+import com.vaadin.browserless.internal.BasicUtils._fireEvent
+import com.vaadin.browserless.internal.Renderers._getPresentationValue
+import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
+import com.vaadin.browserless.internal.Locator.filterNotBlank
+import com.vaadin.browserless.internal.PrettyPrintTree.toPrettyString
 import java.lang.reflect.Method
 import java.lang.reflect.Field
 import java.util.stream.Stream
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.streams.toList
-import com.vaadin.browserless.internal.UtilsKt.findClassOrThrow
+import com.vaadin.browserless.internal.Utils.findClassOrThrow
 
 /**
  * Returns the item on given row. Fails if the row index is invalid. The data provider is

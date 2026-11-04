@@ -34,6 +34,8 @@ import com.vaadin.flow.internal.JacksonUtils;
  * this is necessary. If this stuff stops working, place a breakpoint into the
  * {@link #booleanValue()}/{@link #has(String)} function, to see what kind of
  * keys you're receiving and whether it matches the filter.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 final class MockFilterJsonObject extends ObjectNode {
 
@@ -79,7 +81,7 @@ final class MockFilterJsonObject extends ObjectNode {
                     GENERATE_EVENT_MODIFIER_FILTER
                             .invoke(null, hashableModifiers).toString();
         } catch (ReflectiveOperationException e) {
-            throw UtilsKt.sneakyThrow(e);
+            throw Utils.sneakyThrow(e);
         }
 
         // populate the json object so that KeyDownEvent can be created from it
