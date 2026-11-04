@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless.internal;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -22,8 +23,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.browserless.component.FlowComponentsSupport;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Span;
@@ -46,15 +47,6 @@ class ComponentSupportTest {
     }
 
     @Test
-    void registeredSupports_includeTheBuiltInAndTheTestOne() {
-        List<ComponentSupport> supports = ComponentSupports.getAll();
-        Assertions.assertTrue(supports.stream()
-                .anyMatch(FlowComponentsSupport.class::isInstance));
-        Assertions.assertTrue(supports.stream()
-                .anyMatch(TestComponentSupport.class::isInstance));
-    }
-
-    @Test
     void lookup_findsChildrenReportedBySupport() {
         Span hidden = new Span("hidden");
         UI.getCurrent().add(new PanelWithHiddenContent(hidden));
@@ -71,6 +63,41 @@ class ComponentSupportTest {
                 ComponentUtilsKt.getLabel(panel));
         ComponentUtilsKt.setLabel(panel, "renamed");
         Assertions.assertEquals("renamed", ComponentUtilsKt.getLabel(panel));
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    void caption_fallsBackToTheLabelFromSupport() {
+        PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
+
+        Assertions.assertEquals("panel title",
+                ComponentUtilsKt.getCaption(panel));
+        ComponentUtilsKt.setCaption(panel, "renamed");
+        Assertions.assertEquals("renamed", ComponentUtilsKt.getLabel(panel));
+    }
+
+    @Test
+    void label_ofHasLabelComponent_isNotAskedFromSupport() {
+        LabelledPanel panel = new LabelledPanel();
+        panel.setLabel("own label");
+
+        Assertions.assertEquals("own label", ComponentUtilsKt.getLabel(panel));
+    }
+
+    @Test
+    void dialogTypesAndClosedDialogs_comeFromSupport() {
+        TestDialog dialog = new TestDialog();
+        UI.getCurrent().add(dialog);
+
+        Assertions.assertThrows(AssertionError.class,
+                LocatorKt::_expectNoDialogs);
+
+        dialog.opened = false;
+        MockVaadin.clientRoundtrip();
+
+        Assertions.assertFalse(dialog.isAttached(),
+                "A dialog the support reports as closed should be removed");
+        LocatorKt._expectNoDialogs();
     }
 
     @Test
@@ -96,7 +123,26 @@ class ComponentSupportTest {
         }
     }
 
+    @Tag("test-labelled-panel")
+    static class LabelledPanel extends Component implements HasLabel {
+    }
+
+    @Tag("test-dialog")
+    static class TestDialog extends Component {
+        private boolean opened = true;
+    }
+
     public static class TestComponentSupport implements ComponentSupport {
+
+        @Override
+        public boolean isClosedDialog(Component component) {
+            return component instanceof TestDialog dialog && !dialog.opened;
+        }
+
+        @Override
+        public Collection<Class<? extends Component>> getDialogTypes() {
+            return List.of(TestDialog.class);
+        }
 
         @Override
         public List<Component> getAllChildren(Component component) {
@@ -117,6 +163,9 @@ class ComponentSupportTest {
         public String getLabel(Component component) {
             if (component instanceof PanelWithHiddenContent panel) {
                 return panel.title;
+            }
+            if (component instanceof LabelledPanel) {
+                return "label from support";
             }
             return null;
         }

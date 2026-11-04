@@ -327,8 +327,14 @@ public final class LocatorKt {
      * Expects that there are no dialogs shown.
      */
     public static void _expectNoDialogs() {
-        for (Class<? extends Component> dialogType : ComponentSupports
-                .getDialogTypes()) {
+        List<Class<? extends Component>> dialogTypes = ComponentSupports
+                .getDialogTypes();
+        if (dialogTypes.isEmpty()) {
+            throw new IllegalStateException(
+                    "No ComponentSupport reports any dialog types, so there "
+                            + "is nothing to check");
+        }
+        for (Class<? extends Component> dialogType : dialogTypes) {
             _expectNone(dialogType, spec -> Unit.INSTANCE);
         }
     }
