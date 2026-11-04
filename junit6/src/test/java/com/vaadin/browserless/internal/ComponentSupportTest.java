@@ -17,6 +17,7 @@ package com.vaadin.browserless.internal;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +29,7 @@ import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.data.provider.DataProvider;
 
 /**
  * Verifies that the mocked environment consults every {@link ComponentSupport}
@@ -82,6 +84,48 @@ class ComponentSupportTest {
         panel.setLabel("own label");
 
         Assertions.assertEquals("own label", ComponentUtilsKt.getLabel(panel));
+        ComponentUtilsKt.setLabel(panel, "renamed");
+        Assertions.assertEquals("renamed", panel.getLabel());
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    void caption_fromSupport_winsOverLabel() {
+        CaptionedPanel panel = new CaptionedPanel();
+        UI.getCurrent().add(panel);
+
+        Assertions.assertEquals("caption", ComponentUtilsKt.getCaption(panel));
+        ComponentUtilsKt.setCaption(panel, "new caption");
+        Assertions.assertEquals("new caption", panel.caption);
+        Assertions.assertEquals("label", ComponentUtilsKt.getLabel(panel));
+        Assertions.assertSame(panel,
+                LocatorKt._get(CaptionedPanel.class, spec -> {
+                    spec.setCaption("new caption");
+                    return kotlin.Unit.INSTANCE;
+                }));
+    }
+
+    @Test
+    void dataProvider_comesFromSupport() {
+        PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
+
+        Assertions.assertSame(panel.dataProvider,
+                ComponentUtilsKt.getDataProvider(panel));
+    }
+
+    @Test
+    void closedEvent_isSimulatedForOverlayReportedBySupport() {
+        TestDialog dialog = new TestDialog();
+        AtomicInteger closedEvents = new AtomicInteger();
+        dialog.getElement().addEventListener("closed",
+                event -> closedEvents.incrementAndGet());
+
+        ComponentUtilsKt.simulateClosedEvent(dialog);
+        ComponentUtilsKt.simulateClosedEvent(dialog);
+        dialog.getElement().setProperty("opened", true);
+        dialog.getElement().setProperty("opened", false);
+
+        Assertions.assertEquals(1, closedEvents.get());
     }
 
     @Test
@@ -117,6 +161,8 @@ class ComponentSupportTest {
     static class PanelWithHiddenContent extends Component {
         private final Component content;
         private String title = "panel title";
+        private final DataProvider<String, ?> dataProvider = DataProvider
+                .ofItems("a");
 
         PanelWithHiddenContent(Component content) {
             this.content = content;
@@ -125,6 +171,15 @@ class ComponentSupportTest {
 
     @Tag("test-labelled-panel")
     static class LabelledPanel extends Component implements HasLabel {
+    }
+
+    @Tag("test-captioned-panel")
+    static class CaptionedPanel extends Component {
+        private String caption = "caption";
+
+        CaptionedPanel() {
+            getElement().setProperty("label", "label");
+        }
     }
 
     @Tag("test-dialog")
@@ -142,6 +197,36 @@ class ComponentSupportTest {
         @Override
         public Collection<Class<? extends Component>> getDialogTypes() {
             return List.of(TestDialog.class);
+        }
+
+        @Override
+        public boolean firesClosedEvent(Component component) {
+            return component instanceof TestDialog;
+        }
+
+        @Override
+        public DataProvider<?, ?> getDataProvider(Component component) {
+            if (component instanceof PanelWithHiddenContent panel) {
+                return panel.dataProvider;
+            }
+            return null;
+        }
+
+        @Override
+        public String getCaption(Component component) {
+            if (component instanceof CaptionedPanel panel) {
+                return panel.caption;
+            }
+            return null;
+        }
+
+        @Override
+        public boolean setCaption(Component component, String caption) {
+            if (component instanceof CaptionedPanel panel) {
+                panel.caption = caption;
+                return true;
+            }
+            return false;
         }
 
         @Override
