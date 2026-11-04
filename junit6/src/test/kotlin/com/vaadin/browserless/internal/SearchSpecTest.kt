@@ -48,14 +48,14 @@ internal fun DynaNodeGroup.searchSpecTest() {
     }
 
     test("id") {
-        val spec = SearchSpec(Component::class.java, id = "25")
+        val spec = SearchSpec(Component::class.java).apply { id = "25" }
         expect(true) { spec.toPredicate()(Button().apply { setId("25") }) }
         expect(false) { spec.toPredicate()(Button().apply { setId("42") }) }
         expect(false) { spec.toPredicate()(Button()) }
     }
 
     test("caption") {
-        val spec = SearchSpec(Component::class.java, caption = "foo")
+        val spec = SearchSpec(Component::class.java).apply { caption = "foo" }
         expect(true) { spec.toPredicate()(Button("foo")) }
         expect(false) { spec.toPredicate()(Button("bar")) }
         expect(false) { spec.toPredicate()(Button()) }
@@ -140,7 +140,7 @@ internal fun DynaNodeGroup.searchSpecTest() {
     }
 
     test("text") {
-        val spec = SearchSpec(Component::class.java, text = "foo")
+        val spec = SearchSpec(Component::class.java).apply { text = "foo" }
         expect(true) { spec.toPredicate()(Button("foo")) }
         expect(false) { spec.toPredicate()(Button("bar")) }
         expect(false) { spec.toPredicate()(Button()) }
