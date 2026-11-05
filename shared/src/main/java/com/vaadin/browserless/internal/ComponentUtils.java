@@ -431,7 +431,8 @@ public final class ComponentUtils {
     }
 
     /**
-     * Concatenates texts from all elements placed in the {@code label} slot.
+     * Joins the (recursive) texts of all elements placed in the {@code label}
+     * slot with a space, collapsing runs of whitespace and trimming the result.
      * This effectively returns whatever was provided in the String label via
      * {@code FormLayout.addFormItem(Component, String)}.
      *
@@ -448,9 +449,10 @@ public final class ComponentUtils {
      * {@code label} property, but it's {@code Checkbox.getLabel()} for
      * checkbox). Intended to be used for fields such as {@code TextField}.
      * <p>
-     * <em>For {@code FormItem}:</em> Concatenates texts from all elements
-     * placed in the {@code label} slot. This effectively returns whatever was
-     * provided in the String label via
+     * <em>For {@code FormItem}:</em> Joins the (recursive) texts of all
+     * elements placed in the {@code label} slot with a space, collapsing runs
+     * of whitespace and trimming the result. This effectively returns whatever
+     * was provided in the String label via
      * {@code FormLayout.addFormItem(Component, String)}.
      * <p>
      * {@link #getCaption(Button)} is displayed directly on the component while

@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.browserless.internal.ComponentSupport;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
-import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -42,10 +42,12 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.data.binder.HasDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
+import com.vaadin.flow.dom.Element;
 
 /**
  * The {@link ComponentSupport} for the Vaadin components: everything the mocked
@@ -205,19 +207,16 @@ public class FlowComponentsSupport implements ComponentSupport {
     }
 
     /**
-     * Concatenates texts from all elements placed in the {@code label} slot,
-     * which is whatever was passed as the String label to
+     * Joins the (recursive) texts of all elements placed in the {@code label}
+     * slot with a space, collapsing runs of whitespace and trimming the result.
+     * This effectively returns whatever was passed as the String label to
      * {@link FormLayout#addFormItem(Component, String)}.
      */
     private static String getFormItemLabel(FormLayout.FormItem formItem) {
-        return formItem.getChildren().filter(
-                it -> "label".equals(it.getElement().getAttribute("slot")))
-                .map(it -> {
-                    String text = it instanceof HasText hasText
-                            ? hasText.getText()
-                            : null;
-                    return text != null ? text : "";
-                }).collect(Collectors.joining(""));
+        String joined = SlotUtils.getElementsInSlot(formItem, "label")
+                .map(Element::getTextRecursively)
+                .collect(Collectors.joining(" "));
+        return Utils.trim(joined.replaceAll("\\s+", " "));
     }
 
     private static List<Component> toList(Stream<? extends Component> stream) {

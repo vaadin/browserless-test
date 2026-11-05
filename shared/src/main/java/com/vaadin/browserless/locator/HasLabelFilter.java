@@ -36,9 +36,11 @@ import com.vaadin.flow.component.HasLabel;
 public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Locator<C, SELF>> {
 
     /**
-     * Requires the matched component's {@code label} property to be exactly the
-     * given value. Use this for form fields where the end user identifies a
-     * field by its label.
+     * Requires the matched component's label to be exactly the given value. Use
+     * this for form fields where the end user identifies a field by its label.
+     * The label is resolved as described in
+     * {@link com.vaadin.browserless.ElementConditions#hasLabel(String)}, which
+     * also covers {@code <label for>} elements and form item labels.
      */
     @SuppressWarnings("unchecked")
     default SELF withLabel(String label) {
@@ -46,8 +48,8 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
     }
 
     /**
-     * Requires the matched component's {@code label} property to contain the
-     * given text.
+     * Requires the matched component's label to contain the given text. The
+     * label is resolved in the same way as in {@link #withLabel(String)}.
      */
     @SuppressWarnings("unchecked")
     default SELF withLabelContaining(String text) {
