@@ -33,6 +33,7 @@ import kotlin.ranges.IntRange;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.ReflectTools;
 import com.vaadin.flow.router.HasErrorParameter;
@@ -433,10 +434,24 @@ public final class Utils {
     }
 
     /**
-     * Removes leading and trailing whitespace from given string, using the same
-     * definition as Kotlin's {@code String.trim()}.
+     * Checks whether given component is a {@code PolymerTemplate}.
      */
-    static String trim(String string) {
+    static boolean isPolymerTemplate(Component component) {
+        Class<?> polymerTemplateClass = getPolymerTemplateClass();
+        return polymerTemplateClass != null
+                && polymerTemplateClass.isAssignableFrom(component.getClass());
+    }
+
+    /**
+     * Removes leading and trailing whitespace from given string, using the same
+     * definition as Kotlin's {@code String.trim()}, which also treats
+     * non-breaking spaces as whitespace.
+     *
+     * @param string
+     *            the string to trim, not null.
+     * @return the trimmed string.
+     */
+    public static String trim(String string) {
         int start = 0;
         int end = string.length();
         while (start < end && isWhitespace(string.charAt(start))) {

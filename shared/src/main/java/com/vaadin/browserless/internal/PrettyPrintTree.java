@@ -31,10 +31,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.data.provider.DataProvider;
 
 /**
@@ -240,11 +237,11 @@ public final class PrettyPrintTree {
         if (!component.getElement().isEnabled()) {
             list.add("DISABLED");
         }
-        String label = ComponentUtils.getLabel(component);
+        String label = ComponentSupports.getLabel(component);
         if (!Utils.isBlank(label)) {
             list.add("label='" + label + "'");
         }
-        String caption = ComponentUtils.getCaption(component);
+        String caption = ComponentSupports.getCaption(component);
         if (!label.equals(caption) && !Utils.isBlank(caption)) {
             list.add("caption='" + caption + "'");
         }
@@ -281,19 +278,13 @@ public final class PrettyPrintTree {
         if (href != null) {
             list.add("href='" + href + "'");
         }
-        if (component instanceof Button button
-                && button.getIcon() instanceof Icon icon) {
-            list.add("icon='" + icon.getElement().getAttribute("icon") + "'");
-        }
+        ComponentSupports.describe(component, list);
         if (component instanceof Html) {
             String outerHtml = Utils.trim(component.getElement().getOuterHTML())
                     .replaceAll("\\s+", " ");
             list.add(Utils.ellipsize(outerHtml, 100, "..."));
         }
-        if (component instanceof Grid<?> grid && grid.getBeanType() != null) {
-            list.add("<" + grid.getBeanType().getSimpleName() + ">");
-        }
-        DataProvider<?, ?> dataProvider = ComponentUtils
+        DataProvider<?, ?> dataProvider = ComponentSupports
                 .getDataProvider(component);
         if (dataProvider != null) {
             list.add("dataprovider='" + dataProvider + "'");

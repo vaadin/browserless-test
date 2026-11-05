@@ -17,7 +17,6 @@ package com.vaadin.browserless.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,9 +24,6 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.contextmenu.MenuItemBase;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.menubar.MenuBar;
 
 /**
  * If you need to hook into the testing lifecycle (e.g. you need to wait for any
@@ -105,39 +101,9 @@ public interface TestingLifecycleHook {
     }
 
     private static List<Component> defaultGetAllChildren(Component component) {
-        if (component instanceof Grid<?> grid) {
-            // Header/footer components live as virtual children of the Column
-            // (or ColumnGroup) they belong to, and both of those branches drop
-            // virtual children on purpose: a component in a merged cell is a
-            // virtual child of every column it spans and would otherwise show
-            // up more than once. Collect them here instead, once per Grid.
-            // see https://github.com/mvysny/karibu-testing/issues/52
-            List<Component> result = new ArrayList<>();
-            grid.getHeaderRows().stream()
-                    .flatMap(row -> row.getCells().stream()
-                            .map(cell -> cell.getComponent()))
-                    .filter(Objects::nonNull).forEach(result::add);
-            grid.getFooterRows().stream()
-                    .flatMap(row -> row.getCells().stream()
-                            .map(cell -> cell.getComponent()))
-                    .filter(Objects::nonNull).forEach(result::add);
-            grid.getColumns().stream()
-                    .map(column -> column.getEditorComponent())
-                    .filter(Objects::nonNull).forEach(result::add);
-            component.getChildren().forEach(result::add);
-            ComponentUtil.getAllChildren(component).forEach(result::add);
-            return distinct(result.stream());
-        }
-        if (component instanceof MenuItemBase<?, ?, ?> menuItem) {
-            // also include component.children:
-            // https://github.com/mvysny/karibu-testing/issues/76
-            return distinct(Stream.concat(component.getChildren(),
-                    menuItem.getSubMenu().getItems().stream()));
-        }
-        if (component instanceof MenuBar) {
-            // don't include virtual children since that would make the
-            // MenuItems appear two times.
-            return toList(component.getChildren());
+        List<Component> supported = ComponentSupports.getAllChildren(component);
+        if (supported != null) {
+            return supported;
         }
         if (TestingLifecycleHooks.isTemplate(component)) {
             // don't include virtual children since those will include nested
@@ -148,17 +114,6 @@ public interface TestingLifecycleHook {
             // properties would only be confusing. Therefore, let's leave the
             // virtual children out for now. See
             // https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#polymer-templates--lit-templates
-            return toList(component.getChildren());
-        }
-        if (component.getClass().getName()
-                .equals("com.vaadin.flow.component.grid.ColumnGroup")) {
-            // don't include virtual children since that would include the
-            // header/footer components, which the Grid branch already reports
-            return toList(component.getChildren());
-        }
-        if (component instanceof Grid.Column<?>) {
-            // don't include virtual children since that would include the
-            // header/footer components, which the Grid branch already reports
             return toList(component.getChildren());
         }
         if (component instanceof Composite<?>) {
