@@ -42,18 +42,28 @@ public class NotificationTester<T extends Notification>
     }
 
     /**
-     * Gets the text of the notification.
+     * Gets the text the user sees in the notification.
+     *
+     * This is the text set with {@link Notification#setText(String)}, or, when
+     * the notification shows components instead, the text content of those
+     * components. Text from nested elements is concatenated without space
+     * separators, so it can differ from the rendered layout.
      *
      * If the notification is not displayed an IllegalStateException will be
      * thrown as the end user would not be able to see the contents.
      *
-     * @return the text of the notification
+     * @return the text of the notification, or an empty string if it shows
+     *         neither text nor text content; never {@code null}
      * @throws IllegalStateException
      *             is notification is not displayed
      */
     public String getText() {
         ensureComponentIsUsable();
-        return getComponent().getElement().getProperty("text");
+        String text = getComponent().getText();
+        if (text.isEmpty()) {
+            return getComponent().getElement().getTextRecursively();
+        }
+        return text;
     }
 
     /**
