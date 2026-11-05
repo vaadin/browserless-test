@@ -347,9 +347,11 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
-     * Requires the component's {@code label} property to be exactly the given
-     * value. Use this for form fields (TextField, ComboBox, etc.) where the end
-     * user identifies a field by its label.
+     * Requires the component's label to be exactly the given value. Use this
+     * for form fields (TextField, ComboBox, etc.) where the end user identifies
+     * a field by its label. The label is the component's {@code label}
+     * property, a referring {@code <label for>} element, or the label of an
+     * enclosing form item; see {@link ElementConditions#hasLabel(String)}.
      *
      * @param label
      *            the expected label, not {@literal null}
@@ -363,8 +365,8 @@ public class ComponentQuery<T extends Component> {
     }
 
     /**
-     * Requires the component's {@code label} property to contain the given
-     * text.
+     * Requires the component's label to contain the given text. The label is
+     * resolved in the same way as in {@link #withLabel(String)}.
      *
      * @param text
      *            substring to find in the label, not {@literal null}

@@ -32,7 +32,6 @@ import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasOrderedComponents;
 import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
-import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -49,6 +48,7 @@ import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -500,7 +500,8 @@ public final class ComponentUtils {
     }
 
     /**
-     * Concatenates texts from all elements placed in the {@code label} slot.
+     * Joins the (recursive) texts of all elements placed in the {@code label}
+     * slot with a space, collapsing runs of whitespace and trimming the result.
      * This effectively returns whatever was provided in the String label via
      * {@link FormLayout#addFormItem(Component, String)}.
      *
@@ -509,14 +510,10 @@ public final class ComponentUtils {
      * @return the label.
      */
     public static String getLabel(FormLayout.FormItem formItem) {
-        List<Component> captions = formItem.getChildren().filter(
-                it -> "label".equals(it.getElement().getAttribute("slot")))
-                .toList();
-        return captions.stream().map(it -> {
-            String text = it instanceof HasText hasText ? hasText.getText()
-                    : null;
-            return text != null ? text : "";
-        }).collect(Collectors.joining(""));
+        String joined = SlotUtils.getElementsInSlot(formItem, "label")
+                .map(Element::getTextRecursively)
+                .collect(Collectors.joining(" "));
+        return Utils.trim(joined.replaceAll("\\s+", " "));
     }
 
     /**
@@ -524,9 +521,10 @@ public final class ComponentUtils {
      * {@code label} property, but it's {@link Checkbox#getLabel()} for
      * checkbox). Intended to be used for fields such as {@link TextField}.
      * <p>
-     * <em>For {@code FormItem}:</em> Concatenates texts from all elements
-     * placed in the {@code label} slot. This effectively returns whatever was
-     * provided in the String label via
+     * <em>For {@code FormItem}:</em> Joins the (recursive) texts of all
+     * elements placed in the {@code label} slot with a space, collapsing runs
+     * of whitespace and trimming the result. This effectively returns whatever
+     * was provided in the String label via
      * {@link FormLayout#addFormItem(Component, String)}.
      * <p>
      * {@link #getCaption(Button)} is displayed directly on the component while
