@@ -63,8 +63,10 @@ about what it does.
 
 **Keep the argument the user's mental model.** `selectItem(item)` takes the
 item, not its index, when the component is item-based;
-`selectItem(null)` is how the combo box testers model unconditional emptying,
-because that is what a user clearing a selection does.
+`selectItem(null)` is how `ComboBoxTester` models unconditional emptying,
+because that is what a user clearing a selection does —
+`MultiSelectComboBoxTester` uses `deselectAll()`, like the other multi-select
+testers.
 
 **Return `void` from an action, a value from a query.** Locators return
 `SELF` from their filter methods so a chain reads as one sentence; tester
