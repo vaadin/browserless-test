@@ -19,7 +19,7 @@ import jakarta.enterprise.inject.spi.CDI;
 
 import java.util.function.BooleanSupplier;
 
-import com.vaadin.browserless.internal.UtilsKt;
+import com.vaadin.browserless.internal.Utils;
 
 /**
  * Detects whether Quarkus Security is active in the running application.
@@ -45,7 +45,7 @@ final class QuarkusSecuritySupport {
     private static final String CURRENT_IDENTITY_ASSOCIATION_CLASS = "io.quarkus.security.identity.CurrentIdentityAssociation";
 
     private static final BooleanSupplier DEFAULT_DETECTOR = () -> {
-        Class<?> beanClass = UtilsKt
+        Class<?> beanClass = Utils
                 .findClass(CURRENT_IDENTITY_ASSOCIATION_CLASS);
         if (beanClass == null) {
             return false;

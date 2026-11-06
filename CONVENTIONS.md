@@ -113,7 +113,7 @@ and session lifecycle events through the `VaadinService` event bus, and forward
 `Instantiator` calls to the real instantiator instead of reimplementing them.
 
 New code in `shared` is written in Java. The Kotlin sources under
-`shared/src/main/kotlin` are the older mock and internal layer and are being
+`shared/src/main/kotlin` are the older mock layer and Grid helpers and are being
 ported to Java; do not add new Kotlin files there.
 
 See [`guidelines/architecture.md`](guidelines/architecture.md).

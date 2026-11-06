@@ -98,7 +98,7 @@ internal fun DynaNodeGroup.locatorTest() {
 
     beforeEach { MockVaadin.setup() }
     beforeEach { testingLifecycleHook = MyLifecycleHook() }
-    afterEach { testingLifecycleHook = TestingLifecycleHook.default }
+    afterEach { testingLifecycleHook = object : TestingLifecycleHook {} }
     afterEach { MockVaadin.tearDown() }
 
     group("_get") {
@@ -299,7 +299,7 @@ internal fun DynaNodeGroup.locatorTest() {
     }
 
     group("unmocked env") {
-        beforeEach { MockVaadin.tearDown(); testingLifecycleHook = TestingLifecycleHook.default }
+        beforeEach { MockVaadin.tearDown(); testingLifecycleHook = object : TestingLifecycleHook {} }
         test("lookup functions should work in unmocked environment") {
             Button()._get(Button::class.java)
             expectThrows(AssertionError::class) {
