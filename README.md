@@ -712,10 +712,12 @@ assertTrue(test(quickAdd).isFocused());
   is disabled or not attached to a UI, since neither can take or lose focus in
   a browser either. A read-only field can be focused. `isFocused()` never
   throws and reports `false` for a component that is not attached.
-- Detecting server-side `Focusable` calls relies on matching the JavaScript that
-  Flow generates for them, and reading the pending JavaScript queue consumes it:
-  when a focus or blur call is pending, other JavaScript queued at the same time
-  is dropped. Everything the simulation takes off the queue is listed in a
+- Only focus and blur calls made through `Focusable` are simulated. JavaScript
+  the application schedules itself, such as
+  `getElement().executeJs("this.focus()")`, is not interpreted and stays
+  queued.
+- Reading the pending JavaScript queue consumes it: when a focus or blur call
+  is pending, other JavaScript queued at the same time is dropped. Everything the simulation takes off the queue is listed in a
   debug log under `com.vaadin.browserless.FocusTracker`. Handling the queue
   centrally is tracked in
   [#221](https://github.com/vaadin/browserless-test/issues/221).
