@@ -34,9 +34,12 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
+import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -927,6 +930,82 @@ class ComponentQueryTest extends BrowserlessTest {
                 find(TestComponent.class).withLabel("Native").single());
         Assertions.assertTrue(
                 find(TestComponent.class).withLabel("Missing").all().isEmpty());
+    }
+
+    @Test
+    void withLabel_fieldInFormItem_matchesFormItemLabel() {
+        FormLayout form = new FormLayout();
+        TextField number = new TextField();
+        form.addFormItem(number, "Number");
+        // The field's own label wins over the form item's label.
+        TextField ownLabel = new TextField("Street");
+        form.addFormItem(ownLabel, "Address");
+        UI.getCurrent().add(form);
+
+        Assertions.assertSame(number,
+                find(Component.class).withLabel("Number").single());
+        Assertions.assertSame(number,
+                find(Component.class).withLabelContaining("umb").single());
+        Assertions.assertSame(ownLabel,
+                find(Component.class).withLabel("Street").single());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Address").all().isEmpty());
+        // A <label for> keeps naming the field; an aria-label does not hide
+        // the visible form item label.
+        TextField ariaNamed = new TextField();
+        ariaNamed.setAriaLabel("Phone");
+        form.addFormItem(ariaNamed, "Contact");
+        TextField forNamed = new TextField();
+        forNamed.setId("zip");
+        NativeLabel zipLabel = new NativeLabel("Zip");
+        zipLabel.setFor("zip");
+        form.add(zipLabel);
+        form.addFormItem(forNamed, "Postal");
+        // Label slot texts are joined with spaces.
+        TextField name = new TextField();
+        FormLayout.FormItem nameItem = form.addFormItem(name, "First");
+        SlotUtils.addToSlot(nameItem, "label", new Div("  name "));
+
+        Assertions.assertSame(ariaNamed,
+                find(Component.class).withLabel("Contact").single());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Postal").all().isEmpty());
+        Assertions.assertSame(forNamed,
+                find(Component.class).withLabel("Zip").single());
+        Assertions.assertSame(name,
+                find(Component.class).withLabel("First name").single());
+    }
+
+    @Test
+    void withLabel_formItemWithSeveralChildren_matchesOnlyFirstField() {
+        FormLayout form = new FormLayout();
+        TextField amount = new TextField();
+        TextField second = new TextField();
+        Div unit = new Div("kg");
+        FormLayout.FormItem item = new FormLayout.FormItem(unit, amount,
+                second);
+        SlotUtils.addToSlot(item, "label", new Div("Amount"));
+        form.add(item);
+        // As in the browser, a field wrapped in a layout is not labelled.
+        TextField wrapped = new TextField();
+        form.addFormItem(new Div(wrapped), "Wrapped");
+        // A native form control is a field too.
+        NativeButton nativeButton = new NativeButton("x");
+        TextField afterButton = new TextField();
+        FormLayout.FormItem buttonItem = new FormLayout.FormItem(nativeButton,
+                afterButton);
+        SlotUtils.addToSlot(buttonItem, "label", new Div("Native"));
+        form.add(buttonItem);
+        UI.getCurrent().add(form);
+
+        Assertions.assertSame(amount,
+                find(Component.class).withLabel("Amount").single());
+        Assertions.assertSame(nativeButton,
+                find(Component.class).withLabel("Native").single());
+        Assertions.assertEquals(List.of(amount, nativeButton),
+                find(Component.class).withLabelContaining("").all());
+        Assertions.assertTrue(
+                find(Component.class).withLabel("Wrapped").all().isEmpty());
     }
 
     @Test

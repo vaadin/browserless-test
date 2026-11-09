@@ -25,6 +25,7 @@ import com.vaadin.flow.component.checkbox.Checkbox
 import com.vaadin.flow.component.formlayout.FormLayout
 import com.vaadin.flow.component.html.Div
 import com.vaadin.flow.component.html.Span
+import com.vaadin.flow.component.shared.SlotUtils
 import com.vaadin.flow.component.orderedlayout.FlexLayout
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.textfield.TextArea
@@ -248,6 +249,9 @@ fun DynaNodeGroup.componentUtilsTests() {
         val fl = FormLayout()
         c = fl.addFormItem(Button(), "foo")
         expect("foo") { c.caption }
+        val item = fl.addFormItem(Button(), Div(Span("Last")))
+        SlotUtils.addToSlot(item, "label", Span("  name "))
+        expect("Last name") { item.caption }
     }
 
     test("Button.caption") {
