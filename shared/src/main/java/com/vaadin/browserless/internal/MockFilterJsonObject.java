@@ -33,8 +33,8 @@ import com.vaadin.flow.internal.JacksonUtils;
 /**
  * Take a look at {@code DomEventListenerWrapper.matchesFilter()} to see why
  * this is necessary. If this stuff stops working, place a breakpoint into the
- * {@link #get(String)}/{@link #has(String)} function, to see what kind of
- * keys you're receiving and whether it matches the filter.
+ * {@link #get(String)}/{@link #has(String)} function, to see what kind of keys
+ * you're receiving and whether it matches the filter.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
