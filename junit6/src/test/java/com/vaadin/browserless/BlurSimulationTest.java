@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.BlurNotifier.BlurEvent;
 import com.vaadin.flow.component.FocusNotifier.FocusEvent;
 import com.vaadin.flow.component.FocusOption;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
@@ -167,13 +168,12 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
-    public void serverSideFocusWithOptions_generatesDifferentJs_alsoDetected() {
+    public void serverSideFocusWithOptions_movesFocus() {
         TextField other = new TextField("Other");
         AtomicReference<FocusEvent<TextField>> otherFocus = new AtomicReference<>();
         other.addFocusListener(otherFocus::set);
         container.add(other);
-        // focus(FocusOption...) generates "this.focus($0)" instead of
-        // "this.focus()" in the scheduled JavaScript
+        // focus(FocusOption...) passes the options on to the client
         textField.addValueChangeListener(
                 e -> other.focus(FocusOption.PreventScroll.ENABLED));
 
@@ -185,6 +185,22 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "Focus listener should fire for server-side focus(FocusOption...)");
         Assertions.assertFalse(otherFocus.get().isFromClient(),
                 "Focusable.focus() marks the resulting focus event as not from the client");
+    }
+
+    @Test
+    public void applicationJsMentioningFocus_leftInQueue() {
+        // Only calls made through Focusable are simulated; JavaScript the
+        // application schedules itself stays available to the test, even
+        // when its text looks like a focus call
+        textField.addValueChangeListener(
+                e -> textField.getElement().executeJs("this.focus()"));
+
+        test(textField).setValue("100");
+
+        Assertions.assertTrue(
+                UI.getCurrent().getInternals()
+                        .containsPendingJavascript("this.focus()"),
+                "Application JavaScript should not be consumed as a focus call");
     }
 
     @Test

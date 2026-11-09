@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.BooleanNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.flow.component.Key;
@@ -32,7 +33,7 @@ import com.vaadin.flow.internal.JacksonUtils;
 /**
  * Take a look at {@code DomEventListenerWrapper.matchesFilter()} to see why
  * this is necessary. If this stuff stops working, place a breakpoint into the
- * {@link #booleanValue()}/{@link #has(String)} function, to see what kind of
+ * {@link #get(String)}/{@link #has(String)} function, to see what kind of
  * keys you're receiving and whether it matches the filter.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
@@ -63,7 +64,6 @@ final class MockFilterJsonObject extends ObjectNode {
     }
 
     private final String filter;
-    private String filterString = "";
 
     MockFilterJsonObject(Key key, Set<? extends Key> modifiers) {
         super(JacksonUtils.getMapper().getNodeFactory());
@@ -127,23 +127,12 @@ final class MockFilterJsonObject extends ObjectNode {
 
     @Override
     public JsonNode get(String keyString) {
-        filterString = keyString;
         if (keyString.startsWith("([")) {
-            // For filter key we return this so we get the correct matches
-            // for booleanValue as get returns null
-            return this;
+            // Flow evaluates the value sent for a filter with JavaScript
+            // truthiness, so answer with the result the filter would have
+            // returned in the browser
+            return BooleanNode.valueOf(matchesFilter(keyString));
         }
         return super.get(keyString);
-    }
-
-    @Override
-    public boolean booleanValue() {
-        // the "key" is a JavaScript expression which matches the key pressed.
-        // we need to match it against the 'filter'
-        if (!filterString.startsWith("([")) {
-            // not a filter
-            return super.booleanValue();
-        }
-        return matchesFilter(filterString);
     }
 }
