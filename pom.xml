@@ -183,6 +183,10 @@
                          runs in modules that reference this plugin. -->
                     <configuration>
                         <quiet>true</quiet>
+                        <!-- Sibling modules such as shared are documented by
+                             Dokka, so there is no maven-javadoc output to
+                             link to. -->
+                        <detectOfflineLinks>false</detectOfflineLinks>
                     </configuration>
                     <executions>
                         <execution>

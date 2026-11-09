@@ -24,7 +24,7 @@ import tools.jackson.databind.node.ObjectNode
 
 /**
  * Take a look at `DomEventListenerWrapper.matchesFilter()` to see why this is necessary.
- * If this stuff stops working, place a breakpoint into the [getBoolean]/[hasKey] function,
+ * If this stuff stops working, place a breakpoint into the [has]/[get] function,
  * to see what kind of keys you're receiving and whether it matches [filter].
  */
 private class MockFilterJsonObject(val key: Key, val modifiers: Set<Key>) : ObjectNode(
