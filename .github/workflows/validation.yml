@@ -87,7 +87,24 @@ jobs:
           rm -rf ~/.m2/repository
 
       - name: Build with Maven and Generate Javadoc
-        run: mvn clean install -DskipTests -Djavadocs -B -ntp
+        run: |
+          set -o pipefail
+          mvn clean install -DskipTests -Djavadocs -B -ntp 2>&1 | tee mvn-build.out
+
+      - name: Convert Javadoc problems to JUnit XML
+        if: failure()
+        run: |
+          python3 .github/scripts/javadocErrorsToJUnit.py \
+            mvn-build.out javadoc-reports/TEST-Javadoc.xml
+
+      - name: Upload Javadoc results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: javadoc-results
+          path: javadoc-reports/TEST-*.xml
+          if-no-files-found: ignore
+          retention-days: 7
 
   unit-tests:
     name: Unit Tests
@@ -131,10 +148,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    # Runs whether the tests passed or failed, but not when unit-tests was
-    # skipped (fork PR) — there is no artifact to publish in that case.
-    if: ${{ always() && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure') }}
-    needs: unit-tests
+    # Runs whether the tests passed or failed, and when the build failed so
+    # that Javadoc problems are published, but not for fork PRs — their token
+    # cannot comment on the PR and unit-tests is skipped for them.
+    if: ${{ always() && !github.event.pull_request.head.repo.fork && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure' || needs.build.result == 'failure') }}
+    needs: [build, unit-tests]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
 
@@ -142,7 +160,7 @@ jobs:
       - name: Download test results
         uses: actions/download-artifact@v8
         with:
-          name: unit-test-results
+          pattern: '*-results'
 
       # check_run is disabled on purpose: a check run created through the Checks
       # API is attached to the oldest check suite for the head SHA, which for
