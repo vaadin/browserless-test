@@ -65,8 +65,9 @@ CI (`.github/workflows/validation.yml`) runs `spotless:check`, then
 `mvn clean install -DskipTests -Djavadocs`, then `mvn test`, and publishes the
 surefire reports. When the build fails on Javadoc,
 `.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc or Dokka problem
-into an annotation on the PR diff and a failed test in the published results. Commenting `/format` on a pull request runs `spotless:apply`
-and pushes the result.
+into an annotation on the PR diff and a failed test in the published results.
+Commenting `/format` on a pull request runs `spotless:apply` and pushes the
+result.
 
 `.github/workflows/code-review.yml` reviews pull requests against `main` with
 the shared `vaadin/github-actions/code-review` action when they are opened or

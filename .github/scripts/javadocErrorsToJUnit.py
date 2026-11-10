@@ -35,8 +35,9 @@ JAVADOC_PATTERN = re.compile(
     re.M,
 )
 
-DOKKA_START = re.compile(r'^\[INFO\] --- dokka:\S+:javadocJar ', re.M)
-DOKKA_FAILED = 'Failed with warningCount='
+DOKKA_START = re.compile(
+    r'^\[INFO\] --- dokka:\S+:javadocJar .*@ (\S+) ---$', re.M)
+DOKKA_FAILED = 'on project {}: .*Failed with warningCount='
 DOKKA_PROBLEM = re.compile(r'^\[(?:WARNING|ERROR)\] (.*)$')
 # The end of the Dokka run: the next plugin execution or the build result.
 DOKKA_END = re.compile(r'^\[INFO\] (?:--- |-{20,}$|BUILD )')
@@ -92,8 +93,9 @@ def dokka_problems(log, workspace):
     lines = log.splitlines()
     for start in DOKKA_START.finditer(log):
         # Maven reports the failed goal after the Dokka run has finished,
-        # so look for the failure in the rest of the log.
-        if DOKKA_FAILED not in log[start.end():]:
+        # so look for this project's failure in the rest of the log.
+        failed = DOKKA_FAILED.format(re.escape(start.group(1)))
+        if not re.search(failed, log[start.end():]):
             continue
         index = log.count('\n', 0, start.start()) + 1
         messages = []
