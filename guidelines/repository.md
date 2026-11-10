@@ -63,13 +63,13 @@ The `locator-processor` module has to be installed before `shared` compiles,
 which `mvn install` at the root handles. When you build `shared` alone, include
 `-am` so the processor is built too.
 
-CI (`.github/workflows/validation.yml`) runs `spotless:check`, then
-`mvn clean install -DskipTests -Djavadocs`, then `mvn test`, and publishes the
-surefire reports. When the build fails on Javadoc,
+CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
+changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
+`mvn test`, and publishes the surefire reports. When the build fails on Javadoc,
 `.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc or Dokka problem
 into an annotation on the PR diff and a failed test in the published results.
-Commenting `/format` on a pull request runs `spotless:apply` and pushes the
-result.
+`formatter-suggestions.yml` posts the formatting changes as review suggestions
+on the pull request, also for forks.
 
 `.github/workflows/code-review.yml` reviews pull requests against `main` with
 the shared `vaadin/github-actions/code-review` action when they are opened or
