@@ -119,7 +119,7 @@ object MockVaadin {
      * [VaadinServletService.loadInstantiators] and provide your own way of instantiating Views, e.g. via Spring or Guice.
      * Please do that by extending [MockVaadinServlet] and overriding [MockVaadinServlet.createServletService]
      * `createServletService(DeploymentConfiguration)`.
-     * Please consult [MockService] on what methods you must override in your custom service.
+     * Please consult [com.vaadin.browserless.mocks.MockService] on what methods you must override in your custom service.
      * Alternatively, see `MockSpringServlet` (in the `browserless-test-spring` module) on how to extend your custom servlet and
      * provide all necessary mocking code.
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
@@ -498,7 +498,7 @@ object MockVaadin {
      * Runs all tasks scheduled by [UI.access].
      *
      * If [VaadinSession.errorHandler] is not set or [propagateExceptionToHandler]
-     * is false, any exceptions thrown from [Command]s scheduled via the [UI.access] will make this function fail.
+     * is false, any exceptions thrown from [Commands][com.vaadin.flow.server.Command] scheduled via the [UI.access] will make this function fail.
      * The exceptions will be wrapped in [ExecutionException]. Generally
      * it's best to keep [propagateExceptionToHandler] set to false to
      * make any exceptions fail the test; however if you're testing
@@ -509,7 +509,7 @@ object MockVaadin {
      * don't need to call this method unless you need to test your [ErrorHandler].
      *
      * @param propagateExceptionToHandler defaults to false. If true and [VaadinSession.errorHandler]
-     * is set, any exceptions thrown from [Command]s scheduled via the [UI.access] will be
+     * is set, any exceptions thrown from [Commands][com.vaadin.flow.server.Command] scheduled via the [UI.access] will be
      * redirected to [VaadinSession.errorHandler] and will not be re-thrown from this method.
      * @throws IllegalStateException if the environment is not mocked
      */
@@ -558,7 +558,7 @@ object MockVaadin {
      * Internal function, do not call directly.
      *
      * Only usable when you are providing your own implementation of [VaadinSession].
-     * See [MockVaadinSession] on how to call this properly.
+     * See [com.vaadin.browserless.mocks.MockVaadinSession] on how to call this properly.
      */
     @JvmStatic
     public fun afterSessionClose(session: VaadinSession, uiFactory: UIFactory) {

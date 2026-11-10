@@ -56,58 +56,168 @@ abstract class AbstractBrowserlessExtension
 
     // --- Protected builder helpers ---
 
+    /**
+     * Adds packages to scan for {@code @Route}-annotated views, derived from
+     * the given classes' packages.
+     *
+     * @param classes
+     *            classes whose packages should be scanned
+     */
     protected void addViewPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
                 .forEach(viewPackages::add);
     }
 
+    /**
+     * Adds packages to scan for {@code @Route}-annotated views.
+     *
+     * @param packages
+     *            package names to scan
+     */
     protected void addViewPackages(String... packages) {
         viewPackages.addAll(Arrays.asList(packages));
     }
 
+    /**
+     * Adds Vaadin {@link com.vaadin.flow.di.Lookup} service implementation
+     * classes.
+     *
+     * @param serviceClasses
+     *            service implementation classes to register
+     */
     protected void addServices(Class<?>... serviceClasses) {
         configuration.withLookupServices(serviceClasses);
     }
 
+    /**
+     * Adds extra packages to scan for {@link ComponentTester} implementations.
+     *
+     * @param packages
+     *            package names to scan for testers
+     */
     protected void addComponentTesterPackages(String... packages) {
         componentTesterPackages.addAll(Arrays.asList(packages));
     }
 
+    /**
+     * Adds the packages of the given classes to the set of packages to scan for
+     * {@link ComponentTester} implementations.
+     *
+     * @param classes
+     *            classes whose packages should be scanned for testers
+     */
     protected void addComponentTesterPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
                 .forEach(componentTesterPackages::add);
     }
 
+    /**
+     * Sets a Vaadin application property (init parameter) for the tests using
+     * this extension.
+     *
+     * @param name
+     *            the property name
+     * @param value
+     *            the property value
+     */
     protected void addApplicationProperty(String name, String value) {
         configuration.withApplicationProperty(name, value);
     }
 
+    /**
+     * Sets Vaadin application properties (init parameters) for the tests using
+     * this extension.
+     *
+     * @param properties
+     *            the properties to set
+     */
     protected void addApplicationProperties(Map<String, String> properties) {
         configuration.withApplicationProperties(properties);
     }
 
+    /**
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
+     *
+     * @param featureIds
+     *            the identifiers of the features to enable
+     */
     protected void addFeatureFlags(String... featureIds) {
         configuration.withFeatureFlags(featureIds);
     }
 
+    /**
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
+     *
+     * @param features
+     *            the features to enable
+     */
     protected void addFeatureFlags(Feature... features) {
         configuration.withFeatureFlags(features);
     }
 
+    /**
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
+     *
+     * @param featureId
+     *            the identifier of the feature
+     * @param enabled
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
+     */
     protected void addFeatureFlag(String featureId, boolean enabled) {
         configuration.withFeatureFlag(featureId, enabled);
     }
 
+    /**
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
+     *
+     * @param feature
+     *            the feature
+     * @param enabled
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
+     */
     protected void addFeatureFlag(Feature feature, boolean enabled) {
         configuration.withFeatureFlag(feature, enabled);
     }
 
+    /**
+     * Applies the given configuration on top of the one built so far for the
+     * tests using this extension.
+     * <p>
+     * The configuration wins over the one declared by a
+     * {@link BrowserlessTestConfig} annotation on the test class, but loses
+     * against the one declared on the test method.
+     *
+     * @param configuration
+     *            the configuration to apply
+     */
     protected void addConfiguration(BrowserlessConfiguration configuration) {
         this.configuration.withConfiguration(configuration);
     }
 
     // --- Lifecycle callbacks ---
 
+    /**
+     * Sets up the mocked Vaadin environment for a test, with the configuration
+     * built by this extension merged with the {@link BrowserlessTestConfig}
+     * annotations of the test.
+     * <p>
+     * When the test instance is a {@link BaseBrowserlessTest}, the environment
+     * is initialized through it; otherwise this extension sets it up on its
+     * own. Call {@link #doCleanup()} afterwards to tear it down, also when this
+     * method throws.
+     *
+     * @param testInstance
+     *            the test instance, or {@literal null} when the extension runs
+     *            without one
+     * @param ctx
+     *            the JUnit extension context of the test or test class
+     */
     protected void doInit(Object testInstance, ExtensionContext ctx) {
         BrowserlessConfiguration effectiveConfiguration = BrowserlessTestConfigExtension
                 .resolveConfiguration(ctx, configuration.build());
@@ -140,6 +250,11 @@ abstract class AbstractBrowserlessExtension
         return false;
     }
 
+    /**
+     * Tears down the mocked Vaadin environment set up by
+     * {@link #doInit(Object, ExtensionContext)}. Does nothing when there is
+     * nothing to tear down.
+     */
     protected void doCleanup() {
         if (cleanupAction != null) {
             cleanupAction.run();
