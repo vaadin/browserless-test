@@ -933,6 +933,47 @@ Map<String, List<String>> opened = w.getOpenedWindows();
 `getExternalNavigationURL(name)` and `getOpenedWindows()` cover named windows
 and `_blank`.
 
+### Session locking
+
+By default the test thread holds the `VaadinSession` lock of every user at
+the same time. Application code running in one user's window that changes
+another user's UI without `UI.access()` therefore passes in a test, although
+it fails with "Cannot access state in VaadinSession or UI without locking the
+session" in a running application. For the same reason,
+`session.hasLock()` is `true` for every user's session.
+
+To catch these cross-session bugs, enable session lock isolation on the
+builder. A user's session is then locked only while one of that user's
+windows is active, the way a real request holds only its own session's lock:
+
+```java
+try (var app = BrowserlessApplicationContext.create(b -> b
+        .withViewPackages(DispatchView.class)
+        .withSessionLockIsolation(true))) {
+    var alice = app.newUser().newWindow();
+    var bob = app.newUser().newWindow();
+    alice.navigate(DispatchView.class);
+    bob.navigate(DispatchView.class);
+
+    // Fails if the click updates bob's UI without UI.access()
+    alice.test(alice.find(Button.class).withText("New Assignment").single())
+            .click();
+}
+```
+
+With isolation enabled:
+
+- A `UI.access()` command for another user's UI runs at once, with that
+  user's session and UI current, because no other thread holds that lock.
+- Switching to another user's window releases the outgoing session's lock,
+  which runs the commands still queued for it, and then takes the incoming
+  session's lock. Switching between windows of the same user keeps the lock.
+- To change another user's component directly from the test, activate one of
+  that user's windows first, for example with `bob.activate()`.
+- The mocked session checks the lock with a Java `assert`, so the failure is an
+  `AssertionError` and needs assertions enabled. Maven Surefire and Gradle
+  enable them for tests by default.
+
 ### Notes
 
 - `app.newUser(username, roles...)` requires the application context to be

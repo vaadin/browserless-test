@@ -62,6 +62,15 @@ import com.vaadin.flow.server.VaadinServletService;
  * returns the typed {@link SecuredBrowserlessApplicationContext}, which exposes
  * credential-aware {@code newUser(...)} overloads. Framework-specific modules
  * (Spring, Quarkus) provide convenience factory methods for both paths.
+ * <p>
+ * <strong>Session locking.</strong> By default the test thread holds the
+ * {@link com.vaadin.flow.server.VaadinSession} lock of every user at the same
+ * time, so application code that changes another user's UI without
+ * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+ * UI.access()} passes in a test even though it fails in a running application.
+ * Enable {@link Builder#withSessionLockIsolation(boolean)} to hold a session
+ * lock only while one of that user's windows is active, the way a real request
+ * holds only its own session's lock.
  *
  * <pre>
  * var app = BrowserlessApplicationContext.create(MyView.class);
@@ -85,6 +94,8 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private TestSignalEnvironment signalsTestEnvironment;
     private RequestContextHandler requestContextHandler;
+    private boolean sessionLockIsolation;
+    private BrowserlessUserContext sessionLockHolder;
     private boolean closed;
 
     BrowserlessApplicationContext(VaadinServletService service,
@@ -301,6 +312,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             user.close();
         }
         users.clear();
+        holdSessionLock(null);
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
@@ -357,6 +369,46 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         this.requestContextHandler = handler;
     }
 
+    boolean isSessionLockIsolation() {
+        return sessionLockIsolation;
+    }
+
+    void setSessionLockIsolation(boolean sessionLockIsolation) {
+        this.sessionLockIsolation = sessionLockIsolation;
+    }
+
+    /**
+     * Makes the given user's session the only one whose lock the current thread
+     * holds, as if a request for that user had started. Releasing the
+     * previously held lock runs the commands queued for that session with
+     * {@code UI.access()}, like the end of a real request does. Passing
+     * {@code null} releases the held lock without taking another one. Does
+     * nothing unless {@link Builder#withSessionLockIsolation(boolean) session
+     * lock isolation} is enabled, because then every session stays locked for
+     * its whole lifetime.
+     *
+     * @param user
+     *            the user whose session lock to hold, or {@code null} to hold
+     *            none
+     */
+    void holdSessionLock(BrowserlessUserContext user) {
+        if (!sessionLockIsolation || sessionLockHolder == user) {
+            return;
+        }
+        BrowserlessUserContext previous = sessionLockHolder;
+        sessionLockHolder = null;
+        try {
+            if (previous != null) {
+                previous.getSession().unlock();
+            }
+        } finally {
+            if (user != null) {
+                user.getSession().lock();
+                sessionLockHolder = user;
+            }
+        }
+    }
+
     void checkNotClosed() {
         if (closed) {
             throw new IllegalStateException(
@@ -384,6 +436,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
         private RequestContextHandler requestContextHandler;
+        private boolean sessionLockIsolation;
 
         /**
          * Creates a builder with no pre-seeded routes. Routes are derived from
@@ -726,6 +779,48 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
 
         /**
+         * Sets whether a user's {@link com.vaadin.flow.server.VaadinSession}
+         * lock is held only while one of that user's windows is active.
+         * Disabled by default, in which case the test thread holds the lock of
+         * every user's session for the session's whole lifetime.
+         * <p>
+         * When enabled, the session lock follows the active window, the way a
+         * real request holds only the lock of its own session:
+         * <ul>
+         * <li>Application code running in one user's window that changes
+         * another user's UI directly fails with an
+         * {@link IllegalStateException}, as it does in a running application.
+         * Use
+         * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+         * UI.access()} for such changes.</li>
+         * <li>A {@code UI.access()} command for another user's UI runs at once
+         * on the calling thread, with that user's session and UI current,
+         * because nothing else holds that session's lock.</li>
+         * <li>Switching to another user's window releases the outgoing
+         * session's lock, which runs the commands still queued for it, and then
+         * takes the incoming session's lock. Switching between windows of the
+         * same user keeps the lock.</li>
+         * <li>A test that changes a component of another user directly has to
+         * activate one of that user's windows first, for example with
+         * {@link BrowserlessUIContext#activate()}.</li>
+         * </ul>
+         *
+         * @param enabled
+         *            {@code true} to hold a session lock only while one of its
+         *            user's windows is active, {@code false} to keep every
+         *            session locked
+         * @return this builder
+         */
+        public Builder withSessionLockIsolation(boolean enabled) {
+            this.sessionLockIsolation = enabled;
+            return this;
+        }
+
+        boolean sessionLockIsolation() {
+            return sessionLockIsolation;
+        }
+
+        /**
          * Registers a hook to be invoked when the built application context is
          * closed.
          * <p>
@@ -759,6 +854,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             BrowserlessApplicationContext context = new BrowserlessApplicationContext(
                     buildService(), uiFactory, buildCloseHooks());
             context.setRequestContextHandler(requestContextHandler);
+            context.setSessionLockIsolation(sessionLockIsolation);
             return context;
         }
 

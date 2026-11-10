@@ -216,6 +216,14 @@ public class SecuredBrowserlessApplicationContext<C>
         }
 
         /**
+         * @see BrowserlessApplicationContext.Builder#withSessionLockIsolation
+         */
+        public Builder<C> withSessionLockIsolation(boolean enabled) {
+            base.withSessionLockIsolation(enabled);
+            return this;
+        }
+
+        /**
          * @see BrowserlessApplicationContext.Builder#withApplicationProperty
          * @since 25.3
          */
@@ -292,6 +300,7 @@ public class SecuredBrowserlessApplicationContext<C>
                     base.buildService(), base.uiFactory(), handler,
                     base.buildCloseHooks());
             context.setRequestContextHandler(base.requestContextHandler());
+            context.setSessionLockIsolation(base.sessionLockIsolation());
             return context;
         }
     }

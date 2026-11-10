@@ -76,6 +76,8 @@ public class BrowserlessUIContext
 
         BrowserlessUIContext previous = activeContext.get();
 
+        user.getApp().holdSessionLock(user);
+
         // Save outgoing user's security context on user switch — symmetric
         // with activate().
         if (previous != null && previous.user != this.user) {
@@ -103,6 +105,7 @@ public class BrowserlessUIContext
                 reactivateSurviving(previous);
             } else {
                 user.clearThreadLocals();
+                user.getApp().holdSessionLock(null);
             }
             throw ex;
         }
@@ -125,9 +128,18 @@ public class BrowserlessUIContext
      * between windows of the same user does not save or restore security state,
      * so mutations made by one window are observed by sibling windows.
      * <p>
+     * With
+     * {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)
+     * session lock isolation} enabled, activating a window of another user also
+     * releases the outgoing user's session lock, which runs the commands still
+     * queued for that session with
+     * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
+     * takes this user's session lock.
+     * <p>
      * This method is called automatically by all DSL methods. You only need to
      * call it explicitly if you are accessing Vaadin APIs directly (e.g.
-     * {@code UI.getCurrent()}).
+     * {@code UI.getCurrent()}), or, with session lock isolation, to change a
+     * component of this window directly while another user's window was active.
      */
     public void activate() {
         if (closed) {
@@ -135,6 +147,11 @@ public class BrowserlessUIContext
                     "BrowserlessUIContext is already closed");
         }
         BrowserlessUIContext previous = activeContext.get();
+
+        // Release the outgoing user's session lock, running the commands
+        // queued for it, while the thread still carries that user's state,
+        // as at the end of that user's request.
+        user.getApp().holdSessionLock(user);
 
         // Save outgoing user's security context on user switch
         if (previous != null && previous != this
@@ -675,6 +692,7 @@ public class BrowserlessUIContext
             return;
         }
         closed = true;
+        user.getApp().holdSessionLock(user);
         BrowserlessUIContext stillActive = activeContext.get();
         boolean wasActive = stillActive == this;
         if (wasActive) {
@@ -717,6 +735,7 @@ public class BrowserlessUIContext
             reactivateSurviving(stillActive);
         } else {
             user.clearThreadLocals();
+            user.getApp().holdSessionLock(null);
         }
     }
 

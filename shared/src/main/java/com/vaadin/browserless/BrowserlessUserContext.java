@@ -58,6 +58,13 @@ import com.vaadin.flow.server.VaadinSession;
  * logged out in every other window — to authenticate again, create a fresh user
  * context with {@link BrowserlessApplicationContext#newUser()} rather than
  * reusing this one.
+ * <p>
+ * By default the test thread holds this user's session lock for the session's
+ * whole lifetime, also while another user's window is active, so unsynchronized
+ * access to this user's UI from another user's window is not detected. With
+ * {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)
+ * session lock isolation} enabled, the lock is held only while one of this
+ * user's windows is active.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
@@ -111,6 +118,14 @@ public class BrowserlessUserContext implements AutoCloseable {
             this.session = objs.getSession();
             this.request = objs.getRequest();
             this.response = objs.getResponse();
+            if (app.isSessionLockIsolation()) {
+                // The session is created locked by this thread. Release it and
+                // take it back through the application so that this user's
+                // session is the only one locked while it initialises, as in
+                // the request that creates it.
+                session.unlock();
+                app.holdSessionLock(this);
+            }
 
             // Install thread-locals temporarily for session init listeners.
             // applySessionThreadLocals() ends with restoreSecurityContext()
@@ -149,6 +164,8 @@ public class BrowserlessUserContext implements AutoCloseable {
             CurrentInstance.set(VaadinRequest.class, previousRequest);
             CurrentInstance.set(VaadinResponse.class, previousResponse);
             UI.setCurrent(previousUI);
+            BrowserlessUIContext active = BrowserlessUIContext.getActive();
+            app.holdSessionLock(active != null ? active.getUser() : null);
             // Restore previous security context — handler contract specifies
             // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
@@ -217,6 +234,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         // session-destroy listeners run under session.access semantics that
         // null them out — keeping the prep symmetric protects against
         // future Vaadin changes.
+        app.holdSessionLock(this);
         applySessionThreadLocals();
 
         // Destroy session: fire destroy listeners and drain the queue,
@@ -234,6 +252,8 @@ public class BrowserlessUserContext implements AutoCloseable {
         // subsequent operation on it observes a coherent state.
         if (activeIsAnotherUser && !active.isClosed()) {
             BrowserlessUIContext.reactivateSurviving(active);
+        } else {
+            app.holdSessionLock(null);
         }
     }
 

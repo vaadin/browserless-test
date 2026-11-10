@@ -83,6 +83,7 @@ class BrowserlessBaseClassTest {
             allViews.add(com.example.multiuser.SharedCounterView.class);
             allViews.add(com.example.multiuser.ExternalNavigationView.class);
             allViews.add(com.example.multiuser.SimpleView.class);
+            allViews.add(com.example.multiuser.BroadcastView.class);
             allViews.add(com.example.locator.LocatorDemoView.class);
             allViews.add(com.example.failing.FailingAssertionView.class);
             allViews.add(com.example.reload.PreservedCounterView.class);
