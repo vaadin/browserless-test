@@ -7,9 +7,10 @@ Two tools generate the Javadoc here, and each reports a failed run
 differently:
 
 - maven-javadoc-plugin (pure-Java modules) prints every problem of a
-  failed run as a block of header + source line + caret, each prefixed by
-  Maven's [ERROR] marker. The header says "error:" or "warning:"; with
-  failOnWarnings both fail the build.
+  failed run as a block of header + source line + caret. Each line is
+  prefixed by Maven's [ERROR] marker, or by [WARNING] when the run had only
+  warnings. The header says "error:" or "warning:"; with failOnWarnings
+  both fail the build.
 - Dokka (mixed Java/Kotlin modules) logs each problem as a single
   [WARNING] or [ERROR] line while it runs and only fails at the end, with
   "Failed with warningCount=... and errorCount=...". Its messages name the
@@ -29,9 +30,9 @@ import sys
 from xml.sax.saxutils import escape, quoteattr
 
 JAVADOC_PATTERN = re.compile(
-    r'^\[ERROR\] (\S+\.java):(\d+): (?:error|warning): (.*)$\n'
-    r'^\[ERROR\] (.*)$\n'
-    r'^\[ERROR\] (.*\^.*)$',
+    r'^\[(ERROR|WARNING)\] (\S+\.java):(\d+): (?:error|warning): (.*)$\n'
+    r'^\[\1\] (.*)$\n'
+    r'^\[\1\] (.*\^.*)$',
     re.M,
 )
 
@@ -71,7 +72,7 @@ def emit_annotation(file_rel, line_no, detail):
 
 
 def javadoc_problems(log, workspace):
-    for path, line_no, msg, src, caret in JAVADOC_PATTERN.findall(log):
+    for _, path, line_no, msg, src, caret in JAVADOC_PATTERN.findall(log):
         file_rel = relativize(path, workspace)
         yield (f'{file_rel}:{line_no}', file_rel, line_no, msg,
                f'{file_rel}:{line_no}: {msg}\n{src}\n{caret}')
@@ -122,6 +123,8 @@ def main(log_path, out_path):
 
     problems = list(javadoc_problems(log, workspace))
     problems += dokka_problems(log, workspace)
+    # javadoc can print the same problem more than once.
+    problems = list(dict.fromkeys(problems))
     if not problems:
         print(f'No Javadoc problems found in {log_path}', file=sys.stderr)
         return 0
