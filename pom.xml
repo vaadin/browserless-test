@@ -142,6 +142,7 @@
                          runs in modules that reference this plugin. -->
                     <configuration>
                         <skip>${maven.javadoc.skip}</skip>
+                        <failOnWarning>true</failOnWarning>
                         <jdkVersion>${maven.compiler.source}</jdkVersion>
                         <sourceDirectories>
                             <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
@@ -183,6 +184,11 @@
                          runs in modules that reference this plugin. -->
                     <configuration>
                         <quiet>true</quiet>
+                        <failOnWarnings>true</failOnWarnings>
+                        <!-- Sibling modules such as shared are documented by
+                             Dokka, so there is no maven-javadoc output to
+                             link to. -->
+                        <detectOfflineLinks>false</detectOfflineLinks>
                     </configuration>
                     <executions>
                         <execution>

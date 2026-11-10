@@ -28,7 +28,7 @@ import com.vaadin.flow.router.InternalServerError
 /**
  * A criterion for matching components. The component must match all of non-null fields.
  *
- * You can add more properties, simply by creating a write-only property which will register a new [predicate] on write. See
+ * You can add more properties, simply by creating a write-only property which will register a new predicate in [predicates] on write. See
  * [Adding support for custom search criteria](https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#adding-support-for-custom-search-criteria)
  * for more details.
  * @property clazz the class of the component we are searching for.

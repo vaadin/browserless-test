@@ -29,7 +29,7 @@ import java.lang.reflect.InvocationTargetException
 
 
 /**
- * A simple no-op UI used by default by [com.vaadin.browserless.MockVaadin.setup].
+ * A simple no-op UI used by default by [com.vaadin.browserless.internal.MockVaadin.setup].
  * The class is open, in order to be extensible in user's library
  */
 open class MockedUI : UI() {

@@ -12,7 +12,9 @@
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
 - **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
-  elsewhere.
+  elsewhere. Both fail the build on any warning they report: a link that does
+  not resolve, for example, or a missing comment in the pure-Java modules.
+  Dokka does not report missing comments.
 
 ## Module structure
 
@@ -63,9 +65,11 @@ which `mvn install` at the root handles. When you build `shared` alone, include
 
 CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
 changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
-`mvn test`, and publishes the surefire reports. `formatter-suggestions.yml`
-posts the formatting changes as review suggestions on the pull request, also
-for forks.
+`mvn test`, and publishes the surefire reports. When the build fails on Javadoc,
+`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc or Dokka problem
+into an annotation on the PR diff and a failed test in the published results.
+`formatter-suggestions.yml` posts the formatting changes as review suggestions
+on the pull request, also for forks.
 
 `.github/workflows/code-review.yml` reviews pull requests against `main` with
 the shared `vaadin/github-actions/code-review` action when they are opened or

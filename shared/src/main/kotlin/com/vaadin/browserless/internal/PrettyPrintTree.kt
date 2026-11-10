@@ -258,6 +258,6 @@ var prettyStringHook: (component: Component, list: LinkedList<String>) -> Unit =
  *
  * * `disabled` - dumped separately as "DISABLED" string.
  * * `id` - dumped as Component.id
- * * `href` - there's special processing for [Anchor._href].
+ * * `href` - dumped separately for any component that has an `href` member.
  */
 var dontDumpAttributes: MutableSet<String> = mutableSetOf("disabled", "id", "href")

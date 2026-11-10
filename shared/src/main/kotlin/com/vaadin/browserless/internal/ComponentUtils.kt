@@ -327,7 +327,6 @@ val FormLayout.FormItem.label: String get() =
  * For example, setting a label to a [FormLayout]
  * nested within a `VerticalLayout`
  * will show nothing since [FormLayout] doesn't display a label itself.
- * See [LabelWrapper] for a list of possible solutions.
  */
 var Component.label: String
     get() = when {

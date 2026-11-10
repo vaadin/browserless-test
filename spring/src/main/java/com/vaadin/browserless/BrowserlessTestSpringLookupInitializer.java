@@ -49,6 +49,12 @@ public class BrowserlessTestSpringLookupInitializer
 
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
+    /**
+     * Creates a new initializer.
+     */
+    public BrowserlessTestSpringLookupInitializer() {
+    }
+
     @Override
     public void prepareTestInstance(TestContext testContext) throws Exception {
         // SpringLookup requires a WebApplicationContext. Store current test
