@@ -12,7 +12,9 @@
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
 - **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
-  elsewhere.
+  elsewhere. Both fail the build on any warning they report: a link that does
+  not resolve, for example, or a missing comment in the pure-Java modules.
+  Dokka does not report missing comments.
 
 ## Module structure
 
