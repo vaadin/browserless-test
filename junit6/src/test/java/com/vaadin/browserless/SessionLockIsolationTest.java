@@ -52,18 +52,22 @@ class SessionLockIsolationTest {
 
     @Test
     void onlyActiveUsersSessionIsLocked() {
-        var sameUserWindow = alice.getUser().newWindow();
         alice.activate();
-        Assertions.assertTrue(alice.getUser().getSession().hasLock());
-        Assertions.assertFalse(bob.getUser().getSession().hasLock());
+        assertLocked(true, alice);
+        assertLocked(false, bob);
 
         bob.activate();
-        Assertions.assertFalse(alice.getUser().getSession().hasLock());
-        Assertions.assertTrue(bob.getUser().getSession().hasLock());
+        assertLocked(false, alice);
+        assertLocked(true, bob);
+    }
 
-        sameUserWindow.activate();
-        Assertions.assertTrue(alice.getUser().getSession().hasLock());
-        Assertions.assertFalse(bob.getUser().getSession().hasLock());
+    @Test
+    void newUser_whileAnotherUserIsActive_leavesActiveUserLocked() {
+        alice.activate();
+        var carol = app.newUser();
+
+        assertLocked(true, alice);
+        Assertions.assertFalse(carol.getSession().hasLock());
     }
 
     @Test
@@ -96,25 +100,61 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void accessQueuedWhileActive_runsOnUserSwitch() {
+    void accessQueuedWhileActive_runsOnUserSwitchOnly() {
+        var sameUserWindow = alice.getUser().newWindow();
         AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
-        bob.activate();
-        bob.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
+        alice.activate();
+        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
+
+        sameUserWindow.activate();
         Assertions.assertNull(ranIn.get());
 
-        alice.activate();
-        Assertions.assertSame(bob.getUser().getSession(), ranIn.get());
+        bob.activate();
+        Assertions.assertSame(alice.getUser().getSession(), ranIn.get());
     }
 
     @Test
-    void close_releasesAllSessionLocks() {
+    void closeAnotherUser_keepsActiveUserLockedAndUsable() {
+        var aliceView = alice.navigate(BroadcastView.class);
+        var bobSession = bob.getUser().getSession();
+
+        bob.getUser().close();
+
+        assertLocked(true, alice);
+        Assertions.assertFalse(bobSession.hasLock());
+        alice.test(alice.find(Button.class).withText("Broadcast").single())
+                .click();
+        Assertions.assertEquals("Hello", aliceView.getMessage());
+    }
+
+    @Test
+    void closeActiveWindow_releasesItsLock() {
+        alice.activate();
+
+        alice.close();
+
+        assertLocked(false, alice);
+        assertLocked(false, bob);
+    }
+
+    @Test
+    void close_runsQueuedCommandsAndReleasesAllSessionLocks() {
         var aliceSession = alice.getUser().getSession();
         var bobSession = bob.getUser().getSession();
+        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
         alice.activate();
+        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
 
         app.close();
 
+        Assertions.assertSame(aliceSession, ranIn.get());
         Assertions.assertFalse(aliceSession.hasLock());
         Assertions.assertFalse(bobSession.hasLock());
+    }
+
+    private static void assertLocked(boolean expected,
+            BrowserlessUIContext window) {
+        Assertions.assertEquals(expected,
+                window.getUser().getSession().hasLock());
     }
 }

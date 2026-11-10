@@ -312,7 +312,6 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             user.close();
         }
         users.clear();
-        holdSessionLock(null);
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
@@ -788,14 +787,22 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * real request holds only the lock of its own session:
          * <ul>
          * <li>Application code running in one user's window that changes
-         * another user's UI directly fails with an
-         * {@link IllegalStateException}, as it does in a running application.
-         * Use
+         * another user's UI directly fails, as it does in a running
+         * application. Use
          * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
-         * UI.access()} for such changes.</li>
+         * UI.access()} for such changes. The mocked session checks the lock
+         * with a Java {@code assert}, so the failure is an
+         * {@link AssertionError} with the message "Cannot access state in
+         * VaadinSession or UI without locking the session" rather than the
+         * {@link IllegalStateException} of a development-mode server, and it is
+         * detected only when assertions are enabled.</li>
          * <li>A {@code UI.access()} command for another user's UI runs at once
          * on the calling thread, with that user's session and UI current,
-         * because nothing else holds that session's lock.</li>
+         * because nothing else holds that session's lock. As in a running
+         * application, an exception thrown by such a command, or by a command
+         * that runs when its session's lock is released on a user switch, goes
+         * to that session's {@link com.vaadin.flow.server.ErrorHandler} and is
+         * only logged by the default one; it does not fail the test.</li>
          * <li>Switching to another user's window releases the outgoing
          * session's lock, which runs the commands still queued for it, and then
          * takes the incoming session's lock. Switching between windows of the

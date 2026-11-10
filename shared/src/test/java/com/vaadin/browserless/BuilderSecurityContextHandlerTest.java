@@ -64,6 +64,21 @@ class BuilderSecurityContextHandlerTest {
         }
     }
 
+    @Test
+    void securedBuilder_withSessionLockIsolation_locksOnlyActiveUser() {
+        try (var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
+                .withSecurityContextHandler(new MinimalHandler())
+                .withSessionLockIsolation(true).build()) {
+            var alice = app.newUser("alice").newWindow();
+            var bob = app.newUser("bob").newWindow();
+
+            alice.activate();
+
+            Assertions.assertTrue(alice.getUser().getSession().hasLock());
+            Assertions.assertFalse(bob.getUser().getSession().hasLock());
+        }
+    }
+
     /**
      * Bare-bones handler that does not override
      * {@link SecurityContextHandler#createCredentials(String, String...)}, so

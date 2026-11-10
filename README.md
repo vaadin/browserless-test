@@ -964,7 +964,10 @@ try (var app = BrowserlessApplicationContext.create(b -> b
 With isolation enabled:
 
 - A `UI.access()` command for another user's UI runs at once, with that
-  user's session and UI current, because no other thread holds that lock.
+  user's session and UI current, because no other thread holds that lock. As
+  in a running application, an exception from such a command goes to that
+  session's `ErrorHandler`, which only logs it by default, so it does not fail
+  the test.
 - Switching to another user's window releases the outgoing session's lock,
   which runs the commands still queued for it, and then takes the incoming
   session's lock. Switching between windows of the same user keeps the lock.

@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import com.example.multiuser.BroadcastView;
 import com.example.multiuser.SharedCounterView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -80,5 +81,18 @@ class MultiUserTest {
                 "Users should have independent sessions");
         Assertions.assertNotSame(w1.getUI(), w2.getUI(),
                 "Windows should have independent UIs");
+    }
+
+    @Test
+    void directUpdateOfAnotherUsersUI_isNotDetectedWithoutLockIsolation() {
+        var w1 = app.newUser().newWindow();
+        var w2 = app.newUser().newWindow();
+        w1.navigate(BroadcastView.class);
+        var otherView = w2.navigate(BroadcastView.class);
+
+        w1.test(w1.find(Button.class).withText("Broadcast").single()).click();
+
+        Assertions.assertEquals("Hello", otherView.getMessage());
+        Assertions.assertTrue(w2.getUser().getSession().hasLock());
     }
 }
