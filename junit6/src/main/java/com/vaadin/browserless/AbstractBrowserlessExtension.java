@@ -252,7 +252,7 @@ abstract class AbstractBrowserlessExtension
 
     /**
      * Tears down the mocked Vaadin environment set up by
-     * {@link #doInit(Object, ExtensionContext)}. Does nothing when there is
+     * {@code doInit(Object, ExtensionContext)}. Does nothing when there is
      * nothing to tear down.
      */
     protected void doCleanup() {
@@ -467,8 +467,8 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Simulates a page reload (see {@link #reload()}) and verifies the
-     * resulting view is of the expected type.
+     * Simulates a page reload (see {@code reload()}) and verifies the resulting
+     * view is of the expected type.
      *
      * @param expectedTarget
      *            the expected view class after reload
