@@ -69,11 +69,11 @@ public final class ElementConditions {
      *
      * For example, given HTML
      *
-     * <pre>
+     * <pre>{@code
      * <p>
      * Hello  <b>there</b> now!
      * </p>
-     * </pre>
+     * }</pre>
      *
      * the text that will be checked will be {@literal  Hello there now!}.
      *
@@ -105,11 +105,11 @@ public final class ElementConditions {
      *
      * For example, given HTML
      *
-     * <pre>
+     * <pre>{@code
      * <p>
      * Hello  <b>there</b> now!
      * </p>
-     * </pre>
+     * }</pre>
      *
      * the text that will be checked will be {@literal  Hello there now!}.
      *
