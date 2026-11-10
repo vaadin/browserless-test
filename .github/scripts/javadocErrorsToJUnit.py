@@ -36,6 +36,10 @@ JAVADOC_PATTERN = re.compile(
     re.M,
 )
 
+JAVADOC_START = re.compile(
+    r'^\[INFO\] --- javadoc:\S+:jar .*@ (\S+) ---$', re.M)
+JAVADOC_FAILED = 'maven-javadoc-plugin:\\S+ .*on project {}: '
+
 DOKKA_START = re.compile(
     r'^\[INFO\] --- dokka:\S+:javadocJar .*@ (\S+) ---$', re.M)
 DOKKA_FAILED = 'on project {}: .*Failed with warningCount='
@@ -72,10 +76,19 @@ def emit_annotation(file_rel, line_no, detail):
 
 
 def javadoc_problems(log, workspace):
-    for _, path, line_no, msg, src, caret in JAVADOC_PATTERN.findall(log):
-        file_rel = relativize(path, workspace)
-        yield (f'{file_rel}:{line_no}', file_rel, line_no, msg,
-               f'{file_rel}:{line_no}: {msg}\n{src}\n{caret}')
+    for start in JAVADOC_START.finditer(log):
+        # Only a failed run is a problem; a passing run can still print
+        # warnings when failOnWarnings is off. Maven stops at the failed
+        # goal and prints its output after the build result, so the rest of
+        # the log belongs to that run.
+        rest = log[start.end():]
+        failed = JAVADOC_FAILED.format(re.escape(start.group(1)))
+        if not re.search(failed, rest):
+            continue
+        for _, path, line_no, msg, src, caret in JAVADOC_PATTERN.findall(rest):
+            file_rel = relativize(path, workspace)
+            yield (f'{file_rel}:{line_no}', file_rel, line_no, msg,
+                   f'{file_rel}:{line_no}: {msg}\n{src}\n{caret}')
 
 
 def find_source(name, root):
