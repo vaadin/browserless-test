@@ -27,26 +27,21 @@ import java.net.URI;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.vaadin.browserless.JavaScriptDispatcher;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
-import com.vaadin.flow.component.internal.UIInternals;
 import com.vaadin.flow.component.internal.UIInternals.JavaScriptInvocation;
 import com.vaadin.flow.dom.Element;
-import com.vaadin.flow.internal.StateNode;
+import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
@@ -341,76 +336,50 @@ final class UploadTesterSupport {
     }
 
     /**
-     * Returns the JavaScript invocations scheduled so far for the given
-     * component that match the given condition.
+     * Detects JavaScript calls that the client of a component received since
+     * the previous check.
      * <p>
      * Clearing the file list of an upload component has no server side state,
-     * so the testers learn about it by observing the invocations.
-     * {@code UIInternals} has no public accessor for them, which is why it is
-     * read reflectively.
-     *
-     * @param component
-     *            the component the invocations are scheduled for
-     * @param condition
-     *            the condition the invocation matches
-     * @return the matching invocations
-     */
-    @SuppressWarnings("unchecked")
-    static List<PendingJavaScriptInvocation> pendingInvocations(
-            Component component, Predicate<JavaScriptInvocation> condition) {
-        UI ui = component.getUI().orElse(null);
-        if (ui == null) {
-            return List.of();
-        }
-        StateNode node = component.getElement().getNode();
-        try {
-            Method method = UIInternals.class
-                    .getDeclaredMethod("getPendingJavaScriptInvocations");
-            method.setAccessible(true);
-            return ((Stream<PendingJavaScriptInvocation>) method
-                    .invoke(ui.getInternals()))
-                    .filter(invocation -> invocation.getOwner() == node)
-                    .filter(invocation -> condition
-                            .test(invocation.getInvocation()))
-                    .toList();
-        } catch (NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Detects JavaScript invocations scheduled for a component since the
-     * previous check.
-     * <p>
-     * Invocations are tracked by identity rather than counted: a round trip can
-     * empty the pending queue at any time, for example when a focus call is
-     * flushed, and a count taken before that would hide invocations scheduled
-     * after it.
+     * so the testers learn about it from the call the client receives. The
+     * tracker registers with the {@link JavaScriptDispatcher} of the
+     * component's UI, so it sees every call however the round trip that sent it
+     * was triggered.
      */
     static class InvocationTracker implements Serializable {
-        private Set<PendingJavaScriptInvocation> observed = Collections
-                .newSetFromMap(new IdentityHashMap<>());
+        private boolean watching;
+        private boolean received;
 
         /**
-         * Checks whether invocations matching the given condition were
-         * scheduled for the given component since the previous call.
+         * Sends the pending JavaScript of the component's UI to the simulated
+         * client and checks whether an invocation for the given component
+         * matching the given condition was received since the previous call.
          *
          * @param component
          *            the component the invocations are scheduled for
          * @param condition
          *            the condition the invocation matches
-         * @return {@literal true} if a matching invocation was not seen by the
-         *         previous call
+         * @return {@literal true} if a matching invocation was received since
+         *         the previous call
          */
         boolean hasNewInvocations(Component component,
-                Predicate<JavaScriptInvocation> condition) {
-            List<PendingJavaScriptInvocation> pending = pendingInvocations(
-                    component, condition);
-            boolean found = pending.stream()
-                    .anyMatch(invocation -> !observed.contains(invocation));
-            observed = Collections.newSetFromMap(new IdentityHashMap<>());
-            observed.addAll(pending);
+                SerializablePredicate<JavaScriptInvocation> condition) {
+            UI ui = component.getUI().orElse(null);
+            if (ui == null) {
+                return false;
+            }
+            if (!watching) {
+                watching = true;
+                JavaScriptDispatcher.forUI(ui).addHandler(invocation -> {
+                    if (invocation.getOwner() == component.getElement()
+                            .getNode()
+                            && condition.test(invocation.getInvocation())) {
+                        received = true;
+                    }
+                });
+            }
+            JavaScriptDispatcher.dispatch(ui);
+            boolean found = received;
+            received = false;
             return found;
         }
     }

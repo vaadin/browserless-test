@@ -38,7 +38,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
@@ -780,7 +779,7 @@ class UploadTesterTest extends BrowserlessTest {
         single_.upload(file2);
         // a round trip that sends the pending JavaScript to the client empties
         // the queue, which must not hide the next clearFileList() call
-        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+        roundTrip();
         view.uploadSingle.clearFileList();
         single_.upload(file3);
 

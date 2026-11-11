@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.BlurNotifier.BlurEvent;
 import com.vaadin.flow.component.FocusNotifier.FocusEvent;
 import com.vaadin.flow.component.FocusOption;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
@@ -188,19 +187,24 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
-    public void applicationJsMentioningFocus_leftInQueue() {
+    public void applicationJsMentioningFocus_notSimulatedButRecorded() {
         // Only calls made through Focusable are simulated; JavaScript the
-        // application schedules itself stays available to the test, even
-        // when its text looks like a focus call
+        // application schedules itself stays visible to the test, even when
+        // its text looks like a focus call
+        TextField other = new TextField("Other");
+        container.add(other);
         textField.addValueChangeListener(
-                e -> textField.getElement().executeJs("this.focus()"));
+                e -> other.getElement().executeJs("this.focus()"));
 
         test(textField).setValue("100");
 
+        Assertions.assertFalse(test(other).isFocused(),
+                "Application JavaScript should not be simulated as a focus call");
         Assertions.assertTrue(
-                UI.getCurrent().getInternals()
-                        .containsPendingJavascript("this.focus()"),
-                "Application JavaScript should not be consumed as a focus call");
+                ExecutedJavaScript.current().getAll().stream()
+                        .anyMatch(execution -> execution.getExpression()
+                                .contains("this.focus()")),
+                "Application JavaScript should be recorded as sent");
     }
 
     @Test

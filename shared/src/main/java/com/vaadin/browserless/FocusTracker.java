@@ -16,12 +16,9 @@
 package com.vaadin.browserless;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
-import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.browserless.internal.PrettyPrintTreeKt;
@@ -29,7 +26,6 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
@@ -50,23 +46,14 @@ import com.vaadin.flow.js.JsCall;
  * <p>
  * Server-initiated focus changes are simulated as well: when application code
  * calls {@link Focusable#focus()} or {@link Focusable#blur()}, which only
- * schedule a {@link Focusable.FocusJs} call for the client, the tracker picks
- * the call up from the pending JavaScript queue and reacts like a browser
- * would, firing the corresponding focus/blur DOM events back. This happens at
- * the end of each simulated user interaction and on server round-trips.
- * <p>
- * Reading the pending JavaScript queue consumes it, so when the application has
- * scheduled a focus or blur call, other JavaScript queued at the same time is
- * dropped as well. Handling the queue centrally, so that other testers can
- * react to scheduled JavaScript too, is tracked in
- * <a href="https://github.com/vaadin/browserless-test/issues/221">issue
- * 221</a>.
+ * schedule a {@link Focusable.FocusJs} call for the client, the tracker reacts
+ * to the call like a browser would when {@link JavaScriptDispatcher} sends it,
+ * firing the corresponding focus/blur DOM events back. This happens at the end
+ * of each simulated user interaction and on server round-trips.
  */
 final class FocusTracker implements Serializable {
 
     private Component focused;
-
-    private boolean flushing;
 
     private FocusTracker() {
     }
@@ -79,9 +66,8 @@ final class FocusTracker implements Serializable {
      * @return the focused component, or empty if nothing is focused
      */
     static Optional<Component> getFocusedComponent(UI ui) {
-        FocusTracker tracker = getOrCreate(ui);
-        tracker.flushServerInitiatedFocus(ui);
-        return Optional.ofNullable(tracker.focused);
+        JavaScriptDispatcher.dispatch(ui);
+        return Optional.ofNullable(getOrCreate(ui).focused);
     }
 
     /**
@@ -102,9 +88,8 @@ final class FocusTracker implements Serializable {
      */
     static UI moveFocusTo(Component component) {
         UI ui = uiOf(component);
-        FocusTracker tracker = getOrCreate(ui);
-        tracker.flushServerInitiatedFocus(ui);
-        tracker.doMoveFocusTo(component, false);
+        JavaScriptDispatcher.dispatch(ui);
+        getOrCreate(ui).doMoveFocusTo(component, false);
         return ui;
     }
 
@@ -149,8 +134,8 @@ final class FocusTracker implements Serializable {
      */
     static UI blur(Component component) {
         UI ui = uiOf(component);
+        JavaScriptDispatcher.dispatch(ui);
         FocusTracker tracker = getOrCreate(ui);
-        tracker.flushServerInitiatedFocus(ui);
         if (tracker.focused == component) {
             fireDomEvent(component, "blur");
             tracker.updateFocused(component, null);
@@ -159,63 +144,38 @@ final class FocusTracker implements Serializable {
     }
 
     /**
-     * Simulates the client executing any focus/blur JavaScript calls scheduled
-     * by the server, such as {@link Focusable#focus()} inside a click listener.
-     * Called by testers at the end of each simulated interaction and on server
-     * round-trips.
+     * Simulates the client executing the JavaScript scheduled by the server,
+     * including any focus/blur calls, such as {@link Focusable#focus()} inside
+     * a click listener. Called by testers at the end of each simulated
+     * interaction and on server round-trips.
      *
      * @param ui
      *            the UI whose pending JavaScript queue to process, may be null
      */
     static void flush(UI ui) {
-        if (ui != null) {
-            getOrCreate(ui).flushServerInitiatedFocus(ui);
-        }
+        JavaScriptDispatcher.dispatch(ui);
     }
 
-    private void flushServerInitiatedFocus(UI ui) {
-        if (flushing) {
-            return;
-        }
-        flushing = true;
-        try {
-            // executeJs calls are queued via beforeClientResponse, so
-            // materialize them first, then look for focus and blur calls
-            ui.getInternals().getStateTree()
-                    .runExecutionsBeforeClientResponse();
-            if (!ui.getInternals()
-                    .containsPendingJsCall(Focusable.FocusJs.class, "focus")
-                    && !ui.getInternals().containsPendingJsCall(
-                            Focusable.FocusJs.class, "blur")) {
-                // Nothing to simulate, so leave the queue untouched: tests
-                // can still assert on JavaScript scheduled by the application
+    /**
+     * Creates the handler that reacts to the focus and blur calls sent to the
+     * client of the given UI.
+     *
+     * @param ui
+     *            the UI, not null
+     * @return the handler, not null
+     */
+    static JavaScriptDispatcher.Handler handlerFor(UI ui) {
+        return invocation -> {
+            JsCall call = invocation.getInvocation().getJsCall();
+            if (call == null
+                    || call.definitionType() != Focusable.FocusJs.class) {
                 return;
             }
-            // Consuming the queue is the only way to read it, so any other
-            // pending JavaScript is dropped along with the focus and blur
-            // calls; handling the queue centrally instead is tracked in
-            // https://github.com/vaadin/browserless-test/issues/221
-            List<String> consumed = new ArrayList<>();
-            for (PendingJavaScriptInvocation invocation : ui.getInternals()
-                    .dumpPendingJavaScriptInvocations()) {
-                consumed.add(invocation.getInvocation().getExpression());
-                JsCall call = invocation.getInvocation().getJsCall();
-                if (call == null
-                        || call.definitionType() != Focusable.FocusJs.class) {
-                    continue;
-                }
-                Element.get(invocation.getOwner()).getComponent().ifPresent(
-                        target -> call.invokeOn(new FocusSimulation(target)));
-            }
-            // Everything read above is gone from the queue now, so leave a
-            // trace: JavaScript disappearing in a test can be tracked down to
-            // here instead of looking like a framework bug
-            LoggerFactory.getLogger(FocusTracker.class).debug(
-                    "Consumed {} pending JavaScript invocation(s) while simulating server-side focus and blur calls: {}",
-                    consumed.size(), consumed);
-        } finally {
-            flushing = false;
-        }
+            FocusTracker tracker = getOrCreate(ui);
+            Element.get(invocation.getOwner()).getComponent()
+                    .ifPresent(target -> call
+                            .invokeOn(tracker.new FocusSimulation(target)));
+        };
     }
 
     /**
