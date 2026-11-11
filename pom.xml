@@ -120,9 +120,10 @@
         </dependencies>
     </dependencyManagement>
 
-    <!-- Flow and the components the testers wrap. Every module compiles
-         against them: the tester factory methods in the test base classes
-         name each component type. They are provided by the application. -->
+    <!-- Flow and the components the testers wrap, provided by the
+         application. Every module that uses or extends the test base classes
+         needs all of them to compile, because the tester factory methods
+         name each component type. locator-processor inherits them unused. -->
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
