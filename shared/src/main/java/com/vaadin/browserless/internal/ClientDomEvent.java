@@ -225,8 +225,9 @@ public final class ClientDomEvent {
                     .apply(this);
             call.invokeOn(simulation);
             value = simulation.value();
-        } else if (snippet.sideEffect() != null) {
-            // Whether the side effect runs cannot be known
+        } else if (snippet.sideEffect() != null
+                || call.getExpression().contains("preventDefault")) {
+            // Whether the default action is prevented cannot be known
             throw new IllegalStateException("Cannot run the JavaScript"
                     + " function declared by " + call.definitionType().getName()
                     + "." + call.methodName() + "() for a DOM event listener"

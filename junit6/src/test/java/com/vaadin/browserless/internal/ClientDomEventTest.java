@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import tools.jackson.databind.JsonNode;
 
 import com.vaadin.flow.component.ClickNotifier;
+import com.vaadin.flow.component.ClickNotifier.ClickFiltersJs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
@@ -221,6 +222,33 @@ class ClientDomEventTest {
                 e.getMessage());
     }
 
+    @Test
+    void dispatch_unknownDeclaredFilterPreventingDefaultInItsBody_throws() {
+        element.addEventListener("click", fired::add).setFilterExpression(
+                JsSnippets.of(CustomFilterJs.class).preventing());
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> ClientDomEvent.dispatch(element, "click", EVENT));
+        assertTrue(e.getMessage().contains("without a browser"),
+                e.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "1,true", "2,false" })
+    void dispatch_simulatedFilterWithPreventDefault_onlyWhenFilterMatches(
+            int detail, boolean prevented) {
+        element.addEventListener("click", fired::add).setFilterExpression(
+                JsSnippets.of(ClickFiltersJs.class).isClickCountBetween(1, 1))
+                .preventDefault();
+
+        ClientDomEvent event = ClientDomEvent.dispatch(element, "click",
+                Map.of("detail", detail));
+        event.fire();
+
+        assertEquals(prevented, event.isDefaultPrevented());
+        assertEquals(prevented, fired.size() == 1);
+    }
+
     @ParameterizedTest
     @CsvSource({ "1,single", "2,double", "3,''" })
     void dispatch_clickCountFilters_onlyMatchingListenerRuns(int detail,
@@ -256,6 +284,9 @@ class ClientDomEventTest {
     public interface CustomFilterJs extends Serializable {
         @JsExpression("return event.target.id === 'x';")
         DomEventFilter custom();
+
+        @JsExpression("return event.button === 0 && (event.preventDefault(), true);")
+        DomEventFilter preventing();
     }
 
     private JsonNode eventData() {
