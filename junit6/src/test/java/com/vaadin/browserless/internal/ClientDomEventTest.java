@@ -15,7 +15,9 @@
  */
 package com.vaadin.browserless.internal;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -24,8 +26,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import tools.jackson.databind.JsonNode;
 
+import com.vaadin.flow.component.ClickNotifier;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.ShortcutRegistration.ShortcutFilterJs;
+import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.dom.DomEvent;
+import com.vaadin.flow.dom.DomEventFilter;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.js.JsDefinition;
+import com.vaadin.flow.js.JsExpression;
+import com.vaadin.flow.js.JsSnippets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,6 +48,9 @@ class ClientDomEventTest {
 
     private static final Map<String, Object> EVENT = Map.of("button", 0,
             "ctrlKey", false, "key", "Enter", "pressure", 0.5);
+
+    private static final ShortcutFilterJs SHORTCUT_FILTERS = JsSnippets
+            .of(ShortcutFilterJs.class);
 
     private final Element element = new Element("div");
     private final List<DomEvent> fired = new ArrayList<>();
@@ -143,6 +158,104 @@ class ClientDomEventTest {
                 () -> ClientDomEvent.dispatch(element, "click", EVENT));
         assertTrue(e.getMessage().contains("without a browser"),
                 e.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = { "KEY_S;CONTROL;true",
+            "KEY_S;CONTROL SHIFT;false", "KEY_S;'';false",
+            "KEY_A;CONTROL;false" })
+    void dispatchKeyDown_shortcutFilter_matchesKeyAndModifiers(String key,
+            String modifiers, boolean matches) {
+        element.addEventListener("keydown", fired::add)
+                .setFilterExpression(SHORTCUT_FILTERS.matchKeydown("Control",
+                        "Shift Alt AltGraph Meta", true, null, true, true,
+                        false, "KeyS"));
+        List<KeyModifier> pressed = Arrays.stream(modifiers.split(" "))
+                .filter(name -> !name.isEmpty()).map(KeyModifier::valueOf)
+                .toList();
+        Key pressedKey = "KEY_S".equals(key) ? Key.KEY_S : Key.KEY_A;
+
+        ClientDomEvent event = ClientDomEvent.dispatchKeyDown(element,
+                pressedKey, pressed);
+        event.fire();
+
+        assertEquals(matches, fired.size() == 1);
+        assertEquals(matches, event.isDefaultPrevented());
+    }
+
+    @Test
+    void dispatchKeyDown_eventDataOfKeyAndModifiers() {
+        element.addEventListener("keydown", fired::add)
+                .addEventData("event.key").addEventData("event.ctrlKey")
+                .addEventData("event.shiftKey");
+
+        ClientDomEvent
+                .dispatchKeyDown(element, Key.ENTER, List.of(KeyModifier.SHIFT))
+                .fire();
+
+        assertEquals("\"Enter\"", eventData().get("event.key").toString());
+        assertFalse(eventData().get("event.ctrlKey").booleanValue());
+        assertTrue(eventData().get("event.shiftKey").booleanValue());
+    }
+
+    @Test
+    void dispatch_unknownDeclaredFilter_listenerNotNotified() {
+        element.addEventListener("click", fired::add).setFilterExpression(
+                JsSnippets.of(CustomFilterJs.class).custom());
+
+        ClientDomEvent.dispatch(element, "click", EVENT).fire();
+
+        assertTrue(fired.isEmpty());
+    }
+
+    @Test
+    void dispatch_unknownDeclaredFilterWithPreventDefault_throws() {
+        element.addEventListener("click", fired::add)
+                .setFilterExpression(
+                        JsSnippets.of(CustomFilterJs.class).custom())
+                .preventDefault();
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> ClientDomEvent.dispatch(element, "click", EVENT));
+        assertTrue(e.getMessage().contains("without a browser"),
+                e.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "1,single", "2,double", "3,''" })
+    void dispatch_clickCountFilters_onlyMatchingListenerRuns(int detail,
+            String expected) {
+        ClickableDiv div = new ClickableDiv();
+        List<String> runs = new ArrayList<>();
+        div.addSingleClickListener(event -> runs.add("single"));
+        div.addDoubleClickListener(event -> runs.add("double"));
+
+        ClientDomEvent.dispatch(div.getElement(), "click",
+                Map.of("button", 0, "detail", detail)).fire();
+
+        assertEquals(expected.isEmpty() ? List.of() : List.of(expected), runs);
+    }
+
+    @Test
+    void dispatch_clickCountFilter_undefinedDetail_noMatch() {
+        ClickableDiv div = new ClickableDiv();
+        List<String> runs = new ArrayList<>();
+        div.addSingleClickListener(event -> runs.add("single"));
+
+        ClientDomEvent.dispatch(div.getElement(), "click", Map.of()).fire();
+
+        assertTrue(runs.isEmpty());
+    }
+
+    @Tag("div")
+    private static class ClickableDiv extends Component
+            implements ClickNotifier<ClickableDiv> {
+    }
+
+    @JsDefinition
+    public interface CustomFilterJs extends Serializable {
+        @JsExpression("return event.target.id === 'x';")
+        DomEventFilter custom();
     }
 
     private JsonNode eventData() {
