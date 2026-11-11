@@ -51,18 +51,31 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
             field.getElement().callJsFunction("setOptions", "ignored");
             calendar.getElement().callJsFunction("render");
             field.focus();
+            button.blur();
         });
 
         test(button).click();
-        // a lookup is a round trip, which sends the pending JavaScript
-        find(Button.class).single();
 
         Assertions.assertEquals(List.of(List.of("week", 7)), ExecutedJavaScript
                 .current().getFunctionCalls(calendar, "setOptions"));
         Assertions.assertEquals(1, ExecutedJavaScript.current()
                 .getCalls(Focusable.FocusJs.class, "focus").size());
+        Assertions.assertEquals(1, ExecutedJavaScript.current()
+                .getCalls(Focusable.FocusJs.class, "blur").size());
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
+    }
+
+    @Test
+    void lookup_sendsPendingJavaScript() {
+        AtomicReference<Boolean> focused = new AtomicReference<>(false);
+        field.addFocusListener(event -> focused.set(true));
+        field.focus();
+
+        find(Button.class).single();
+
+        Assertions.assertTrue(focused.get(),
+                "The lookup should send the focus call to the client");
     }
 
     @Test
@@ -85,6 +98,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         execution.resolve(3);
 
         Assertions.assertEquals(3, result.get());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.resolve(4), "A browser answers only once");
     }
 
     @Test
@@ -100,7 +115,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
         Assertions.assertEquals("missing is not a function", error.get());
         Assertions.assertThrows(IllegalStateException.class,
-                () -> executions.get(1).resolve(null),
+                () -> executions.get(1).reject("failed"),
                 "Nobody waits for the result, so there is nothing to answer");
     }
 

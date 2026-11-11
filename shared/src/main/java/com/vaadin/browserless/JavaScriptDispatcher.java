@@ -18,7 +18,9 @@ package com.vaadin.browserless;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
@@ -69,10 +71,16 @@ public final class JavaScriptDispatcher implements Serializable {
 
     private final List<PendingJavaScriptInvocation> executed = new ArrayList<>();
 
+    private final Set<PendingJavaScriptInvocation> answered = Collections
+            .newSetFromMap(new IdentityHashMap<>());
+
     private boolean dispatching;
 
     private JavaScriptDispatcher(UI ui) {
         this.ui = ui;
+        // Installed with the dispatcher rather than when focus is first
+        // tracked, so a focus call sent before any tester interaction, by a
+        // lookup for example, is simulated too
         handlers.add(FocusTracker.handlerFor(ui));
     }
 
@@ -156,5 +164,17 @@ public final class JavaScriptDispatcher implements Serializable {
      */
     public void clearExecuted() {
         executed.clear();
+    }
+
+    /**
+     * Marks an invocation as answered by the simulated client, which answers
+     * each invocation at most once, like a browser.
+     *
+     * @param invocation
+     *            the invocation, not null
+     * @return {@literal true} if the invocation was not answered before
+     */
+    public boolean markAnswered(PendingJavaScriptInvocation invocation) {
+        return answered.add(invocation);
     }
 }

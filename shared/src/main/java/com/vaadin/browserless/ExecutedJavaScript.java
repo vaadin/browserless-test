@@ -102,7 +102,9 @@ public final class ExecutedJavaScript implements Serializable {
     public List<Execution> getAll() {
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        return dispatcher.getExecuted().stream().map(Execution::new).toList();
+        return dispatcher.getExecuted().stream()
+                .map(invocation -> new Execution(dispatcher, invocation))
+                .toList();
     }
 
     /**
@@ -172,9 +174,13 @@ public final class ExecutedJavaScript implements Serializable {
      */
     public static final class Execution implements Serializable {
 
+        private final JavaScriptDispatcher dispatcher;
+
         private final PendingJavaScriptInvocation invocation;
 
-        private Execution(PendingJavaScriptInvocation invocation) {
+        private Execution(JavaScriptDispatcher dispatcher,
+                PendingJavaScriptInvocation invocation) {
+            this.dispatcher = dispatcher;
             this.invocation = invocation;
         }
 
@@ -239,10 +245,11 @@ public final class ExecutedJavaScript implements Serializable {
          *            way Flow converts a value; a {@link JsonNode} is used as
          *            is
          * @throws IllegalStateException
-         *             if the application does not wait for the result
+         *             if the application does not wait for the result, or if
+         *             the JavaScript was already answered
          */
         public void resolve(@Nullable Object value) {
-            ensureWaitingForResult();
+            ensureCanAnswer();
             invocation.complete(value instanceof JsonNode node ? node
                     : JacksonUtils.getMapper().valueToTree(value));
         }
@@ -255,20 +262,27 @@ public final class ExecutedJavaScript implements Serializable {
          * @param message
          *            the error message, not null
          * @throws IllegalStateException
-         *             if the application does not wait for the result
+         *             if the application does not wait for the result, or if
+         *             the JavaScript was already answered
          */
         public void reject(String message) {
             Objects.requireNonNull(message, "message");
-            ensureWaitingForResult();
+            ensureCanAnswer();
             invocation.completeExceptionally(
                     JacksonUtils.getMapper().valueToTree(message));
         }
 
-        private void ensureWaitingForResult() {
+        private void ensureCanAnswer() {
             if (!isWaitingForResult()) {
                 throw new IllegalStateException(
                         "The application does not wait for the result of "
-                                + getExpression());
+                                + this);
+            }
+            // A browser answers once; Flow forgets the return channel after
+            // the first answer
+            if (!dispatcher.markAnswered(invocation)) {
+                throw new IllegalStateException(
+                        "The browser has already answered " + this);
             }
         }
 

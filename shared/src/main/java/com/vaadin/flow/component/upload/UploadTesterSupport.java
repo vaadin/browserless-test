@@ -346,7 +346,7 @@ final class UploadTesterSupport {
      * was triggered.
      */
     static class InvocationTracker implements Serializable {
-        private boolean watching;
+        private UI watchedUI;
         private boolean received;
 
         /**
@@ -367,8 +367,10 @@ final class UploadTesterSupport {
             if (ui == null) {
                 return false;
             }
-            if (!watching) {
-                watching = true;
+            // A component moved to another UI, by a reload of a view that is
+            // preserved on refresh for example, gets its calls sent there
+            if (ui != watchedUI) {
+                watchedUI = ui;
                 JavaScriptDispatcher.forUI(ui).addHandler(invocation -> {
                     if (invocation.getOwner() == component.getElement()
                             .getNode()
