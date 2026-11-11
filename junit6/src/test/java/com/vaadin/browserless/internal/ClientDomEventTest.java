@@ -151,12 +151,13 @@ class ClientDomEventTest {
     }
 
     @Test
-    void dispatch_unsupportedPreventDefaultExpression_throws() {
+    void dispatch_unsupportedPreventDefaultExpression_isDefaultPreventedThrows() {
         element.addEventListener("click", fired::add)
                 .setFilter("event.target.id === 'x'").preventDefault();
 
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> ClientDomEvent.dispatch(element, "click", EVENT));
+                () -> ClientDomEvent.dispatch(element, "click", EVENT)
+                        .isDefaultPrevented());
         assertTrue(e.getMessage().contains("without a browser"),
                 e.getMessage());
     }
@@ -182,6 +183,48 @@ class ClientDomEventTest {
 
         assertEquals(matches, fired.size() == 1);
         assertEquals(matches, event.isDefaultPrevented());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = { "CONTROL;Control;true",
+            "CONTROL;Shift;false", "ALT_GRAPH;AltGraph;true" })
+    void dispatchKeyDown_getModifierState_reportsPressedModifiers(
+            KeyModifier pressed, String modifier, boolean expected) {
+        String expression = "event.getModifierState('" + modifier + "')";
+        element.addEventListener("keydown", fired::add)
+                .addEventData(expression);
+
+        ClientDomEvent.dispatchKeyDown(element, Key.ENTER, List.of(pressed))
+                .fire();
+
+        assertEquals(expected, eventData().get(expression).booleanValue());
+    }
+
+    @Test
+    void dispatch_getModifierState_readsModifierProperties() {
+        String expression = "event.getModifierState('Control')";
+        element.addEventListener("click", fired::add).addEventData(expression);
+
+        ClientDomEvent.dispatch(element, "click", Map.of("ctrlKey", true))
+                .fire();
+
+        assertTrue(eventData().get(expression).booleanValue());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "CONTROL,true", "SHIFT,false" })
+    void dispatchKeyDown_modifierStateFilterWithPreventDefault_evaluated(
+            KeyModifier pressed, boolean matches) {
+        element.addEventListener("keydown", fired::add).setFilter(
+                "event.getModifierState('Control') && event.key === 's'")
+                .preventDefault();
+
+        ClientDomEvent event = ClientDomEvent.dispatchKeyDown(element,
+                Key.of("s"), List.of(pressed));
+        event.fire();
+
+        assertEquals(matches, event.isDefaultPrevented());
+        assertEquals(matches, fired.size() == 1);
     }
 
     @Test
@@ -210,25 +253,27 @@ class ClientDomEventTest {
     }
 
     @Test
-    void dispatch_unknownDeclaredFilterWithPreventDefault_throws() {
+    void dispatch_unknownDeclaredFilterWithPreventDefault_isDefaultPreventedThrows() {
         element.addEventListener("click", fired::add)
                 .setFilterExpression(
                         JsSnippets.of(CustomFilterJs.class).custom())
                 .preventDefault();
 
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> ClientDomEvent.dispatch(element, "click", EVENT));
+                () -> ClientDomEvent.dispatch(element, "click", EVENT)
+                        .isDefaultPrevented());
         assertTrue(e.getMessage().contains("without a browser"),
                 e.getMessage());
     }
 
     @Test
-    void dispatch_unknownDeclaredFilterPreventingDefaultInItsBody_throws() {
+    void dispatch_unknownDeclaredFilterPreventingDefaultInItsBody_isDefaultPreventedThrows() {
         element.addEventListener("click", fired::add).setFilterExpression(
                 JsSnippets.of(CustomFilterJs.class).preventing());
 
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> ClientDomEvent.dispatch(element, "click", EVENT));
+                () -> ClientDomEvent.dispatch(element, "click", EVENT)
+                        .isDefaultPrevented());
         assertTrue(e.getMessage().contains("without a browser"),
                 e.getMessage());
     }
