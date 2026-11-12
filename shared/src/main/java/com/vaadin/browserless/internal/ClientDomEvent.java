@@ -63,9 +63,11 @@ import com.vaadin.flow.shared.JsonConstants;
  * <p>
  * Filters and event data declared as JavaScript functions of the bundle, rather
  * than as expressions, are run by a {@link DeclaredFunctionSimulation} of the
- * declared function, registered by its {@code @JsDefinition} interface. A
- * declared function without a simulation is handled like an unsupported
- * expression.
+ * declared function, registered by its {@code @JsDefinition} interface. Event
+ * data declared by a function without a simulation is left out, like an
+ * unsupported expression. A filter declared by a function without a simulation
+ * does not match, and as its body cannot be inspected, whether it prevented the
+ * default action cannot be known: {@link #isDefaultPrevented()} fails.
  * <p>
  * For internal use only.
  */
@@ -129,7 +131,9 @@ public final class ClientDomEvent {
     /**
      * Dispatches a {@code keydown} event of the given key on the given element,
      * with the given modifiers pressed, the way the browser does when the user
-     * presses the keys. See {@link #dispatch(Element, String, Map)}.
+     * presses the keys. The event has both the {@code key} and the {@code code}
+     * of the key, see {@link KeyboardKey}. See
+     * {@link #dispatch(Element, String, Map)}.
      *
      * @param element
      *            the element the event is dispatched on, not {@code null}
@@ -145,8 +149,10 @@ public final class ClientDomEvent {
         Set<String> modifierState = modifiers.stream()
                 .map(modifier -> modifier.getKeys().getFirst())
                 .collect(Collectors.toUnmodifiableSet());
+        KeyboardKey keyboardKey = KeyboardKey.of(key);
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("key", key.getKeys().getFirst());
+        properties.put("key", keyboardKey.key());
+        properties.put("code", keyboardKey.code());
         properties.put("shiftKey",
                 modifierState.contains(KeyModifier.SHIFT.getKeys().getFirst()));
         properties.put("ctrlKey", modifierState
@@ -187,8 +193,9 @@ public final class ClientDomEvent {
      *
      * @return {@code true} if the default action of the event was prevented
      * @throws IllegalStateException
-     *             if a registered expression or declared function that calls
-     *             {@code preventDefault()} cannot be run without a browser
+     *             if a registered expression that calls
+     *             {@code preventDefault()}, or a declared filter, cannot be run
+     *             without a browser
      */
     public boolean isDefaultPrevented() {
         if (unknownPreventDefault != null) {
@@ -239,9 +246,12 @@ public final class ClientDomEvent {
                     .apply(this);
             call.invokeOn(simulation);
             value = simulation.value();
-        } else if (snippet.sideEffect() != null
-                || call.getExpression().contains("preventDefault")) {
-            // Whether the default action is prevented cannot be known
+        } else if (snippet.filter()) {
+            // The declared body may prevent the default action, also through
+            // a helper of the bundle, so whether it does cannot be known. A
+            // side effect of the filter, from preventDefault() on the
+            // registration, runs only when the filter passes, so the filter
+            // decides for it as well.
             unknownPreventDefault = ("Cannot run the JavaScript"
                     + " function declared by " + call.definitionType().getName()
                     + "." + call.methodName() + "() for a DOM event listener"

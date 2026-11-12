@@ -34,6 +34,7 @@ import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.ShortcutRegistration.ShortcutFilterJs;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.dom.DomEvent;
+import com.vaadin.flow.dom.DomEventData;
 import com.vaadin.flow.dom.DomEventFilter;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.js.JsDefinition;
@@ -242,40 +243,48 @@ class ClientDomEventTest {
         assertTrue(eventData().get("event.shiftKey").booleanValue());
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = { "KeyS;s;KeyS", "s;s;KeyS",
+            "Digit1;1;Digit1", "Numpad1;1;Numpad1", "Comma;,;Comma",
+            "' ';' ';Space", "Enter;Enter;Enter",
+            "Control;Control;ControlLeft" })
+    void dispatchKeyDown_eventHasKeyAndCode(String pressed, String key,
+            String code) {
+        element.addEventListener("keydown", fired::add)
+                .addEventData("event.key").addEventData("event.code");
+
+        ClientDomEvent.dispatchKeyDown(element, Key.of(pressed), List.of())
+                .fire();
+
+        assertEquals(key, eventData().get("event.key").asString());
+        assertEquals(code, eventData().get("event.code").asString());
+    }
+
     @Test
-    void dispatch_unknownDeclaredFilter_listenerNotNotified() {
+    void dispatch_unknownDeclaredFilter_notNotifiedAndIsDefaultPreventedThrows() {
         element.addEventListener("click", fired::add).setFilterExpression(
                 JsSnippets.of(CustomFilterJs.class).custom());
 
-        ClientDomEvent.dispatch(element, "click", EVENT).fire();
+        ClientDomEvent event = ClientDomEvent.dispatch(element, "click", EVENT);
+        event.fire();
 
         assertTrue(fired.isEmpty());
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                event::isDefaultPrevented);
+        assertTrue(e.getMessage().contains("without a browser"),
+                e.getMessage());
     }
 
     @Test
-    void dispatch_unknownDeclaredFilterWithPreventDefault_isDefaultPreventedThrows() {
+    void dispatch_unknownDeclaredEventData_leftOut() {
         element.addEventListener("click", fired::add)
-                .setFilterExpression(
-                        JsSnippets.of(CustomFilterJs.class).custom())
-                .preventDefault();
+                .addEventData(JsSnippets.of(CustomFilterJs.class).width());
 
-        IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> ClientDomEvent.dispatch(element, "click", EVENT)
-                        .isDefaultPrevented());
-        assertTrue(e.getMessage().contains("without a browser"),
-                e.getMessage());
-    }
+        ClientDomEvent event = ClientDomEvent.dispatch(element, "click", EVENT);
+        event.fire();
 
-    @Test
-    void dispatch_unknownDeclaredFilterPreventingDefaultInItsBody_isDefaultPreventedThrows() {
-        element.addEventListener("click", fired::add).setFilterExpression(
-                JsSnippets.of(CustomFilterJs.class).preventing());
-
-        IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> ClientDomEvent.dispatch(element, "click", EVENT)
-                        .isDefaultPrevented());
-        assertTrue(e.getMessage().contains("without a browser"),
-                e.getMessage());
+        assertTrue(eventData().isEmpty());
+        assertFalse(event.isDefaultPrevented());
     }
 
     @ParameterizedTest
@@ -327,11 +336,12 @@ class ClientDomEventTest {
 
     @JsDefinition
     public interface CustomFilterJs extends Serializable {
-        @JsExpression("return event.target.id === 'x';")
+        // The helper may prevent the default action without the body saying so
+        @JsExpression("return window.app.isPrimaryClick(event);")
         DomEventFilter custom();
 
-        @JsExpression("return event.button === 0 && (event.preventDefault(), true);")
-        DomEventFilter preventing();
+        @JsExpression("return element.offsetWidth;")
+        DomEventData<Integer> width();
     }
 
     private JsonNode eventData() {
