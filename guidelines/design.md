@@ -50,9 +50,12 @@ helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
 [Locators](locators.md).
 
 **Booleans are named for their positive state.** `isEnabled()`, not
-`isDisabled()`, so a negated check never reads as a double negative. A method
-joining an existing negative family (`isInvalid()` from `HasValidation`) keeps
-that family's polarity.
+`isDisabled()`, so a negated check never reads as a double negative. A tester
+accessor is positive even where the component's is not: the field testers
+expose `isValid()` over `HasValidation`'s `isInvalid()`.
+
+**A type is named for what it is**, not for what the code around it does
+with it.
 
 **One name per value, one name per operation.** Do not expose a record
 component and a `get…` method returning the same thing. A second way to do

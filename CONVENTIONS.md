@@ -83,8 +83,8 @@ Name a type after what it is, not after what the code around it does with it.
 
 Name a boolean property after its positive state — `isEnabled()`, not
 `isDisabled()` — so that a negated check never reads as a double negative.
-New API that joins an existing family with a negative name, such as
-`isInvalid()` from `HasValidation`, keeps that polarity.
+This wins over the component's vocabulary: a field tester exposes `isValid()`
+even though the component's own accessor is `isInvalid()`.
 
 Do not expose two names for the same value — a record component and a `get…`
 method beside it returning the same thing is one accessor too many.
