@@ -47,64 +47,74 @@ import com.vaadin.flow.js.JsCall;
  * test(save).click();
  *
  * assertEquals(List.of(List.of("Saved")),
- *         ExecutedJavaScript.current().getFunctionCalls(dialog, "open"));
+ *         ExecutedJavaScript.get().getFunctionCalls(dialog, "open"));
  * </pre>
  * <p>
- * Reading the record first sends whatever is still pending, so JavaScript
- * scheduled just before is included. A call whose result the application waits
- * for, with {@code then(...)} or {@code toCompletableFuture(...)}, can be
- * answered with {@link Execution#resolve(Object)} or
- * {@link Execution#reject(String)}, as the browser would.
+ * Each {@link #get()} returns what was sent since the previous {@code get()}
+ * for the same UI, so reading it right after a user interaction gives the
+ * JavaScript that interaction sent. Getting it first sends whatever is still
+ * pending, so JavaScript scheduled just before is included. The returned
+ * instance does not change afterwards.
+ * <p>
+ * A call whose result the application waits for, with {@code then(...)} or
+ * {@code toCompletableFuture(...)}, can be answered with
+ * {@link Execution#resolve(Object)} or {@link Execution#reject(String)}, as the
+ * browser would.
  * <p>
  * JavaScript scheduled for an element that is not visible is not sent, as in a
- * browser, and is recorded only once the element becomes visible.
+ * browser, and is included only once the element becomes visible.
  */
 public final class ExecutedJavaScript implements Serializable {
 
-    private final UI ui;
+    private final List<Execution> executions;
 
-    private ExecutedJavaScript(UI ui) {
-        this.ui = ui;
+    private ExecutedJavaScript(List<Execution> executions) {
+        this.executions = executions;
     }
 
     /**
-     * Gets the JavaScript sent to the browser of {@link UI#getCurrent()}.
+     * Sends the pending JavaScript of {@link UI#getCurrent()} to the simulated
+     * client and gets the JavaScript sent to its browser since the previous
+     * {@code get()} for the UI, or since the UI was created.
      *
      * @return the JavaScript sent to the current UI, not null
      * @throws IllegalStateException
      *             if there is no current UI
      */
-    public static ExecutedJavaScript current() {
+    public static ExecutedJavaScript get() {
         UI ui = UI.getCurrent();
         if (ui == null) {
             throw new IllegalStateException("There is no current UI");
         }
-        return forUI(ui);
+        return get(ui);
     }
 
     /**
-     * Gets the JavaScript sent to the browser of the given UI.
+     * Sends the pending JavaScript of the given UI to the simulated client and
+     * gets the JavaScript sent to its browser since the previous {@code get()}
+     * for the UI, or since the UI was created.
      *
      * @param ui
      *            the UI, not null
      * @return the JavaScript sent to the UI, not null
      */
-    public static ExecutedJavaScript forUI(UI ui) {
-        return new ExecutedJavaScript(Objects.requireNonNull(ui, "ui"));
+    public static ExecutedJavaScript get(UI ui) {
+        Objects.requireNonNull(ui, "ui");
+        JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
+        JavaScriptDispatcher.dispatch(ui);
+        return new ExecutedJavaScript(dispatcher.takeExecuted().stream()
+                .map(invocation -> new Execution(dispatcher, invocation))
+                .toList());
     }
 
     /**
-     * Gets everything sent to the browser since the UI was created or since the
-     * last {@link #clear()}, in the order the browser received it.
+     * Gets everything that was sent to the browser, in the order the browser
+     * received it.
      *
      * @return the sent JavaScript, not null
      */
     public List<Execution> getAll() {
-        JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
-        JavaScriptDispatcher.dispatch(ui);
-        return dispatcher.getExecuted().stream()
-                .map(invocation -> new Execution(dispatcher, invocation))
-                .toList();
+        return executions;
     }
 
     /**
@@ -121,7 +131,7 @@ public final class ExecutedJavaScript implements Serializable {
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(methodName, "methodName");
-        return getAll().stream()
+        return executions.stream()
                 .flatMap(execution -> execution.getJsCall()
                         .filter(call -> call.definitionType() == definitionType
                                 && call.methodName().equals(methodName))
@@ -148,7 +158,7 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(component, "component");
         Objects.requireNonNull(functionName, "functionName");
         Element element = component.getElement();
-        return getAll().stream()
+        return executions.stream()
                 .filter(execution -> element.equals(execution.getElement()))
                 .flatMap(execution -> execution.getJsCall().stream())
                 .filter(call -> call
@@ -158,15 +168,6 @@ public final class ExecutedJavaScript implements Serializable {
                     List<Object> arguments = call.flattenArguments();
                     return arguments.subList(1, arguments.size());
                 }).toList();
-    }
-
-    /**
-     * Forgets everything sent so far, after first sending whatever is still
-     * pending, so that a test can assert on what a following step sends.
-     */
-    public void clear() {
-        JavaScriptDispatcher.dispatch(ui);
-        JavaScriptDispatcher.forUI(ui).clearExecuted();
     }
 
     /**

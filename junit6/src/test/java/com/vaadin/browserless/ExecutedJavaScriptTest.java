@@ -41,7 +41,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Div container = new Div(calendar, field, button);
         getCurrentView().getElement().appendChild(container.getElement());
         // leave out what the navigation to the view sent
-        ExecutedJavaScript.current().clear();
+        ExecutedJavaScript.get();
     }
 
     @Test
@@ -56,12 +56,13 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
         test(button).click();
 
-        Assertions.assertEquals(List.of(List.of("week", 7)), ExecutedJavaScript
-                .current().getFunctionCalls(calendar, "setOptions"));
-        Assertions.assertEquals(1, ExecutedJavaScript.current()
-                .getCalls(Focusable.FocusJs.class, "focus").size());
-        Assertions.assertEquals(1, ExecutedJavaScript.current()
-                .getCalls(Focusable.FocusJs.class, "blur").size());
+        ExecutedJavaScript executed = ExecutedJavaScript.get();
+        Assertions.assertEquals(List.of(List.of("week", 7)),
+                executed.getFunctionCalls(calendar, "setOptions"));
+        Assertions.assertEquals(1,
+                executed.getCalls(Focusable.FocusJs.class, "focus").size());
+        Assertions.assertEquals(1,
+                executed.getCalls(Focusable.FocusJs.class, "blur").size());
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
     }
@@ -82,8 +83,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     void functionCall_scheduledByTest_recordedWithoutRoundTrip() {
         calendar.getElement().callJsFunction("render");
 
-        Assertions.assertEquals(List.of(List.of()), ExecutedJavaScript.current()
-                .getFunctionCalls(calendar, "render"));
+        Assertions.assertEquals(List.of(List.of()),
+                ExecutedJavaScript.get().getFunctionCalls(calendar, "render"));
     }
 
     @Test
@@ -92,7 +93,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         calendar.getElement().executeJs("return this.childElementCount")
                 .then(Integer.class, result::set);
 
-        ExecutedJavaScript.Execution execution = ExecutedJavaScript.current()
+        ExecutedJavaScript.Execution execution = ExecutedJavaScript.get()
                 .getAll().get(0);
         Assertions.assertTrue(execution.isWaitingForResult());
         execution.resolve(3);
@@ -109,8 +110,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 value -> Assertions.fail("Should not succeed"), error::set);
         calendar.getElement().executeJs("this.render()");
 
-        List<ExecutedJavaScript.Execution> executions = ExecutedJavaScript
-                .current().getAll();
+        List<ExecutedJavaScript.Execution> executions = ExecutedJavaScript.get()
+                .getAll();
         executions.get(0).reject("missing is not a function");
 
         Assertions.assertEquals("missing is not a function", error.get());
@@ -120,15 +121,18 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void clear_forgetsWhatWasSent() {
+    void get_returnsWhatWasSentSinceThePreviousGet() {
         calendar.getElement().callJsFunction("render");
-        ExecutedJavaScript.current().clear();
+        ExecutedJavaScript first = ExecutedJavaScript.get();
         calendar.getElement().callJsFunction("refresh");
 
+        Assertions.assertEquals(List.of("render"), functionNames(first));
         Assertions.assertEquals(List.of("refresh"),
-                ExecutedJavaScript
-                        .current().getAll().stream().map(execution -> execution
-                                .getJsCall().orElseThrow().arguments().get(0))
-                        .toList());
+                functionNames(ExecutedJavaScript.get()));
+    }
+
+    private static List<Object> functionNames(ExecutedJavaScript executed) {
+        return executed.getAll().stream().map(execution -> execution.getJsCall()
+                .orElseThrow().arguments().get(0)).toList();
     }
 }

@@ -150,20 +150,15 @@ public final class JavaScriptDispatcher implements Serializable {
     }
 
     /**
-     * Gets the invocations sent to the client since the UI was created or since
-     * the last {@link #clearExecuted()}, in the order they were sent.
+     * Takes the invocations sent to the client since the UI was created or
+     * since the previous call, in the order they were sent.
      *
      * @return the sent invocations, not null
      */
-    public List<PendingJavaScriptInvocation> getExecuted() {
-        return Collections.unmodifiableList(new ArrayList<>(executed));
-    }
-
-    /**
-     * Forgets the invocations sent so far.
-     */
-    public void clearExecuted() {
+    public List<PendingJavaScriptInvocation> takeExecuted() {
+        List<PendingJavaScriptInvocation> taken = List.copyOf(executed);
         executed.clear();
+        return taken;
     }
 
     /**

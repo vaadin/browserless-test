@@ -728,28 +728,30 @@ at every client boundary — a round trip, a component lookup, the end of a
 tester interaction — the pending JavaScript of the UI is sent to a simulated
 client, the way a server response would send it. What the framework can
 simulate, such as server-side focus and blur calls, is simulated, and
-everything is recorded in `ExecutedJavaScript`:
+everything is recorded. `ExecutedJavaScript.get()` returns what was sent
+since the previous `get()`, so reading it right after an interaction gives the
+JavaScript that interaction sent:
 
 ```java
 test(save).click();
 
+ExecutedJavaScript executed = ExecutedJavaScript.get();
 assertEquals(List.of(List.of("week", 7)),
-        ExecutedJavaScript.current().getFunctionCalls(calendar, "setOptions"));
-assertEquals(1, ExecutedJavaScript.current()
-        .getCalls(Focusable.FocusJs.class, "focus").size());
+        executed.getFunctionCalls(calendar, "setOptions"));
+assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
 ```
 
 `getAll()` lists everything that was sent, in order, with the element it ran
 on, the call of a JavaScript definition (`getJsCall()`) or the expression of a
-string script. `clear()` forgets what was sent so far, so a test can check
-only what a following step sends. Reading the record sends whatever is still
-pending first.
+string script. `get()` sends whatever is still pending first, and the instance
+it returns does not change afterwards. Use `get(ui)` for a UI other than the
+current one.
 
 JavaScript whose result the application waits for, with `then(...)` or
 `toCompletableFuture(...)`, can be answered the way the browser would:
 
 ```java
-ExecutedJavaScript.Execution execution = ExecutedJavaScript.current()
+ExecutedJavaScript.Execution execution = ExecutedJavaScript.get()
         .getAll().getLast();
 execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
@@ -765,8 +767,9 @@ execution.resolve(3);                 // runs the success handler
   server-side `focus()` call.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
-- The record is kept per UI for the lifetime of the UI. A long test that sends
-  a lot of JavaScript can `clear()` it.
+- What was sent is kept per UI until the next `get()`. If a test runs several
+  interactions without calling `get()` in between, the next `get()` returns
+  the JavaScript of all of them.
 
 ## Multi-user and multi-window testing
 
