@@ -128,6 +128,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         execution.resolve(3);
 
         Assertions.assertEquals(3, result.get());
+        Assertions.assertFalse(execution.isWaitingForResult(),
+                "An answered call should no longer wait for a result");
         Assertions.assertThrows(IllegalStateException.class,
                 () -> execution.resolve(4), "A browser answers only once");
     }

@@ -163,4 +163,15 @@ public final class JavaScriptDispatcher implements Serializable {
     public boolean markAnswered(PendingJavaScriptInvocation invocation) {
         return answered.add(invocation);
     }
+
+    /**
+     * Checks whether the simulated client has answered an invocation.
+     *
+     * @param invocation
+     *            the invocation, not null
+     * @return {@literal true} if the invocation was answered
+     */
+    public boolean isAnswered(PendingJavaScriptInvocation invocation) {
+        return answered.contains(invocation);
+    }
 }

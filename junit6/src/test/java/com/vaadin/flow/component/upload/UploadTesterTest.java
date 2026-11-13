@@ -39,6 +39,8 @@ import org.junit.jupiter.api.io.TempDir;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
+import com.vaadin.flow.router.PreserveOnRefresh;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
 
@@ -765,6 +767,34 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertTrue(rejected.isEmpty(),
                 "No file should have been rejected, but got " + rejected);
         listener.assertFilesReceived(3);
+    }
+
+    @Test
+    void clearFileList_afterReloadOfPreservedView_slotsFreed() {
+        RouteConfiguration.forApplicationScope()
+                .setAnnotatedRoute(PreservedUploadView.class);
+        UploadView preserved = navigate(PreservedUploadView.class);
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        preserved.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        preserved.uploadSingle.setMaxFiles(1);
+        preserved.uploadSingle.addFileRejectedListener(ev -> rejected
+                .add(ev.getFileName() + ":" + ev.getErrorMessage()));
+        test(preserved.uploadSingle).upload(file1);
+
+        Assertions.assertSame(preserved, reload(PreservedUploadView.class));
+        // the clearFileList() call goes to the new UI of the preserved view
+        preserved.uploadSingle.clearFileList();
+        test(preserved.uploadSingle).upload(file2);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(2);
+    }
+
+    @Route(value = "preserved-upload", registerAtStartup = false)
+    @PreserveOnRefresh
+    public static class PreservedUploadView extends UploadView {
     }
 
     @Test

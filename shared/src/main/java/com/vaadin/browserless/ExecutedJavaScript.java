@@ -284,12 +284,16 @@ public final class ExecutedJavaScript implements Serializable {
         /**
          * Checks whether the application waits for the result of this
          * JavaScript, with {@link PendingJavaScriptResult#then} or
-         * {@link PendingJavaScriptResult#toCompletableFuture}.
+         * {@link PendingJavaScriptResult#toCompletableFuture}, and it has not
+         * been answered yet, so that {@link #resolve(Object)} and
+         * {@link #reject(String)} can be called.
          *
-         * @return {@literal true} if the application waits for the result
+         * @return {@literal true} if the application waits for a result that
+         *         has not been given yet
          */
         public boolean isWaitingForResult() {
-            return invocation.isSubscribed();
+            return invocation.isSubscribed()
+                    && !dispatcher.isAnswered(invocation);
         }
 
         /**
@@ -330,7 +334,7 @@ public final class ExecutedJavaScript implements Serializable {
         }
 
         private void ensureCanAnswer() {
-            if (!isWaitingForResult()) {
+            if (!invocation.isSubscribed()) {
                 throw new IllegalStateException(
                         "The application does not wait for the result of "
                                 + this);

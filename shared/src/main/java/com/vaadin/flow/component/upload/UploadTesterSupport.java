@@ -50,6 +50,7 @@ import com.vaadin.flow.server.communication.TransferUtil;
 import com.vaadin.flow.server.streams.UploadEvent;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.server.streams.UploadResult;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Upload simulation shared by the testers of the upload components: the
@@ -343,16 +344,21 @@ final class UploadTesterSupport {
      * so the testers learn about it from the call the client receives. The
      * tracker registers with the {@link JavaScriptDispatcher} of the
      * component's UI, so it sees every call however the round trip that sent it
-     * was triggered.
+     * was triggered. It follows the component when it is attached to another
+     * UI, as a view that is preserved on refresh is on a reload, before any
+     * call for it is sent there.
      */
     static class InvocationTracker implements Serializable {
+        private Registration attachRegistration;
         private UI watchedUI;
+        private Registration handlerRegistration;
         private boolean received;
 
         /**
          * Sends the pending JavaScript of the component's UI to the simulated
          * client and checks whether an invocation for the given component
          * matching the given condition was received since the previous call.
+         * The component and the condition must be the same on every call.
          *
          * @param component
          *            the component the invocations are scheduled for
@@ -363,26 +369,39 @@ final class UploadTesterSupport {
          */
         boolean hasNewInvocations(Component component,
                 SerializablePredicate<JavaScriptInvocation> condition) {
+            if (attachRegistration == null) {
+                attachRegistration = component.addAttachListener(
+                        event -> watch(event.getUI(), component, condition));
+                component.getUI()
+                        .ifPresent(ui -> watch(ui, component, condition));
+            }
             UI ui = component.getUI().orElse(null);
             if (ui == null) {
                 return false;
-            }
-            // A component moved to another UI, by a reload of a view that is
-            // preserved on refresh for example, gets its calls sent there
-            if (ui != watchedUI) {
-                watchedUI = ui;
-                JavaScriptDispatcher.forUI(ui).addHandler(invocation -> {
-                    if (invocation.getOwner() == component.getElement()
-                            .getNode()
-                            && condition.test(invocation.getInvocation())) {
-                        received = true;
-                    }
-                });
             }
             JavaScriptDispatcher.dispatch(ui);
             boolean found = received;
             received = false;
             return found;
+        }
+
+        private void watch(UI ui, Component component,
+                SerializablePredicate<JavaScriptInvocation> condition) {
+            if (ui == watchedUI) {
+                return;
+            }
+            if (handlerRegistration != null) {
+                handlerRegistration.remove();
+            }
+            watchedUI = ui;
+            handlerRegistration = JavaScriptDispatcher.forUI(ui)
+                    .addHandler(invocation -> {
+                        if (invocation.getOwner() == component.getElement()
+                                .getNode()
+                                && condition.test(invocation.getInvocation())) {
+                            received = true;
+                        }
+                    });
         }
     }
 
