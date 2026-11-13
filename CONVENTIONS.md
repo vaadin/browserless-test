@@ -187,7 +187,7 @@ See [`guidelines/testing.md`](guidelines/testing.md).
 ## Code Style
 
 Run `mvn spotless:apply` before every commit. The `Format Check` CI job fails
-on unformatted code; commenting `/format` on a pull request applies it for you.
+on unformatted code and the changes it needs are suggested on the pull request.
 
 No wildcard imports — Spotless rejects them.
 
