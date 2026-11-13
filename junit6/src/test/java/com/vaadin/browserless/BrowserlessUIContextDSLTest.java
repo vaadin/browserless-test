@@ -25,7 +25,9 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.NativeButtonTester;
+import com.vaadin.flow.component.html.Span;
 
 /**
  * Covers the {@link BrowserlessUIContext} DSL methods that mirror
@@ -73,6 +75,21 @@ class BrowserlessUIContextDSLTest {
         tester.click();
         // Effect runs synchronously for on-attach signals.
         Assertions.assertEquals("Counter: 1", view.counter.getText());
+    }
+
+    @Test
+    void roundTrip_otherWindowActive_runsPendingAccessTasks() {
+        BrowserlessUserContext user = app.newUser();
+        BrowserlessUIContext first = user.newWindow();
+        UI ui = first.getUI();
+        Span span = new Span("old");
+        ui.add(span);
+        ui.access(() -> span.setText("new"));
+        user.newWindow();
+
+        first.roundTrip();
+
+        Assertions.assertEquals("new", span.getText());
     }
 
 }

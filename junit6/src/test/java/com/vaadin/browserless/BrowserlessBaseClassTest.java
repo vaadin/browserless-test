@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.example.SingleParam;
@@ -74,6 +75,17 @@ class BrowserlessBaseClassTest {
             roundTrip();
 
             Assertions.assertEquals("new", span.getText());
+        }
+
+        @Test
+        void roundTrip_accessTaskFails_rethrowsWrapped() {
+            UI.getCurrent().access(() -> {
+                throw new IllegalStateException("simulated");
+            });
+
+            ExecutionException e = Assertions
+                    .assertThrows(ExecutionException.class, () -> roundTrip());
+            Assertions.assertEquals("simulated", e.getCause().getMessage());
         }
 
     }
