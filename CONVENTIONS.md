@@ -65,6 +65,37 @@ the parent chain — a component inside a hidden parent is not usable.
 
 See [`guidelines/testers.md`](guidelines/testers.md).
 
+## Naming
+
+Every method name contains a verb that says what the method does. A name that
+is only a noun or a category — `header(…)`, `names(…)`, `report(…)` — leaves
+the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
+`warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
+internal helpers and the Kotlin layer as much as for tester API.
+
+Two families take their names from elsewhere and keep them: a tester's
+read-only accessor uses the component's own vocabulary (`getText()`,
+`isValid()`, `size()`), and a locator filter reads as part of the query
+sentence (`withText(…)`, `withoutTheme(…)`). New methods in either family
+follow the existing ones rather than adding a verb.
+
+Name a type after what it is, not after what the code around it does with it.
+
+Name a boolean property after its positive state — `isEnabled()`, not
+`isDisabled()` — so that a negated check never reads as a double negative.
+New API that joins an existing family with a negative name, such as
+`isInvalid()` from `HasValidation`, keeps that polarity.
+
+Do not expose two names for the same value — a record component and a `get…`
+method beside it returning the same thing is one accessor too many.
+
+A second way to do what an existing method already does is an overload of that
+method, not a new name. An overload is found by everyone who already calls the
+method, while a separate name has to be discovered on its own. Spell out the
+difference between the overloads in the Javadoc of both.
+
+See [`guidelines/design.md`](guidelines/design.md).
+
 ## Tester API
 
 One tester per component, named `<Component>Tester`, in the same package as the

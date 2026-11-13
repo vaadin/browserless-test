@@ -42,6 +42,23 @@ side looks like the component and the action side looks like the user.
 question that predicts it uses the same word as the action — `isUsable()`
 before an interaction, not a second vocabulary for the same condition.
 
+**Every other method name contains a verb.** A method that is neither a user
+action nor a component accessor — a mock, a context method, an internal
+helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
+`header(…)` or `names(…)`. Locator filters are the one other exception:
+`withText(…)` and `withoutTheme(…)` read as part of the query sentence, see
+[Locators](locators.md).
+
+**Booleans are named for their positive state.** `isEnabled()`, not
+`isDisabled()`, so a negated check never reads as a double negative. A method
+joining an existing negative family (`isInvalid()` from `HasValidation`) keeps
+that family's polarity.
+
+**One name per value, one name per operation.** Do not expose a record
+component and a `get…` method returning the same thing. A second way to do
+what an existing method does is an overload of it, not a new name — an
+overload is found by everyone who already calls the method.
+
 ## Visibility
 
 - `public` on a tester = published API of the tester *and* of the locator.
