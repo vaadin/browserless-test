@@ -25,9 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.NativeButtonTester;
-import com.vaadin.flow.component.html.Span;
 
 /**
  * Covers the {@link BrowserlessUIContext} DSL methods that mirror
@@ -78,18 +77,17 @@ class BrowserlessUIContextDSLTest {
     }
 
     @Test
-    void roundTrip_otherWindowActive_runsPendingAccessTasks() {
+    void roundTrip_otherWindowActive_roundTripsOwnWindow() {
         BrowserlessUserContext user = app.newUser();
         BrowserlessUIContext first = user.newWindow();
-        UI ui = first.getUI();
-        Span span = new Span("old");
-        ui.add(span);
-        ui.access(() -> span.setText("new"));
+        Dialog closedDialog = new Dialog();
+        first.getUI().add(closedDialog);
         user.newWindow();
 
         first.roundTrip();
 
-        Assertions.assertEquals("new", span.getText());
+        // Closed dialog cleanup only runs on the UI being round-tripped
+        Assertions.assertFalse(closedDialog.isAttached());
     }
 
 }
