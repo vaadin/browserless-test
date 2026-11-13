@@ -8,7 +8,7 @@ several of these rules lives in `guidelines/` — see
 ## Vaadin Version Coupling
 
 One Browserless Test version targets exactly one Vaadin version — the branch's
-`flow.version` / `vaadin.version` in the root `pom.xml`, mapped per branch in
+`flow.version` / `flow-components.version` in the root `pom.xml`, mapped per branch in
 [`guidelines/flow-version.md`](guidelines/flow-version.md). Do not write code
 that keeps working against an older release. No reflective fallbacks, no
 `Class.forName` probes, no "if this method exists" branches, no deprecation
