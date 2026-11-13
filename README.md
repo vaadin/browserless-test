@@ -718,7 +718,8 @@ assertTrue(test(quickAdd).isFocused());
 - Only focus and blur calls made through `Focusable` are simulated. JavaScript
   the application schedules itself, such as
   `getElement().executeJs("this.focus()")`, is not interpreted; it is only
-  recorded, see [JavaScript sent to the browser](#javascript-sent-to-the-browser).
+  sent, and a test can check it with a capture, see
+  [JavaScript sent to the browser](#javascript-sent-to-the-browser).
 
 ## JavaScript sent to the browser
 

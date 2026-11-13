@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Focusable;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
@@ -146,11 +147,29 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
+    void roundTripInListenerDuringDispatch_runsBeforeClientResponseTasks() {
+        AtomicReference<Boolean> ranInListener = new AtomicReference<>();
+        field.addFocusListener(event -> {
+            AtomicReference<Boolean> ran = new AtomicReference<>(false);
+            UI.getCurrent().beforeClientResponse(field,
+                    context -> ran.set(true));
+            roundTrip();
+            ranInListener.set(ran.get());
+        });
+        button.addClickListener(event -> field.focus());
+
+        test(button).click();
+
+        Assertions.assertEquals(true, ranInListener.get());
+    }
+
+    @Test
     void stop_keepsWhatWasCaptured_includingPendingJavaScript() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().callJsFunction("render");
         executed.stop();
         calendar.getElement().callJsFunction("refresh");
+        roundTrip();
 
         Assertions.assertEquals(List.of("render"), functionNames(executed));
     }
