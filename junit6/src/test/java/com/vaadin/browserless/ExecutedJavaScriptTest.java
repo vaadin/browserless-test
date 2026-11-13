@@ -27,6 +27,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.dom.Element;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
 
@@ -69,6 +70,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                         .map(execution -> execution.getJsCall().orElseThrow()
                                 .methodName() + " " + execution.getElement())
                         .toList());
+        Assertions.assertEquals(1,
+                executed.getCalls(Focusable.FocusJs.class, "focus").size());
+        Assertions.assertEquals(1,
+                executed.getCalls(Focusable.FocusJs.class, "blur").size());
+        Assertions.assertEquals(3, executed
+                .getCalls(Element.CallFunctionJs.class, "callFunction").size());
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
     }

@@ -105,11 +105,14 @@ public final class JavaScriptDispatcher implements Serializable {
      * runs the tasks scheduled with {@code UI.beforeClientResponse}, then takes
      * the whole queue and offers each invocation to the handlers.
      *
+     * Does nothing for a UI that is closed and removed from its session, as
+     * there is no client left to send to.
+     *
      * @param ui
      *            the UI whose pending JavaScript to send, or null to do nothing
      */
     public static void dispatch(UI ui) {
-        if (ui != null) {
+        if (ui != null && ui.getSession() != null) {
             forUI(ui).dispatch();
         }
     }

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 
@@ -56,6 +57,27 @@ class MultiWindowTest {
 
         // But different UI instances
         Assertions.assertNotSame(window1.getUI(), window2.getUI());
+    }
+
+    @Test
+    void closedUI_captureKeepsWhatItsBrowserReceived() {
+        var user = app.newUser();
+        var window = user.newWindow();
+        user.newWindow();
+        window.activate();
+        UI ui = window.getUI();
+        ExecutedJavaScript executed = ExecutedJavaScript.capture(ui);
+        ui.getElement().callJsFunction("render");
+        Assertions.assertEquals(1, executed.getAll().size());
+
+        // The application closes the UI, which removes it from the session
+        ui.close();
+        window.close();
+        Assertions.assertNull(ui.getSession());
+
+        Assertions.assertEquals(1, executed.getAll().size(),
+                "A closed UI's capture should keep what was sent");
+        executed.stop();
     }
 
     @Test
