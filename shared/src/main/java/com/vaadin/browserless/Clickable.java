@@ -122,8 +122,7 @@ public interface Clickable<T extends Component> {
         // the event reaches the server, and the promises they start settle
         // after it.
         Runnable settlePromises = button == 0
-                ? ClientInitializers.fireDomEvent(ui, component.getElement(),
-                        "click")
+                ? ClientInitializers.fireDomEvent(ui, component, "click")
                 : () -> {
                 };
         ComponentUtil.fireEvent(component,

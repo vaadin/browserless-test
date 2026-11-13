@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.trigger.internal.TriggerInputJs;
@@ -41,7 +42,6 @@ import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.StateNode;
 import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
-import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 
 /**
@@ -60,8 +60,10 @@ import com.vaadin.flow.shared.Registration;
  * listens to an event no tester fires, or an action that uses a snippet that is
  * not simulated, is logged and otherwise ignored, so the rest of the test runs
  * as before.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
-final class ClientInitializers implements Serializable {
+public final class ClientInitializers implements Serializable {
 
     private static final Logger LOGGER = LoggerFactory
             .getLogger(ClientInitializers.class);
@@ -165,47 +167,54 @@ final class ClientInitializers implements Serializable {
 
     /**
      * Runs the client-side listeners for a DOM event that the user fires on the
-     * given element, as a browser does before it sends the event to the server.
+     * given component, as a browser does before it sends the event to the
+     * server.
      * <p>
      * Promises the listeners start are settled by the returned task, as a
      * browser settles them only after the event has been handled. Run it once
      * the server-side event has been fired.
      *
      * @param ui
-     *            the UI the element is attached to, not null
-     * @param element
-     *            the element the event is fired on, not null
+     *            the UI the user interacts with, not null
+     * @param component
+     *            the component the event is fired on, not null
      * @param eventName
-     *            the name of the DOM event, one of the simulated events
+     *            the name of the DOM event, {@code click}
      * @return the task that settles the promises the listeners started, not
      *         null
      */
-    static Runnable fireDomEvent(UI ui, Element element, String eventName) {
-        assert SIMULATED_EVENTS.contains(eventName);
-        // Initializers still pending are installed before the user acts
+    public static Runnable fireDomEvent(UI ui, Component component,
+            String eventName) {
+        if (!SIMULATED_EVENTS.contains(eventName)) {
+            throw new IllegalArgumentException("Listeners of '" + eventName
+                    + "' events are not simulated");
+        }
+        // Initializers still pending are installed before the user acts. The
+        // component may only get attached then, as a menu item does when its
+        // menu is rendered.
         JavaScriptDispatcher.dispatch(ui);
-        ClientInitializers initializers = getOrCreate(ui);
-        Map<Integer, Installed> installed = initializers.byNode
-                .get(element.getNode());
+        Map<Integer, Installed> installed = getOrCreate(ui).byNode
+                .get(component.getElement().getNode());
         if (installed == null) {
             return () -> {
             };
         }
+        SimulatedClipboard clipboard = SimulatedClipboard.of(ui.getSession());
         List<Runnable> settlements = new ArrayList<>();
         for (Installed listener : List.copyOf(installed.values())) {
             if (eventName.equals(listener.eventName())
                     && listener.listener() != null) {
-                initializers.runListener(element, listener.listener(),
-                        settlements);
+                runListener(component.getElement(), listener.listener(),
+                        clipboard, settlements);
             }
         }
         return () -> settlements.forEach(Runnable::run);
     }
 
-    private void runListener(Element element, JsFunction listener,
-            List<Runnable> settlements) {
+    private static void runListener(Element element, JsFunction listener,
+            SimulatedClipboard clipboard, List<Runnable> settlements) {
         try {
-            evaluate(listener, settlements);
+            evaluate(listener, clipboard, settlements);
         } catch (NotSimulated e) {
             LOGGER.warn("A trigger on {} is not simulated in browserless tests,"
                     + " as it uses {}", element, e.getMessage());
@@ -218,14 +227,16 @@ final class ClientInitializers implements Serializable {
      *
      * @param function
      *            the function to call
+     * @param clipboard
+     *            the clipboard of the user who fired the event
      * @param settlements
      *            where to add the settlement of a promise the function starts
      * @return the value the function returns
      * @throws NotSimulated
      *             if the function, or one it calls, is not simulated
      */
-    private @Nullable Object evaluate(JsFunction function,
-            List<Runnable> settlements) {
+    private static @Nullable Object evaluate(JsFunction function,
+            SimulatedClipboard clipboard, List<Runnable> settlements) {
         JsCall call = function.getDeclaredCall();
         if (call == null) {
             throw new NotSimulated("JavaScript compiled from a string");
@@ -241,18 +252,20 @@ final class ClientInitializers implements Serializable {
         }
         if (type == WriteToClipboardJs.class
                 && "writeToClipboard".equals(method)) {
-            String text = (String) evaluate((JsFunction) args.get(0),
+            String text = (String) evaluate((JsFunction) args.get(0), clipboard,
                     settlements);
-            String html = (String) evaluate((JsFunction) args.get(1),
+            String html = (String) evaluate((JsFunction) args.get(1), clipboard,
                     settlements);
-            if (evaluate((JsFunction) args.get(2), settlements) != null) {
+            if (evaluate((JsFunction) args.get(2), clipboard,
+                    settlements) != null) {
                 throw new NotSimulated("an image copy");
             }
-            SimulatedClipboard.of(VaadinSession.getCurrent()).write(text, html);
+            clipboard.write(text, html);
             return text != null ? text : html;
         }
         if (type == TriggerJs.class && "reportOutcome".equals(method)) {
-            Object value = evaluate((JsFunction) args.get(0), settlements);
+            Object value = evaluate((JsFunction) args.get(0), clipboard,
+                    settlements);
             ReturnChannelRegistration channel = (ReturnChannelRegistration) args
                     .get(1);
             settlements.add(() -> {

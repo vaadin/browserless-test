@@ -17,6 +17,7 @@ package com.vaadin.flow.component.menubar;
 
 import java.util.List;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.MenuItemNavigation;
@@ -427,8 +428,11 @@ public class MenuBarTester<T extends MenuBar> extends ComponentTester<T> {
         if (menuItem.isCheckable()) {
             menuItem.setChecked(!menuItem.isChecked());
         }
+        Runnable settlePromises = ClientInitializers.fireDomEvent(
+                getComponent().getUI().orElseThrow(), menuItem, "click");
         ComponentUtil.fireEvent(menuItem, new ClickEvent<>(menuItem, true, 0, 0,
                 0, 0, 1, 0, false, false, false, false));
+        settlePromises.run();
     }
 
 }

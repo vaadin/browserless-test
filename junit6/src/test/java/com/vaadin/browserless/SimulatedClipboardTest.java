@@ -26,7 +26,11 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.clipboard.Clipboard;
+import com.vaadin.flow.component.clipboard.ClipboardContent;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarTester;
 import com.vaadin.flow.component.textfield.TextField;
 
 @ViewPackages(classes = CopyView.class)
@@ -79,7 +83,7 @@ class SimulatedClipboardTest extends BrowserlessTest {
     }
 
     @Test
-    void reattachedButton_copiesOnce() {
+    void reattachedButton_stillCopies() {
         List<String> copies = new ArrayList<>();
         Button copy = new Button("Copy");
         Clipboard.onClick(copy).writeText("Hello", copies::add,
@@ -110,6 +114,33 @@ class SimulatedClipboardTest extends BrowserlessTest {
 
         Assertions.assertNull(SimulatedClipboard.get().getText());
         Assertions.assertEquals(List.of(true), clicks);
+    }
+
+    @Test
+    void imageCopy_isIgnoredWithoutWritingText() {
+        Image image = new Image("logo.png", "Logo");
+        List<Boolean> clicks = new ArrayList<>();
+        Button copy = new Button("Copy",
+                event -> clicks.add(event.isFromClient()));
+        Clipboard.onClick(copy)
+                .write(ClipboardContent.create().text("Hello").image(image));
+        add(image, copy);
+
+        test(copy).click();
+
+        Assertions.assertNull(SimulatedClipboard.get().getText());
+        Assertions.assertEquals(List.of(true), clicks);
+    }
+
+    @Test
+    void menuItemClick_copiesText() {
+        MenuBar menuBar = new MenuBar();
+        Clipboard.onClick(menuBar.addItem("Copy link")).writeText("Hello");
+        add(menuBar);
+
+        test(MenuBarTester.class, menuBar).clickItem("Copy link");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
     }
 
     private static void add(Component... components) {

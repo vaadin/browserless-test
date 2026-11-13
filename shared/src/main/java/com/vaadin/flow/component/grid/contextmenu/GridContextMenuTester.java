@@ -19,6 +19,7 @@ import java.util.List;
 
 import tools.jackson.databind.node.ObjectNode;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -527,7 +528,10 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * firing a click event on the item would not run its listeners.
      */
     private void clickMenuItem(GridMenuItem<Y> menuItem) {
+        Runnable settlePromises = ClientInitializers.fireDomEvent(
+                getGrid().getUI().orElseThrow(), menuItem, "click");
         fireDomEvent(new DomEvent(menuItem.getElement(), "click",
                 JacksonUtils.createObjectNode()));
+        settlePromises.run();
     }
 }

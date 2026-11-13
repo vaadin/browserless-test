@@ -785,7 +785,7 @@ execution.resolve(3);                 // runs the success handler
 ## Clipboard
 
 A copy wired with `Clipboard.onClick(...)` runs when the test clicks the
-component, as in a browser, and writes to the clipboard of the simulated
+component or menu item, as in a browser, and writes to the clipboard of the simulated
 user. A test reads it with `SimulatedClipboard.get()`:
 
 ```java
