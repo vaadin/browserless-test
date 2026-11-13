@@ -45,10 +45,11 @@ before an interaction, not a second vocabulary for the same condition.
 **Every other method name contains a verb.** A method that is neither a user
 action nor a component accessor — a mock, a context method, an internal
 helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
-`header(…)` or `names(…)`. A factory such as `newUser()` counts, `new` being
-the verb. Query and locator chains are the one other exception: their filters
-(`withText(…)`, `withoutTheme(…)`, see [Locators](locators.md)) and terminals
-(`all()`, `first()`, `single()`, `component()`) read as one sentence.
+`header(…)` or `names(…)`. Two other families are exempt. Query and locator
+chains read as one sentence in their filters (`withText(…)`, `withoutTheme(…)`,
+see [Locators](locators.md)) and terminals (`all()`, `first()`, `single()`,
+`component()`). A factory that creates a new instance is named `new…` after
+the Java `new` operator (`newUser()`, `newWindow()`).
 
 **Booleans are named for their positive state.** `isEnabled()`, not
 `isDisabled()`, so a negated check never reads as a double negative. A tester

@@ -73,13 +73,14 @@ the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
 `warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
 internal helpers and the Kotlin layer as much as for tester API.
 
-Two families take their names from elsewhere and keep them: a tester's
+Three families take their names from elsewhere and keep them: a tester's
 read-only accessor uses the component's own vocabulary (`getText()`,
-`size()`), and a query or locator chain reads as one sentence, both in its
+`size()`); a query or locator chain reads as one sentence, both in its
 filters (`withText(…)`, `withoutTheme(…)`) and in its terminals (`all()`,
-`first()`, `single()`, `component()`). New methods in either family follow
-the existing ones rather than adding a verb. A factory named `new…` —
-`newUser()`, `newWindow()` — already starts with its verb.
+`first()`, `single()`, `component()`); and a factory that creates a new
+instance is named `new…` after the Java `new` operator (`newUser()`,
+`newWindow()`). New methods in these families follow the existing ones
+rather than adding a verb.
 
 Name a type after what it is, not after what the code around it does with it.
 
