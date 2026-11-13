@@ -40,12 +40,10 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         button = new Button("Save");
         Div container = new Div(calendar, field, button);
         getCurrentView().getElement().appendChild(container.getElement());
-        // leave out what the navigation to the view sent
-        ExecutedJavaScript.get();
     }
 
     @Test
-    void functionCalls_recordedWithArguments_alongWithFocusCall() {
+    void functionCalls_capturedWithArguments_alongWithFocusCall() {
         button.addClickListener(event -> {
             calendar.getElement().callJsFunction("setOptions", "week", 7);
             field.getElement().callJsFunction("setOptions", "ignored");
@@ -54,9 +52,9 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
             button.blur();
         });
 
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
         test(button).click();
 
-        ExecutedJavaScript executed = ExecutedJavaScript.get();
         Assertions.assertEquals(List.of(List.of("week", 7)),
                 executed.getFunctionCalls(calendar, "setOptions"));
         Assertions.assertEquals(1,
@@ -80,21 +78,22 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void functionCall_scheduledByTest_recordedWithoutRoundTrip() {
+    void functionCall_scheduledByTest_capturedWithoutRoundTrip() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().callJsFunction("render");
 
         Assertions.assertEquals(List.of(List.of()),
-                ExecutedJavaScript.get().getFunctionCalls(calendar, "render"));
+                executed.getFunctionCalls(calendar, "render"));
     }
 
     @Test
     void resolve_runsTheApplicationsSuccessHandler() {
         AtomicReference<Integer> result = new AtomicReference<>();
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("return this.childElementCount")
                 .then(Integer.class, result::set);
 
-        ExecutedJavaScript.Execution execution = ExecutedJavaScript.get()
-                .getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
         Assertions.assertTrue(execution.isWaitingForResult());
         execution.resolve(3);
 
@@ -106,12 +105,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     @Test
     void reject_runsTheApplicationsErrorHandler() {
         AtomicReference<String> error = new AtomicReference<>();
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("return this.missing()").then(
                 value -> Assertions.fail("Should not succeed"), error::set);
         calendar.getElement().executeJs("this.render()");
 
-        List<ExecutedJavaScript.Execution> executions = ExecutedJavaScript.get()
-                .getAll();
+        List<ExecutedJavaScript.Execution> executions = executed.getAll();
         executions.get(0).reject("missing is not a function");
 
         Assertions.assertEquals("missing is not a function", error.get());
@@ -121,14 +120,20 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void get_returnsWhatWasSentSinceThePreviousGet() {
+    void capture_keepsEverythingSentAfterItStarted_acrossRoundTripsAndOtherCaptures() {
         calendar.getElement().callJsFunction("render");
-        ExecutedJavaScript first = ExecutedJavaScript.get();
+        ExecutedJavaScript first = ExecutedJavaScript.capture();
         calendar.getElement().callJsFunction("refresh");
+        roundTrip();
+        ExecutedJavaScript second = ExecutedJavaScript.capture();
+        calendar.getElement().callJsFunction("update");
+        roundTrip();
 
-        Assertions.assertEquals(List.of("render"), functionNames(first));
-        Assertions.assertEquals(List.of("refresh"),
-                functionNames(ExecutedJavaScript.get()));
+        Assertions.assertEquals(List.of("refresh", "update"),
+                functionNames(first));
+        Assertions.assertEquals(List.of("update"), functionNames(second));
+        Assertions.assertEquals(List.of("refresh", "update"),
+                functionNames(first), "Querying should not consume anything");
     }
 
     private static List<Object> functionNames(ExecutedJavaScript executed) {

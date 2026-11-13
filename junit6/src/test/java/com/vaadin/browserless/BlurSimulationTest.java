@@ -195,16 +195,17 @@ public class BlurSimulationTest extends BrowserlessTest {
         container.add(other);
         textField.addValueChangeListener(
                 e -> other.getElement().executeJs("this.focus()"));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
 
         test(textField).setValue("100");
 
         Assertions.assertFalse(test(other).isFocused(),
                 "Application JavaScript should not be simulated as a focus call");
         Assertions.assertTrue(
-                ExecutedJavaScript.get().getAll().stream()
+                executed.getAll().stream()
                         .anyMatch(execution -> execution.getExpression()
                                 .contains("this.focus()")),
-                "Application JavaScript should be recorded as sent");
+                "Application JavaScript should be captured as sent");
     }
 
     @Test

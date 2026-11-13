@@ -727,15 +727,16 @@ There is no browser to run the JavaScript that the server schedules with
 at every client boundary — a round trip, a component lookup, the end of a
 tester interaction — the pending JavaScript of the UI is sent to a simulated
 client, the way a server response would send it. What the framework can
-simulate, such as server-side focus and blur calls, is simulated, and
-everything is recorded. `ExecutedJavaScript.get()` returns what was sent
-since the previous `get()`, so reading it right after an interaction gives the
-JavaScript that interaction sent:
+simulate, such as server-side focus and blur calls, is simulated.
+
+To check what was sent, start a capture with `ExecutedJavaScript.capture()`,
+run the steps to check, however many round trips they take, and query the
+capture:
 
 ```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
 test(save).click();
 
-ExecutedJavaScript executed = ExecutedJavaScript.get();
 assertEquals(List.of(List.of("week", 7)),
         executed.getFunctionCalls(calendar, "setOptions"));
 assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
@@ -743,16 +744,21 @@ assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
 
 `getAll()` lists everything that was sent, in order, with the element it ran
 on, the call of a JavaScript definition (`getJsCall()`) or the expression of a
-string script. `get()` sends whatever is still pending first, and the instance
-it returns does not change afterwards. Use `get(ui)` for a UI other than the
-current one.
+string script. A capture holds everything sent after it started; JavaScript
+still pending when it starts is sent first and is left out. Querying sends
+whatever is still pending first and does not consume anything, so a capture can
+be queried any number of times, and several captures of the same UI each see
+every call sent while they are active. Use `capture(ui)` for a UI other than
+the current one.
 
 JavaScript whose result the application waits for, with `then(...)` or
 `toCompletableFuture(...)`, can be answered the way the browser would:
 
 ```java
-ExecutedJavaScript.Execution execution = ExecutedJavaScript.get()
-        .getAll().getLast();
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.showTimeZone();                  // calls executeJs(...).then(...)
+
+ExecutedJavaScript.Execution execution = executed.getAll().getLast();
 execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
@@ -767,9 +773,8 @@ execution.resolve(3);                 // runs the success handler
   server-side `focus()` call.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
-- What was sent is kept per UI until the next `get()`. If a test runs several
-  interactions without calling `get()` in between, the next `get()` returns
-  the JavaScript of all of them.
+- A capture keeps what it holds for as long as its UI lives. JavaScript sent
+  while no capture is active is not kept.
 
 ## Multi-user and multi-window testing
 

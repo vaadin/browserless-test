@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,23 +40,28 @@ import com.vaadin.flow.js.JsCall;
  * {@code callJsFunction} or a declared JavaScript definition does not run.
  * Browserless Test plays the client instead: at every client boundary - a round
  * trip, a component lookup, the end of a simulated user interaction - it takes
- * the pending JavaScript of the UI, the way a server response would, simulates
- * what it can (server-side {@code Focusable.focus()} and {@code blur()}, for
- * example) and records all of it here, so a test can check what was sent:
+ * the pending JavaScript of the UI, the way a server response would, and
+ * simulates what it can (server-side {@code Focusable.focus()} and
+ * {@code blur()}, for example).
+ * <p>
+ * A test that wants to check what was sent starts a capture with
+ * {@link #capture()}, runs the steps to check, however many round trips they
+ * take, and then queries the capture:
  *
  * <pre>
+ * ExecutedJavaScript executed = ExecutedJavaScript.capture();
  * test(save).click();
  *
  * assertEquals(List.of(List.of("Saved")),
- *         ExecutedJavaScript.get().getFunctionCalls(dialog, "open"));
+ *         executed.getFunctionCalls(dialog, "open"));
  * </pre>
  * <p>
- * Each {@link #get()} returns what was sent since the previous {@code get()}
- * for the same UI, so reading it right after a user interaction gives the
- * JavaScript that interaction sent. Getting it first sends whatever is still
- * pending, so JavaScript scheduled just before is included. The returned
- * instance does not change afterwards, and a second {@code get()} returns only
- * what was sent in between, so keep the instance to check it more than once.
+ * A capture holds everything sent to the browser of its UI after it was
+ * started; JavaScript still pending when it starts is sent first and is not
+ * part of it. Querying it does not consume anything, and several captures of
+ * the same UI each see everything sent while they are active. A query sends
+ * whatever is still pending first, so JavaScript scheduled just before is
+ * included.
  * <p>
  * A call whose result the application waits for, with {@code then(...)} or
  * {@code toCompletableFuture(...)}, can be answered with
@@ -63,59 +69,62 @@ import com.vaadin.flow.js.JsCall;
  * browser would.
  * <p>
  * JavaScript scheduled for an element that is not visible is not sent, as in a
- * browser, and is included only once the element becomes visible.
+ * browser, and is captured only once the element becomes visible.
  */
 public final class ExecutedJavaScript implements Serializable {
 
-    private final List<Execution> executions;
+    private final UI ui;
 
-    private ExecutedJavaScript(List<Execution> executions) {
-        this.executions = executions;
+    private final List<Execution> executions = new ArrayList<>();
+
+    private ExecutedJavaScript(UI ui) {
+        this.ui = ui;
     }
 
     /**
-     * Sends the pending JavaScript of {@link UI#getCurrent()} to the simulated
-     * client and gets the JavaScript sent to its browser since the previous
-     * {@code get()} for the UI, or since the UI was created.
+     * Starts capturing the JavaScript sent to the browser of
+     * {@link UI#getCurrent()}.
      *
-     * @return the JavaScript sent to the current UI, not null
+     * @return the capture, not null
      * @throws IllegalStateException
      *             if there is no current UI
+     * @see #capture(UI)
      */
-    public static ExecutedJavaScript get() {
+    public static ExecutedJavaScript capture() {
         UI ui = UI.getCurrent();
         if (ui == null) {
             throw new IllegalStateException("There is no current UI");
         }
-        return get(ui);
+        return capture(ui);
     }
 
     /**
-     * Sends the pending JavaScript of the given UI to the simulated client and
-     * gets the JavaScript sent to its browser since the previous {@code get()}
-     * for the UI, or since the UI was created.
+     * Starts capturing the JavaScript sent to the browser of the given UI.
+     * JavaScript that is still pending is sent first and is not captured.
      *
      * @param ui
      *            the UI, not null
-     * @return the JavaScript sent to the UI, not null
+     * @return the capture, not null
      */
-    public static ExecutedJavaScript get(UI ui) {
+    public static ExecutedJavaScript capture(UI ui) {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        return new ExecutedJavaScript(dispatcher.takeExecuted().stream()
-                .map(invocation -> new Execution(dispatcher, invocation))
-                .toList());
+        ExecutedJavaScript capture = new ExecutedJavaScript(ui);
+        dispatcher.addHandler(invocation -> capture.executions
+                .add(new Execution(dispatcher, invocation)));
+        return capture;
     }
 
     /**
-     * Gets everything that was sent to the browser, in the order the browser
-     * received it.
+     * Gets everything sent to the browser since the capture started, in the
+     * order the browser received it.
      *
      * @return the sent JavaScript, not null
      */
     public List<Execution> getAll() {
-        return executions;
+        JavaScriptDispatcher.dispatch(ui);
+        return List.copyOf(executions);
     }
 
     /**
@@ -132,7 +141,7 @@ public final class ExecutedJavaScript implements Serializable {
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(methodName, "methodName");
-        return executions.stream()
+        return getAll().stream()
                 .flatMap(execution -> execution.getJsCall()
                         .filter(call -> call.definitionType() == definitionType
                                 && call.methodName().equals(methodName))
@@ -159,7 +168,7 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(component, "component");
         Objects.requireNonNull(functionName, "functionName");
         Element element = component.getElement();
-        return executions.stream()
+        return getAll().stream()
                 .filter(execution -> element.equals(execution.getElement()))
                 .flatMap(execution -> execution.getJsCall().stream())
                 .filter(call -> call

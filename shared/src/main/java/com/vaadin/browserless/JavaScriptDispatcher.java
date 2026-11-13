@@ -33,13 +33,13 @@ import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
  * At each client boundary - a round trip, the end of a simulated user
  * interaction - the whole pending JavaScript queue of the UI is taken, in
  * order, the way a server response would send it. Each invocation is offered to
- * the registered handlers, which simulate what the browser would do with it,
- * and is then recorded so that a test can assert on it through
- * {@link ExecutedJavaScript}.
+ * the registered handlers: the ones that simulate what the browser would do
+ * with it, and each {@link ExecutedJavaScript} capture a test has started.
  * <p>
  * Taking the queue is what lets the framework react to scheduled JavaScript
  * without hiding it from the application or from the test: this is the only
- * place that consumes the queue, and nothing it consumes is lost.
+ * place that consumes the queue, and every handler sees every invocation, so
+ * the simulation and any number of captures never take calls from each other.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
@@ -68,8 +68,6 @@ public final class JavaScriptDispatcher implements Serializable {
     private final UI ui;
 
     private final List<Handler> handlers = new ArrayList<>();
-
-    private final List<PendingJavaScriptInvocation> executed = new ArrayList<>();
 
     private final Set<PendingJavaScriptInvocation> answered = Collections
             .newSetFromMap(new IdentityHashMap<>());
@@ -103,8 +101,7 @@ public final class JavaScriptDispatcher implements Serializable {
 
     /**
      * Sends the pending JavaScript of the given UI to the simulated client:
-     * takes the whole queue, offers each invocation to the handlers and records
-     * it.
+     * takes the whole queue and offers each invocation to the handlers.
      *
      * @param ui
      *            the UI whose pending JavaScript to send, or null to do nothing
@@ -139,7 +136,6 @@ public final class JavaScriptDispatcher implements Serializable {
                     .runExecutionsBeforeClientResponse();
             for (PendingJavaScriptInvocation invocation : ui.getInternals()
                     .dumpPendingJavaScriptInvocations()) {
-                executed.add(invocation);
                 for (Handler handler : List.copyOf(handlers)) {
                     handler.handle(invocation);
                 }
@@ -147,18 +143,6 @@ public final class JavaScriptDispatcher implements Serializable {
         } finally {
             dispatching = false;
         }
-    }
-
-    /**
-     * Takes the invocations sent to the client since the UI was created or
-     * since the previous call, in the order they were sent.
-     *
-     * @return the sent invocations, not null
-     */
-    public List<PendingJavaScriptInvocation> takeExecuted() {
-        List<PendingJavaScriptInvocation> taken = List.copyOf(executed);
-        executed.clear();
-        return taken;
     }
 
     /**
