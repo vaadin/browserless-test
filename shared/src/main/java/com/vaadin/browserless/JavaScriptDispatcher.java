@@ -102,7 +102,8 @@ public final class JavaScriptDispatcher implements Serializable {
 
     /**
      * Sends the pending JavaScript of the given UI to the simulated client:
-     * takes the whole queue and offers each invocation to the handlers.
+     * runs the tasks scheduled with {@code UI.beforeClientResponse}, then takes
+     * the whole queue and offers each invocation to the handlers.
      *
      * @param ui
      *            the UI whose pending JavaScript to send, or null to do nothing
@@ -125,6 +126,10 @@ public final class JavaScriptDispatcher implements Serializable {
     }
 
     private void dispatch() {
+        // Like a server response, run the tasks scheduled with
+        // beforeClientResponse first; executeJs calls are queued that way.
+        // Also done by a round trip that a handler's listener triggers.
+        ui.getInternals().getStateTree().runExecutionsBeforeClientResponse();
         // A handler that fires events may make the application schedule more
         // JavaScript, which goes out with the next response, as in a browser
         if (dispatching) {
@@ -132,10 +137,6 @@ public final class JavaScriptDispatcher implements Serializable {
         }
         dispatching = true;
         try {
-            // executeJs calls are queued via beforeClientResponse, so
-            // materialize them first
-            ui.getInternals().getStateTree()
-                    .runExecutionsBeforeClientResponse();
             for (PendingJavaScriptInvocation invocation : ui.getInternals()
                     .dumpPendingJavaScriptInvocations()) {
                 for (Handler handler : List.copyOf(handlers)) {

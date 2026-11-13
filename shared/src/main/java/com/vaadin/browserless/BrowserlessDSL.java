@@ -169,7 +169,6 @@ final class BrowserlessDSL {
     static void roundTrip(UI ui) {
         ui.getInternals().getStateTree().collectChanges(nodeChange -> {
         });
-        ui.getInternals().getStateTree().runExecutionsBeforeClientResponse();
         JavaScriptDispatcher.dispatch(ui);
     }
 
