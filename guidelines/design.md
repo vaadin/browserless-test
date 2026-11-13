@@ -47,8 +47,8 @@ action nor a component accessor — a mock, a context method, an internal
 helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
 `header(…)` or `names(…)`. A factory such as `newUser()` counts, `new` being
 the verb. Query and locator chains are the one other exception: their filters
-(`withText(…)`, `withoutTheme(…)`) and terminals (`all()`, `first()`,
-`single()`, `component()`) read as one sentence, see [Locators](locators.md).
+(`withText(…)`, `withoutTheme(…)`, see [Locators](locators.md)) and terminals
+(`all()`, `first()`, `single()`, `component()`) read as one sentence.
 
 **Booleans are named for their positive state.** `isEnabled()`, not
 `isDisabled()`, so a negated check never reads as a double negative. A tester
