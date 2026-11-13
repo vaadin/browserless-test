@@ -773,8 +773,8 @@ execution.resolve(3);                 // runs the success handler
   server-side `focus()` call.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
-- A capture keeps what it holds for as long as its UI lives. JavaScript sent
-  while no capture is active is not kept.
+- A capture runs until `stop()` is called or its UI is gone, and keeps what it
+  holds until then. JavaScript sent while no capture is active is not kept.
 
 ## Multi-user and multi-window testing
 

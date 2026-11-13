@@ -25,6 +25,7 @@ import java.util.Set;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * Plays the browser for the JavaScript the server sends to a UI during a
@@ -46,8 +47,8 @@ import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 public final class JavaScriptDispatcher implements Serializable {
 
     /**
-     * Simulates what the browser does with one piece of JavaScript sent by the
-     * server.
+     * Receives each piece of JavaScript sent to the simulated client, to
+     * simulate what the browser does with it or to capture it for a test.
      * <p>
      * For internal use only. May be renamed or removed in a future release.
      */
@@ -57,7 +58,7 @@ public final class JavaScriptDispatcher implements Serializable {
         /**
          * Reacts to an invocation that the client has received. Called for
          * every invocation, in the order the server scheduled them; a handler
-         * ignores the ones it does not simulate.
+         * ignores the ones it is not interested in.
          *
          * @param invocation
          *            the invocation the client received, not null
@@ -117,9 +118,10 @@ public final class JavaScriptDispatcher implements Serializable {
      *
      * @param handler
      *            the handler, not null
+     * @return a handle for removing the handler, not null
      */
-    public void addHandler(Handler handler) {
-        handlers.add(handler);
+    public Registration addHandler(Handler handler) {
+        return Registration.addAndRemove(handlers, handler);
     }
 
     private void dispatch() {

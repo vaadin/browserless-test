@@ -31,6 +31,7 @@ import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.shared.Registration;
 
 /**
  * The JavaScript the server has sent to the browser of a UI during a
@@ -58,8 +59,9 @@ import com.vaadin.flow.js.JsCall;
  * <p>
  * A capture holds everything sent to the browser of its UI after it was
  * started; JavaScript still pending when it starts is sent first and is not
- * part of it. Querying it does not consume anything, and several captures of
- * the same UI each see everything sent while they are active. A query sends
+ * part of it. A capture runs until {@link #stop()} or for as long as the UI
+ * lives. Querying it does not consume anything, and several captures of the
+ * same UI each see everything sent while they are active. A query sends
  * whatever is still pending first, so JavaScript scheduled just before is
  * included.
  * <p>
@@ -76,6 +78,8 @@ public final class ExecutedJavaScript implements Serializable {
     private final UI ui;
 
     private final List<Execution> executions = new ArrayList<>();
+
+    private @Nullable Registration registration;
 
     private ExecutedJavaScript(UI ui) {
         this.ui = ui;
@@ -111,19 +115,35 @@ public final class ExecutedJavaScript implements Serializable {
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
         ExecutedJavaScript capture = new ExecutedJavaScript(ui);
-        dispatcher.addHandler(invocation -> capture.executions
-                .add(new Execution(dispatcher, invocation)));
+        capture.registration = dispatcher
+                .addHandler(invocation -> capture.executions
+                        .add(new Execution(dispatcher, invocation)));
         return capture;
     }
 
     /**
-     * Gets everything sent to the browser since the capture started, in the
-     * order the browser received it.
+     * Stops capturing, after first sending whatever is still pending. What was
+     * captured so far can still be queried. Stopping a capture that is already
+     * stopped does nothing.
+     */
+    public void stop() {
+        if (registration != null) {
+            JavaScriptDispatcher.dispatch(ui);
+            registration.remove();
+            registration = null;
+        }
+    }
+
+    /**
+     * Gets everything sent to the browser since the capture started, and until
+     * it was stopped, in the order the browser received it.
      *
      * @return the sent JavaScript, not null
      */
     public List<Execution> getAll() {
-        JavaScriptDispatcher.dispatch(ui);
+        if (registration != null) {
+            JavaScriptDispatcher.dispatch(ui);
+        }
         return List.copyOf(executions);
     }
 

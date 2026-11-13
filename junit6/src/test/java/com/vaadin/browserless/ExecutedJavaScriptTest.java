@@ -136,6 +136,16 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 functionNames(first), "Querying should not consume anything");
     }
 
+    @Test
+    void stop_keepsWhatWasCaptured_includingPendingJavaScript() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().callJsFunction("render");
+        executed.stop();
+        calendar.getElement().callJsFunction("refresh");
+
+        Assertions.assertEquals(List.of("render"), functionNames(executed));
+    }
+
     private static List<Object> functionNames(ExecutedJavaScript executed) {
         return executed.getAll().stream().map(execution -> execution.getJsCall()
                 .orElseThrow().arguments().get(0)).toList();
