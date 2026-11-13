@@ -58,7 +58,9 @@ Test does it explicitly:
   it.
 - `ComponentTester#roundTrip()` (protected) is the tester-level entry point;
   `roundTrip()` on the test base class and `window.roundTrip()` are the
-  test-level ones.
+  test-level ones. All of them build on `MockVaadin.clientRoundtrip()`, so
+  they run the `UI.access()` queue too, and then also collect the state tree
+  changes and apply server-initiated focus changes.
 - `TestingLifecycleHook.awaitBeforeLookup` calls the round trip before a
   component lookup by default, so a query already sees the state a real client
   response would have produced.
