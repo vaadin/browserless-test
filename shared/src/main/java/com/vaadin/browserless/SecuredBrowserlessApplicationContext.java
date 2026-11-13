@@ -218,8 +218,9 @@ public class SecuredBrowserlessApplicationContext<C>
         /**
          * @see BrowserlessApplicationContext.Builder#withSessionLockIsolation
          */
-        public Builder<C> withSessionLockIsolation(boolean enabled) {
-            base.withSessionLockIsolation(enabled);
+        public Builder<C> withSessionLockIsolation(
+                boolean sessionLockIsolation) {
+            base.withSessionLockIsolation(sessionLockIsolation);
             return this;
         }
 

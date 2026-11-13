@@ -812,14 +812,14 @@ public class BrowserlessApplicationContext implements AutoCloseable {
          * {@link BrowserlessUIContext#activate()}.</li>
          * </ul>
          *
-         * @param enabled
+         * @param sessionLockIsolation
          *            {@code true} to hold a session lock only while one of its
          *            user's windows is active, {@code false} to keep every
          *            session locked
          * @return this builder
          */
-        public Builder withSessionLockIsolation(boolean enabled) {
-            this.sessionLockIsolation = enabled;
+        public Builder withSessionLockIsolation(boolean sessionLockIsolation) {
+            this.sessionLockIsolation = sessionLockIsolation;
             return this;
         }
 
