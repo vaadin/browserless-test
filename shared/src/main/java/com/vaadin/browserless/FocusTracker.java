@@ -82,7 +82,8 @@ final class FocusTracker implements Serializable {
      * @param component
      *            the component the user interacts with, not null
      * @return the UI the component is attached to, to be used for a subsequent
-     *         {@link #flush(UI)} even if the interaction detaches the component
+     *         {@link JavaScriptDispatcher#dispatch(UI)} even if the interaction
+     *         detaches the component
      * @throws IllegalStateException
      *             if the component is not attached to a UI
      */
@@ -128,7 +129,8 @@ final class FocusTracker implements Serializable {
      * @param component
      *            the component to blur, not null
      * @return the UI the component is attached to, to be used for a subsequent
-     *         {@link #flush(UI)} even if a listener detaches the component
+     *         {@link JavaScriptDispatcher#dispatch(UI)} even if a listener
+     *         detaches the component
      * @throws IllegalStateException
      *             if the component is not attached to a UI
      */
@@ -141,19 +143,6 @@ final class FocusTracker implements Serializable {
             tracker.updateFocused(component, null);
         }
         return ui;
-    }
-
-    /**
-     * Simulates the client executing the JavaScript scheduled by the server,
-     * including any focus/blur calls, such as {@link Focusable#focus()} inside
-     * a click listener. Called by testers at the end of each simulated
-     * interaction and on server round-trips.
-     *
-     * @param ui
-     *            the UI whose pending JavaScript queue to process, may be null
-     */
-    static void flush(UI ui) {
-        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**

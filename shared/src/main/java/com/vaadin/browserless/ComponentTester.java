@@ -326,7 +326,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void focus() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.moveFocusTo(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.moveFocusTo(component));
     }
 
     /**
@@ -361,7 +361,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void blur() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.blur(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.blur(component));
     }
 
     private void ensureComponentCanBeFocused() {
@@ -671,7 +671,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         UI ui = FocusTracker.moveFocusTo(component);
         setValueAsUser(field, value);
         // Value change listeners may have called Focusable.focus()
-        FocusTracker.flush(ui);
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**

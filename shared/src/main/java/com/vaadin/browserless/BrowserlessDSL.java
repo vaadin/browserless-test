@@ -170,7 +170,7 @@ final class BrowserlessDSL {
         ui.getInternals().getStateTree().collectChanges(nodeChange -> {
         });
         ui.getInternals().getStateTree().runExecutionsBeforeClientResponse();
-        FocusTracker.flush(ui);
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     static boolean runPendingSignalsTasks(
