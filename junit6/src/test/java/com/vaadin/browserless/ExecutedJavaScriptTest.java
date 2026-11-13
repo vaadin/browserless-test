@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,8 +29,17 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.js.JsDefinition;
+import com.vaadin.flow.js.JsExpression;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
+
+    @JsDefinition
+    public interface OtherFocusJs extends Serializable {
+        @JsExpression("this.focus()")
+        void focus();
+    }
 
     private Div calendar;
     private TextField field;
@@ -52,6 +62,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
             calendar.getElement().callJsFunction("render");
             field.focus();
             button.blur();
+            calendar.getElement().executeJs(OtherFocusJs.class).focus();
         });
 
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
@@ -70,12 +81,14 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                         .map(execution -> execution.getJsCall().orElseThrow()
                                 .methodName() + " " + execution.getElement())
                         .toList());
-        Assertions.assertEquals(1,
-                executed.getCalls(Focusable.FocusJs.class, "focus").size());
-        Assertions.assertEquals(1,
-                executed.getCalls(Focusable.FocusJs.class, "blur").size());
-        Assertions.assertEquals(3, executed
-                .getCalls(Element.CallFunctionJs.class, "callFunction").size());
+        Assertions.assertEquals(List.of("setOptions", "setOptions", "render"),
+                executed.getCalls(Element.CallFunctionJs.class, "callFunction")
+                        .stream().map(call -> call.arguments().get(0))
+                        .toList());
+        Assertions.assertEquals(List.of(Focusable.FocusJs.class),
+                executed.getCalls(Focusable.FocusJs.class, "focus").stream()
+                        .map(JsCall::definitionType).toList(),
+                "A focus method of another definition should not match");
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
     }
