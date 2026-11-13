@@ -20,6 +20,7 @@ import java.io.Serializable;
 import org.jspecify.annotations.Nullable;
 
 import com.vaadin.flow.component.clipboard.Clipboard;
+import com.vaadin.flow.component.trigger.internal.TriggerSimulator.BrowserRejectedException;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
@@ -45,6 +46,7 @@ public final class SimulatedClipboard implements Serializable {
 
     private @Nullable String text;
     private @Nullable String html;
+    private boolean writeAllowed = true;
 
     private SimulatedClipboard() {
     }
@@ -97,14 +99,34 @@ public final class SimulatedClipboard implements Serializable {
     }
 
     /**
+     * Sets whether the browser allows writes to the clipboard. Writes are
+     * allowed by default. A browser refuses them when the user has not granted
+     * the permission. A copy then leaves the clipboard as it is, and the
+     * application's error callback receives a {@code NotAllowedError}.
+     *
+     * @param allowed
+     *            {@code false} to refuse writes, {@code true} to allow them
+     *            again
+     */
+    public void setWriteAllowed(boolean allowed) {
+        this.writeAllowed = allowed;
+    }
+
+    /**
      * Replaces the content of the clipboard, as a write by the browser does.
      *
      * @param text
      *            the plain text, or {@code null} for none
      * @param html
      *            the HTML, or {@code null} for none
+     * @throws BrowserRejectedException
+     *             if writes are not allowed
      */
     void write(@Nullable String text, @Nullable String html) {
+        if (!writeAllowed) {
+            throw new BrowserRejectedException("NotAllowedError",
+                    "Write permission denied.");
+        }
         this.text = text;
         this.html = html;
     }

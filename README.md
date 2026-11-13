@@ -801,12 +801,17 @@ leaves `getText()` empty. When the copy reports its outcome to the server,
 the success callback runs after the server-side click listeners, as in a
 browser.
 
+To test how the application handles a browser that refuses the copy, call
+`SimulatedClipboard.get().setWriteAllowed(false)`: a copy then leaves the
+clipboard as it is and the error callback receives a `NotAllowedError`.
+
 ### Notes and limitations
 
-- Only copies of fixed text or HTML, `writeText(String)` and
-  `writeHtml(String)`, are simulated. A copy of a field's value, of an image or
-  of other content, and triggers other than a click, are logged as not
-  simulated and otherwise ignored: the click itself still reaches the server.
+- Copies of fixed text or HTML and of a field's value, `writeText(...)`,
+  `writeHtml(...)` and `write(ClipboardContent)` with those, are simulated.
+  Copying an image, reading the clipboard and triggers other than a click are
+  logged as not simulated and otherwise ignored: the click itself still
+  reaches the server.
 - A click with the middle or right button does not copy, as browsers fire the
   `click` event for the primary button only.
 

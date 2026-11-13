@@ -26,21 +26,17 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.trigger.internal.TriggerInputJs;
-import com.vaadin.flow.component.trigger.internal.TriggerJs;
-import com.vaadin.flow.component.trigger.internal.WriteToClipboardAction.WriteToClipboardJs;
+import com.vaadin.flow.component.trigger.internal.TriggerSimulator;
+import com.vaadin.flow.component.trigger.internal.TriggerSimulator.EventListener;
+import com.vaadin.flow.component.trigger.internal.TriggerSimulator.NotSimulatedException;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.JsFunction;
 import com.vaadin.flow.dom.impl.ElementJsInitializerRegistration.InitializerJs;
-import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.StateNode;
-import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.shared.Registration;
 
@@ -54,12 +50,12 @@ import com.vaadin.flow.shared.Registration;
  * snippets. This class keeps the initializers that the
  * {@link JavaScriptDispatcher} sends to the client, and when a tester fires a
  * DOM event that a browser would fire, it runs the event listeners installed
- * for it.
+ * for it with Flow's {@link TriggerSimulator}, which provides what the browser
+ * does with each snippet.
  * <p>
- * Only the snippets listed in {@link #evaluate} are simulated. A trigger that
- * listens to an event no tester fires, or an action that uses a snippet that is
- * not simulated, is logged and otherwise ignored, so the rest of the test runs
- * as before.
+ * A trigger that listens to an event no tester fires, or that uses JavaScript
+ * the simulator does not simulate, is logged and otherwise ignored, so the rest
+ * of the test runs as before.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
@@ -80,8 +76,9 @@ public final class ClientInitializers implements Serializable {
     private ClientInitializers() {
     }
 
-    private record Installed(@Nullable String eventName,
-            @Nullable JsFunction listener) implements Serializable {
+    // The listener is null for an initializer that is not simulated
+    private record Installed(
+            @Nullable EventListener listener) implements Serializable {
     }
 
     private static ClientInitializers getOrCreate(UI ui) {
@@ -142,27 +139,26 @@ public final class ClientInitializers implements Serializable {
     }
 
     private static Installed install(StateNode node, JsFunction initializer) {
-        JsCall call = initializer.getDeclaredCall();
-        if (call == null) {
+        if (initializer.getDeclaredCall() == null) {
+            // JavaScript the application writes itself, not a trigger
             LOGGER.debug("A JavaScript initializer of {} is not simulated in"
                     + " browserless tests", Element.get(node));
-            return new Installed(null, null);
+            return new Installed(null);
         }
-        if (call.definitionType() == TriggerJs.class
-                && "listenToEvent".equals(call.methodName())) {
-            String eventName = (String) call.arguments().get(1);
-            if (SIMULATED_EVENTS.contains(eventName)) {
-                return new Installed(eventName,
-                        (JsFunction) call.arguments().get(0));
+        try {
+            EventListener listener = TriggerSimulator
+                    .readEventListener(initializer);
+            if (SIMULATED_EVENTS.contains(listener.eventName())) {
+                return new Installed(listener);
             }
             LOGGER.warn("A trigger listening to '{}' events on {} is not"
                     + " simulated in browserless tests, as no tester fires"
-                    + " that event", eventName, Element.get(node));
-        } else {
-            LOGGER.warn("A {} trigger on {} is not simulated in browserless"
-                    + " tests", describe(call), Element.get(node));
+                    + " that event", listener.eventName(), Element.get(node));
+        } catch (NotSimulatedException e) {
+            LOGGER.warn("A trigger on {} is not simulated in browserless"
+                    + " tests: {}", Element.get(node), e.getMessage());
         }
-        return new Installed(null, null);
+        return new Installed(null);
     }
 
     /**
@@ -201,98 +197,20 @@ public final class ClientInitializers implements Serializable {
         }
         SimulatedClipboard clipboard = SimulatedClipboard.of(ui.getSession());
         List<Runnable> settlements = new ArrayList<>();
-        for (Installed listener : List.copyOf(installed.values())) {
-            if (eventName.equals(listener.eventName())
-                    && listener.listener() != null) {
-                runListener(component.getElement(), listener.listener(),
-                        clipboard, settlements);
+        for (Installed installedListener : List.copyOf(installed.values())) {
+            EventListener listener = installedListener.listener();
+            if (listener == null || !eventName.equals(listener.eventName())) {
+                continue;
+            }
+            try {
+                settlements.add(listener.handleEvent(clipboard::write));
+            } catch (NotSimulatedException e) {
+                LOGGER.warn(
+                        "A trigger on {} is not simulated in browserless"
+                                + " tests: {}",
+                        component.getElement(), e.getMessage());
             }
         }
         return () -> settlements.forEach(Runnable::run);
-    }
-
-    private static void runListener(Element element, JsFunction listener,
-            SimulatedClipboard clipboard, List<Runnable> settlements) {
-        try {
-            evaluate(listener, clipboard, settlements);
-        } catch (NotSimulated e) {
-            LOGGER.warn("A trigger on {} is not simulated in browserless tests,"
-                    + " as it uses {}", element, e.getMessage());
-        }
-    }
-
-    /**
-     * Does on the server what the browser does when it calls the given
-     * function.
-     *
-     * @param function
-     *            the function to call
-     * @param clipboard
-     *            the clipboard of the user who fired the event
-     * @param settlements
-     *            where to add the settlement of a promise the function starts
-     * @return the value the function returns
-     * @throws NotSimulated
-     *             if the function, or one it calls, is not simulated
-     */
-    private static @Nullable Object evaluate(JsFunction function,
-            SimulatedClipboard clipboard, List<Runnable> settlements) {
-        JsCall call = function.getDeclaredCall();
-        if (call == null) {
-            throw new NotSimulated("JavaScript compiled from a string");
-        }
-        List<Object> args = call.arguments();
-        Class<?> type = call.definitionType();
-        String method = call.methodName();
-        if (type == TriggerInputJs.class && "returnValue".equals(method)) {
-            return args.get(0);
-        }
-        if (type == TriggerInputJs.class && "returnNull".equals(method)) {
-            return null;
-        }
-        if (type == WriteToClipboardJs.class
-                && "writeToClipboard".equals(method)) {
-            String text = (String) evaluate((JsFunction) args.get(0), clipboard,
-                    settlements);
-            String html = (String) evaluate((JsFunction) args.get(1), clipboard,
-                    settlements);
-            if (evaluate((JsFunction) args.get(2), clipboard,
-                    settlements) != null) {
-                throw new NotSimulated("an image copy");
-            }
-            clipboard.write(text, html);
-            return text != null ? text : html;
-        }
-        if (type == TriggerJs.class && "reportOutcome".equals(method)) {
-            Object value = evaluate((JsFunction) args.get(0), clipboard,
-                    settlements);
-            ReturnChannelRegistration channel = (ReturnChannelRegistration) args
-                    .get(1);
-            settlements.add(() -> {
-                ObjectNode outcome = JacksonUtils.createObjectNode();
-                outcome.put("ok", true);
-                outcome.set("value", value == null ? outcome.nullNode()
-                        : JacksonUtils.getMapper().valueToTree(value));
-                ArrayNode arguments = JacksonUtils.createArrayNode();
-                arguments.add(outcome);
-                channel.invoke(arguments);
-            });
-            return null;
-        }
-        throw new NotSimulated(describe(call));
-    }
-
-    private static String describe(JsCall call) {
-        return call.definitionType().getSimpleName() + "." + call.methodName();
-    }
-
-    /**
-     * Thrown when a function is not simulated, with the message naming what is
-     * not simulated.
-     */
-    private static final class NotSimulated extends RuntimeException {
-        private NotSimulated(String what) {
-            super(what, null, false, false);
-        }
     }
 }
