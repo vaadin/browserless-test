@@ -194,6 +194,30 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertEquals(List.of("render"), functionNames(executed));
     }
 
+    @Test
+    void expressionAndParameters_ofElementAndPageJavaScript() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("this.render($0)", 5);
+        UI.getCurrent().getPage().executeJs("window.render($0)", "week");
+
+        ExecutedJavaScript.Execution onElement = executed.getAll().stream()
+                .filter(execution -> execution.getElement()
+                        .equals(calendar.getElement()))
+                .findFirst().orElseThrow();
+        Assertions.assertTrue(
+                onElement.getExpression().contains("this.render($0)"),
+                onElement.getExpression());
+        Assertions.assertEquals(List.of(5, calendar.getElement()),
+                onElement.getParameters());
+
+        ExecutedJavaScript.Execution onPage = executed.getAll().stream()
+                .filter(execution -> execution.getElement()
+                        .equals(UI.getCurrent().getElement()))
+                .findFirst().orElseThrow();
+        Assertions.assertEquals("window.render($0)", onPage.getExpression());
+        Assertions.assertEquals(List.of("week"), onPage.getParameters());
+    }
+
     private static List<Object> functionNames(ExecutedJavaScript executed) {
         return executed.getAll().stream().map(execution -> execution.getJsCall()
                 .orElseThrow().arguments().get(0)).toList();

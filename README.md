@@ -744,8 +744,10 @@ assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
 ```
 
 `getAll()` lists everything that was sent, in order, with the element it ran
-on, the call of a JavaScript definition (`getJsCall()`) or the expression of a
-string script. A capture holds everything sent after it started; JavaScript
+on, the call of a JavaScript definition (`getJsCall()`), and the expression
+and parameters in the form Flow sends them: JavaScript run on an element is
+wrapped so that it runs with the element as `this`, and gets the element as
+its last parameter, so check its expression with `contains(...)`. A capture holds everything sent after it started; JavaScript
 still pending when it starts is sent first and is left out. Querying sends
 whatever is still pending first and does not consume anything, so a capture can
 be queried any number of times, and several captures of the same UI each see

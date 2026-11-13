@@ -238,7 +238,19 @@ public final class ExecutedJavaScript implements Serializable {
         }
 
         /**
-         * Gets the JavaScript expression that the browser was sent to run.
+         * Gets the JavaScript expression of this execution, in the form Flow
+         * sends it.
+         * <ul>
+         * <li>For JavaScript run on the page, it is the expression as the
+         * application wrote it.</li>
+         * <li>For JavaScript run on an element with
+         * {@link Element#executeJs(String, Object...)}, the expression the
+         * application wrote is wrapped so that it runs with the element as
+         * {@code this}; check it with {@code contains(...)}.</li>
+         * <li>For a call of a JavaScript definition, it is the declared
+         * expression of the called method, which the browser itself does not
+         * need; {@link #getJsCall()} tells what was called.</li>
+         * </ul>
          *
          * @return the expression, not null
          */
@@ -247,9 +259,13 @@ public final class ExecutedJavaScript implements Serializable {
         }
 
         /**
-         * Gets the parameters that the expression was run with.
+         * Gets the parameters that the expression of this execution runs with:
+         * the ones the application passed and, for JavaScript run on an
+         * element, the element as the last one, which the expression uses as
+         * {@code this}.
          *
          * @return the parameters, not null
+         * @see #getExpression()
          */
         public List<Object> getParameters() {
             return invocation.getInvocation().getParameters();
