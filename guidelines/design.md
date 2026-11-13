@@ -45,11 +45,13 @@ before an interaction, not a second vocabulary for the same condition.
 **Every other method name contains a verb.** A method that is neither a user
 action nor a component accessor — a mock, a context method, an internal
 helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
-`header(…)` or `names(…)`. Two other families are exempt. Query and locator
-chains read as one sentence in their filters (`withText(…)`, `withoutTheme(…)`,
-see [Locators](locators.md)) and terminals (`all()`, `first()`, `single()`,
-`component()`). A factory that creates a new instance is named `new…` after
-the Java `new` operator (`newUser()`, `newWindow()`).
+`header(…)` or `names(…)`. Two other families are exempt. A fluent chain reads
+as one sentence: query and locator filters and terminals (`withText(…)`,
+`all()`, `first()`, see [Locators](locators.md)), builder and extension
+options (`withFeatureFlags(…)`) and modifier toggles (`MetaKeys.ctrl()`). A
+static factory follows the Java naming for factories: `new…` for a new
+instance (`newUser()`), `of(…)`, `from(…)`, `for…(…)`, `builder()`,
+`empty()`.
 
 **Booleans are named for their positive state.** `isEnabled()`, not
 `isDisabled()`, so a negated check never reads as a double negative. A tester

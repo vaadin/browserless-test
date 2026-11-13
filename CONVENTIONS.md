@@ -73,14 +73,22 @@ the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
 `warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
 internal helpers and the Kotlin layer as much as for tester API.
 
-Three families take their names from elsewhere and keep them: a tester's
-read-only accessor uses the component's own vocabulary (`getText()`,
-`size()`); a query or locator chain reads as one sentence, both in its
-filters (`withText(…)`, `withoutTheme(…)`) and in its terminals (`all()`,
-`first()`, `single()`, `component()`); and a factory that creates a new
-instance is named `new…` after the Java `new` operator (`newUser()`,
-`newWindow()`). New methods in these families follow the existing ones
-rather than adding a verb.
+Three families take their names from elsewhere and keep them:
+
+- a tester's read-only accessor uses the component's own vocabulary
+  (`getText()`, `size()`);
+- a fluent chain reads as one sentence — query and locator filters and
+  terminals (`withText(…)`, `withoutTheme(…)`, `all()`, `first()`,
+  `single()`, `component()`), builder and extension options
+  (`withFeatureFlags(…)`, `withApplicationProperty(…)`) and modifier toggles
+  (`MetaKeys.ctrl()`);
+- a static factory follows the Java naming for factories: `new…` for a new
+  instance (`newUser()`, `newWindow()`), `of(…)`, `from(…)`, `for…(…)`,
+  `builder()`, `empty()`.
+
+New methods in these families follow the existing ones rather than adding a
+verb. Existing names outside them are not renamed just for this rule; a
+rename of published API follows the Public API section.
 
 Name a type after what it is, not after what the code around it does with it.
 
@@ -110,7 +118,7 @@ one entry.
 Name a tester method after the user action, not after the component's setter:
 `click()`, `selectItem(...)`, `clickClearButton()`, `expand(...)`. A method
 that only reads state keeps the component's own name (`getText()`,
-`isValid()`).
+`isOpened()`).
 
 Keep helper methods for tester authors `protected`, not `public`. Every public
 method of a tester is delegated onto the generated locator, so a public helper
