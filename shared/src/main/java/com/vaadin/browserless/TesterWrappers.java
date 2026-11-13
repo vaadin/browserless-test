@@ -175,9 +175,16 @@ import com.vaadin.flow.router.RouterLink;
 @SuppressWarnings("unchecked")
 public interface TesterWrappers {
 
+    /**
+     * Hook for context-bound implementations to install Vaadin thread-locals
+     * before a component is wrapped in a tester. Called by every typed
+     * {@code test(...)} overload of this interface. Default is a no-op.
+     */
+    default void activateTesterContext() {
+    }
+
     default AccordionTester<Accordion> test(Accordion accordion) {
-        return BaseBrowserlessTest.internalWrap(AccordionTester.class,
-                accordion);
+        return wrapInTester(AccordionTester.class, accordion);
     }
 
     /**
@@ -189,17 +196,15 @@ public interface TesterWrappers {
      * @since 25.3
      */
     default AvatarGroupTester<AvatarGroup> test(AvatarGroup avatarGroup) {
-        return BaseBrowserlessTest.internalWrap(AvatarGroupTester.class,
-                avatarGroup);
+        return wrapInTester(AvatarGroupTester.class, avatarGroup);
     }
 
     default BreadcrumbsTester<Breadcrumbs> test(Breadcrumbs breadcrumbs) {
-        return BaseBrowserlessTest.internalWrap(BreadcrumbsTester.class,
-                breadcrumbs);
+        return wrapInTester(BreadcrumbsTester.class, breadcrumbs);
     }
 
     default ButtonTester<Button> test(Button button) {
-        return BaseBrowserlessTest.internalWrap(ButtonTester.class, button);
+        return wrapInTester(ButtonTester.class, button);
     }
 
     /**
@@ -211,85 +216,77 @@ public interface TesterWrappers {
      * @since 25.3
      */
     default CardTester<Card> test(Card card) {
-        return BaseBrowserlessTest.internalWrap(CardTester.class, card);
+        return wrapInTester(CardTester.class, card);
     }
 
     default CheckboxTester<Checkbox> test(Checkbox checkbox) {
-        return BaseBrowserlessTest.internalWrap(CheckboxTester.class, checkbox);
+        return wrapInTester(CheckboxTester.class, checkbox);
     }
 
     default <V> CheckboxGroupTester<CheckboxGroup<V>, V> test(
             CheckboxGroup<V> checkboxGroup) {
-        return BaseBrowserlessTest.internalWrap(CheckboxGroupTester.class,
-                checkboxGroup);
+        return wrapInTester(CheckboxGroupTester.class, checkboxGroup);
     }
 
     default <V> CheckboxGroupTester<CheckboxGroup<V>, V> test(
             CheckboxGroup checkboxGroup, Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(CheckboxGroupTester.class,
-                checkboxGroup);
+        return wrapInTester(CheckboxGroupTester.class, checkboxGroup);
     }
 
     default SwitchTester<Switch> test(Switch field) {
-        return BaseBrowserlessTest.internalWrap(SwitchTester.class, field);
+        return wrapInTester(SwitchTester.class, field);
     }
 
     default <V> ComboBoxTester<ComboBox<V>, V> test(ComboBox<V> comboBox) {
-        return BaseBrowserlessTest.internalWrap(ComboBoxTester.class, comboBox);
+        return wrapInTester(ComboBoxTester.class, comboBox);
     }
 
     default <V> ComboBoxTester<ComboBox<V>, V> test(ComboBox comboBox,
             Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(ComboBoxTester.class, comboBox);
+        return wrapInTester(ComboBoxTester.class, comboBox);
     }
 
     default <V> MultiSelectComboBoxTester<MultiSelectComboBox<V>, V> test(
             MultiSelectComboBox<V> comboBox) {
-        return BaseBrowserlessTest.internalWrap(MultiSelectComboBoxTester.class,
-                comboBox);
+        return wrapInTester(MultiSelectComboBoxTester.class, comboBox);
     }
 
     default <V> MultiSelectComboBoxTester<MultiSelectComboBox<V>, V> test(
             MultiSelectComboBox comboBox, Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(MultiSelectComboBoxTester.class,
-                comboBox);
+        return wrapInTester(MultiSelectComboBoxTester.class, comboBox);
     }
 
     default ConfirmDialogTester test(ConfirmDialog confirmDialog) {
-        return BaseBrowserlessTest.internalWrap(ConfirmDialogTester.class,
-                confirmDialog);
+        return wrapInTester(ConfirmDialogTester.class, confirmDialog);
     }
 
     default ContextMenuTester<ContextMenu> test(ContextMenu contextMenu) {
-        return BaseBrowserlessTest.internalWrap(ContextMenuTester.class,
-                contextMenu);
+        return wrapInTester(ContextMenuTester.class, contextMenu);
     }
 
     default DatePickerTester<DatePicker> test(DatePicker datePicker) {
-        return BaseBrowserlessTest.internalWrap(DatePickerTester.class,
-                datePicker);
+        return wrapInTester(DatePickerTester.class, datePicker);
     }
 
     default DateTimePickerTester<DateTimePicker> test(
             DateTimePicker dateTimePicker) {
-        return BaseBrowserlessTest.internalWrap(DateTimePickerTester.class,
-                dateTimePicker);
+        return wrapInTester(DateTimePickerTester.class, dateTimePicker);
     }
 
     default DetailsTester<Details> test(Details details) {
-        return BaseBrowserlessTest.internalWrap(DetailsTester.class, details);
+        return wrapInTester(DetailsTester.class, details);
     }
 
     default DialogTester test(Dialog dialog) {
-        return BaseBrowserlessTest.internalWrap(DialogTester.class, dialog);
+        return wrapInTester(DialogTester.class, dialog);
     }
 
     default <V> GridTester<Grid<V>, V> test(Grid<V> grid) {
-        return BaseBrowserlessTest.internalWrap(GridTester.class, grid);
+        return wrapInTester(GridTester.class, grid);
     }
 
     default <V> GridTester<Grid<V>, V> test(Grid grid, Class<V> itemType) {
-        return BaseBrowserlessTest.internalWrap(GridTester.class, grid);
+        return wrapInTester(GridTester.class, grid);
     }
 
     /**
@@ -305,58 +302,50 @@ public interface TesterWrappers {
      */
     default <V> GridContextMenuTester<GridContextMenu<V>, V> test(
             GridContextMenu<V> gridContextMenu) {
-        return BaseBrowserlessTest.internalWrap(GridContextMenuTester.class,
-                gridContextMenu);
+        return wrapInTester(GridContextMenuTester.class, gridContextMenu);
     }
 
     default <V> ListBoxTester<ListBox<V>, V> test(ListBox<V> listBox) {
-        return BaseBrowserlessTest.internalWrap(ListBoxTester.class, listBox);
+        return wrapInTester(ListBoxTester.class, listBox);
     }
 
     default <V> MultiSelectListBoxTester<MultiSelectListBox<V>, V> test(
             MultiSelectListBox<V> multiSelectListBox) {
-        return BaseBrowserlessTest.internalWrap(MultiSelectListBoxTester.class,
-                multiSelectListBox);
+        return wrapInTester(MultiSelectListBoxTester.class, multiSelectListBox);
     }
 
     default <V> MultiSelectListBoxTester<MultiSelectListBox<V>, V> test(
             MultiSelectListBox multiSelectListBox, Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(MultiSelectListBoxTester.class,
-                multiSelectListBox);
+        return wrapInTester(MultiSelectListBoxTester.class, multiSelectListBox);
     }
 
     default LoginFormTester<LoginForm> test(LoginForm loginForm) {
-        return BaseBrowserlessTest.internalWrap(LoginFormTester.class,
-                loginForm);
+        return wrapInTester(LoginFormTester.class, loginForm);
     }
 
     default LoginOverlayTester<LoginOverlay> test(LoginOverlay loginOverlay) {
-        return BaseBrowserlessTest.internalWrap(LoginOverlayTester.class,
-                loginOverlay);
+        return wrapInTester(LoginOverlayTester.class, loginOverlay);
     }
 
     default MarkdownTester<Markdown> test(Markdown markdown) {
-        return BaseBrowserlessTest.internalWrap(MarkdownTester.class, markdown);
+        return wrapInTester(MarkdownTester.class, markdown);
     }
 
     default MasterDetailLayoutTester<MasterDetailLayout> test(
             MasterDetailLayout masterDetailLayout) {
-        return BaseBrowserlessTest.internalWrap(MasterDetailLayoutTester.class,
-                masterDetailLayout);
+        return wrapInTester(MasterDetailLayoutTester.class, masterDetailLayout);
     }
 
     default MessageInputTester<MessageInput> test(MessageInput messageInput) {
-        return BaseBrowserlessTest.internalWrap(MessageInputTester.class,
-                messageInput);
+        return wrapInTester(MessageInputTester.class, messageInput);
     }
 
     default MessageListTester<MessageList> test(MessageList messageList) {
-        return BaseBrowserlessTest.internalWrap(MessageListTester.class,
-                messageList);
+        return wrapInTester(MessageListTester.class, messageList);
     }
 
     default PopoverTester test(Popover popover) {
-        return BaseBrowserlessTest.internalWrap(PopoverTester.class, popover);
+        return wrapInTester(PopoverTester.class, popover);
     }
 
     default PopoverTester popoverFor(Component target) {
@@ -369,40 +358,36 @@ public interface TesterWrappers {
     }
 
     default NotificationTester<Notification> test(Notification notification) {
-        return BaseBrowserlessTest.internalWrap(NotificationTester.class,
-                notification);
+        return wrapInTester(NotificationTester.class, notification);
     }
 
     default <V> RadioButtonGroupTester<RadioButtonGroup<V>, V> test(
             RadioButtonGroup<V> radioButtonGroup) {
-        return BaseBrowserlessTest.internalWrap(RadioButtonGroupTester.class,
-                radioButtonGroup);
+        return wrapInTester(RadioButtonGroupTester.class, radioButtonGroup);
     }
 
     default <V> RadioButtonGroupTester<RadioButtonGroup<V>, V> test(
             RadioButtonGroup radioButtonGroup, Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(RadioButtonGroupTester.class,
-                radioButtonGroup);
+        return wrapInTester(RadioButtonGroupTester.class, radioButtonGroup);
     }
 
     // RadioButton is package protected so no autowrap.
 
     default RouterLinkTester<RouterLink> test(RouterLink routerLink) {
-        return BaseBrowserlessTest.internalWrap(RouterLinkTester.class,
-                routerLink);
+        return wrapInTester(RouterLinkTester.class, routerLink);
     }
 
     default <V> SelectTester<Select<V>, V> test(Select<V> select) {
-        return BaseBrowserlessTest.internalWrap(SelectTester.class, select);
+        return wrapInTester(SelectTester.class, select);
     }
 
     default <V> SelectTester<Select<V>, V> test(Select select,
             Class<V> valueType) {
-        return BaseBrowserlessTest.internalWrap(SelectTester.class, select);
+        return wrapInTester(SelectTester.class, select);
     }
 
     default SideNavTester<SideNav> test(SideNav sideNav) {
-        return BaseBrowserlessTest.internalWrap(SideNavTester.class, sideNav);
+        return wrapInTester(SideNavTester.class, sideNav);
     }
 
     /**
@@ -415,8 +400,7 @@ public interface TesterWrappers {
      */
     default DecimalRangeSliderTester<DecimalRangeSlider> test(
             DecimalRangeSlider rangeSlider) {
-        return BaseBrowserlessTest.internalWrap(DecimalRangeSliderTester.class,
-                rangeSlider);
+        return wrapInTester(DecimalRangeSliderTester.class, rangeSlider);
     }
 
     /**
@@ -429,8 +413,7 @@ public interface TesterWrappers {
      */
     default IntegerRangeSliderTester<IntegerRangeSlider> test(
             IntegerRangeSlider integerRangeSlider) {
-        return BaseBrowserlessTest.internalWrap(IntegerRangeSliderTester.class,
-                integerRangeSlider);
+        return wrapInTester(IntegerRangeSliderTester.class, integerRangeSlider);
     }
 
     /**
@@ -442,8 +425,7 @@ public interface TesterWrappers {
      * @since 1.1
      */
     default DecimalSliderTester<DecimalSlider> test(DecimalSlider slider) {
-        return BaseBrowserlessTest.internalWrap(DecimalSliderTester.class,
-                slider);
+        return wrapInTester(DecimalSliderTester.class, slider);
     }
 
     /**
@@ -456,8 +438,7 @@ public interface TesterWrappers {
      */
     default IntegerSliderTester<IntegerSlider> test(
             IntegerSlider integerSlider) {
-        return BaseBrowserlessTest.internalWrap(IntegerSliderTester.class,
-                integerSlider);
+        return wrapInTester(IntegerSliderTester.class, integerSlider);
     }
 
     /**
@@ -469,63 +450,55 @@ public interface TesterWrappers {
      * @since 25.3
      */
     default SplitLayoutTester<SplitLayout> test(SplitLayout splitLayout) {
-        return BaseBrowserlessTest.internalWrap(SplitLayoutTester.class,
-                splitLayout);
+        return wrapInTester(SplitLayoutTester.class, splitLayout);
     }
 
     default TabsTester<Tabs> test(Tabs tabs) {
-        return BaseBrowserlessTest.internalWrap(TabsTester.class, tabs);
+        return wrapInTester(TabsTester.class, tabs);
     }
 
     default TabSheetTester<TabSheet> test(TabSheet tabSheet) {
-        return BaseBrowserlessTest.internalWrap(TabSheetTester.class, tabSheet);
+        return wrapInTester(TabSheetTester.class, tabSheet);
     }
 
     default TextTester<Text> test(Text text) {
-        return BaseBrowserlessTest.internalWrap(TextTester.class, text);
+        return wrapInTester(TextTester.class, text);
     }
 
     default NumberFieldTester<IntegerField, Integer> test(
             IntegerField integerField) {
-        return BaseBrowserlessTest.internalWrap(NumberFieldTester.class,
-                integerField);
+        return wrapInTester(NumberFieldTester.class, integerField);
     }
 
     default NumberFieldTester<NumberField, Double> test(
             NumberField numberField) {
-        return BaseBrowserlessTest.internalWrap(NumberFieldTester.class,
-                numberField);
+        return wrapInTester(NumberFieldTester.class, numberField);
     }
 
     default TextAreaTester<TextArea> test(TextArea textArea) {
-        return BaseBrowserlessTest.internalWrap(TextAreaTester.class, textArea);
+        return wrapInTester(TextAreaTester.class, textArea);
     }
 
     default TextFieldTester<TextField, String> test(TextField textField) {
-        return BaseBrowserlessTest.internalWrap(TextFieldTester.class,
-                textField);
+        return wrapInTester(TextFieldTester.class, textField);
     }
 
     default TextFieldTester<PasswordField, String> test(
             PasswordField passwordField) {
-        return BaseBrowserlessTest.internalWrap(TextFieldTester.class,
-                passwordField);
+        return wrapInTester(TextFieldTester.class, passwordField);
     }
 
     default TextFieldTester<EmailField, String> test(EmailField emailField) {
-        return BaseBrowserlessTest.internalWrap(TextFieldTester.class,
-                emailField);
+        return wrapInTester(TextFieldTester.class, emailField);
     }
 
     default TextFieldTester<BigDecimalField, BigDecimal> test(
             BigDecimalField bigDecimalField) {
-        return BaseBrowserlessTest.internalWrap(TextFieldTester.class,
-                bigDecimalField);
+        return wrapInTester(TextFieldTester.class, bigDecimalField);
     }
 
     default TimePickerTester<TimePicker> test(TimePicker timePicker) {
-        return BaseBrowserlessTest.internalWrap(TimePickerTester.class,
-                timePicker);
+        return wrapInTester(TimePickerTester.class, timePicker);
     }
 
     /**
@@ -545,7 +518,7 @@ public interface TesterWrappers {
      * @since 25.3
      */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid<V> treeGrid) {
-        return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
+        return wrapInTester(TreeGridTester.class, treeGrid);
     }
 
     /**
@@ -568,11 +541,11 @@ public interface TesterWrappers {
      */
     default <V> TreeGridTester<TreeGrid<V>, V> test(TreeGrid treeGrid,
             Class<V> itemType) {
-        return BaseBrowserlessTest.internalWrap(TreeGridTester.class, treeGrid);
+        return wrapInTester(TreeGridTester.class, treeGrid);
     }
 
     default UploadTester<Upload> test(Upload upload) {
-        return BaseBrowserlessTest.internalWrap(UploadTester.class, upload);
+        return wrapInTester(UploadTester.class, upload);
     }
 
     /**
@@ -589,131 +562,126 @@ public interface TesterWrappers {
      * @return an UploadButtonTester instance wrapping the given UploadButton
      */
     default UploadButtonTester<UploadButton> test(UploadButton uploadButton) {
-        return BaseBrowserlessTest.internalWrap(UploadButtonTester.class,
-                uploadButton);
+        return wrapInTester(UploadButtonTester.class, uploadButton);
     }
 
     default UploadDropZoneTester<UploadDropZone> test(
             UploadDropZone uploadDropZone) {
-        return BaseBrowserlessTest.internalWrap(UploadDropZoneTester.class,
-                uploadDropZone);
+        return wrapInTester(UploadDropZoneTester.class, uploadDropZone);
     }
 
     default UploadFileListTester<UploadFileList> test(
             UploadFileList uploadFileList) {
-        return BaseBrowserlessTest.internalWrap(UploadFileListTester.class,
-                uploadFileList);
+        return wrapInTester(UploadFileListTester.class, uploadFileList);
     }
 
     default <V> VirtualListTester<VirtualList<V>, V> test(
             VirtualList<V> virtualList) {
-        return BaseBrowserlessTest.internalWrap(VirtualListTester.class,
-                virtualList);
+        return wrapInTester(VirtualListTester.class, virtualList);
     }
 
     default <V> VirtualListTester<VirtualList<V>, V> test(
             VirtualList virtualList, Class<V> itemType) {
-        return BaseBrowserlessTest.internalWrap(VirtualListTester.class,
-                virtualList);
+        return wrapInTester(VirtualListTester.class, virtualList);
     }
 
     /* HTML components */
 
     default AnchorTester test(Anchor anchor) {
-        return BaseBrowserlessTest.internalWrap(AnchorTester.class, anchor);
+        return wrapInTester(AnchorTester.class, anchor);
     }
 
     default DescriptionListTester test(DescriptionList descriptionList) {
-        return BaseBrowserlessTest.internalWrap(DescriptionListTester.class,
-                descriptionList);
+        return wrapInTester(DescriptionListTester.class, descriptionList);
     }
 
     default DivTester test(Div div) {
-        return BaseBrowserlessTest.internalWrap(DivTester.class, div);
+        return wrapInTester(DivTester.class, div);
     }
 
     default EmphasisTester test(Emphasis emphasis) {
-        return BaseBrowserlessTest.internalWrap(EmphasisTester.class, emphasis);
+        return wrapInTester(EmphasisTester.class, emphasis);
     }
 
     default H1Tester test(H1 h1) {
-        return BaseBrowserlessTest.internalWrap(H1Tester.class, h1);
+        return wrapInTester(H1Tester.class, h1);
     }
 
     default H2Tester test(H2 h2) {
-        return BaseBrowserlessTest.internalWrap(H2Tester.class, h2);
+        return wrapInTester(H2Tester.class, h2);
     }
 
     default H3Tester test(H3 h3) {
-        return BaseBrowserlessTest.internalWrap(H3Tester.class, h3);
+        return wrapInTester(H3Tester.class, h3);
     }
 
     default H4Tester test(H4 h4) {
-        return BaseBrowserlessTest.internalWrap(H4Tester.class, h4);
+        return wrapInTester(H4Tester.class, h4);
     }
 
     default H5Tester test(H5 h5) {
-        return BaseBrowserlessTest.internalWrap(H5Tester.class, h5);
+        return wrapInTester(H5Tester.class, h5);
     }
 
     default H6Tester test(H6 h6) {
-        return BaseBrowserlessTest.internalWrap(H6Tester.class, h6);
+        return wrapInTester(H6Tester.class, h6);
     }
 
     default HrTester test(Hr hr) {
-        return BaseBrowserlessTest.internalWrap(HrTester.class, hr);
+        return wrapInTester(HrTester.class, hr);
     }
 
     default ImageTester test(Image image) {
-        return BaseBrowserlessTest.internalWrap(ImageTester.class, image);
+        return wrapInTester(ImageTester.class, image);
     }
 
     default InputTester test(Input input) {
-        return BaseBrowserlessTest.internalWrap(InputTester.class, input);
+        return wrapInTester(InputTester.class, input);
     }
 
     default RangeInputTester test(RangeInput input) {
-        return BaseBrowserlessTest.internalWrap(RangeInputTester.class, input);
+        return wrapInTester(RangeInputTester.class, input);
     }
 
     default NativeLabelTester test(NativeLabel label) {
-        return BaseBrowserlessTest.internalWrap(NativeLabelTester.class, label);
+        return wrapInTester(NativeLabelTester.class, label);
     }
 
     default ListItemTester test(ListItem listItem) {
-        return BaseBrowserlessTest.internalWrap(ListItemTester.class, listItem);
+        return wrapInTester(ListItemTester.class, listItem);
     }
 
     default NativeButtonTester test(NativeButton nativeButton) {
-        return BaseBrowserlessTest.internalWrap(NativeButtonTester.class,
-                nativeButton);
+        return wrapInTester(NativeButtonTester.class, nativeButton);
     }
 
     default NativeDetailsTester test(NativeDetails nativeDetails) {
-        return BaseBrowserlessTest.internalWrap(NativeDetailsTester.class,
-                nativeDetails);
+        return wrapInTester(NativeDetailsTester.class, nativeDetails);
     }
 
     default OrderedListTester test(OrderedList orderedList) {
-        return BaseBrowserlessTest.internalWrap(OrderedListTester.class,
-                orderedList);
+        return wrapInTester(OrderedListTester.class, orderedList);
     }
 
     default ParagraphTester test(Paragraph paragraph) {
-        return BaseBrowserlessTest.internalWrap(ParagraphTester.class,
-                paragraph);
+        return wrapInTester(ParagraphTester.class, paragraph);
     }
 
     default PreTester test(Pre pre) {
-        return BaseBrowserlessTest.internalWrap(PreTester.class, pre);
+        return wrapInTester(PreTester.class, pre);
     }
 
     default SpanTester test(Span span) {
-        return BaseBrowserlessTest.internalWrap(SpanTester.class, span);
+        return wrapInTester(SpanTester.class, span);
     }
 
     default UnorderedListTester test(UnorderedList unorderedList) {
-        return BaseBrowserlessTest.internalWrap(UnorderedListTester.class,
-                unorderedList);
+        return wrapInTester(UnorderedListTester.class, unorderedList);
+    }
+
+    private <T extends ComponentTester<Y>, Y extends Component> T wrapInTester(
+            Class<T> tester, Y component) {
+        activateTesterContext();
+        return BaseBrowserlessTest.internalWrap(tester, component);
     }
 }

@@ -645,6 +645,11 @@ public class BrowserlessUIContext
         activate();
     }
 
+    @Override
+    public void activateTesterContext() {
+        activate();
+    }
+
     /**
      * Returns the UI managed by this context.
      *
