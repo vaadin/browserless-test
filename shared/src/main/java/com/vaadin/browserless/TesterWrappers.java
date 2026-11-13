@@ -178,7 +178,8 @@ public interface TesterWrappers {
     /**
      * Hook for context-bound implementations to install Vaadin thread-locals
      * before a component is wrapped in a tester. Called by every typed
-     * {@code test(...)} overload of this interface. Default is a no-op.
+     * {@code test(...)} and {@code popoverFor(...)} method of this interface
+     * and of {@link CommercialTesterWrappers}. Default is a no-op.
      */
     default void activateTesterContext() {
     }
@@ -349,11 +350,13 @@ public interface TesterWrappers {
     }
 
     default PopoverTester popoverFor(Component target) {
+        activateTesterContext();
         return PopoverTester.forTarget(target);
     }
 
     default PopoverTester popoverFor(
             ComponentQuery<? extends Component> query) {
+        activateTesterContext();
         return PopoverTester.forTarget(query);
     }
 

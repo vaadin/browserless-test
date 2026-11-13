@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.ChartTester;
 import com.vaadin.flow.component.dashboard.Dashboard;
@@ -39,7 +40,7 @@ public interface CommercialTesterWrappers {
      * @since 25.3
      */
     default <V> GridProTester<GridPro<V>, V> test(GridPro<V> grid) {
-        return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
+        return wrapInTester(GridProTester.class, grid);
     }
 
     /**
@@ -54,7 +55,7 @@ public interface CommercialTesterWrappers {
      */
     default <V> GridProTester<GridPro<V>, V> test(GridPro grid,
             Class<V> itemType) {
-        return BaseBrowserlessTest.internalWrap(GridProTester.class, grid);
+        return wrapInTester(GridProTester.class, grid);
     }
 
     /**
@@ -65,7 +66,7 @@ public interface CommercialTesterWrappers {
      * @return a ChartTester instance wrapping the given chart
      */
     default ChartTester<Chart> test(Chart chart) {
-        return BaseBrowserlessTest.internalWrap(ChartTester.class, chart);
+        return wrapInTester(ChartTester.class, chart);
     }
 
     /**
@@ -77,8 +78,16 @@ public interface CommercialTesterWrappers {
      * @since 1.1.2
      */
     default DashboardTester<Dashboard> test(Dashboard dashboard) {
-        return BaseBrowserlessTest.internalWrap(DashboardTester.class,
-                dashboard);
+        return wrapInTester(DashboardTester.class, dashboard);
     }
 
+    private <T extends ComponentTester<Y>, Y extends Component> T wrapInTester(
+            Class<T> tester, Y component) {
+        // Not a hook of its own: a second default activateTesterContext()
+        // would clash in every class that mixes in both wrapper interfaces.
+        if (this instanceof TesterWrappers wrappers) {
+            wrappers.activateTesterContext();
+        }
+        return BaseBrowserlessTest.internalWrap(tester, component);
+    }
 }
