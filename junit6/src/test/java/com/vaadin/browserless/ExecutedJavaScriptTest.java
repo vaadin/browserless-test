@@ -57,24 +57,33 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
         Assertions.assertEquals(List.of(List.of("week", 7)),
                 executed.getFunctionCalls(calendar, "setOptions"));
-        Assertions.assertEquals(1,
-                executed.getCalls(Focusable.FocusJs.class, "focus").size());
-        Assertions.assertEquals(1,
-                executed.getCalls(Focusable.FocusJs.class, "blur").size());
+        Assertions.assertEquals(
+                List.of("focus " + field.getElement(),
+                        "blur " + button.getElement()),
+                executed.getAll().stream().filter(execution -> execution
+                        .getJsCall()
+                        .filter(call -> call
+                                .definitionType() == Focusable.FocusJs.class)
+                        .isPresent())
+                        .map(execution -> execution.getJsCall().orElseThrow()
+                                .methodName() + " " + execution.getElement())
+                        .toList());
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
     }
 
     @Test
-    void lookup_sendsPendingJavaScript() {
-        AtomicReference<Boolean> focused = new AtomicReference<>(false);
-        field.addFocusListener(event -> focused.set(true));
-        field.focus();
+    void functionCall_scheduledByListenerDuringDispatch_capturedOnNextRoundTrip() {
+        field.addFocusListener(
+                event -> calendar.getElement().callJsFunction("render"));
+        button.addClickListener(event -> field.focus());
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
 
-        find(Button.class).single();
+        test(button).click();
+        roundTrip();
 
-        Assertions.assertTrue(focused.get(),
-                "The lookup should send the focus call to the client");
+        Assertions.assertEquals(List.of(List.of()),
+                executed.getFunctionCalls(calendar, "render"));
     }
 
     @Test

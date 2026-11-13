@@ -243,6 +243,21 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
+    public void serverSideFocusOutsideInteraction_appliedOnLookup() {
+        AtomicReference<FocusEvent<TextField>> receivedFocus = new AtomicReference<>();
+        textField.addFocusListener(receivedFocus::set);
+        textField.focus();
+
+        Assertions.assertNull(receivedFocus.get(),
+                "Focusable.focus() should not fire anything before the scheduled JS is processed");
+
+        find(TextField.class).single();
+
+        Assertions.assertNotNull(receivedFocus.get(),
+                "A component lookup should apply the scheduled focus, like a round-trip");
+    }
+
+    @Test
     public void buttonClickOpensDialog_serverSideFocusOnDialogField_focusesImplicitly() {
         // knoobie's case from the PR review: a button click opens a dialog
         // and the field inside is focused server-side for fast text insertion
