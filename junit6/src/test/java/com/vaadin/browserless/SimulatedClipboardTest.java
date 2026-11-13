@@ -115,18 +115,26 @@ class SimulatedClipboardTest extends BrowserlessTest {
 
     @Test
     void writeNotAllowed_errorReportedAndClipboardKept() {
+        Button before = new Button("Before");
+        Clipboard.onClick(before).writeText("Before");
         List<String> events = new ArrayList<>();
         Button copy = new Button("Copy");
         Clipboard.onClick(copy).writeText("Hello",
                 copied -> events.add("copied " + copied),
                 error -> events.add(error.name()));
-        add(copy);
+        add(before, copy);
+        test(before).click();
+
         SimulatedClipboard.get().setWriteAllowed(false);
-
         test(copy).click();
-
         Assertions.assertEquals(List.of("NotAllowedError"), events);
-        Assertions.assertNull(SimulatedClipboard.get().getText());
+        Assertions.assertEquals("Before", SimulatedClipboard.get().getText());
+
+        SimulatedClipboard.get().setWriteAllowed(true);
+        test(copy).click();
+        Assertions.assertEquals(List.of("NotAllowedError", "copied Hello"),
+                events);
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
     }
 
     @Test

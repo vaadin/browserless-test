@@ -24,10 +24,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -396,5 +398,18 @@ class GridContextMenuTesterTest extends BrowserlessTest {
         menu_.open(0);
         Assertions.assertFalse(menu_.getItemTexts().contains("Edit"),
                 "Edit should not be reported for a row the handler hides it for");
+    }
+
+    @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.menu.getItems().get(0)).writeText("Hello");
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+        menu_.open(1);
+
+        menu_.clickItem("Edit");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertIterableEquals(List.of("Edit"), view.clickedItems);
     }
 }

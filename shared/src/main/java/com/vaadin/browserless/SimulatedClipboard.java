@@ -99,10 +99,21 @@ public final class SimulatedClipboard implements Serializable {
     }
 
     /**
-     * Sets whether the browser allows writes to the clipboard. Writes are
-     * allowed by default. A browser refuses them when the user has not granted
-     * the permission. A copy then leaves the clipboard as it is, and the
-     * application's error callback receives a {@code NotAllowedError}.
+     * Gets whether the browser allows writes to the clipboard.
+     *
+     * @return {@code true} if writes are allowed, which is the default
+     * @see #setWriteAllowed(boolean)
+     */
+    public boolean isWriteAllowed() {
+        return writeAllowed;
+    }
+
+    /**
+     * Sets whether the browser allows writes to this clipboard, for all windows
+     * of the user and until it is set again. Writes are allowed by default. A
+     * browser refuses them when the user has not granted the permission. A copy
+     * then leaves the clipboard as it is, and the application's error callback
+     * receives a {@code NotAllowedError}.
      *
      * @param allowed
      *            {@code false} to refuse writes, {@code true} to allow them

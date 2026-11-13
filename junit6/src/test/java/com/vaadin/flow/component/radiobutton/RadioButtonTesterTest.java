@@ -22,7 +22,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -85,4 +87,12 @@ class RadioButtonTesterTest extends BrowserlessTest {
                 radioButton_::click);
     }
 
+    @Test
+    void click_runsCopyTrigger() {
+        Clipboard.onClick(view.radioButton).writeText("Hello");
+
+        radioButton_.click();
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+    }
 }
