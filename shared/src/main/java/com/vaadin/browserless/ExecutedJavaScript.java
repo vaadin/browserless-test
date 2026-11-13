@@ -54,7 +54,8 @@ import com.vaadin.flow.js.JsCall;
  * for the same UI, so reading it right after a user interaction gives the
  * JavaScript that interaction sent. Getting it first sends whatever is still
  * pending, so JavaScript scheduled just before is included. The returned
- * instance does not change afterwards.
+ * instance does not change afterwards, and a second {@code get()} returns only
+ * what was sent in between, so keep the instance to check it more than once.
  * <p>
  * A call whose result the application waits for, with {@code then(...)} or
  * {@code toCompletableFuture(...)}, can be answered with
