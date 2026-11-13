@@ -35,7 +35,7 @@ the generated `find<Component>()` name are derived from the target.
 `test(grid).setSelectedItem(x)` no longer says "a user selected a row".
 
 **A read-only accessor keeps the component's vocabulary**: `getText()`,
-`isValid()`, `getSelected()`, `size()`. A test reads better when the assertion
+`getSelected()`, `size()`. A test reads better when the assertion
 side looks like the component and the action side looks like the user.
 
 **Ask-then-do pairs stay symmetric.** When an action can be refused, the
@@ -45,9 +45,10 @@ before an interaction, not a second vocabulary for the same condition.
 **Every other method name contains a verb.** A method that is neither a user
 action nor a component accessor — a mock, a context method, an internal
 helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
-`header(…)` or `names(…)`. Locator filters are the one other exception:
-`withText(…)` and `withoutTheme(…)` read as part of the query sentence, see
-[Locators](locators.md).
+`header(…)` or `names(…)`. A factory such as `newUser()` counts, `new` being
+the verb. Query and locator chains are the one other exception: their filters
+(`withText(…)`, `withoutTheme(…)`) and terminals (`all()`, `first()`,
+`single()`, `component()`) read as one sentence, see [Locators](locators.md).
 
 **Booleans are named for their positive state.** `isEnabled()`, not
 `isDisabled()`, so a negated check never reads as a double negative. A tester

@@ -75,9 +75,11 @@ internal helpers and the Kotlin layer as much as for tester API.
 
 Two families take their names from elsewhere and keep them: a tester's
 read-only accessor uses the component's own vocabulary (`getText()`,
-`isValid()`, `size()`), and a locator filter reads as part of the query
-sentence (`withText(…)`, `withoutTheme(…)`). New methods in either family
-follow the existing ones rather than adding a verb.
+`size()`), and a query or locator chain reads as one sentence, both in its
+filters (`withText(…)`, `withoutTheme(…)`) and in its terminals (`all()`,
+`first()`, `single()`, `component()`). New methods in either family follow
+the existing ones rather than adding a verb. A factory named `new…` —
+`newUser()`, `newWindow()` — already starts with its verb.
 
 Name a type after what it is, not after what the code around it does with it.
 
