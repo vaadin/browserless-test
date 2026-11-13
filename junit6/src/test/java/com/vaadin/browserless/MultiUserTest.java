@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import com.example.clipboard.CopyView;
 import com.example.multiuser.SharedCounterView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -35,7 +36,8 @@ class MultiUserTest {
     @BeforeEach
     void setUp() {
         SharedCounterView.counter.set(0);
-        app = BrowserlessApplicationContext.create(SharedCounterView.class);
+        app = BrowserlessApplicationContext.create(SharedCounterView.class,
+                CopyView.class);
     }
 
     @AfterEach
@@ -80,5 +82,22 @@ class MultiUserTest {
                 "Users should have independent sessions");
         Assertions.assertNotSame(w1.getUI(), w2.getUI(),
                 "Windows should have independent UIs");
+    }
+
+    @Test
+    void clipboard_sharedByWindowsOfOneUser_notByOtherUsers() {
+        var user = app.newUser();
+        var window = user.newWindow();
+        var otherWindow = user.newWindow();
+        var otherUser = app.newUser();
+        otherUser.newWindow();
+
+        window.navigate(CopyView.class);
+        window.test(window.find(Button.class).single()).click();
+
+        otherWindow.activate();
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertEquals("Hello", user.getClipboard().getText());
+        Assertions.assertNull(otherUser.getClipboard().getText());
     }
 }

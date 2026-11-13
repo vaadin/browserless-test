@@ -782,6 +782,34 @@ execution.resolve(3);                 // runs the success handler
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it
   holds until then. JavaScript sent while no capture is active is not kept.
 
+## Clipboard
+
+A copy wired with `Clipboard.onClick(...)` runs when the test clicks the
+component, as in a browser, and writes to the clipboard of the simulated
+user. A test reads it with `SimulatedClipboard.get()`:
+
+```java
+assertNull(SimulatedClipboard.get().getText());
+test(copyButton).click();               // Clipboard.onClick(copyButton).writeText("Hello")
+assertEquals("Hello", SimulatedClipboard.get().getText());
+```
+
+The clipboard belongs to the user: all windows of a user share it, and in a
+multi-user test each user has their own, also available as
+`user.getClipboard()`. A copy replaces the whole content, so copying only HTML
+leaves `getText()` empty. When the copy reports its outcome to the server,
+the success callback runs after the server-side click listeners, as in a
+browser.
+
+### Notes and limitations
+
+- Only copies of fixed text or HTML, `writeText(String)` and
+  `writeHtml(String)`, are simulated. A copy of a field's value, of an image or
+  of other content, and triggers other than a click, are logged as not
+  simulated and otherwise ignored: the click itself still reaches the server.
+- A click with the middle or right button does not copy, as browsers fire the
+  `click` event for the primary button only.
+
 ## Multi-user and multi-window testing
 
 For tests that need to drive multiple users — or multiple browser windows for
