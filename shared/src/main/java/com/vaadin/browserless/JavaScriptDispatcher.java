@@ -81,6 +81,7 @@ public final class JavaScriptDispatcher implements Serializable {
         // tracked, so a focus call sent before any tester interaction, by a
         // lookup for example, is simulated too
         handlers.add(FocusTracker.handlerFor(ui));
+        handlers.add(ClientInitializers.handlerFor(ui));
     }
 
     /**

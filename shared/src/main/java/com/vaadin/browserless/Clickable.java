@@ -25,6 +25,12 @@ import com.vaadin.flow.component.UI;
  *
  * This interface provides default implementations for various click operations
  * including left, middle, and right clicks with optional meta keys.
+ * <p>
+ * A click with the primary button also runs the client-side click triggers the
+ * application installed on the component, as a browser does. A copy wired with
+ * {@link com.vaadin.flow.component.clipboard.Clipboard#onClick} writes to the
+ * user's {@link SimulatedClipboard}, for example. Triggers that are not
+ * simulated are logged and otherwise ignored.
  *
  * @param <T>
  *            the type of component being tested
@@ -111,10 +117,19 @@ public interface Clickable<T extends Component> {
         // A click moves focus like in a browser, blurring the previously
         // focused component before the click is handled
         UI ui = FocusTracker.moveFocusTo(component);
+        // Browsers fire the click DOM event for the primary button only. Its
+        // client-side listeners, such as a copy to the clipboard, run before
+        // the event reaches the server, and the promises they start settle
+        // after it.
+        Runnable settlePromises = button == 0
+                ? ClientInitializers.fireDomEvent(ui, component, "click")
+                : () -> {
+                };
         ComponentUtil.fireEvent(component,
                 new ClickEvent<>(component, true, 0, 0, 0, 0, 0, button,
                         metaKeys.isCtrl(), metaKeys.isShift(), metaKeys.isAlt(),
                         metaKeys.isMeta()));
+        settlePromises.run();
         // Click listeners may have called Focusable.focus(), e.g. for a field
         // in a freshly opened dialog
         JavaScriptDispatcher.dispatch(ui);
