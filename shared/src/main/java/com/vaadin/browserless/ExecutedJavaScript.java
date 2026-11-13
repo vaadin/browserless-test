@@ -241,9 +241,10 @@ public final class ExecutedJavaScript implements Serializable {
          * Gets the JavaScript expression of this execution, in the form Flow
          * sends it.
          * <ul>
-         * <li>For JavaScript run on the page, it is the expression as the
-         * application wrote it.</li>
-         * <li>For JavaScript run on an element with
+         * <li>For a string run on the page with
+         * {@code Page.executeJs(String, Object...)}, it is the expression as
+         * the application wrote it.</li>
+         * <li>For a string run on an element with
          * {@link Element#executeJs(String, Object...)}, the expression the
          * application wrote is wrapped so that it runs with the element as
          * {@code this}; check it with {@code contains(...)}.</li>
@@ -259,10 +260,19 @@ public final class ExecutedJavaScript implements Serializable {
         }
 
         /**
-         * Gets the parameters that the expression of this execution runs with:
-         * the ones the application passed and, for JavaScript run on an
-         * element, the element as the last one, which the expression uses as
-         * {@code this}.
+         * Gets the parameters that the expression of this execution runs with,
+         * in the form Flow sends them.
+         * <ul>
+         * <li>For a string run on the page, they are the parameters the
+         * application passed.</li>
+         * <li>For a string run on an element, they are the parameters the
+         * application passed, followed by the element, which the expression
+         * uses as {@code this}.</li>
+         * <li>For a call of a JavaScript definition, they are the arguments of
+         * the call, flattened, followed by the element, or {@code null} for a
+         * call on the page; {@link #getJsCall()} gives the arguments as the
+         * application passed them.</li>
+         * </ul>
          *
          * @return the parameters, not null
          * @see #getExpression()
