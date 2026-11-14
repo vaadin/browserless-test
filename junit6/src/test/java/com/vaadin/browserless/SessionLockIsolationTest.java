@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.multiuser.BroadcastView;
@@ -74,10 +75,7 @@ class SessionLockIsolationTest {
         bob.navigate(BroadcastView.class);
 
         var broadcast = alice.find(Button.class).withText("Broadcast").single();
-        // The mocked session checks the lock with an assert, so the failure
-        // is an AssertionError rather than the IllegalStateException a
-        // development-mode server throws.
-        var ex = Assertions.assertThrows(AssertionError.class,
+        var ex = Assertions.assertThrows(IllegalStateException.class,
                 () -> alice.test(broadcast).click());
         Assertions.assertTrue(ex.getMessage().contains(
                 "Cannot access state in VaadinSession or UI without locking the session"),
@@ -167,6 +165,35 @@ class SessionLockIsolationTest {
         Assertions.assertSame(aliceSession, ranIn.get());
         Assertions.assertFalse(aliceSession.hasLock());
         Assertions.assertFalse(bobSession.hasLock());
+    }
+
+    @Test
+    void failingQueuedCommand_failsUserSwitchAndKeepsOutgoingLock() {
+        alice.activate();
+        alice.getUI().access(() -> {
+            throw new IllegalArgumentException("boom");
+        });
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> bob.activate());
+
+        Assertions.assertEquals("boom", ex.getCause().getMessage());
+        assertLocked(true, alice);
+        assertLocked(false, bob);
+    }
+
+    @Test
+    void failingQueuedCommand_failsCloseAfterReleasingGlobalState() {
+        alice.activate();
+        alice.getUI().access(() -> {
+            throw new IllegalArgumentException("boom");
+        });
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> app.close());
+
+        Assertions.assertEquals("boom", ex.getCause().getMessage());
+        Assertions.assertNull(app.getSignalsTestEnvironment());
     }
 
     private static void assertLocked(boolean expected,

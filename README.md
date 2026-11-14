@@ -961,16 +961,18 @@ In more detail:
   in a running application, an exception from such a command goes to that
   session's `ErrorHandler`, which only logs it by default, so it does not fail
   the test.
-- Switching to another user's window releases the outgoing session's lock,
-  which runs the commands still queued for it, and then takes the incoming
-  session's lock. Switching between windows of the same user keeps the lock.
+- Switching to another user's window, or closing the active user's last
+  window, releases the outgoing session's lock and runs the commands still
+  queued for it. Switching then takes the incoming session's lock. Switching
+  between windows of the same user keeps the lock. As with the commands run
+  before a component lookup, an exception from a queued command fails the
+  test.
 - `session.hasLock()` is `true` only for the active user's session.
 - To change another user's component directly from the test, activate one of
   that user's windows first, for example with `bob.activate()`, or use that
   window's DSL methods, which activate it.
-- The mocked session checks the lock with a Java `assert`, so the failure is an
-  `AssertionError` and needs assertions enabled. Maven Surefire and Gradle
-  enable them for tests by default.
+- As in a development-mode server, the failure is an `IllegalStateException`,
+  also when assertions are disabled.
 
 If existing tests fail because of this, the deprecated
 `withSessionLockIsolation(false)` on the builder makes the test thread hold

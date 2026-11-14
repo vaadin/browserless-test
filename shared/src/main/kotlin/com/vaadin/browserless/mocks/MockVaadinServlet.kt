@@ -62,3 +62,12 @@ private val _VaadinService_createVaadinSession: Method =
 internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
     return _VaadinService_createVaadinSession.invoke(this, request) as VaadinSession
 }
+
+private val _VaadinSession_applyLockStrategy: Method =
+    VaadinSession::class.java.getDeclaredMethod("applyLockStrategy", SessionLockCheckStrategy::class.java).apply {
+        isAccessible = true
+    }
+
+internal fun VaadinSession._applyLockStrategy(strategy: SessionLockCheckStrategy) {
+    _VaadinSession_applyLockStrategy.invoke(this, strategy)
+}

@@ -37,6 +37,7 @@ import com.vaadin.flow.server.DefaultErrorHandler
 import com.vaadin.flow.server.ErrorHandler
 import com.vaadin.flow.server.ServiceDestroyEvent
 import com.vaadin.flow.server.SessionInitEvent
+import com.vaadin.flow.server.SessionLockCheckStrategy
 import com.vaadin.flow.server.UIInitEvent
 import com.vaadin.flow.server.VaadinRequest
 import com.vaadin.flow.server.VaadinResponse
@@ -61,6 +62,7 @@ import com.vaadin.browserless.mocks.MockVaadinHelper
 import com.vaadin.browserless.mocks.MockVaadinServlet
 import com.vaadin.browserless.mocks.MockedUI
 import com.vaadin.browserless.mocks.WebBrowser
+import com.vaadin.browserless.mocks._applyLockStrategy
 import com.vaadin.browserless.mocks._createVaadinSession
 
 /**
@@ -375,6 +377,11 @@ object MockVaadin {
 
         // init Session.
         val session: VaadinSession = service._createVaadinSession(request)
+        // VaadinService.createAndRegisterSession, which is bypassed here, makes a
+        // development-mode session throw on access without its lock rather than
+        // only assert, so the check works also when assertions are disabled.
+        val config = service.deploymentConfiguration
+        session._applyLockStrategy(if (config.isProductionMode) config.sessionLockCheckStrategy else SessionLockCheckStrategy.THROW)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)

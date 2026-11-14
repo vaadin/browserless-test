@@ -71,22 +71,22 @@ import com.vaadin.flow.server.VaadinServletService;
  * <li>Application code running in one user's window that changes another user's
  * UI directly fails, as it does in a running application. Use
  * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
- * UI.access()} for such changes. The mocked session checks the lock with a Java
- * {@code assert}, so the failure is an {@link AssertionError} with the message
- * "Cannot access state in VaadinSession or UI without locking the session"
- * rather than the {@link IllegalStateException} of a development-mode server,
- * and it is detected only when assertions are enabled.</li>
+ * UI.access()} for such changes. As in a development-mode server, the failure
+ * is an {@link IllegalStateException} with the message "Cannot access state in
+ * VaadinSession or UI without locking the session".</li>
  * <li>A {@code UI.access()} command for another user's UI runs at once on the
  * calling thread, with that user's session and UI current, because nothing else
  * holds that session's lock. As in a running application, an exception thrown
- * by such a command, or by a command that runs when its session's lock is
- * released on a user switch, goes to that session's
+ * by such a command goes to that session's
  * {@link com.vaadin.flow.server.ErrorHandler} and is only logged by the default
  * one; it does not fail the test.</li>
- * <li>Switching to another user's window releases the outgoing session's lock,
- * which runs the commands still queued for it, and then takes the incoming
- * session's lock. Switching between windows of the same user keeps the
- * lock.</li>
+ * <li>Switching to another user's window, or closing the active user's last
+ * window, releases the outgoing session's lock and runs the commands still
+ * queued for it. Switching then takes the incoming session's lock. Switching
+ * between windows of the same user keeps the lock. As with the commands run
+ * before a component lookup, an exception thrown by a queued command fails the
+ * test: it is rethrown from the switch or close, and the outgoing session keeps
+ * its lock.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>
@@ -328,29 +328,41 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             return;
         }
         closed = true;
-        for (var user : users) {
-            user.close();
-        }
-        users.clear();
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
-        }
-        MockVaadin.fireServiceDestroy(service);
-        VaadinService.setCurrent(null);
-        List<RuntimeException> hookFailures = new ArrayList<>();
-        for (Runnable hook : closeHooks) {
-            try {
-                hook.run();
-            } catch (RuntimeException e) {
-                hookFailures.add(e);
+        // A user's close fails when a UI.access() command queued for its
+        // session throws. The global state below must still be released, or
+        // e.g. the signals test environment stays registered for later tests.
+        Throwable usersFailure = null;
+        try {
+            for (var user : users) {
+                user.close();
             }
-        }
-        if (!hookFailures.isEmpty()) {
-            RuntimeException aggregate = new RuntimeException(
-                    "One or more close hooks failed");
-            hookFailures.forEach(aggregate::addSuppressed);
-            throw aggregate;
+        } catch (Throwable t) {
+            usersFailure = t;
+            throw t;
+        } finally {
+            users.clear();
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
+            MockVaadin.fireServiceDestroy(service);
+            VaadinService.setCurrent(null);
+            List<RuntimeException> hookFailures = new ArrayList<>();
+            for (Runnable hook : closeHooks) {
+                try {
+                    hook.run();
+                } catch (RuntimeException e) {
+                    hookFailures.add(e);
+                }
+            }
+            if (usersFailure != null) {
+                hookFailures.forEach(usersFailure::addSuppressed);
+            } else if (!hookFailures.isEmpty()) {
+                RuntimeException aggregate = new RuntimeException(
+                        "One or more close hooks failed");
+                hookFailures.forEach(aggregate::addSuppressed);
+                throw aggregate;
+            }
         }
     }
 
@@ -400,10 +412,11 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * Makes the given user's session the only one whose lock the current thread
      * holds, as if a request for that user had started. Releasing the
      * previously held lock runs the commands queued for that session with
-     * {@code UI.access()}, like the end of a real request does. Passing
-     * {@code null} releases the held lock without taking another one. Does
-     * nothing when session lock isolation has been turned off, because then
-     * every session stays locked for its whole lifetime.
+     * {@code UI.access()}, like the end of a real request does; if one of them
+     * throws, the exception is rethrown and the previously held lock is kept.
+     * Passing {@code null} releases the held lock without taking another one.
+     * Does nothing when session lock isolation has been turned off, because
+     * then every session stays locked for its whole lifetime.
      *
      * @param user
      *            the user whose session lock to hold, or {@code null} to hold
@@ -414,6 +427,11 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             return;
         }
         BrowserlessUserContext previous = sessionLockHolder;
+        if (previous != null) {
+            // A plain unlock() would hand a failing command to the session's
+            // ErrorHandler, which only logs it, so the test would pass.
+            MockVaadin.runUIQueue(false, previous.getSession());
+        }
         sessionLockHolder = null;
         try {
             if (previous != null) {
