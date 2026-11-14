@@ -33,6 +33,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 - **Focus and blur simulation** — clicks and value changes made through testers
   move focus like a real user would, firing focus and blur listeners in browser
   order; server-side `Focusable.focus()` and `blur()` calls are applied as well
+- **JavaScript assertions** — check which JavaScript the server sent to the
+  browser, such as `callJsFunction` calls and their arguments, and answer the
+  calls whose result the application waits for
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
 - **Spring Boot integration** — `SpringBrowserlessTest` base class with full
@@ -679,8 +682,8 @@ assertFalse(test(amount).isFocused());
 Server-side `Focusable.focus()` and `Focusable.blur()` calls are simulated as
 well, for example a click listener that opens a dialog and focuses a field in
 it. Such a call only schedules client-side JavaScript, which is applied at the
-end of a focus-tracked interaction, on `roundTrip()`, and whenever focus is
-queried with `isFocused()`. The resulting focus or blur event reports
+end of a focus-tracked interaction, on `roundTrip()` and on component lookups,
+and whenever focus is queried with `isFocused()`. The resulting focus or blur event reports
 `isFromClient() == false`, just like with a browser:
 
 ```java
@@ -703,8 +706,8 @@ assertTrue(test(quickAdd).isFocused());
   clicks — so they neither take focus nor blur the previously focused
   component. The same holds for events fired by hand, for example with
   `ComponentUtil.fireEvent(...)`. A server-side `Focusable` call scheduled by
-  such an interaction stays queued until the next focus-tracked interaction, a
-  `roundTrip()`, or an `isFocused()` query.
+  such an interaction is applied at the next client boundary: a focus-tracked
+  interaction, a `roundTrip()`, a component lookup, or an `isFocused()` query.
 - Only `Focusable` components take focus. Interacting with anything else blurs
   the previously focused component and leaves nothing focused, as focus falls
   back to the document body in a browser.
@@ -714,13 +717,70 @@ assertTrue(test(quickAdd).isFocused());
   throws and reports `false` for a component that is not attached.
 - Only focus and blur calls made through `Focusable` are simulated. JavaScript
   the application schedules itself, such as
-  `getElement().executeJs("this.focus()")`, is not interpreted and stays
-  queued.
-- Reading the pending JavaScript queue consumes it: when a focus or blur call
-  is pending, other JavaScript queued at the same time is dropped. Everything the simulation takes off the queue is listed in a
-  debug log under `com.vaadin.browserless.FocusTracker`. Handling the queue
-  centrally is tracked in
-  [#221](https://github.com/vaadin/browserless-test/issues/221).
+  `getElement().executeJs("this.focus()")`, is not interpreted; it is only
+  sent, and a test can check it with a capture, see
+  [JavaScript sent to the browser](#javascript-sent-to-the-browser).
+
+## JavaScript sent to the browser
+
+There is no browser to run the JavaScript that the server schedules with
+`executeJs`, `callJsFunction` or a declared JavaScript definition. Instead,
+at every client boundary — a round trip, a component lookup, the end of a
+tester interaction — the pending JavaScript of the UI is sent to a simulated
+client, the way a server response would send it. What the framework can
+simulate, such as server-side focus and blur calls, is simulated.
+
+To check what was sent, start a capture with `ExecutedJavaScript.capture()`,
+run the steps to check, however many round trips they take, and query the
+capture:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+test(save).click();
+
+assertEquals(List.of(List.of("week", 7)),
+        executed.getFunctionCalls(calendar, "setOptions"));
+assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
+```
+
+`getAll()` lists everything that was sent, in order, with the element it ran
+on and, for a call of a JavaScript definition, the call itself (`getJsCall()`),
+which is what to check for such calls. The expression and parameters are in
+the form Flow sends them: a string run on an element with `executeJs` is
+wrapped so that it runs with the element as `this`, so check it with
+`contains(...)`, and the element is added as its last parameter.
+
+A capture holds everything sent after it started; JavaScript still pending
+when it starts is sent first and is left out. Querying sends
+whatever is still pending first and does not consume anything, so a capture can
+be queried any number of times, and several captures of the same UI each see
+every call sent while they are active. Use `capture(ui)` for a UI other than
+the current one.
+
+JavaScript whose result the application waits for, with `then(...)` or
+`toCompletableFuture(...)`, can be answered the way the browser would:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.showTimeZone();                  // calls executeJs(...).then(...)
+
+ExecutedJavaScript.Execution execution = executed.getAll().getLast();
+execution.resolve(3);                 // runs the success handler
+// or execution.reject("Not allowed"); runs the error handler
+```
+
+### Notes and limitations
+
+- Once sent, JavaScript is no longer pending: a test that reads
+  `UIInternals.dumpPendingJavaScriptInvocations()` or
+  `containsPendingJavascript(...)` after a lookup or a tester interaction
+  finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
+  queue in a test also hides the JavaScript from the simulation, for example a
+  server-side `focus()` call.
+- JavaScript scheduled for an element that is not visible is not sent, as in a
+  browser, and appears once the element becomes visible.
+- A capture runs until `stop()` is called or its UI is gone, and keeps what it
+  holds until then. JavaScript sent while no capture is active is not kept.
 
 ## Multi-user and multi-window testing
 

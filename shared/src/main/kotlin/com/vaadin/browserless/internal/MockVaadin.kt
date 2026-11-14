@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import jakarta.servlet.ServletContext
+import com.vaadin.browserless.ExecutedJavaScript
+import com.vaadin.browserless.JavaScriptDispatcher
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.page.ExtendedClientDetails
@@ -30,7 +32,6 @@ import com.vaadin.flow.component.page.Page
 import com.vaadin.flow.di.Lookup
 import com.vaadin.flow.function.SerializableBiConsumer
 import com.vaadin.flow.internal.CurrentInstance
-import com.vaadin.flow.internal.StateTree
 import com.vaadin.flow.router.Location
 import com.vaadin.flow.router.NavigationTrigger
 import com.vaadin.flow.server.DefaultErrorHandler
@@ -480,7 +481,8 @@ object MockVaadin {
      *
      * Calls the following:
      * * [runUIQueue]
-     * * [StateTree.runExecutionsBeforeClientResponse] which runs all blocks scheduled via [UI.beforeClientResponse]
+     * * [JavaScriptDispatcher.dispatch] which runs all blocks scheduled via [UI.beforeClientResponse] and sends the
+     *   pending JavaScript to the simulated client, see [ExecutedJavaScript]
      * * [cleanupDialogs]
      *
      * If you'd like to test your [ErrorHandler] then take a look at [runUIQueue] instead.
@@ -490,7 +492,7 @@ object MockVaadin {
     fun clientRoundtrip() {
         checkNotNull(VaadinSession.getCurrent()) { "No VaadinSession" }
         runUIQueue()
-        UI.getCurrent().internals.stateTree.runExecutionsBeforeClientResponse()
+        JavaScriptDispatcher.dispatch(UI.getCurrent())
         cleanupDialogs()
     }
 
