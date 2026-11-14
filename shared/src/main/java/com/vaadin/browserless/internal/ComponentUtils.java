@@ -16,11 +16,9 @@
 package com.vaadin.browserless.internal;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import kotlin.jvm.functions.Function1;
 
-import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ClickNotifier;
 import com.vaadin.flow.component.Component;
@@ -28,33 +26,11 @@ import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.HasElement;
-import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasOrderedComponents;
-import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.contextmenu.ContextMenuBase;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.listbox.ListBoxBase;
-import com.vaadin.flow.component.login.LoginOverlay;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
-import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.shared.SlotUtils;
-import com.vaadin.flow.component.sidenav.SideNav;
-import com.vaadin.flow.component.sidenav.SideNavItem;
-import com.vaadin.flow.component.textfield.PasswordField;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.HasDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.dom.DomListenerRegistration;
@@ -84,7 +60,7 @@ public final class ComponentUtils {
     }
 
     /**
-     * Adds {@link Button#click()} functionality to all {@link ClickNotifier}s.
+     * Adds {@code Button.click()} functionality to all {@link ClickNotifier}s.
      * This function directly calls all click listeners, thus it avoids the
      * roundtrip to client and back. It even works with browserless testing.
      *
@@ -270,23 +246,7 @@ public final class ComponentUtils {
      * @return the data provider, or null.
      */
     public static DataProvider<?, ?> getDataProvider(Component component) {
-        // until https://github.com/vaadin/flow/issues/6296 is resolved
-        if (component instanceof HasDataProvider<?>) {
-            return GridKt.getDataProvider(component);
-        } else if (component instanceof Grid<?> grid) {
-            return grid.getDataProvider();
-        } else if (component instanceof Select<?> select) {
-            return select.getDataProvider();
-        } else if (component instanceof ListBoxBase<?, ?, ?> listBox) {
-            return listBox.getDataProvider();
-        } else if (component instanceof RadioButtonGroup<?> radioButtonGroup) {
-            return radioButtonGroup.getDataProvider();
-        } else if (component instanceof CheckboxGroup<?> checkboxGroup) {
-            return checkboxGroup.getDataProvider();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getDataProvider();
-        }
-        return null;
+        return ComponentSupports.getDataProvider(component);
     }
 
     /**
@@ -453,21 +413,7 @@ public final class ComponentUtils {
      * @return the placeholder, or null.
      */
     public static String getPlaceholder(Component component) {
-        // modify when this is fixed: https://github.com/vaadin/flow/issues/4068
-        if (component instanceof TextField textField) {
-            return textField.getPlaceholder();
-        } else if (component instanceof TextArea textArea) {
-            return textArea.getPlaceholder();
-        } else if (component instanceof PasswordField passwordField) {
-            return passwordField.getPlaceholder();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getPlaceholder();
-        } else if (component instanceof DatePicker datePicker) {
-            return datePicker.getPlaceholder();
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
-            return hasPlaceholder.getPlaceholder();
-        }
-        return null;
+        return ComponentSupports.getPlaceholder(component);
     }
 
     /**
@@ -481,55 +427,37 @@ public final class ComponentUtils {
      *             if the component doesn't support a placeholder.
      */
     public static void setPlaceholder(Component component, String value) {
-        if (component instanceof TextField textField) {
-            textField.setPlaceholder(value);
-        } else if (component instanceof TextArea textArea) {
-            textArea.setPlaceholder(value);
-        } else if (component instanceof PasswordField passwordField) {
-            passwordField.setPlaceholder(value);
-        } else if (component instanceof ComboBox<?> comboBox) {
-            comboBox.setPlaceholder(value);
-        } else if (component instanceof DatePicker datePicker) {
-            datePicker.setPlaceholder(value);
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
-            hasPlaceholder.setPlaceholder(value);
-        } else {
-            throw new IllegalStateException(component.getClass().getSimpleName()
-                    + " doesn't support setting placeholder");
-        }
+        ComponentSupports.setPlaceholder(component, value);
     }
 
     /**
      * Joins the (recursive) texts of all elements placed in the {@code label}
      * slot with a space, collapsing runs of whitespace and trimming the result.
      * This effectively returns whatever was provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
+     * {@code FormLayout.addFormItem(Component, String)}.
      *
      * @param formItem
      *            the form item, not null.
      * @return the label.
      */
     public static String getLabel(FormLayout.FormItem formItem) {
-        String joined = SlotUtils.getElementsInSlot(formItem, "label")
-                .map(Element::getTextRecursively)
-                .collect(Collectors.joining(" "));
-        return Utils.trim(joined.replaceAll("\\s+", " "));
+        return ComponentSupports.getLabel(formItem);
     }
 
     /**
      * Determines the component's {@code label} (usually it's the HTML element's
-     * {@code label} property, but it's {@link Checkbox#getLabel()} for
-     * checkbox). Intended to be used for fields such as {@link TextField}.
+     * {@code label} property, but it's {@code Checkbox.getLabel()} for
+     * checkbox). Intended to be used for fields such as {@code TextField}.
      * <p>
      * <em>For {@code FormItem}:</em> Joins the (recursive) texts of all
      * elements placed in the {@code label} slot with a space, collapsing runs
      * of whitespace and trimming the result. This effectively returns whatever
      * was provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
+     * {@code FormLayout.addFormItem(Component, String)}.
      * <p>
      * {@link #getCaption(Button)} is displayed directly on the component while
      * label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      * <p>
      * Vote for <a href="https://github.com/vaadin/flow/issues/3241">issue
      * #3241</a>.
@@ -539,21 +467,7 @@ public final class ComponentUtils {
      * @return the label, never null.
      */
     public static String getLabel(Component component) {
-        String label;
-        if (component instanceof HasLabel hasLabel) {
-            label = hasLabel.getLabel();
-        } else if (component instanceof Checkbox checkbox) {
-            label = checkbox.getLabel();
-        } else if (component instanceof FormLayout.FormItem formItem) {
-            return getLabel(formItem);
-        } else if (component instanceof SideNav sideNav) {
-            label = sideNav.getLabel();
-        } else if (component instanceof SideNavItem sideNavItem) {
-            label = sideNavItem.getLabel();
-        } else {
-            label = component.getElement().getProperty("label");
-        }
-        return label != null ? label : "";
+        return ComponentSupports.getLabel(component);
     }
 
     /**
@@ -562,9 +476,9 @@ public final class ComponentUtils {
      * <b>WARNING:</b> the label is displayed by the component itself, rather
      * than by the parent layout. If a component doesn't contain necessary
      * machinery to display a label, setting this property will have no visual
-     * effect. For example, setting a label to a {@link FormLayout} nested
+     * effect. For example, setting a label to a {@code FormLayout} nested
      * within a {@code VerticalLayout} will show nothing since
-     * {@link FormLayout} doesn't display a label itself.
+     * {@code FormLayout} doesn't display a label itself.
      *
      * @param component
      *            the component, not null.
@@ -572,45 +486,28 @@ public final class ComponentUtils {
      *            the label, not null.
      */
     public static void setLabel(Component component, String value) {
-        if (component instanceof HasLabel hasLabel) {
-            hasLabel.setLabel(value);
-        } else if (component instanceof Checkbox checkbox) {
-            checkbox.setLabel(value);
-        } else if (component instanceof FormLayout.FormItem) {
-            throw new IllegalArgumentException(
-                    "Setting the caption of FormItem is currently unsupported");
-        } else if (component instanceof SideNav sideNav) {
-            sideNav.setLabel(value);
-        } else if (component instanceof SideNavItem sideNavItem) {
-            sideNavItem.setLabel(value);
-        } else {
-            component.getElement().setProperty("label",
-                    Utils.isBlank(value) ? null : value);
-        }
+        ComponentSupports.setLabel(component, value);
     }
 
     /**
-     * The Component's caption: {@link Button#getText()} for {@link Button},
-     * {@link #getLabel(Component)} for fields such as {@link TextField}.
+     * The Component's caption: {@code Button.getText()} for {@code Button},
+     * {@link #getLabel(Component)} for fields such as {@code TextField}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      *
      * @param component
      *            the component, not null.
      * @return the caption.
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
-     *             Also, there's only a {@link Button} which has the notion of a
+     *             Also, there's only a {@code Button} which has the notion of a
      *             caption. Will be removed with no replacement.
      */
     @Deprecated
     public static String getCaption(Component component) {
-        if (component instanceof Button button) {
-            return getCaption(button);
-        }
-        return getLabel(component);
+        return ComponentSupports.getCaption(component);
     }
 
     /**
@@ -626,11 +523,7 @@ public final class ComponentUtils {
      */
     @Deprecated
     public static void setCaption(Component component, String value) {
-        if (component instanceof Button button) {
-            setCaption(button, value);
-        } else {
-            setLabel(component, value);
-        }
+        ComponentSupports.setCaption(component, value);
     }
 
     /**
@@ -643,30 +536,15 @@ public final class ComponentUtils {
      *            the component, not null.
      */
     public static void simulateClosedEvent(Component component) {
-        if (ComponentUtil.getData(component,
-                "hasSimulatedClosedEvent") != null) {
-            return;
-        }
-        if (component instanceof Dialog || component instanceof ConfirmDialog
-                || component instanceof LoginOverlay
-                || component instanceof ContextMenuBase<?, ?, ?>
-                || component instanceof Notification) {
-            ComponentUtil.setData(component, "hasSimulatedClosedEvent", true);
-            component.getElement().addPropertyChangeListener("opened",
-                    event -> {
-                        if (Boolean.FALSE.equals(event.getValue())) {
-                            BasicUtils._fireDomEvent(component, "closed");
-                        }
-                    });
-        }
+        ComponentSupports.simulateClosedEvent(component);
     }
 
     /**
-     * The Button's caption. Alias for {@link Button#getText()}.
+     * The Button's caption. Alias for {@code Button.getText()}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      *
      * @param button
      *            the button, not null.
@@ -677,7 +555,7 @@ public final class ComponentUtils {
     }
 
     /**
-     * Sets the Button's caption. Alias for {@link Button#setText(String)}.
+     * Sets the Button's caption. Alias for {@code Button.setText(String)}.
      *
      * @param button
      *            the button, not null.
@@ -733,8 +611,6 @@ public final class ComponentUtils {
      * @return true if the component is a {@code PolymerTemplate}.
      */
     public static boolean isPolymerTemplate(Component component) {
-        Class<?> polymerTemplateClass = Utils.getPolymerTemplateClass();
-        return polymerTemplateClass != null
-                && polymerTemplateClass.isAssignableFrom(component.getClass());
+        return Utils.isPolymerTemplate(component);
     }
 }
