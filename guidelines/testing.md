@@ -58,8 +58,8 @@ required itself.
 
 Testers whose component has no clear button (`DateTimePicker`, the html
 `Input`) implement only the `clear()` side; the combo box testers model
-unconditional emptying as `selectItem(null)` rather than `clear()`, so they
-implement only `ClearButtonContract`.
+unconditional emptying as `selectItem(null)` / `deselectAll()` rather than
+`clear()`, so they implement only `ClearButtonContract`.
 
 ## Writing tests
 
