@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Focusable;
@@ -260,7 +260,7 @@ final class FocusTracker implements Serializable {
 
     private static UI uiOf(Component component) {
         return component.getUI()
-                .orElseThrow(() -> new IllegalStateException(PrettyPrintTreeKt
+                .orElseThrow(() -> new IllegalStateException(PrettyPrintTree
                         .toPrettyString(component)
                         + " is not attached to a UI, so it cannot take or lose focus"));
     }

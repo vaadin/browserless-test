@@ -76,7 +76,7 @@ found too — a Dialog's content, a Grid's header, footer and editor components,
 a Card's slots.
 
 `ElementConditions` holds the element-level predicates the query builds on.
-`Locator` (the internal Kotlin one, not the public locator API) and
+`Locator` (the internal one, not the public locator API) and
 `DepthFirstTreeIterator` do the walking; `PrettyPrintTree` renders the tree for
 `TreeOnFailureExtension`.
 
