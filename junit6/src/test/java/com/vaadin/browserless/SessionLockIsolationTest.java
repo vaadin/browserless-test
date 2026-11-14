@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.multiuser.BroadcastView;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
@@ -170,9 +172,7 @@ class SessionLockIsolationTest {
     @Test
     void failingQueuedCommand_failsUserSwitchAndKeepsOutgoingLock() {
         alice.activate();
-        alice.getUI().access(() -> {
-            throw new IllegalArgumentException("boom");
-        });
+        queueFailingCommand(alice);
 
         var ex = Assertions.assertThrows(ExecutionException.class,
                 () -> bob.activate());
@@ -183,17 +183,44 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void failingQueuedCommand_failsCloseAfterReleasingGlobalState() {
+    void failingQueuedCommand_failsWindowCloseAfterClosingIt() {
         alice.activate();
-        alice.getUI().access(() -> {
-            throw new IllegalArgumentException("boom");
-        });
+        queueFailingCommand(alice);
 
         var ex = Assertions.assertThrows(ExecutionException.class,
-                () -> app.close());
+                () -> alice.close());
 
         Assertions.assertEquals("boom", ex.getCause().getMessage());
-        Assertions.assertNull(app.getSignalsTestEnvironment());
+        Assertions.assertTrue(alice.isClosed());
+        assertLocked(false, alice);
+    }
+
+    @Test
+    void failingQueuedCommand_failsApplicationCloseAfterClosingEverything() {
+        var hookRan = new AtomicBoolean();
+        var closing = BrowserlessApplicationContext
+                .create(b -> b.withViewPackages(BroadcastView.class)
+                        .withCloseHook(() -> hookRan.set(true)));
+        var first = closing.newUser().newWindow();
+        var second = closing.newUser().newWindow();
+        first.activate();
+        queueFailingCommand(first);
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                closing::close);
+
+        Assertions.assertEquals("boom", ex.getCause().getMessage());
+        Assertions.assertTrue(first.isClosed());
+        Assertions.assertTrue(second.isClosed());
+        Assertions.assertTrue(hookRan.get());
+        Assertions.assertNull(closing.getSignalsTestEnvironment());
+        Assertions.assertNull(VaadinService.getCurrent());
+    }
+
+    private static void queueFailingCommand(BrowserlessUIContext window) {
+        window.getUI().access(() -> {
+            throw new IllegalArgumentException("boom");
+        });
     }
 
     private static void assertLocked(boolean expected,

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,6 +40,7 @@ import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletService;
+import com.vaadin.flow.server.VaadinSession;
 
 /**
  * Application-level context for multi-user browserless testing.
@@ -85,8 +87,8 @@ import com.vaadin.flow.server.VaadinServletService;
  * queued for it. Switching then takes the incoming session's lock. Switching
  * between windows of the same user keeps the lock. As with the commands run
  * before a component lookup, an exception thrown by a queued command fails the
- * test: it is rethrown from the switch or close, and the outgoing session keeps
- * its lock.</li>
+ * test. A switch rethrows it at once and leaves the outgoing session locked; a
+ * close completes first and then rethrows it.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>
@@ -116,6 +118,8 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private RequestContextHandler requestContextHandler;
     private boolean sessionLockIsolation = true;
     private BrowserlessUserContext sessionLockHolder;
+    private int closeDepth;
+    private Throwable deferredCloseFailure;
     private boolean closed;
 
     BrowserlessApplicationContext(VaadinServletService service,
@@ -324,6 +328,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     @Override
     public void close() {
+        runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }
@@ -428,9 +436,20 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
         BrowserlessUserContext previous = sessionLockHolder;
         if (previous != null) {
-            // A plain unlock() would hand a failing command to the session's
-            // ErrorHandler, which only logs it, so the test would pass.
-            MockVaadin.runUIQueue(false, previous.getSession());
+            try {
+                runQueuedCommands(previous.getSession());
+            } catch (Throwable t) {
+                if (closeDepth == 0) {
+                    throw t;
+                }
+                // Finish the close first, so that no window or session is
+                // left half closed, and rethrow when the outermost close ends.
+                if (deferredCloseFailure == null) {
+                    deferredCloseFailure = t;
+                } else {
+                    deferredCloseFailure.addSuppressed(t);
+                }
+            }
         }
         sessionLockHolder = null;
         try {
@@ -443,6 +462,54 @@ public class BrowserlessApplicationContext implements AutoCloseable {
                 sessionLockHolder = user;
             }
         }
+    }
+
+    private static void runQueuedCommands(VaadinSession session) {
+        // A plain unlock() would hand a failing command to the session's
+        // ErrorHandler, which only logs it, so the test would pass. A
+        // re-entrant hold, e.g. a switch from inside a UI.access() command,
+        // only decrements on unlock(), so the outermost release runs them.
+        if (((ReentrantLock) session.getLockInstance()).getHoldCount() == 1) {
+            MockVaadin.runUIQueue(false, session);
+        }
+    }
+
+    /**
+     * Runs a close of this application context, one of its users or one of
+     * their windows. An exception from a {@code UI.access()} command that runs
+     * while a session lock is released during the close does not stop it; it is
+     * rethrown once the outermost close has completed.
+     *
+     * @param close
+     *            the close to run
+     */
+    void runClose(Runnable close) {
+        closeDepth++;
+        Throwable failure = null;
+        try {
+            close.run();
+        } catch (Throwable t) {
+            failure = t;
+            throw t;
+        } finally {
+            closeDepth--;
+            if (closeDepth == 0 && deferredCloseFailure != null) {
+                Throwable deferred = deferredCloseFailure;
+                deferredCloseFailure = null;
+                if (failure != null) {
+                    failure.addSuppressed(deferred);
+                } else {
+                    BrowserlessApplicationContext
+                            .<RuntimeException> sneakyThrow(deferred);
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void sneakyThrow(Throwable t)
+            throws T {
+        throw (T) t;
     }
 
     void checkNotClosed() {

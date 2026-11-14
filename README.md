@@ -966,7 +966,7 @@ In more detail:
   queued for it. Switching then takes the incoming session's lock. Switching
   between windows of the same user keeps the lock. As with the commands run
   before a component lookup, an exception from a queued command fails the
-  test.
+  test; a close still completes before the exception is thrown.
 - `session.hasLock()` is `true` only for the active user's session.
 - To change another user's component directly from the test, activate one of
   that user's windows first, for example with `bob.activate()`, or use that

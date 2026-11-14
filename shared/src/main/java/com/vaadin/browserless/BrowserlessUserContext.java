@@ -208,6 +208,10 @@ public class BrowserlessUserContext implements AutoCloseable {
      */
     @Override
     public void close() {
+        app.runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }

@@ -131,7 +131,9 @@ public class BrowserlessUIContext
      * Activating a window of another user also releases the outgoing user's
      * session lock, which runs the commands still queued for that session with
      * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
-     * takes this user's session lock.
+     * takes this user's session lock. If one of those commands throws, the
+     * exception is rethrown, the outgoing window stays active and its user
+     * keeps the lock.
      * <p>
      * This method is called automatically by all DSL methods. You only need to
      * call it explicitly if you are accessing Vaadin APIs directly (e.g.
@@ -690,6 +692,10 @@ public class BrowserlessUIContext
      */
     @Override
     public void close() {
+        user.getApp().runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }
