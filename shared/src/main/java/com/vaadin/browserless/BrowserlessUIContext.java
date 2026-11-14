@@ -699,6 +699,7 @@ public class BrowserlessUIContext
         if (closed) {
             return;
         }
+        user.getApp().checkNotRunningQueuedCommand();
         closed = true;
         user.getApp().holdSessionLock(user);
         BrowserlessUIContext stillActive = activeContext.get();

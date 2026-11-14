@@ -131,20 +131,20 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void userSwitch_whileSessionLockedTwice_failsAndKeepsLocks() {
+    void userSwitch_whileTestHoldsLockAgain_leavesQueuedCommandsToTestsRelease() {
         var aliceSession = alice.getUser().getSession();
+        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
         alice.activate();
+        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
         aliceSession.lock();
 
-        Assertions.assertThrows(IllegalStateException.class,
-                () -> bob.activate());
-        assertLocked(true, alice);
-        assertLocked(false, bob);
+        bob.activate();
+        Assertions.assertNull(ranIn.get());
+        assertLocked(true, bob);
 
         aliceSession.unlock();
-        bob.activate();
+        Assertions.assertSame(aliceSession, ranIn.get());
         assertLocked(false, alice);
-        assertLocked(true, bob);
     }
 
     @Test
@@ -161,6 +161,24 @@ class SessionLockIsolationTest {
         bob.activate();
         assertLocked(false, alice);
         assertLocked(true, bob);
+    }
+
+    @Test
+    void newUserInAnotherContext_doesNotTakeActiveWindowsLock() {
+        alice.activate();
+        try (var other = BrowserlessApplicationContext
+                .create(BroadcastView.class)) {
+            var stranger = other.newUser();
+
+            assertLocked(true, alice);
+            Assertions.assertFalse(stranger.getSession().hasLock());
+
+            Assertions
+                    .assertDoesNotThrow(() -> stranger.newWindow().activate());
+        }
+        Assertions.assertDoesNotThrow(() -> alice.activate());
+        bob.activate();
+        assertLocked(false, alice);
     }
 
     @Test

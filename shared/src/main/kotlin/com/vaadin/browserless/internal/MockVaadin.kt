@@ -520,6 +520,17 @@ object MockVaadin {
      * redirected to [VaadinSession.errorHandler] and will not be re-thrown from this method.
      * @throws IllegalStateException if the environment is not mocked
      */
+    private val sessionRunningUIQueue = ThreadLocal<VaadinSession?>()
+
+    /**
+     * Internal function, do not call directly.
+     *
+     * Returns whether [runUIQueue] is running the [UI.access] commands of [session] on the current thread, that is,
+     * whether the caller is such a command.
+     */
+    @JvmStatic
+    public fun isRunningUIQueue(session: VaadinSession): Boolean = sessionRunningUIQueue.get() === session
+
     @JvmOverloads
     @JvmStatic
     public fun runUIQueue(propagateExceptionToHandler: Boolean = false, session: VaadinSession = VaadinSession.getCurrent()) {
@@ -548,7 +559,13 @@ object MockVaadin {
                 throw AssertionError("Expected 1 lock, actual $lockCount")
             }
 
-            session.unlock()  // this will process all Runnables registered via ui.access()
+            val outerSession = sessionRunningUIQueue.get()
+            sessionRunningUIQueue.set(session)
+            try {
+                session.unlock()  // this will process all Runnables registered via ui.access()
+            } finally {
+                sessionRunningUIQueue.set(outerSession)
+            }
             // lock the session back, so that the test can continue running as-if in the UI thread.
             session.lock()
         } finally {

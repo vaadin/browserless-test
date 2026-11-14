@@ -220,6 +220,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         if (closed) {
             return;
         }
+        app.checkNotRunningQueuedCommand();
         closed = true;
         for (var window : windows) {
             window.close();

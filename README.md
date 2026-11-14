@@ -967,9 +967,9 @@ In more detail:
   of the same user keeps the lock. As with the commands run before a component
   lookup, an exception from a queued command fails the test; a close still
   completes before the exception is thrown.
-- Switching users from inside a `UI.access()` command, or while the test holds
-  the active user's session lock a second time, fails with an
-  `IllegalStateException`.
+- Switching to another user's window, or closing a window, a user or the
+  application context, from inside a `UI.access()` command of the active user
+  fails with an `IllegalStateException` and changes nothing.
 - `session.hasLock()` is `true` only for the active user's session.
 - To change another user's component directly from the test, activate one of
   that user's windows first, for example with `bob.activate()`, or use that
