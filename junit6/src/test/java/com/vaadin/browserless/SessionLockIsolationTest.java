@@ -131,6 +131,21 @@ class SessionLockIsolationTest {
     }
 
     @Test
+    void userSwitch_withReentrantHold_leavesQueuedCommandsToOuterRelease() {
+        var aliceSession = alice.getUser().getSession();
+        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
+        alice.activate();
+        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
+        aliceSession.lock();
+
+        Assertions.assertDoesNotThrow(() -> bob.activate());
+        Assertions.assertNull(ranIn.get());
+
+        aliceSession.unlock();
+        Assertions.assertSame(aliceSession, ranIn.get());
+    }
+
+    @Test
     void closeAnotherUser_keepsActiveUserLockedAndUsable() {
         var aliceView = alice.navigate(BroadcastView.class);
         var bobSession = bob.getUser().getSession();
