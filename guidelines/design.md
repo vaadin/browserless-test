@@ -35,12 +35,36 @@ the generated `find<Component>()` name are derived from the target.
 `test(grid).setSelectedItem(x)` no longer says "a user selected a row".
 
 **A read-only accessor keeps the component's vocabulary**: `getText()`,
-`isValid()`, `getSelected()`, `size()`. A test reads better when the assertion
+`getSelected()`, `size()`. A test reads better when the assertion
 side looks like the component and the action side looks like the user.
 
 **Ask-then-do pairs stay symmetric.** When an action can be refused, the
 question that predicts it uses the same word as the action — `isUsable()`
 before an interaction, not a second vocabulary for the same condition.
+
+**Every other method name contains a verb.** A method that is neither a user
+action nor a component accessor — a mock, a context method, an internal
+helper — says what it does: `writeHeader(…)`, `collectNames(…)`, not
+`header(…)` or `names(…)`. Two other families are exempt. A fluent chain reads
+as one sentence: query and locator filters and terminals (`withText(…)`,
+`all()`, `first()`, see [Locators](locators.md)), builder and extension
+options (`withFeatureFlags(…)`) and modifier toggles (`MetaKeys.ctrl()`). A
+static factory follows the Java naming for factories: `new…` for a new
+instance (`newUser()`), `of(…)`, `from(…)`, `for…(…)`, `builder()`,
+`empty()`.
+
+**Booleans are named for their positive state.** `isEnabled()`, not
+`isDisabled()`, so a negated check never reads as a double negative. A tester
+accessor is positive even where the component's is not: the field testers
+expose `isValid()` over `HasValidation`'s `isInvalid()`.
+
+**A type is named for what it is**, not for what the code around it does
+with it.
+
+**One name per value, one name per operation.** Do not expose a record
+component and a `get…` method returning the same thing. A second way to do
+what an existing method does is an overload of it, not a new name — an
+overload is found by everyone who already calls the method.
 
 ## Visibility
 

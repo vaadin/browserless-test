@@ -114,7 +114,7 @@ the one the old hand-rolled check never covered).
    subclass can extend it.
 3. Model **user actions**, not setters. `click()`, `selectItem(…)`,
    `expand(…)`, `clickClearButton()`. A read-only accessor keeps the
-   component's name: `getText()`, `isValid()`, `isOpened()`.
+   component's name: `getText()`, `isOpened()`.
 4. Add a typed `test(<Component>)` overload to `TesterWrappers` — or to
    `CommercialTesterWrappers` when the component is in the Charts, Dashboard or
    GridPro package — so tests get the specific tester type without a cast.
