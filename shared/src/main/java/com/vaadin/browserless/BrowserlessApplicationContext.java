@@ -82,13 +82,13 @@ import com.vaadin.flow.server.VaadinSession;
  * by such a command goes to that session's
  * {@link com.vaadin.flow.server.ErrorHandler} and is only logged by the default
  * one; it does not fail the test.</li>
- * <li>Switching to another user's window, or closing the active user's last
- * window, releases the outgoing session's lock and runs the commands still
- * queued for it. Switching then takes the incoming session's lock. Switching
- * between windows of the same user keeps the lock. As with the commands run
- * before a component lookup, an exception thrown by a queued command fails the
- * test. A switch rethrows it at once and leaves the outgoing session locked; a
- * close completes first and then rethrows it.</li>
+ * <li>Switching to another user's window, or closing the active window,
+ * releases the outgoing session's lock and runs the commands still queued for
+ * it. Switching then takes the incoming session's lock. Switching between
+ * windows of the same user keeps the lock. As with the commands run before a
+ * component lookup, an exception thrown by a queued command fails the test. A
+ * switch rethrows it at once and leaves the outgoing session locked; a close
+ * completes first and then rethrows it.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>

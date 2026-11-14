@@ -146,11 +146,14 @@ class SessionLockIsolationTest {
 
     @Test
     void closeActiveWindow_releasesItsLock() {
+        var aliceOtherWindow = alice.getUser().newWindow();
         alice.activate();
 
         alice.close();
 
-        assertLocked(false, alice);
+        // No window is active any more, so not even the user who still has
+        // an open window keeps the lock.
+        assertLocked(false, aliceOtherWindow);
         assertLocked(false, bob);
     }
 
@@ -212,6 +215,25 @@ class SessionLockIsolationTest {
         Assertions.assertEquals("boom", ex.getCause().getMessage());
         Assertions.assertTrue(first.isClosed());
         Assertions.assertTrue(second.isClosed());
+        Assertions.assertTrue(hookRan.get());
+        Assertions.assertNull(closing.getSignalsTestEnvironment());
+        Assertions.assertNull(VaadinService.getCurrent());
+    }
+
+    @Test
+    void failingUserClose_stillReleasesGlobalState() {
+        var hookRan = new AtomicBoolean();
+        var closing = BrowserlessApplicationContext
+                .create(b -> b.withViewPackages(BroadcastView.class)
+                        .withCloseHook(() -> hookRan.set(true)));
+        closing.newUser().newWindow().getUI().addDetachListener(e -> {
+            throw new IllegalArgumentException("detach");
+        });
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                closing::close);
+
+        Assertions.assertEquals("detach", ex.getCause().getMessage());
         Assertions.assertTrue(hookRan.get());
         Assertions.assertNull(closing.getSignalsTestEnvironment());
         Assertions.assertNull(VaadinService.getCurrent());
