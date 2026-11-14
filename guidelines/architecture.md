@@ -114,8 +114,9 @@ The application context hands the session lock over on every user switch
 session is locked, so cross-session access without `UI.access()` fails as in a
 running application, and releasing the outgoing lock runs its queued
 `UI.access()` commands. The deprecated `withSessionLockIsolation(false)` opts
-out, keeping every session locked by the test thread for its whole lifetime. Anything that creates, closes or destroys a user's UI
-or session has to take that user's lock through the same method first.
+out, keeping every session locked by the test thread for its whole lifetime.
+Anything that creates, closes or destroys a user's UI or session has to take
+that user's lock through the same method first.
 
 Two properties to preserve when touching this code: the contexts are
 **thread-affine** (created, used and closed on one thread, with the active
