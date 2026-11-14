@@ -118,6 +118,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private RequestContextHandler requestContextHandler;
     private boolean sessionLockIsolation = true;
     private BrowserlessUserContext sessionLockHolder;
+    private VaadinSession drainingSession;
     private int closeDepth;
     private Throwable deferredCloseFailure;
     private boolean closed;
@@ -425,6 +426,11 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * Passing {@code null} releases the held lock without taking another one.
      * Does nothing when session lock isolation has been turned off, because
      * then every session stays locked for its whole lifetime.
+     * <p>
+     * Only the hold taken by this method is released. A re-entrant hold of the
+     * previous session, for example by test code or by a {@code UI.access()}
+     * command that runs while that session's queue is drained, stays until its
+     * owner releases it.
      *
      * @param user
      *            the user whose session lock to hold, or {@code null} to hold
@@ -436,19 +442,33 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
         BrowserlessUserContext previous = sessionLockHolder;
         if (previous != null) {
+            VaadinSession outgoing = previous.getSession();
+            if (outgoing == drainingSession) {
+                // Called from a command run by the drain below: the drain has
+                // already given up this method's hold and takes it back when
+                // it ends, so only the incoming lock is taken here.
+                sessionLockHolder = null;
+                takeSessionLock(user);
+                return;
+            }
+            Throwable failure = null;
             try {
-                runQueuedCommands(previous.getSession());
+                runQueuedCommands(outgoing);
             } catch (Throwable t) {
-                if (closeDepth == 0) {
-                    throw t;
+                failure = t;
+            }
+            if (sessionLockHolder != previous) {
+                // A command switched users itself and left the hold that the
+                // drain took back to be released here.
+                outgoing.unlock();
+                if (failure != null) {
+                    handleQueuedCommandFailure(failure);
                 }
-                // Finish the close first, so that no window or session is
-                // left half closed, and rethrow when the outermost close ends.
-                if (deferredCloseFailure == null) {
-                    deferredCloseFailure = t;
-                } else {
-                    deferredCloseFailure.addSuppressed(t);
-                }
+                holdSessionLock(user);
+                return;
+            }
+            if (failure != null) {
+                handleQueuedCommandFailure(failure);
             }
         }
         sessionLockHolder = null;
@@ -457,20 +477,45 @@ public class BrowserlessApplicationContext implements AutoCloseable {
                 previous.getSession().unlock();
             }
         } finally {
-            if (user != null) {
-                user.getSession().lock();
-                sessionLockHolder = user;
-            }
+            takeSessionLock(user);
         }
     }
 
-    private static void runQueuedCommands(VaadinSession session) {
+    private void takeSessionLock(BrowserlessUserContext user) {
+        if (user != null) {
+            user.getSession().lock();
+            sessionLockHolder = user;
+        }
+    }
+
+    private void runQueuedCommands(VaadinSession session) {
         // A plain unlock() would hand a failing command to the session's
-        // ErrorHandler, which only logs it, so the test would pass. A
-        // re-entrant hold, e.g. a switch from inside a UI.access() command,
-        // only decrements on unlock(), so the outermost release runs them.
-        if (((ReentrantLock) session.getLockInstance()).getHoldCount() == 1) {
+        // ErrorHandler, which only logs it, so the test would pass. With a
+        // re-entrant hold, unlock() only decrements and runs nothing, so the
+        // commands are left to whoever releases the last hold.
+        if (((ReentrantLock) session.getLockInstance()).getHoldCount() != 1) {
+            return;
+        }
+        VaadinSession outerDrainingSession = drainingSession;
+        drainingSession = session;
+        try {
             MockVaadin.runUIQueue(false, session);
+        } finally {
+            drainingSession = outerDrainingSession;
+        }
+    }
+
+    private void handleQueuedCommandFailure(Throwable failure) {
+        if (closeDepth == 0) {
+            BrowserlessApplicationContext
+                    .<RuntimeException> sneakyThrow(failure);
+        }
+        // Finish the close first, so that no window or session is left half
+        // closed, and rethrow when the outermost close ends.
+        if (deferredCloseFailure == null) {
+            deferredCloseFailure = failure;
+        } else {
+            deferredCloseFailure.addSuppressed(failure);
         }
     }
 

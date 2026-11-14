@@ -146,6 +146,20 @@ class SessionLockIsolationTest {
     }
 
     @Test
+    void userSwitch_fromCommandDrainedOnSwitch_keepsLocksBalanced() {
+        alice.activate();
+        alice.getUI().access(() -> bob.activate());
+
+        Assertions.assertDoesNotThrow(() -> bob.activate());
+        assertLocked(false, alice);
+        assertLocked(true, bob);
+
+        alice.activate();
+        assertLocked(true, alice);
+        assertLocked(false, bob);
+    }
+
+    @Test
     void closeAnotherUser_keepsActiveUserLockedAndUsable() {
         var aliceView = alice.navigate(BroadcastView.class);
         var bobSession = bob.getUser().getSession();
