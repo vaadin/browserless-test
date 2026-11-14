@@ -51,8 +51,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Run spotless validation
-        run: mvn spotless:check --batch-mode --no-transfer-progress
+      # Applies the formatting rather than only checking it, so that the
+      # changes can be suggested on the pull request by
+      # formatter-suggestions.yml
+      - name: Run spotless
+        id: spotless
+        run: |
+          mvn spotless:apply --batch-mode --no-transfer-progress
+          # Written even when empty, so that formatter-suggestions.yml can
+          # remove the comment of an earlier run once the format is fixed
+          git diff > formatter-diff.txt
+          git diff --name-only
+          echo "modified=$(git diff --name-only | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload formatter diff
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatter-diff
+          path: formatter-diff.txt
+          retention-days: 30
+
+      - name: Fail if formatting issues exist
+        if: steps.spotless.outputs.modified != '0'
+        run: |
+          echo "::error::There are ${{ steps.spotless.outputs.modified }} files with format errors"
+          exit 1
 
   build:
     name: Build Project
@@ -87,7 +111,24 @@ jobs:
           rm -rf ~/.m2/repository
 
       - name: Build with Maven and Generate Javadoc
-        run: mvn clean install -DskipTests -Djavadocs -B -ntp
+        run: |
+          set -o pipefail
+          mvn clean install -DskipTests -Djavadocs -B -ntp 2>&1 | tee mvn-build.out
+
+      - name: Convert Javadoc problems to JUnit XML
+        if: failure()
+        run: |
+          python3 .github/scripts/javadocErrorsToJUnit.py \
+            mvn-build.out javadoc-reports/TEST-Javadoc.xml
+
+      - name: Upload Javadoc results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: javadoc-results
+          path: javadoc-reports/TEST-*.xml
+          if-no-files-found: ignore
+          retention-days: 7
 
   unit-tests:
     name: Unit Tests
@@ -131,10 +172,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    # Runs whether the tests passed or failed, but not when unit-tests was
-    # skipped (fork PR) — there is no artifact to publish in that case.
-    if: ${{ always() && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure') }}
-    needs: unit-tests
+    # Runs whether the tests passed or failed, and when the build failed so
+    # that Javadoc problems are published, but not for fork PRs — their token
+    # cannot comment on the PR and unit-tests is skipped for them.
+    if: ${{ always() && !github.event.pull_request.head.repo.fork && (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'failure' || needs.build.result == 'failure') }}
+    needs: [build, unit-tests]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
 
@@ -142,7 +184,7 @@ jobs:
       - name: Download test results
         uses: actions/download-artifact@v8
         with:
-          name: unit-test-results
+          pattern: '*-results'
 
       # check_run is disabled on purpose: a check run created through the Checks
       # API is attached to the oldest check suite for the head SHA, which for
@@ -161,84 +203,11 @@ jobs:
 
   validation-status:
     name: Validation Status
-    permissions:
-      actions: write
-      issues: read
-      pull-requests: write
     if: ${{ always() && !github.event.pull_request.head.repo.fork }}
     needs: [format-check, build, unit-tests]
     runs-on: ubuntu-26.04
 
     steps:
-      - name: Remove format hint comment
-        if: always() && needs.format-check.result == 'success' && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-            // Delete the validation hint comment
-            const hintMarker = '<!-- format-check-comment -->';
-            const hintComment = comments.find(c => c.body.includes(hintMarker));
-            if (hintComment) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: hintComment.id
-              });
-              console.log('Format hint comment removed.');
-            } else {
-              console.log('No format hint comment found.');
-            }
-
-            // Minimize format-apply comments and mark them as outdated
-            const applyMarker = '<!-- format-apply-comment -->';
-            const outdatedMarker = '<!-- format-apply-comment-outdated -->';
-            const applyComments = comments.filter(c => c.body.includes(applyMarker));
-            for (const comment of applyComments) {
-              await github.graphql(`
-                mutation($id: ID!) {
-                  minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
-                    minimizedComment { isMinimized }
-                  }
-                }
-              `, { id: comment.node_id });
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: comment.id,
-                body: comment.body.replace(applyMarker, outdatedMarker)
-              });
-              console.log(`Minimized format-apply comment ${comment.id} as outdated.`);
-            }
-
-      - name: Post format hint comment
-        if: always() && needs.format-check.result == 'failure' && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const marker = '<!-- format-check-comment -->';
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-            if (comments.some(c => c.body.includes(marker))) {
-              console.log('Format hint comment already exists, skipping.');
-              return;
-            }
-            const body = `${marker}\n:warning: **Formatting check failed.**\n\nReply with \`/format\` to automatically apply formatting fixes to this PR.`;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: body
-            });
-
       - name: Check all jobs status
         run: |
           echo "format-check: ${{ needs.format-check.result }}"

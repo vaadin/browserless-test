@@ -72,14 +72,12 @@
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <artifactId>vaadin</artifactId>
-            <version>${vaadin.version}</version>
-            <scope>provided</scope>
+            <artifactId>vaadin-ordered-layout-flow</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <artifactId>vaadin-quarkus-extension</artifactId>
-            <version>${vaadin.version}</version>
+            <artifactId>vaadin-quarkus</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -42,9 +42,25 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * @since 1.0
  */
 public class MockSpringServletService extends SpringVaadinServletService {
+    /**
+     * Creates the UI for every new session.
+     */
     @NotNull
     private final UIFactory uiFactory;
 
+    /**
+     * Creates a new mocked Spring servlet service.
+     *
+     * @param servlet
+     *            the mocked servlet the service belongs to
+     * @param deploymentConfiguration
+     *            the deployment configuration of the servlet
+     * @param ctx
+     *            the Spring application context
+     * @param uiFactory
+     *            creates the UI for every new session
+     * @deprecated use the constructor taking a {@link UIFactory} instead
+     */
     @Deprecated(forRemoval = true)
     public MockSpringServletService(@NotNull MockSpringServlet servlet,
             @NotNull DeploymentConfiguration deploymentConfiguration,
@@ -53,6 +69,18 @@ public class MockSpringServletService extends SpringVaadinServletService {
         this.uiFactory = uiFactory::invoke;
     }
 
+    /**
+     * Creates a new mocked Spring servlet service.
+     *
+     * @param servlet
+     *            the mocked servlet the service belongs to
+     * @param deploymentConfiguration
+     *            the deployment configuration of the servlet
+     * @param ctx
+     *            the Spring application context
+     * @param uiFactory
+     *            creates the UI for every new session
+     */
     public MockSpringServletService(@NotNull MockSpringServlet servlet,
             @NotNull DeploymentConfiguration deploymentConfiguration,
             @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {

@@ -16,7 +16,6 @@
 package com.vaadin.browserless.internal;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Key;
@@ -63,25 +62,16 @@ public final class Shortcuts {
      */
     public static void _fireShortcut(Component component, Key key,
             Key... modifiers) {
-        // all shortcut registration carry a filter with them, in order to
-        // filter out pressed keys. All the filters are then transferred to the
-        // server-side and compared against DomEventListenerWrapper.filter in
-        // DomEventListenerWrapper.matchesFilter()
-
-        // The `matchesFilter()` function is peculiar: it simply checks whether
-        // the data contains a boolean value with key 'filter'. We need to fake
-        // the json object as if it contained all filters (otherwise
-        // `matchesFilter()` would NPE on missing key) and respond true only to
-        // the matching filter.
-        MockFilterJsonObject data = new MockFilterJsonObject(key,
-                new LinkedHashSet<>(Arrays.asList(modifiers)));
-
         // the shortcut registration is only updated in
         // UI.beforeClientResponse; run the registration code now.
         MockVaadin.clientRoundtrip();
 
-        // this will fire the "keydown" DOM event, which in turn fires
-        // KeyDownEvent event, which in turn invokes the ShortcutListener.
-        BasicUtils._fireDomEvent(component, "keydown", data);
+        // Every shortcut listens for "keydown" with a filter that matches its
+        // key and modifiers. Dispatching the keydown runs the filters the way
+        // the browser does, so that only the listeners of matching shortcuts
+        // are notified with a KeyDownEvent, which in turn invokes the
+        // ShortcutListener.
+        ClientDomEvent.dispatchKeyDown(component.getElement(), key,
+                Arrays.asList(modifiers)).fire();
     }
 }
