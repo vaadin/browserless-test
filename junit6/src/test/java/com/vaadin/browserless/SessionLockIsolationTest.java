@@ -131,32 +131,36 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void userSwitch_withReentrantHold_leavesQueuedCommandsToOuterRelease() {
+    void userSwitch_whileSessionLockedTwice_failsAndKeepsLocks() {
         var aliceSession = alice.getUser().getSession();
-        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
         alice.activate();
-        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
         aliceSession.lock();
 
-        Assertions.assertDoesNotThrow(() -> bob.activate());
-        Assertions.assertNull(ranIn.get());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> bob.activate());
+        assertLocked(true, alice);
+        assertLocked(false, bob);
 
         aliceSession.unlock();
-        Assertions.assertSame(aliceSession, ranIn.get());
+        bob.activate();
+        assertLocked(false, alice);
+        assertLocked(true, bob);
     }
 
     @Test
-    void userSwitch_fromCommandDrainedOnSwitch_keepsLocksBalanced() {
+    void userSwitch_fromDrainedCommand_failsAndKeepsLocksBalanced() {
         alice.activate();
         alice.getUI().access(() -> bob.activate());
 
-        Assertions.assertDoesNotThrow(() -> bob.activate());
-        assertLocked(false, alice);
-        assertLocked(true, bob);
-
-        alice.activate();
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> bob.activate());
+        Assertions.assertInstanceOf(IllegalStateException.class, ex.getCause());
         assertLocked(true, alice);
         assertLocked(false, bob);
+
+        bob.activate();
+        assertLocked(false, alice);
+        assertLocked(true, bob);
     }
 
     @Test

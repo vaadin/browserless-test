@@ -89,6 +89,10 @@ import com.vaadin.flow.server.VaadinSession;
  * component lookup, an exception thrown by a queued command fails the test. A
  * switch rethrows it at once and leaves the outgoing session locked; a close
  * completes first and then rethrows it.</li>
+ * <li>Switching users from inside a {@code UI.access()} command, or while test
+ * code holds the active user's session lock a second time, fails with an
+ * {@link IllegalStateException}, because that lock cannot be handed over
+ * then.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>
@@ -118,7 +122,6 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private RequestContextHandler requestContextHandler;
     private boolean sessionLockIsolation = true;
     private BrowserlessUserContext sessionLockHolder;
-    private VaadinSession drainingSession;
     private int closeDepth;
     private Throwable deferredCloseFailure;
     private boolean closed;
@@ -426,15 +429,14 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * Passing {@code null} releases the held lock without taking another one.
      * Does nothing when session lock isolation has been turned off, because
      * then every session stays locked for its whole lifetime.
-     * <p>
-     * Only the hold taken by this method is released. A re-entrant hold of the
-     * previous session, for example by test code or by a {@code UI.access()}
-     * command that runs while that session's queue is drained, stays until its
-     * owner releases it.
      *
      * @param user
      *            the user whose session lock to hold, or {@code null} to hold
      *            none
+     * @throws IllegalStateException
+     *             if the previously held session is locked more than once, for
+     *             example by test code or because its queued commands are
+     *             running, so its lock cannot be handed over
      */
     void holdSessionLock(BrowserlessUserContext user) {
         if (!sessionLockIsolation || sessionLockHolder == user) {
@@ -443,32 +445,27 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         BrowserlessUserContext previous = sessionLockHolder;
         if (previous != null) {
             VaadinSession outgoing = previous.getSession();
-            if (outgoing == drainingSession) {
-                // Called from a command run by the drain below: the drain has
-                // already given up this method's hold and takes it back when
-                // it ends, so only the incoming lock is taken here.
-                sessionLockHolder = null;
-                takeSessionLock(user);
-                return;
+            // Flow runs queued commands while it still holds the lock, so a
+            // switch from inside a command, or after test code took the lock
+            // again, cannot release the hold that belongs to the active user
+            // without unbalancing the lock.
+            if (((ReentrantLock) outgoing.getLockInstance())
+                    .getHoldCount() != 1) {
+                throw new IllegalStateException(
+                        "Cannot switch to another user's window while the "
+                                + "active user's session is locked more than "
+                                + "once, for example from a UI.access() "
+                                + "command. Switch users outside UI.access() "
+                                + "commands and release extra session locks "
+                                + "first.");
             }
-            Throwable failure = null;
             try {
-                runQueuedCommands(outgoing);
+                // A plain unlock() would hand a failing command to the
+                // session's ErrorHandler, which only logs it, so the test
+                // would pass.
+                MockVaadin.runUIQueue(false, outgoing);
             } catch (Throwable t) {
-                failure = t;
-            }
-            if (sessionLockHolder != previous) {
-                // A command switched users itself and left the hold that the
-                // drain took back to be released here.
-                outgoing.unlock();
-                if (failure != null) {
-                    handleQueuedCommandFailure(failure);
-                }
-                holdSessionLock(user);
-                return;
-            }
-            if (failure != null) {
-                handleQueuedCommandFailure(failure);
+                handleQueuedCommandFailure(t);
             }
         }
         sessionLockHolder = null;
@@ -477,31 +474,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
                 previous.getSession().unlock();
             }
         } finally {
-            takeSessionLock(user);
-        }
-    }
-
-    private void takeSessionLock(BrowserlessUserContext user) {
-        if (user != null) {
-            user.getSession().lock();
-            sessionLockHolder = user;
-        }
-    }
-
-    private void runQueuedCommands(VaadinSession session) {
-        // A plain unlock() would hand a failing command to the session's
-        // ErrorHandler, which only logs it, so the test would pass. With a
-        // re-entrant hold, unlock() only decrements and runs nothing, so the
-        // commands are left to whoever releases the last hold.
-        if (((ReentrantLock) session.getLockInstance()).getHoldCount() != 1) {
-            return;
-        }
-        VaadinSession outerDrainingSession = drainingSession;
-        drainingSession = session;
-        try {
-            MockVaadin.runUIQueue(false, session);
-        } finally {
-            drainingSession = outerDrainingSession;
+            if (user != null) {
+                user.getSession().lock();
+                sessionLockHolder = user;
+            }
         }
     }
 

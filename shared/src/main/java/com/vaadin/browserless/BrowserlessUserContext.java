@@ -162,8 +162,13 @@ public class BrowserlessUserContext implements AutoCloseable {
             CurrentInstance.set(VaadinRequest.class, previousRequest);
             CurrentInstance.set(VaadinResponse.class, previousResponse);
             UI.setCurrent(previousUI);
+            // The active window may belong to another application context,
+            // whose session lock is not this context's to take.
             BrowserlessUIContext active = BrowserlessUIContext.getActive();
-            app.holdSessionLock(active != null ? active.getUser() : null);
+            app.holdSessionLock(
+                    active != null && active.getUser().getApp() == app
+                            ? active.getUser()
+                            : null);
             // Restore previous security context — handler contract specifies
             // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
