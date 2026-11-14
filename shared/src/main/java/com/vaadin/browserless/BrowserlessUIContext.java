@@ -128,18 +128,15 @@ public class BrowserlessUIContext
      * between windows of the same user does not save or restore security state,
      * so mutations made by one window are observed by sibling windows.
      * <p>
-     * With
-     * {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)
-     * session lock isolation} enabled, activating a window of another user also
-     * releases the outgoing user's session lock, which runs the commands still
-     * queued for that session with
+     * Activating a window of another user also releases the outgoing user's
+     * session lock, which runs the commands still queued for that session with
      * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
      * takes this user's session lock.
      * <p>
      * This method is called automatically by all DSL methods. You only need to
      * call it explicitly if you are accessing Vaadin APIs directly (e.g.
-     * {@code UI.getCurrent()}), or, with session lock isolation, to change a
-     * component of this window directly while another user's window was active.
+     * {@code UI.getCurrent()}), or to change a component of this window
+     * directly while another user's window was active.
      */
     public void activate() {
         if (closed) {

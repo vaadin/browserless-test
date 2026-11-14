@@ -27,8 +27,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.server.VaadinSession;
 
 /**
- * Tests that, with session lock isolation, only the active window's session is
- * locked, so cross-session UI access behaves as in a running application.
+ * Tests that only the active window's session is locked, so cross-session UI
+ * access behaves as in a running application.
  */
 class SessionLockIsolationTest {
 
@@ -38,9 +38,7 @@ class SessionLockIsolationTest {
 
     @BeforeEach
     void setUp() {
-        app = BrowserlessApplicationContext
-                .create(b -> b.withViewPackages(BroadcastView.class)
-                        .withSessionLockIsolation(true));
+        app = BrowserlessApplicationContext.create(BroadcastView.class);
         alice = app.newUser().newWindow();
         bob = app.newUser().newWindow();
     }
@@ -84,6 +82,25 @@ class SessionLockIsolationTest {
         Assertions.assertTrue(ex.getMessage().contains(
                 "Cannot access state in VaadinSession or UI without locking the session"),
                 ex.getMessage());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void lockIsolationDisabled_directUpdateOfAnotherUsersUI_isNotDetected() {
+        try (var legacy = BrowserlessApplicationContext
+                .create(b -> b.withViewPackages(BroadcastView.class)
+                        .withSessionLockIsolation(false))) {
+            var w1 = legacy.newUser().newWindow();
+            var w2 = legacy.newUser().newWindow();
+            w1.navigate(BroadcastView.class);
+            var otherView = w2.navigate(BroadcastView.class);
+
+            w1.test(w1.find(Button.class).withText("Broadcast").single())
+                    .click();
+
+            Assertions.assertEquals("Hello", otherView.getMessage());
+            Assertions.assertTrue(w2.getUser().getSession().hasLock());
+        }
     }
 
     @Test

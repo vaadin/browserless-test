@@ -109,13 +109,12 @@ switches the Vaadin thread-locals to that window and, on a user switch, saves
 the outgoing user's security context and restores the incoming user's
 snapshot. That is why tests can interleave `w1.…` and `w2.…` freely.
 
-By default every user's session is locked by the test thread for the
-session's whole lifetime, so cross-session access without `UI.access()` is not
-detected. With `withSessionLockIsolation(true)` on the builder, the
-application context hands the lock over on every user switch
+The application context hands the session lock over on every user switch
 (`BrowserlessApplicationContext.holdSessionLock`): only the active window's
-session is locked, and releasing the outgoing lock runs its queued
-`UI.access()` commands. Anything that creates, closes or destroys a user's UI
+session is locked, so cross-session access without `UI.access()` fails as in a
+running application, and releasing the outgoing lock runs its queued
+`UI.access()` commands. The deprecated `withSessionLockIsolation(false)` opts
+out, keeping every session locked by the test thread for its whole lifetime. Anything that creates, closes or destroys a user's UI
 or session has to take that user's lock through the same method first.
 
 Two properties to preserve when touching this code: the contexts are

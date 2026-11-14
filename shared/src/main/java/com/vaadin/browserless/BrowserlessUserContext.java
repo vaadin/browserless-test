@@ -59,12 +59,10 @@ import com.vaadin.flow.server.VaadinSession;
  * context with {@link BrowserlessApplicationContext#newUser()} rather than
  * reusing this one.
  * <p>
- * By default the test thread holds this user's session lock for the session's
- * whole lifetime, also while another user's window is active, so unsynchronized
- * access to this user's UI from another user's window is not detected. With
- * {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)
- * session lock isolation} enabled, the lock is held only while one of this
- * user's windows is active.
+ * This user's session lock is held only while one of this user's windows is
+ * active, so unsynchronized access to this user's UI from another user's window
+ * fails as it does in a running application. See
+ * {@link BrowserlessApplicationContext} for details.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext

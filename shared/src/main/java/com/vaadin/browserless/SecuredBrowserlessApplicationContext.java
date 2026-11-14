@@ -217,7 +217,10 @@ public class SecuredBrowserlessApplicationContext<C>
 
         /**
          * @see BrowserlessApplicationContext.Builder#withSessionLockIsolation
+         * @deprecated see
+         *             {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)}
          */
+        @Deprecated(since = "25.4")
         public Builder<C> withSessionLockIsolation(
                 boolean sessionLockIsolation) {
             base.withSessionLockIsolation(sessionLockIsolation);

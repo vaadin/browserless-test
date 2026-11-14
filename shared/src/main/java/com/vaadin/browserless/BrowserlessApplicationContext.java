@@ -63,14 +63,34 @@ import com.vaadin.flow.server.VaadinServletService;
  * credential-aware {@code newUser(...)} overloads. Framework-specific modules
  * (Spring, Quarkus) provide convenience factory methods for both paths.
  * <p>
- * <strong>Session locking.</strong> By default the test thread holds the
- * {@link com.vaadin.flow.server.VaadinSession} lock of every user at the same
- * time, so application code that changes another user's UI without
+ * <strong>Session locking.</strong> A user's
+ * {@link com.vaadin.flow.server.VaadinSession} lock is held only while one of
+ * that user's windows is active, the way a real request holds only the lock of
+ * its own session:
+ * <ul>
+ * <li>Application code running in one user's window that changes another user's
+ * UI directly fails, as it does in a running application. Use
  * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
- * UI.access()} passes in a test even though it fails in a running application.
- * Enable {@link Builder#withSessionLockIsolation(boolean)} to hold a session
- * lock only while one of that user's windows is active, the way a real request
- * holds only its own session's lock.
+ * UI.access()} for such changes. The mocked session checks the lock with a Java
+ * {@code assert}, so the failure is an {@link AssertionError} with the message
+ * "Cannot access state in VaadinSession or UI without locking the session"
+ * rather than the {@link IllegalStateException} of a development-mode server,
+ * and it is detected only when assertions are enabled.</li>
+ * <li>A {@code UI.access()} command for another user's UI runs at once on the
+ * calling thread, with that user's session and UI current, because nothing else
+ * holds that session's lock. As in a running application, an exception thrown
+ * by such a command, or by a command that runs when its session's lock is
+ * released on a user switch, goes to that session's
+ * {@link com.vaadin.flow.server.ErrorHandler} and is only logged by the default
+ * one; it does not fail the test.</li>
+ * <li>Switching to another user's window releases the outgoing session's lock,
+ * which runs the commands still queued for it, and then takes the incoming
+ * session's lock. Switching between windows of the same user keeps the
+ * lock.</li>
+ * <li>A test that changes a component of another user directly has to activate
+ * one of that user's windows first, for example with
+ * {@link BrowserlessUIContext#activate()}.</li>
+ * </ul>
  *
  * <pre>
  * var app = BrowserlessApplicationContext.create(MyView.class);
@@ -94,7 +114,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private TestSignalEnvironment signalsTestEnvironment;
     private RequestContextHandler requestContextHandler;
-    private boolean sessionLockIsolation;
+    private boolean sessionLockIsolation = true;
     private BrowserlessUserContext sessionLockHolder;
     private boolean closed;
 
@@ -382,9 +402,8 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * previously held lock runs the commands queued for that session with
      * {@code UI.access()}, like the end of a real request does. Passing
      * {@code null} releases the held lock without taking another one. Does
-     * nothing unless {@link Builder#withSessionLockIsolation(boolean) session
-     * lock isolation} is enabled, because then every session stays locked for
-     * its whole lifetime.
+     * nothing when session lock isolation has been turned off, because then
+     * every session stays locked for its whole lifetime.
      *
      * @param user
      *            the user whose session lock to hold, or {@code null} to hold
@@ -435,7 +454,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
         private RequestContextHandler requestContextHandler;
-        private boolean sessionLockIsolation;
+        private boolean sessionLockIsolation = true;
 
         /**
          * Creates a builder with no pre-seeded routes. Routes are derived from
@@ -779,45 +798,29 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
         /**
          * Sets whether a user's {@link com.vaadin.flow.server.VaadinSession}
-         * lock is held only while one of that user's windows is active.
-         * Disabled by default, in which case the test thread holds the lock of
-         * every user's session for the session's whole lifetime.
-         * <p>
-         * When enabled, the session lock follows the active window, the way a
-         * real request holds only the lock of its own session:
-         * <ul>
-         * <li>Application code running in one user's window that changes
-         * another user's UI directly fails, as it does in a running
-         * application. Use
+         * lock is held only while one of that user's windows is active, as
+         * described in {@link BrowserlessApplicationContext}. Enabled by
+         * default. Passing {@code false} makes the test thread hold the lock of
+         * every user's session for the session's whole lifetime, so application
+         * code that changes another user's UI without
          * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
-         * UI.access()} for such changes. The mocked session checks the lock
-         * with a Java {@code assert}, so the failure is an
-         * {@link AssertionError} with the message "Cannot access state in
-         * VaadinSession or UI without locking the session" rather than the
-         * {@link IllegalStateException} of a development-mode server, and it is
-         * detected only when assertions are enabled.</li>
-         * <li>A {@code UI.access()} command for another user's UI runs at once
-         * on the calling thread, with that user's session and UI current,
-         * because nothing else holds that session's lock. As in a running
-         * application, an exception thrown by such a command, or by a command
-         * that runs when its session's lock is released on a user switch, goes
-         * to that session's {@link com.vaadin.flow.server.ErrorHandler} and is
-         * only logged by the default one; it does not fail the test.</li>
-         * <li>Switching to another user's window releases the outgoing
-         * session's lock, which runs the commands still queued for it, and then
-         * takes the incoming session's lock. Switching between windows of the
-         * same user keeps the lock.</li>
-         * <li>A test that changes a component of another user directly has to
-         * activate one of that user's windows first, for example with
-         * {@link BrowserlessUIContext#activate()}.</li>
-         * </ul>
+         * UI.access()} passes in a test even though it fails in a running
+         * application.
          *
          * @param sessionLockIsolation
          *            {@code true} to hold a session lock only while one of its
          *            user's windows is active, {@code false} to keep every
          *            session locked
          * @return this builder
+         * @deprecated session lock isolation is enabled by default and
+         *             disabling it is meant only as a temporary way to keep
+         *             existing tests running. A test that fails with it enabled
+         *             usually changes another user's UI without
+         *             {@code UI.access()}: fix the application code, or
+         *             activate that user's window first if the test changes it
+         *             directly. If the failure looks wrong, report an issue.
          */
+        @Deprecated(since = "25.4")
         public Builder withSessionLockIsolation(boolean sessionLockIsolation) {
             this.sessionLockIsolation = sessionLockIsolation;
             return this;

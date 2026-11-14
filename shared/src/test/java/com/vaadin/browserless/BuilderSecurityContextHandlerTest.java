@@ -65,17 +65,18 @@ class BuilderSecurityContextHandlerTest {
     }
 
     @Test
-    void securedBuilder_withSessionLockIsolation_locksOnlyActiveUser() {
+    @SuppressWarnings("deprecation")
+    void securedBuilder_withoutSessionLockIsolation_keepsEverySessionLocked() {
         try (var app = new BrowserlessApplicationContext.Builder(emptyRoutes())
                 .withSecurityContextHandler(new MinimalHandler())
-                .withSessionLockIsolation(true).build()) {
+                .withSessionLockIsolation(false).build()) {
             var alice = app.newUser("alice").newWindow();
             var bob = app.newUser("bob").newWindow();
 
             alice.activate();
 
             Assertions.assertTrue(alice.getUser().getSession().hasLock());
-            Assertions.assertFalse(bob.getUser().getSession().hasLock());
+            Assertions.assertTrue(bob.getUser().getSession().hasLock());
         }
     }
 

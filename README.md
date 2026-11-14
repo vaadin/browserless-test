@@ -935,21 +935,14 @@ and `_blank`.
 
 ### Session locking
 
-By default the test thread holds the `VaadinSession` lock of every user at
-the same time. Application code running in one user's window that changes
-another user's UI without `UI.access()` therefore passes in a test, although
-it fails with "Cannot access state in VaadinSession or UI without locking the
-session" in a running application. For the same reason,
-`session.hasLock()` is `true` for every user's session.
-
-To catch these cross-session bugs, enable session lock isolation on the
-builder. A user's session is then locked only while one of that user's
-windows is active, the way a real request holds only its own session's lock:
+A user's `VaadinSession` is locked only while one of that user's windows is
+active, the way a real request holds only its own session's lock. Application
+code running in one user's window that changes another user's UI without
+`UI.access()` therefore fails the test, as it fails with "Cannot access state
+in VaadinSession or UI without locking the session" in a running application:
 
 ```java
-try (var app = BrowserlessApplicationContext.create(b -> b
-        .withViewPackages(DispatchView.class)
-        .withSessionLockIsolation(true))) {
+try (var app = BrowserlessApplicationContext.create(DispatchView.class)) {
     var alice = app.newUser().newWindow();
     var bob = app.newUser().newWindow();
     alice.navigate(DispatchView.class);
@@ -961,7 +954,7 @@ try (var app = BrowserlessApplicationContext.create(b -> b
 }
 ```
 
-With isolation enabled:
+In more detail:
 
 - A `UI.access()` command for another user's UI runs at once, with that
   user's session and UI current, because no other thread holds that lock. As
@@ -971,11 +964,19 @@ With isolation enabled:
 - Switching to another user's window releases the outgoing session's lock,
   which runs the commands still queued for it, and then takes the incoming
   session's lock. Switching between windows of the same user keeps the lock.
+- `session.hasLock()` is `true` only for the active user's session.
 - To change another user's component directly from the test, activate one of
-  that user's windows first, for example with `bob.activate()`.
+  that user's windows first, for example with `bob.activate()`, or use that
+  window's DSL methods, which activate it.
 - The mocked session checks the lock with a Java `assert`, so the failure is an
   `AssertionError` and needs assertions enabled. Maven Surefire and Gradle
   enable them for tests by default.
+
+If existing tests fail because of this, the deprecated
+`withSessionLockIsolation(false)` on the builder makes the test thread hold
+every user's session lock again, as in earlier versions. Use it only as a
+temporary measure: fix the test or the application code, or report an issue if
+the failure looks wrong.
 
 ### Notes
 
