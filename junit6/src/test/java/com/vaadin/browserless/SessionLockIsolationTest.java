@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -164,14 +165,47 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void newUserInAnotherContext_doesNotTakeActiveWindowsLock() {
+    void closeFromDrainedCommand_failsAndChangesNothing() {
         alice.activate();
+        alice.getUI().access(() -> alice.close());
+        alice.getUI().access(() -> bob.getUser().close());
+        alice.getUI().access(() -> app.close());
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> bob.activate());
+
+        Assertions.assertEquals(2, ex.getSuppressed().length);
+        for (Throwable failure : List.of(ex, ex.getSuppressed()[0],
+                ex.getSuppressed()[1])) {
+            Assertions.assertTrue(
+                    failure.getCause().getMessage()
+                            .contains("from a UI.access() command"),
+                    failure.getCause().getMessage());
+        }
+        Assertions.assertFalse(alice.isClosed());
+        Assertions.assertFalse(bob.isClosed());
+        assertLocked(true, alice);
+        bob.activate();
+        assertLocked(false, alice);
+        assertLocked(true, bob);
+        Assertions.assertDoesNotThrow(() -> app.newUser().newWindow());
+    }
+
+    @Test
+    void newUserInAnotherContext_doesNotTakeActiveWindowsLock() {
+        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
+        alice.activate();
+        alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
         try (var other = BrowserlessApplicationContext
                 .create(BroadcastView.class)) {
             var stranger = other.newUser();
 
             assertLocked(true, alice);
             Assertions.assertFalse(stranger.getSession().hasLock());
+            // Only alice's own hold remains, so switching away drains it.
+            bob.activate();
+            Assertions.assertSame(alice.getUser().getSession(), ranIn.get());
+            alice.activate();
 
             Assertions
                     .assertDoesNotThrow(() -> stranger.newWindow().activate());

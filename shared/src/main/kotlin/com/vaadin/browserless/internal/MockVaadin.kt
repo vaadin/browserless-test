@@ -501,6 +501,17 @@ object MockVaadin {
         cleanupDialogs()
     }
 
+    private val sessionRunningUIQueue = ThreadLocal<VaadinSession?>()
+
+    /**
+     * Internal function, do not call directly.
+     *
+     * Returns whether [runUIQueue] is running the [UI.access] commands of [session] on the current thread, that is,
+     * whether the caller is such a command.
+     */
+    @JvmStatic
+    public fun isRunningUIQueue(session: VaadinSession): Boolean = sessionRunningUIQueue.get() === session
+
     /**
      * Runs all tasks scheduled by [UI.access].
      *
@@ -520,17 +531,6 @@ object MockVaadin {
      * redirected to [VaadinSession.errorHandler] and will not be re-thrown from this method.
      * @throws IllegalStateException if the environment is not mocked
      */
-    private val sessionRunningUIQueue = ThreadLocal<VaadinSession?>()
-
-    /**
-     * Internal function, do not call directly.
-     *
-     * Returns whether [runUIQueue] is running the [UI.access] commands of [session] on the current thread, that is,
-     * whether the caller is such a command.
-     */
-    @JvmStatic
-    public fun isRunningUIQueue(session: VaadinSession): Boolean = sessionRunningUIQueue.get() === session
-
     @JvmOverloads
     @JvmStatic
     public fun runUIQueue(propagateExceptionToHandler: Boolean = false, session: VaadinSession = VaadinSession.getCurrent()) {
