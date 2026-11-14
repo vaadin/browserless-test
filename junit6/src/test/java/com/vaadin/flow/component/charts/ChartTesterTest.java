@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.CommercialTesterWrappers;
+import com.vaadin.browserless.TesterWrappers;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.charts.model.ListSeries;
 import com.vaadin.flow.component.charts.model.Series;
@@ -42,6 +43,23 @@ class ChartTesterTest extends BrowserlessTest
         RouteConfiguration.forApplicationScope()
                 .setAnnotatedRoute(ColumnChartView.class);
         view = navigate(ColumnChartView.class);
+    }
+
+    @Test
+    void test_activatesTesterContextFirst() {
+        class Context implements TesterWrappers, CommercialTesterWrappers {
+            int activations;
+
+            @Override
+            public void activateTesterContext() {
+                activations++;
+            }
+        }
+        Context context = new Context();
+
+        context.test(view.chart);
+
+        Assertions.assertEquals(1, context.activations);
     }
 
     @Test
