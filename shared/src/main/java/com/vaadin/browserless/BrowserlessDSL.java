@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.vaadin.browserless.internal.MockInternalSeverError;
 import com.vaadin.browserless.internal.MockRouteNotFoundError;
+import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.ShortcutsKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasElement;
@@ -167,9 +168,12 @@ final class BrowserlessDSL {
     }
 
     static void roundTrip(UI ui) {
+        // Runs the UI.access() queue, the beforeClientResponse callbacks and
+        // the closed dialog cleanup, the same round trip a component lookup
+        // performs before it searches the tree
+        MockVaadin.clientRoundtrip();
         ui.getInternals().getStateTree().collectChanges(nodeChange -> {
         });
-        ui.getInternals().getStateTree().runExecutionsBeforeClientResponse();
         FocusTracker.flush(ui);
     }
 

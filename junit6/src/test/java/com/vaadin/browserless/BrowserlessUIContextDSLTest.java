@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.NativeButtonTester;
 
 /**
@@ -73,6 +74,20 @@ class BrowserlessUIContextDSLTest {
         tester.click();
         // Effect runs synchronously for on-attach signals.
         Assertions.assertEquals("Counter: 1", view.counter.getText());
+    }
+
+    @Test
+    void roundTrip_otherWindowActive_roundTripsOwnWindow() {
+        BrowserlessUserContext user = app.newUser();
+        BrowserlessUIContext first = user.newWindow();
+        Dialog closedDialog = new Dialog();
+        first.getUI().add(closedDialog);
+        user.newWindow();
+
+        first.roundTrip();
+
+        // Closed dialog cleanup only runs on the UI being round-tripped
+        Assertions.assertFalse(closedDialog.isAttached());
     }
 
 }

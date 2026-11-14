@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.example.SingleParam;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.geolocation.GeolocationFacadeIntegrationTest;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.di.InstantiatorFactory;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.router.RouteBaseData;
@@ -61,6 +63,29 @@ class BrowserlessBaseClassTest {
         void extendingBaseClass_runTest_defaultRouteActive() {
             Assertions.assertInstanceOf(WelcomeView.class, getCurrentView(),
                     "Expecting default route to be active, but was not");
+        }
+
+        @Test
+        void roundTrip_runsPendingAccessTasks() {
+            Span span = new Span("old");
+            UI ui = UI.getCurrent();
+            ui.add(span);
+            ui.access(() -> span.setText("new"));
+
+            roundTrip();
+
+            Assertions.assertEquals("new", span.getText());
+        }
+
+        @Test
+        void roundTrip_accessTaskFails_rethrowsWrapped() {
+            UI.getCurrent().access(() -> {
+                throw new IllegalStateException("simulated");
+            });
+
+            ExecutionException e = Assertions
+                    .assertThrows(ExecutionException.class, () -> roundTrip());
+            Assertions.assertEquals("simulated", e.getCause().getMessage());
         }
 
     }
