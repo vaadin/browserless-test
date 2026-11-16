@@ -66,7 +66,8 @@ internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinS
 // Flow applies the lock check strategy only in VaadinService.createAndRegisterSession, which needs a real request
 // lifecycle that the mock bypasses, and VaadinSession.applyLockStrategy is protected final. Calling it here also covers
 // session classes created by services the mock does not own. The missing upstream API is a public way to apply a
-// service's lock check strategy to a session created with createVaadinSession, in VaadinService.
+// service's lock check strategy to a session created with createVaadinSession, in VaadinService:
+// https://github.com/vaadin/flow/issues/27056
 private val _VaadinSession_applyLockStrategy: Method =
     VaadinSession::class.java.getDeclaredMethod("applyLockStrategy", SessionLockCheckStrategy::class.java).apply {
         isAccessible = true
