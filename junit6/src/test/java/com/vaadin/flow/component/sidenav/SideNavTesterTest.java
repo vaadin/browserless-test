@@ -26,10 +26,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.dom.DomListenerRegistration;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -474,5 +476,14 @@ class SideNavTesterTest extends BrowserlessTest {
     private void navigateToSideNavView() {
         view = navigate(SideNavView.class);
         sideNav_ = test(view.sideNav);
+    }
+
+    @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.adminSection).writeText("Hello");
+
+        sideNav_.clickItem("Admin");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
     }
 }

@@ -29,8 +29,6 @@ import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.component.clipboard.ClipboardContent;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.menubar.MenuBarTester;
 import com.vaadin.flow.component.textfield.TextField;
 
 @ViewPackages(classes = CopyView.class)
@@ -151,17 +149,6 @@ class SimulatedClipboardTest extends BrowserlessTest {
 
         Assertions.assertNull(SimulatedClipboard.get().getText());
         Assertions.assertEquals(List.of(true), clicks);
-    }
-
-    @Test
-    void menuItemClick_copiesText() {
-        MenuBar menuBar = new MenuBar();
-        Clipboard.onClick(menuBar.addItem("Copy link")).writeText("Hello");
-        add(menuBar);
-
-        test(MenuBarTester.class, menuBar).clickItem("Copy link");
-
-        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
     }
 
     private static void add(Component... components) {
