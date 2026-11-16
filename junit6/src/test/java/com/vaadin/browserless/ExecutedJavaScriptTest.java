@@ -78,30 +78,29 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void capture_recordsCallsHandlersAlreadyActedOn_forTheTestToCheckAfterwards() {
+    void capture_keepsCallsForTheTestToCheckAndAnswerAfterwards_evenOnesAHandlerSimulated() {
         button.addClickListener(event -> {
             calendar.getElement().executeJs(TIME_ZONE_EXPRESSION)
                     .then(String.class, calendar::setText);
             field.focus();
         });
-        answerTimeZoneCalls("Europe/Helsinki");
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
 
         test(button).click();
 
-        // Both calls were handled as they were sent, which a handler sees
-        // only once, at that moment; the capture still has them, so the test
-        // can check which calls the click sent
+        // The built-in focus handler simulated the focus call as it was sent;
+        // a handler sees a call only at that moment, the capture still has it
         Assertions.assertTrue(test(field).isFocused());
-        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
         List<ExecutedJavaScript.Execution> sent = executed.getAll();
-        Assertions.assertEquals(2, sent.size(), sent::toString);
-        Assertions.assertTrue(
-                sent.get(0).getExpression().contains(TIME_ZONE_EXPRESSION));
         Assertions.assertEquals("focus",
                 sent.get(1).getJsCall().orElseThrow().methodName());
-        Assertions.assertFalse(sent.get(0).isWaitingForResult(),
-                "The handler has already answered the call");
+        // No handler answers the time zone call, so the test does it
+        // afterwards, through the capture
+        Assertions.assertTrue(
+                sent.get(0).getExpression().contains(TIME_ZONE_EXPRESSION));
+        Assertions.assertEquals("", calendar.getText());
+        sent.get(0).resolve("Europe/Helsinki");
+        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
     }
 
     private void answerTimeZoneCalls(String timeZone) {
