@@ -28,6 +28,7 @@ import com.vaadin.flow.router.RouteConfiguration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ViewPackages
 class GridProTesterTest extends BrowserlessTest {
@@ -232,9 +233,14 @@ class GridProTesterTest extends BrowserlessTest {
                 IllegalStateException.class,
                 () -> tester.setValue(0, 6, "Should fail"));
 
-        assertEquals(
-                "TextField[RO, value='', readonly='true', manualValidation='true'] is not usable because it is read only.",
-                exception.getMessage());
+        // The order of the attributes in the description depends on the
+        // order in which the component sets them, which is not part of the
+        // tester's contract.
+        String message = exception.getMessage();
+        assertTrue(message.startsWith("TextField[RO, "), message);
+        assertTrue(message.contains("readonly='true'"), message);
+        assertTrue(message.endsWith("] is not usable because it is read only."),
+                message);
     }
 
     @Test
