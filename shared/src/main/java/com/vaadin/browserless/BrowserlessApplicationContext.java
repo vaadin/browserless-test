@@ -97,8 +97,10 @@ import com.vaadin.flow.server.VaadinSession;
  * own hold, and the queued commands run when the test releases its. An
  * exception from them then goes to the session's
  * {@link com.vaadin.flow.server.ErrorHandler}, as with any plain
- * {@code unlock()}; call {@link MockVaadin#runUIQueue()} before releasing the
- * extra hold to have it fail the test.</li>
+ * {@code unlock()}. To have it fail the test, call
+ * {@link MockVaadin#runUIQueue(boolean, com.vaadin.flow.server.VaadinSession)
+ * MockVaadin.runUIQueue(false, session)} for that session after the switch,
+ * before releasing the extra hold.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>
