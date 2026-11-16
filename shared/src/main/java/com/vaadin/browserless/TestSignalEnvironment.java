@@ -15,8 +15,6 @@
  */
 package com.vaadin.browserless;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +74,12 @@ import com.vaadin.flow.signals.SignalEnvironment;
  */
 public class TestSignalEnvironment extends SignalEnvironment {
 
+    /**
+     * The maximum number of pending tasks that {@link #unregister()} runs, so
+     * that a task that keeps submitting new ones cannot hang teardown.
+     */
+    static final int MAX_TEARDOWN_TASKS = 10_000;
+
     private final LinkedBlockingQueue<Runnable> tasks = new LinkedBlockingQueue<>();
     private Runnable cleanup;
 
@@ -99,8 +103,8 @@ public class TestSignalEnvironment extends SignalEnvironment {
     }
 
     /**
-     * Unregisters this test environment if it was registered, and then runs the
-     * tasks that are still pending on the calling thread.
+     * Runs the tasks that are still pending on the calling thread, and then
+     * unregisters this test environment if it was registered.
      *
      * <p>
      * A shared signal often outlives the test that wrote to it, for example
@@ -109,9 +113,12 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * would keep the write unconfirmed for good, and every later conditional
      * update of it, such as {@code SharedValueSignal.update(...)}, would be
      * rejected and retried forever. Running the pending tasks confirms those
-     * writes. A pending task that fails, for example an effect of a UI that has
-     * already been closed, is skipped. Tasks submitted while the pending ones
-     * run are dispatched by the environments that remain registered.
+     * writes. Pending effects of UIs that are still open run as well. The
+     * environment stays registered while the tasks run, so tasks they submit
+     * are queued and run here too, on the calling thread, up to a limit of
+     * {@value #MAX_TEARDOWN_TASKS} tasks; tasks beyond it are discarded with a
+     * warning. A task that fails is logged and skipped, so that the remaining
+     * tasks still run and teardown completes.
      *
      * <p>
      * This method is idempotent and safe to call multiple times. If a cleanup
@@ -121,21 +128,28 @@ public class TestSignalEnvironment extends SignalEnvironment {
      */
     public void unregister() {
         if (cleanup != null) {
+            runRemainingTasks();
             cleanup.run();
             cleanup = null;
-            runRemainingTasks();
         }
     }
 
     private void runRemainingTasks() {
-        List<Runnable> remaining = new ArrayList<>();
-        tasks.drainTo(remaining);
-        for (Runnable task : remaining) {
+        int run = 0;
+        Runnable task;
+        while ((task = tasks.poll()) != null) {
+            if (run++ == MAX_TEARDOWN_TASKS) {
+                tasks.clear();
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
+                        "Discarded pending Signals tasks after running {} of them at teardown; a task probably keeps submitting new ones",
+                        MAX_TEARDOWN_TASKS);
+                return;
+            }
             try {
                 task.run();
             } catch (RuntimeException | AssertionError e) {
                 LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
-                        "Skipped a pending Signals task that failed after the test environment was unregistered",
+                        "Skipped a pending Signals task that failed at teardown",
                         e);
             }
         }

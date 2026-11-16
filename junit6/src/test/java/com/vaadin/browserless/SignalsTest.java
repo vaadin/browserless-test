@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.base.signals.SignalsView;
 import org.junit.jupiter.api.Assertions;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Timeout;
 
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
+import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 @ViewPackages(packages = "com.example.base.signals")
 @Timeout(10)
@@ -138,6 +140,28 @@ public class SignalsTest extends BrowserlessTest {
                         + "Signals tasks");
         Assertions.assertTrue(operation.result().join().successful(),
                 "Insert operation should have succeeded");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_runsPendingTasksOnTestThread() {
+        // Outlives the test, like a signal in an application-scoped bean
+        var signal = new SharedValueSignal<>("initial");
+        signal.set("changed");
+        Assertions.assertNull(signal.peekConfirmed(),
+                "Nothing should be confirmed before the queue is drained");
+        var nestedTaskThread = new AtomicReference<Thread>();
+        SignalEnvironment.getDefaultEffectDispatcher().execute(
+                () -> SignalEnvironment.getDefaultEffectDispatcher().execute(
+                        () -> nestedTaskThread.set(Thread.currentThread())));
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals("changed", signal.peekConfirmed(),
+                "A write left pending at teardown must still be confirmed");
+        Assertions.assertSame(Thread.currentThread(), nestedTaskThread.get(),
+                "A task submitted by a pending task must run on the test "
+                        + "thread during teardown");
     }
 
 }
