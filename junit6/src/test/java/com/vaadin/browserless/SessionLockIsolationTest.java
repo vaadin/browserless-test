@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
@@ -146,6 +147,23 @@ class SessionLockIsolationTest {
         aliceSession.unlock();
         Assertions.assertSame(aliceSession, ranIn.get());
         assertLocked(false, alice);
+    }
+
+    @Test
+    void userSwitch_whileTestHoldsLockAgain_runUIQueueSurfacesFailure() {
+        var aliceSession = alice.getUser().getSession();
+        alice.activate();
+        queueFailingCommand(alice);
+        aliceSession.lock();
+        bob.activate();
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> MockVaadin.runUIQueue(false, aliceSession));
+
+        Assertions.assertEquals("boom", ex.getCause().getMessage());
+        aliceSession.unlock();
+        assertLocked(false, alice);
+        assertLocked(true, bob);
     }
 
     @Test
