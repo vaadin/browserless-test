@@ -17,6 +17,8 @@ package com.vaadin.browserless;
 
 import com.testapp.sessionscope.Prefs;
 import com.testapp.sessionscope.ReproView;
+import com.testapp.sessionscope.WindowState;
+import com.testapp.sessionscope.WindowStateView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +28,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.vaadin.flow.spring.VaadinScopesConfig;
 
 /**
  * Reproduces and guards
@@ -89,8 +94,30 @@ class MultiUserSessionScopeReproTest {
                 "Each user must resolve its own session-scoped signal instance");
     }
 
+    @Test
+    void windowsOfOneUserEachGetOwnUIScopedBean() {
+        var alice = app.newUser("alice", "USER");
+        var first = alice.newWindow();
+        var second = alice.newWindow();
+
+        WindowState firstState = first.navigate(WindowStateView.class)
+                .windowState();
+        WindowState secondState = second.navigate(WindowStateView.class)
+                .windowState();
+        Assertions.assertNotSame(firstState, secondState,
+                "Each window must resolve its own UI-scoped bean");
+
+        // Closing one window destroys only that window's UI-scoped beans.
+        second.close();
+        first.navigate(ReproView.class);
+        Assertions.assertSame(firstState,
+                first.navigate(WindowStateView.class).windowState(),
+                "The remaining window must keep its UI-scoped bean");
+    }
+
     @Configuration
     @ComponentScan(basePackageClasses = Prefs.class)
+    @Import(VaadinScopesConfig.class)
     static class TestConfig {
     }
 }
