@@ -23,20 +23,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Focusable;
+import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.Element;
-import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinition;
 import com.vaadin.flow.js.JsExpression;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
-
-    private static final String TIME_ZONE_EXPRESSION = "return Intl.DateTimeFormat().resolvedOptions().timeZone";
 
     @JsDefinition
     public interface OtherFocusJs extends Serializable {
@@ -57,64 +56,59 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         getCurrentView().getElement().appendChild(container.getElement());
     }
 
-    // A handler plays the browser: it reacts to each call the moment it is
-    // sent, in the middle of an interaction, and can change what the
-    // application does next. A capture plays the test: it only records, over
-    // a window the test chooses, so the test can check afterwards what was
-    // sent. The two tests below show one need each.
+    // Two ways a test meets the JavaScript an application sends. The
+    // simulated client's handlers play the browser: they act on each call the
+    // moment it is sent, so the application behaves as with a browser and the
+    // test checks the outcome, for example the focus a dialog gives its first
+    // field (see
+    // BlurSimulationTest#buttonClickOpensDialog_serverSideFocusOnDialogField_focusesImplicitly).
+    // A capture is for JavaScript nothing can simulate, such as a web
+    // component's own API: the test checks afterwards which calls were sent,
+    // as below.
 
     @Test
-    void handler_answersCallWhileInteractionRuns_applicationUsesAnswerBeforeTestContinues() {
-        button.addClickListener(
-                event -> calendar.getElement().executeJs(TIME_ZONE_EXPRESSION)
-                        .then(String.class, calendar::setText));
-        answerTimeZoneCalls("Europe/Helsinki");
-
-        // No capture and no resolve() in the test: the handler answered as
-        // the click's JavaScript was sent, like a browser would
-        test(button).click();
-
-        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
-    }
-
-    @Test
-    void capture_keepsCallsForTheTestToCheckAndAnswerAfterwards_evenOnesAHandlerSimulated() {
-        button.addClickListener(event -> {
-            calendar.getElement().executeJs(TIME_ZONE_EXPRESSION)
-                    .then(String.class, calendar::setText);
-            field.focus();
-        });
+    void weekButton_switchesTheCalendarView_onlyWhenItChanges() {
+        PlannerView planner = showPlanner();
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
 
-        test(button).click();
+        test(planner.week).click();
+        test(planner.week).click();
 
-        // The built-in focus handler simulated the focus call as it was sent;
-        // a handler sees a call only at that moment, the capture still has it
-        Assertions.assertTrue(test(field).isFocused());
-        List<ExecutedJavaScript.Execution> sent = executed.getAll();
-        Assertions.assertEquals("focus",
-                sent.get(1).getJsCall().orElseThrow().methodName());
-        // No handler answers the time zone call, so the test does it
-        // afterwards, through the capture
-        Assertions.assertTrue(
-                sent.get(0).getExpression().contains(TIME_ZONE_EXPRESSION));
-        Assertions.assertEquals("", calendar.getText());
-        sent.get(0).resolve("Europe/Helsinki");
-        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
+        Assertions.assertEquals(List.of(List.of("timeGridWeek")),
+                executed.getFunctionCalls(planner.calendar, "changeView"));
     }
 
-    private void answerTimeZoneCalls(String timeZone) {
-        JavaScriptDispatcher dispatcher = JavaScriptDispatcher
-                .forUI(UI.getCurrent());
-        dispatcher.addHandler(invocation -> {
-            if (invocation.isSubscribed()
-                    && invocation.getInvocation().getExpression()
-                            .contains(TIME_ZONE_EXPRESSION)
-                    && dispatcher.markAnswered(invocation)) {
-                invocation.complete(
-                        JacksonUtils.getMapper().valueToTree(timeZone));
+    private PlannerView showPlanner() {
+        PlannerView planner = new PlannerView();
+        getCurrentView().getElement().appendChild(planner.getElement());
+        return planner;
+    }
+
+    /**
+     * Wraps a client-side calendar web component, the way an add-on does: the
+     * server side keeps the state and calls the component's own JavaScript API
+     * when it changes.
+     */
+    @Tag("event-calendar")
+    static class EventCalendar extends Component {
+        private String view = "dayGridMonth";
+
+        void setView(String view) {
+            if (!view.equals(this.view)) {
+                this.view = view;
+                getElement().callJsFunction("changeView", view);
             }
-        });
+        }
+    }
+
+    static class PlannerView extends Div {
+        final EventCalendar calendar = new EventCalendar();
+        final Button week = new Button("Week",
+                event -> calendar.setView("timeGridWeek"));
+
+        PlannerView() {
+            add(week, calendar);
+        }
     }
 
     @Test
