@@ -28,6 +28,7 @@ import com.vaadin.flow.router.RouteConfiguration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ViewPackages
 class GridProTesterTest extends BrowserlessTest {
@@ -218,9 +219,11 @@ class GridProTesterTest extends BrowserlessTest {
                 IllegalStateException.class,
                 () -> tester.setValue(0, 5, "Should fail"));
 
-        assertEquals(
-                "TextField[DISABLED, value='', manualValidation='true'] is not usable because it is not enabled.",
-                exception.getMessage());
+        String message = exception.getMessage();
+        assertTrue(message.startsWith("TextField[DISABLED, "), message);
+        assertTrue(
+                message.endsWith("] is not usable because it is not enabled."),
+                message);
     }
 
     @Test
@@ -232,9 +235,12 @@ class GridProTesterTest extends BrowserlessTest {
                 IllegalStateException.class,
                 () -> tester.setValue(0, 6, "Should fail"));
 
-        assertEquals(
-                "TextField[RO, value='', manualValidation='true', readonly='true'] is not usable because it is read only.",
-                exception.getMessage());
+        // the order of the element properties in the description is up to Flow
+        String message = exception.getMessage();
+        assertTrue(message.startsWith("TextField[RO, "), message);
+        assertTrue(message.contains("readonly='true'"), message);
+        assertTrue(message.endsWith("] is not usable because it is read only."),
+                message);
     }
 
     @Test
