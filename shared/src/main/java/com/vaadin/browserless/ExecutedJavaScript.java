@@ -209,7 +209,7 @@ public final class ExecutedJavaScript implements Serializable {
 
         private final PendingJavaScriptInvocation invocation;
 
-        private Execution(JavaScriptDispatcher dispatcher,
+        Execution(JavaScriptDispatcher dispatcher,
                 PendingJavaScriptInvocation invocation) {
             this.dispatcher = dispatcher;
             this.invocation = invocation;

@@ -726,7 +726,7 @@ assertTrue(test(quickAdd).isFocused());
 There is no browser to run the JavaScript that the server schedules with
 `executeJs`, `callJsFunction` or a declared JavaScript definition. Instead,
 at every client boundary — a round trip, a component lookup, the end of a
-tester interaction — the pending JavaScript of the UI is sent to a simulated
+navigation or a tester interaction — the pending JavaScript of the UI is sent to a simulated
 client, the way a server response would send it. What the framework can
 simulate, such as server-side focus and blur calls, is simulated.
 
@@ -769,12 +769,47 @@ execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
 
+### Answering JavaScript like the browser
+
+JavaScript that reads something only the browser knows, such as the user's
+time zone, can be answered for the whole test environment with a
+`JavaScriptHandler`. Every UI, also after a reload or in a new window, gets
+its own instance, which sees each call as it is sent, also while a view is
+being navigated to, so the application behaves as in a browser without the
+test doing anything:
+
+```java
+public class BrowserInHelsinki implements JavaScriptHandler {
+    @Override
+    public void handle(ExecutedJavaScript.Execution execution) {
+        if (execution.isWaitingForResult() && execution.getExpression()
+                .contains("resolvedOptions().timeZone")) {
+            execution.resolve("Europe/Helsinki");
+        }
+    }
+}
+
+@BrowserlessTestConfig(javaScriptHandlers = BrowserInHelsinki.class)
+class ScheduleViewTest extends BrowserlessTest {
+    @Test
+    void showsTimesInTheUsersTimeZone() {
+        ScheduleView view = navigate(ScheduleView.class);
+        assertEquals("Times shown in Europe/Helsinki",
+                view.getTimeZone().getText());
+    }
+}
+```
+
+Handlers can also be added with
+`BrowserlessConfiguration.builder().withJavaScriptHandlers(...)`. They
+accumulate like lookup services.
+
 ### Notes and limitations
 
 - Once sent, JavaScript is no longer pending: a test that reads
   `UIInternals.dumpPendingJavaScriptInvocations()` or
-  `containsPendingJavascript(...)` after a lookup or a tester interaction
-  finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
+  `containsPendingJavascript(...)` after a navigation, a lookup or a tester
+  interaction finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
   queue in a test also hides the JavaScript from the simulation, for example a
   server-side `focus()` call.
 - JavaScript scheduled for an element that is not visible is not sent, as in a

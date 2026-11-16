@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.Set;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.shared.Registration;
 
 /**
@@ -86,21 +89,73 @@ public final class JavaScriptDispatcher implements Serializable {
      * created, before the UI is initialized: installs the handlers that
      * simulate what a browser does with the JavaScript Browserless Test knows
      * how to simulate, such as server-side {@code Focusable.focus()} and
-     * {@code blur()} calls and the element initializers of triggers. Installing
+     * {@code blur()} calls and the element initializers of triggers, followed
+     * by a new instance of each {@link JavaScriptHandler} configured for the
+     * environment with
+     * {@link #setJavaScriptHandlers(VaadinService, Collection)}. Installing
      * them up front means a call sent before any tester interaction, while the
-     * initial view is built or by a lookup, is simulated too. Setting up the
-     * same UI again does nothing.
+     * initial view is built or by a lookup, is handled too. Setting up the same
+     * UI again does nothing.
      *
      * @param ui
      *            the UI, not null
+     * @throws BrowserlessTestSetupException
+     *             if a configured handler cannot be instantiated
      */
     public static void setUpSimulatedClient(UI ui) {
         JavaScriptDispatcher dispatcher = forUI(ui);
-        if (!dispatcher.simulatedClientSetUp) {
-            dispatcher.simulatedClientSetUp = true;
-            dispatcher.addHandler(FocusTracker.handlerFor(ui));
-            dispatcher.addHandler(ClientInitializers.handlerFor(ui));
+        if (dispatcher.simulatedClientSetUp) {
+            return;
         }
+        dispatcher.simulatedClientSetUp = true;
+        dispatcher.addHandler(FocusTracker.handlerFor(ui));
+        dispatcher.addHandler(ClientInitializers.handlerFor(ui));
+        VaadinSession session = ui.getSession();
+        ConfiguredHandlers configured = session == null ? null
+                : session.getService().getContext()
+                        .getAttribute(ConfiguredHandlers.class);
+        if (configured != null) {
+            for (Class<? extends JavaScriptHandler> type : configured.types()) {
+                JavaScriptHandler handler = instantiate(type);
+                dispatcher.addHandler(invocation -> handler
+                        .handle(new ExecutedJavaScript.Execution(dispatcher,
+                                invocation)));
+            }
+        }
+    }
+
+    /**
+     * Sets the {@link JavaScriptHandler} classes that every UI created from now
+     * on for the given service gets an instance of, replacing the ones set
+     * before.
+     *
+     * @param service
+     *            the service of the mocked environment, not null
+     * @param handlers
+     *            the handler classes, in the order they run, not null
+     */
+    public static void setJavaScriptHandlers(VaadinService service,
+            Collection<Class<? extends JavaScriptHandler>> handlers) {
+        service.getContext().setAttribute(ConfiguredHandlers.class,
+                new ConfiguredHandlers(List.copyOf(handlers)));
+    }
+
+    private static JavaScriptHandler instantiate(
+            Class<? extends JavaScriptHandler> type) {
+        try {
+            return type.getConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new BrowserlessTestSetupException("Cannot create the "
+                    + "JavaScript handler " + type.getName()
+                    + ". A JavaScript handler must be a public class with a "
+                    + "public no-argument constructor.", e);
+        }
+    }
+
+    private record ConfiguredHandlers(
+            List<Class<? extends JavaScriptHandler>> types)
+            implements
+                Serializable {
     }
 
     /**
