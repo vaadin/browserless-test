@@ -215,6 +215,11 @@ public final class ExecutedJavaScript implements Serializable {
             this.invocation = invocation;
         }
 
+        static Execution of(JavaScriptDispatcher dispatcher,
+                PendingJavaScriptInvocation invocation) {
+            return new Execution(dispatcher, invocation);
+        }
+
         /**
          * Gets the element the JavaScript was run on, which is the element of
          * the UI for JavaScript run on the page.

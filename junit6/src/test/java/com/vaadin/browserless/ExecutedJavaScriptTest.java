@@ -56,15 +56,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         getCurrentView().getElement().appendChild(container.getElement());
     }
 
-    // Two ways a test meets the JavaScript an application sends. The
-    // simulated client's handlers play the browser: they act on each call the
-    // moment it is sent, so the application behaves as with a browser and the
-    // test checks the outcome, for example the focus a dialog gives its first
-    // field (see
-    // BlurSimulationTest#buttonClickOpensDialog_serverSideFocusOnDialogField_focusesImplicitly).
-    // A capture is for JavaScript nothing can simulate, such as a web
-    // component's own API: the test checks afterwards which calls were sent,
-    // as below.
+    // Two ways a test meets the JavaScript an application sends. Handlers play
+    // the browser: they act on each call the moment it is sent, so the
+    // application behaves as with a browser and the test checks the outcome,
+    // see JavaScriptHandlerTest. A capture is for JavaScript nothing can
+    // simulate, such as a web component's own API: the test checks afterwards
+    // which calls were sent, as below.
 
     @Test
     void weekButton_switchesTheCalendarView_onlyWhenItChanges() {

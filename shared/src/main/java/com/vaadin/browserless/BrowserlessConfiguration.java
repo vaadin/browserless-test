@@ -30,10 +30,10 @@ import com.vaadin.flow.server.InitParameters;
 /**
  * Custom Vaadin configuration to apply to a mock Vaadin environment.
  * <p>
- * Holds Vaadin application properties (also known as init parameters) and
- * feature flag overrides. Both are scoped to the environment they are applied
- * to, so a configuration used by a test neither affects other tests nor
- * requires any clean up.
+ * Holds Vaadin application properties (also known as init parameters), feature
+ * flag overrides, lookup services and {@link JavaScriptHandler}s. They are
+ * scoped to the environment they are applied to, so a configuration used by a
+ * test neither affects other tests nor requires any clean up.
  * <p>
  * Instances are immutable and can be created with a {@link #builder()} or
  * derived from a {@link BrowserlessTestConfig} annotation.
@@ -53,20 +53,24 @@ import com.vaadin.flow.server.InitParameters;
 public final class BrowserlessConfiguration implements Serializable {
 
     private static final BrowserlessConfiguration EMPTY = new BrowserlessConfiguration(
-            Map.of(), Map.of(), Set.of());
+            Map.of(), Map.of(), Set.of(), Set.of());
 
     private final Map<String, String> applicationProperties;
     private final Map<String, Boolean> featureFlags;
     private final Set<Class<?>> lookupServices;
+    private final Set<Class<? extends JavaScriptHandler>> javaScriptHandlers;
 
     private BrowserlessConfiguration(Map<String, String> applicationProperties,
-            Map<String, Boolean> featureFlags, Set<Class<?>> lookupServices) {
+            Map<String, Boolean> featureFlags, Set<Class<?>> lookupServices,
+            Set<Class<? extends JavaScriptHandler>> javaScriptHandlers) {
         this.applicationProperties = Collections
                 .unmodifiableMap(new LinkedHashMap<>(applicationProperties));
         this.featureFlags = Collections
                 .unmodifiableMap(new LinkedHashMap<>(featureFlags));
         this.lookupServices = Collections
                 .unmodifiableSet(new LinkedHashSet<>(lookupServices));
+        this.javaScriptHandlers = Collections
+                .unmodifiableSet(new LinkedHashSet<>(javaScriptHandlers));
     }
 
     /**
@@ -140,6 +144,7 @@ public final class BrowserlessConfiguration implements Serializable {
             }
         }
         builder.withLookupServices(annotation.lookupServices());
+        builder.withJavaScriptHandlers(annotation.javaScriptHandlers());
         return builder.build();
     }
 
@@ -199,23 +204,36 @@ public final class BrowserlessConfiguration implements Serializable {
     }
 
     /**
+     * Gets the {@link JavaScriptHandler} classes that every UI of the mock
+     * Vaadin environment gets an instance of, in the order they run.
+     *
+     * @return an unmodifiable set of JavaScript handler classes, never
+     *         {@literal null}
+     * @since 25.4
+     */
+    public Set<Class<? extends JavaScriptHandler>> getJavaScriptHandlers() {
+        return javaScriptHandlers;
+    }
+
+    /**
      * Checks if this configuration does not customize the Vaadin environment at
      * all.
      *
      * @return {@literal true} if neither application properties, nor feature
-     *         flags, nor lookup services are defined, {@literal false}
-     *         otherwise
+     *         flags, nor lookup services, nor JavaScript handlers are defined,
+     *         {@literal false} otherwise
      */
     public boolean isEmpty() {
         return applicationProperties.isEmpty() && featureFlags.isEmpty()
-                && lookupServices.isEmpty();
+                && lookupServices.isEmpty() && javaScriptHandlers.isEmpty();
     }
 
     /**
      * Creates a new configuration by merging the given configuration into this
      * one. Application properties and feature flags defined by the given
      * configuration win over the ones defined by this configuration, while
-     * lookup services of both configurations are accumulated.
+     * lookup services and JavaScript handlers of both configurations are
+     * accumulated.
      *
      * @param overrides
      *            the configuration to merge into this one, not {@literal null}
@@ -243,20 +261,22 @@ public final class BrowserlessConfiguration implements Serializable {
         }
         return applicationProperties.equals(other.applicationProperties)
                 && featureFlags.equals(other.featureFlags)
-                && lookupServices.equals(other.lookupServices);
+                && lookupServices.equals(other.lookupServices)
+                && javaScriptHandlers.equals(other.javaScriptHandlers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(applicationProperties, featureFlags,
-                lookupServices);
+        return Objects.hash(applicationProperties, featureFlags, lookupServices,
+                javaScriptHandlers);
     }
 
     @Override
     public String toString() {
         return "BrowserlessConfiguration{applicationProperties="
                 + applicationProperties + ", featureFlags=" + featureFlags
-                + ", lookupServices=" + lookupServices + "}";
+                + ", lookupServices=" + lookupServices + ", javaScriptHandlers="
+                + javaScriptHandlers + "}";
     }
 
     /**
@@ -267,6 +287,7 @@ public final class BrowserlessConfiguration implements Serializable {
         private final Map<String, String> applicationProperties = new LinkedHashMap<>();
         private final Map<String, Boolean> featureFlags = new LinkedHashMap<>();
         private final Set<Class<?>> lookupServices = new LinkedHashSet<>();
+        private final Set<Class<? extends JavaScriptHandler>> javaScriptHandlers = new LinkedHashSet<>();
 
         private Builder() {
         }
@@ -424,9 +445,35 @@ public final class BrowserlessConfiguration implements Serializable {
         }
 
         /**
+         * Adds the given {@link JavaScriptHandler} classes. Every UI of the
+         * mock Vaadin environment gets its own instance of each, which plays
+         * the browser for the JavaScript the application sends to that UI.
+         * <p>
+         * Successive calls accumulate; handlers are never replaced. Calling
+         * with no arguments is a no-op.
+         *
+         * @param handlers
+         *            the handler classes to add, each with a public no-argument
+         *            constructor, not {@literal null}
+         * @return this builder
+         * @since 25.4
+         */
+        @SafeVarargs
+        public final Builder withJavaScriptHandlers(
+                Class<? extends JavaScriptHandler>... handlers) {
+            Objects.requireNonNull(handlers, "handlers must not be null");
+            for (Class<? extends JavaScriptHandler> handler : handlers) {
+                javaScriptHandlers.add(Objects.requireNonNull(handler,
+                        "handler must not be null"));
+            }
+            return this;
+        }
+
+        /**
          * Applies all entries of the given configuration to this builder,
          * replacing previously set application properties and feature flags
-         * with the same names, and accumulating lookup services.
+         * with the same names, and accumulating lookup services and JavaScript
+         * handlers.
          *
          * @param configuration
          *            the configuration to apply, not {@literal null}
@@ -440,6 +487,7 @@ public final class BrowserlessConfiguration implements Serializable {
                     .putAll(configuration.getApplicationProperties());
             featureFlags.putAll(configuration.getFeatureFlags());
             lookupServices.addAll(configuration.getLookupServices());
+            javaScriptHandlers.addAll(configuration.getJavaScriptHandlers());
             return this;
         }
 
@@ -450,11 +498,12 @@ public final class BrowserlessConfiguration implements Serializable {
          */
         public BrowserlessConfiguration build() {
             if (applicationProperties.isEmpty() && featureFlags.isEmpty()
-                    && lookupServices.isEmpty()) {
+                    && lookupServices.isEmpty()
+                    && javaScriptHandlers.isEmpty()) {
                 return empty();
             }
             return new BrowserlessConfiguration(applicationProperties,
-                    featureFlags, lookupServices);
+                    featureFlags, lookupServices, javaScriptHandlers);
         }
     }
 }

@@ -212,7 +212,8 @@ object MockVaadin {
             // Enforced by the browserless environment, so it wins over test configuration
             config.servletInitParams[InitParameters.BROWSERLESS] = "true"
             servlet.init(config)
-        } else if (!configuration.isEmpty) {
+        } else if (configuration.applicationProperties.isNotEmpty() || configuration.featureFlags.isNotEmpty()
+                || configuration.lookupServices.isNotEmpty()) {
             // Application properties, feature flags and lookup services are all
             // read while the servlet is initialized, so there is no way to apply
             // them afterwards. Failing here beats silently running the test
@@ -227,6 +228,9 @@ object MockVaadin {
         }
         val service: VaadinServletService = checkNotNull(servlet.service)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
+        // Read when each UI is created rather than while the servlet initializes,
+        // so they are set, or replaced, even for a servlet that is reused
+        JavaScriptDispatcher.setJavaScriptHandlers(service, configuration.javaScriptHandlers)
         return service
     }
 

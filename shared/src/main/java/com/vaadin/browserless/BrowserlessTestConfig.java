@@ -121,4 +121,18 @@ public @interface BrowserlessTestConfig {
      * @return the lookup service implementation classes, never {@literal null}
      */
     Class<?>[] lookupServices() default {};
+
+    /**
+     * Handlers that play the browser for JavaScript the application sends, such
+     * as answering a call that reads a value only the browser knows. Every UI
+     * of the environment gets its own instance of each, see
+     * {@link JavaScriptHandler}.
+     * <p>
+     * Like lookup services, handlers declared on the test class and on the test
+     * method are <strong>accumulated</strong> rather than replaced.
+     *
+     * @return the JavaScript handler classes, never {@literal null}
+     * @since 25.4
+     */
+    Class<? extends JavaScriptHandler>[] javaScriptHandlers() default {};
 }
