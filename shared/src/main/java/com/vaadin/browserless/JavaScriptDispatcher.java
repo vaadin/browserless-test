@@ -75,6 +75,8 @@ public final class JavaScriptDispatcher implements Serializable {
 
     private boolean dispatching;
 
+    private boolean simulatedClientSetUp;
+
     private JavaScriptDispatcher(UI ui) {
         this.ui = ui;
     }
@@ -86,13 +88,17 @@ public final class JavaScriptDispatcher implements Serializable {
      * how to simulate, such as server-side {@code Focusable.focus()} and
      * {@code blur()} calls. Installing them up front means a call sent before
      * any tester interaction, while the initial view is built or by a lookup,
-     * is simulated too.
+     * is simulated too. Setting up the same UI again does nothing.
      *
      * @param ui
      *            the UI, not null
      */
     public static void setUpSimulatedClient(UI ui) {
-        forUI(ui).addHandler(FocusTracker.handlerFor(ui));
+        JavaScriptDispatcher dispatcher = forUI(ui);
+        if (!dispatcher.simulatedClientSetUp) {
+            dispatcher.simulatedClientSetUp = true;
+            dispatcher.addHandler(FocusTracker.handlerFor(ui));
+        }
     }
 
     /**
