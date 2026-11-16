@@ -268,14 +268,10 @@ object MockVaadin {
         // Preserve the window name so a following createUI (reload / session
         // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
         lastWindowName.set(ui.internals.extendedClientDetails.windowName)
-        val session: VaadinSession? = ui.internals.session
-        if (session != null && (fireUIDetach || ui.isClosing)) {
+        if (ui.internals.session != null && (fireUIDetach || ui.isClosing)) {
             // Every UI of a session has its own id, so the next UI does not
             // replace this one in the session: it has to be removed.
-            if (!ui.isClosing) {
-                ui.close()
-            }
-            session.removeUI(ui)
+            ui._close()
         }
         UI.setCurrent(null)
         strongRefUI.remove()

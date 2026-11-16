@@ -15,6 +15,8 @@
  */
 package com.testapp.sessionscope;
 
+import jakarta.annotation.PreDestroy;
+
 import org.springframework.stereotype.Component;
 
 import com.vaadin.flow.spring.annotation.UIScope;
@@ -25,4 +27,19 @@ import com.vaadin.flow.spring.annotation.UIScope;
 @Component
 @UIScope
 public class WindowState {
+
+    private boolean destroyed;
+
+    @PreDestroy
+    void destroy() {
+        destroyed = true;
+    }
+
+    /**
+     * Whether Spring has destroyed this bean, which happens when its UI is
+     * removed.
+     */
+    public boolean isDestroyed() {
+        return destroyed;
+    }
 }

@@ -75,7 +75,7 @@ class MultiWindowTest {
         window1.reload(SimpleView.class);
         window2.close();
 
-        Assertions.assertNotSame(uiBeforeReload, window1.getUI());
+        Assertions.assertNull(uiBeforeReload.getSession());
         Assertions.assertEquals(Set.of(window1.getUI(), window3.getUI()),
                 Set.copyOf(user.getSession().getUIs()));
     }

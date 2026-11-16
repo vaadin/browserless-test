@@ -109,6 +109,10 @@ class MultiUserSessionScopeReproTest {
 
         // Closing one window destroys only that window's UI-scoped beans.
         second.close();
+        Assertions.assertTrue(secondState.isDestroyed(),
+                "Closing a window must destroy its UI-scoped bean");
+        Assertions.assertFalse(firstState.isDestroyed(),
+                "Closing a window must not destroy another window's bean");
         first.navigate(ReproView.class);
         Assertions.assertSame(firstState,
                 first.navigate(WindowStateView.class).windowState(),
