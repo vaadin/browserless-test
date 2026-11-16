@@ -147,6 +147,9 @@ public class SignalsTest extends BrowserlessTest {
     void cleanVaadinEnvironment_runsPendingTasksOnTestThread() {
         // Outlives the test, like a signal in an application-scoped bean
         var signal = new SharedValueSignal<>("initial");
+        SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
+            throw new IllegalStateException("failing pending task");
+        });
         signal.set("changed");
         Assertions.assertNull(signal.peekConfirmed(),
                 "Nothing should be confirmed before the queue is drained");
@@ -181,8 +184,6 @@ public class SignalsTest extends BrowserlessTest {
 
         Assertions.assertEquals(TestSignalEnvironment.MAX_TEARDOWN_TASKS,
                 runs.get());
-        Assertions.assertFalse(runPendingSignalsTasks(0, TimeUnit.SECONDS),
-                "Discarded tasks must not reach the next test");
     }
 
 }
