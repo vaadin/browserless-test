@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.base.signals.SignalsView;
@@ -162,6 +163,26 @@ public class SignalsTest extends BrowserlessTest {
         Assertions.assertSame(Thread.currentThread(), nestedTaskThread.get(),
                 "A task submitted by a pending task must run on the test "
                         + "thread during teardown");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_selfResubmittingTask_stopsAtLimit() {
+        var runs = new AtomicInteger();
+        SignalEnvironment.getDefaultEffectDispatcher().execute(new Runnable() {
+            @Override
+            public void run() {
+                runs.incrementAndGet();
+                SignalEnvironment.getDefaultEffectDispatcher().execute(this);
+            }
+        });
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals(TestSignalEnvironment.MAX_TEARDOWN_TASKS,
+                runs.get());
+        Assertions.assertFalse(runPendingSignalsTasks(0, TimeUnit.SECONDS),
+                "Discarded tasks must not reach the next test");
     }
 
 }

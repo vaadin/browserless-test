@@ -128,9 +128,12 @@ public class TestSignalEnvironment extends SignalEnvironment {
      */
     public void unregister() {
         if (cleanup != null) {
-            runRemainingTasks();
-            cleanup.run();
-            cleanup = null;
+            try {
+                runRemainingTasks();
+            } finally {
+                cleanup.run();
+                cleanup = null;
+            }
         }
     }
 
