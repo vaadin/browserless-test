@@ -167,8 +167,15 @@ class SignalsContextTest {
         window.activate();
         // Outlives the context, like a signal in an application-scoped bean
         var signal = new SharedValueSignal<>("initial");
+        SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
+            throw new AssertionError("failing pending task");
+        });
         signal.set("changed");
+        Assertions.assertNull(signal.peekConfirmed(),
+                "Nothing should be confirmed before the queue is drained");
 
+        // Must not throw although a pending task fails, and must still run
+        // the confirmations queued after it
         app.close();
 
         Assertions.assertEquals("changed", signal.peekConfirmed(),

@@ -654,7 +654,8 @@ means the queue has not been drained, not that the write was lost.
 Tasks still queued when a test ends — or when a `BrowserlessApplicationContext`
 is closed — are run during teardown, so a write to a shared signal that outlives
 the test (for example one held by an application-scoped bean) is always
-confirmed before the next test uses it.
+confirmed before the next test uses it. Pending effects of UIs that are still
+open run then as well; a task that fails is logged and skipped.
 
 ## Focus and blur
 

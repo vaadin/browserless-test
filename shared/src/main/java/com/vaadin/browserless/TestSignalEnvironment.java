@@ -133,8 +133,8 @@ public class TestSignalEnvironment extends SignalEnvironment {
         for (Runnable task : remaining) {
             try {
                 task.run();
-            } catch (RuntimeException e) {
-                LoggerFactory.getLogger(TestSignalEnvironment.class).debug(
+            } catch (RuntimeException | AssertionError e) {
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
                         "Skipped a pending Signals task that failed after the test environment was unregistered",
                         e);
             }
