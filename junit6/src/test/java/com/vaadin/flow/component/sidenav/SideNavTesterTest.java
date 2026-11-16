@@ -112,6 +112,17 @@ class SideNavTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.adminSection).writeText("Hello");
+
+        sideNav_.clickItem("Admin");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertTrue(view.adminSection.isExpanded(),
+                "the click should still expand the item");
+    }
+
+    @Test
     void clickItem_byText_navigationHappens() {
         sideNav_.clickItem("Messages");
         assertNavigatedToTargetViewWithParam("N/A");
@@ -476,14 +487,5 @@ class SideNavTesterTest extends BrowserlessTest {
     private void navigateToSideNavView() {
         view = navigate(SideNavView.class);
         sideNav_ = test(view.sideNav);
-    }
-
-    @Test
-    void clickItem_runsCopyTrigger() {
-        Clipboard.onClick(view.adminSection).writeText("Hello");
-
-        sideNav_.clickItem("Admin");
-
-        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
     }
 }

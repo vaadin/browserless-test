@@ -104,8 +104,13 @@ class MultiUserTest {
         Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
         Assertions.assertEquals("Hello", user.getClipboard().getText());
         Assertions.assertNull(otherUser.getClipboard().getText());
+    }
 
+    @Test
+    void clipboardGet_withoutCurrentSession_throws() {
+        app.newUser().newWindow();
         VaadinSession.setCurrent(null);
+
         Assertions.assertThrows(IllegalStateException.class,
                 SimulatedClipboard::get);
     }
