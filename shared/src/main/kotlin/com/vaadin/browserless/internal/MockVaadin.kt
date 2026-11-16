@@ -126,8 +126,8 @@ object MockVaadin {
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
      * @param uiFactory produces [UI] instances and sets them as current, by default simply instantiates [MockedUI] class.
      * @param lookupServices service classes to be provided to the lookup initializer
-     * @param configuration custom Vaadin configuration, such as application properties, feature flags
-     * and lookup services, to apply to the mocked environment.
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags,
+     * lookup services and JavaScript handlers, to apply to the mocked environment.
      */
     @JvmStatic
     @JvmOverloads
@@ -156,8 +156,8 @@ object MockVaadin {
      * Please consult [com.vaadin.browserless.mocks.MockService]
      * on what methods you must override in your custom service.
      * @param lookupServices service classes to be provided to the lookup initializer
-     * @param configuration custom Vaadin configuration, such as application properties, feature flags
-     * and lookup services, to apply to the mocked environment.
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags,
+     * lookup services and JavaScript handlers, to apply to the mocked environment.
      */
     @JvmStatic
     @JvmOverloads
@@ -177,9 +177,10 @@ object MockVaadin {
      * session, UI, or set any thread-locals. Call this when you need to share
      * a single service across multiple independent sessions (multi-user testing).
      *
-     * @param configuration custom Vaadin configuration, such as application properties, feature flags
-     * and lookup services, to apply to the mocked environment. Lookup services defined by the
-     * configuration are used in addition to the ones given by [lookupServices].
+     * @param configuration custom Vaadin configuration, such as application properties, feature flags,
+     * lookup services and JavaScript handlers, to apply to the mocked environment. Lookup services defined by the
+     * configuration are used in addition to the ones given by [lookupServices]. JavaScript handlers are
+     * applied even to a servlet that is already initialized.
      * @return the initialized [VaadinServletService]
      */
     @JvmStatic
@@ -224,7 +225,12 @@ object MockVaadin {
                             "is read while the servlet initializes, so it must be provided to the " +
                             "setup creating the servlet. Provide a servlet factory returning a new, " +
                             "uninitialized servlet instance, or move the configuration to the setup " +
-                            "that initializes it. Discarded configuration: $configuration")
+                            "that initializes it. Discarded configuration: " +
+                            BrowserlessConfiguration.builder()
+                                    .withApplicationProperties(configuration.applicationProperties)
+                                    .withLookupServices(*configuration.lookupServices.toTypedArray())
+                                    .also { b -> configuration.featureFlags.forEach { (id, on) -> b.withFeatureFlag(id, on) } }
+                                    .build())
         }
         val service: VaadinServletService = checkNotNull(servlet.service)
         check(service.router != null) { "$servlet failed to call VaadinServletService.init() in createServletService()" }
@@ -472,6 +478,10 @@ object MockVaadin {
         // make sure that UI.getCurrent().push() can be called.
         // https://github.com/mvysny/karibu-testing/issues/80
         ui.pushConfiguration.pushMode = PushMode.AUTOMATIC
+
+        // The first response to the browser runs the JavaScript the initial
+        // view scheduled while it was built
+        JavaScriptDispatcher.dispatch(ui)
     }
 
     /**

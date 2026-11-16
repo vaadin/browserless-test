@@ -51,7 +51,7 @@ class JavaScriptHandlerTest extends BrowserlessTest {
     void reload_newUIAsksTheBrowserAgain_andGetsAnswered() {
         navigate(ScheduleView.class);
 
-        ScheduleView reloaded = reload(ScheduleView.class);
+        ScheduleView reloaded = (ScheduleView) reload();
 
         Assertions.assertEquals("Times shown in Europe/Helsinki",
                 reloaded.getTimeZone().getText());

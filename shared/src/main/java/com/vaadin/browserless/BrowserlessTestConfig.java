@@ -132,7 +132,6 @@ public @interface BrowserlessTestConfig {
      * method are <strong>accumulated</strong> rather than replaced.
      *
      * @return the JavaScript handler classes, never {@literal null}
-     * @since 25.4
      */
     Class<? extends JavaScriptHandler>[] javaScriptHandlers() default {};
 }

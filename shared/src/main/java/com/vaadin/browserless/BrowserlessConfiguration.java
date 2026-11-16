@@ -209,7 +209,6 @@ public final class BrowserlessConfiguration implements Serializable {
      *
      * @return an unmodifiable set of JavaScript handler classes, never
      *         {@literal null}
-     * @since 25.4
      */
     public Set<Class<? extends JavaScriptHandler>> getJavaScriptHandlers() {
         return javaScriptHandlers;
@@ -456,7 +455,6 @@ public final class BrowserlessConfiguration implements Serializable {
          *            the handler classes to add, each with a public no-argument
          *            constructor, not {@literal null}
          * @return this builder
-         * @since 25.4
          */
         @SafeVarargs
         public final Builder withJavaScriptHandlers(

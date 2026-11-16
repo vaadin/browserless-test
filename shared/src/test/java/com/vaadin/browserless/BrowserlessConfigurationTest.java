@@ -25,6 +25,7 @@ import com.vaadin.flow.server.InitParameters;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,6 +115,11 @@ class BrowserlessConfigurationTest {
                 .withLookupServices(ServiceA.class).build().isEmpty());
         assertFalse(BrowserlessConfiguration.builder()
                 .withJavaScriptHandlers(HandlerA.class).build().isEmpty());
+        assertNotEquals(
+                BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(HandlerA.class).build(),
+                BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(HandlerB.class).build());
         assertTrue(BrowserlessConfiguration.builder().withLookupServices()
                 .build().isEmpty(), "No arguments should be a no-op");
     }

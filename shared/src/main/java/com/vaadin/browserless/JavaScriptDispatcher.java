@@ -116,7 +116,7 @@ public final class JavaScriptDispatcher implements Serializable {
             for (Class<? extends JavaScriptHandler> type : configured.types()) {
                 JavaScriptHandler handler = instantiate(type);
                 dispatcher.addHandler(invocation -> handler
-                        .handle(ExecutedJavaScript.Execution.of(dispatcher,
+                        .handle(new ExecutedJavaScript.Execution(dispatcher,
                                 invocation)));
             }
         }
