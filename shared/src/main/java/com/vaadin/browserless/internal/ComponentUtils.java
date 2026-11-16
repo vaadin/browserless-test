@@ -15,7 +15,10 @@
  */
 package com.vaadin.browserless.internal;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.ServiceLoader;
 
 import kotlin.jvm.functions.Function1;
 
@@ -26,7 +29,9 @@ import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.HasElement;
+import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasOrderedComponents;
+import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -44,7 +49,18 @@ import com.vaadin.flow.router.Location;
  */
 public final class ComponentUtils {
 
+    private static final List<ComponentSupport> SUPPORTS = loadComponentSupports();
+
     private ComponentUtils() {
+    }
+
+    private static List<ComponentSupport> loadComponentSupports() {
+        List<ComponentSupport> supports = new ArrayList<>();
+        ServiceLoader
+                .load(ComponentSupport.class,
+                        ComponentSupport.class.getClassLoader())
+                .forEach(supports::add);
+        return List.copyOf(supports);
     }
 
     /**
@@ -246,7 +262,14 @@ public final class ComponentUtils {
      * @return the data provider, or null.
      */
     public static DataProvider<?, ?> getDataProvider(Component component) {
-        return ComponentSupports.getDataProvider(component);
+        for (ComponentSupport support : SUPPORTS) {
+            DataProvider<?, ?> dataProvider = support
+                    .getDataProvider(component);
+            if (dataProvider != null) {
+                return dataProvider;
+            }
+        }
+        return null;
     }
 
     /**
@@ -413,7 +436,10 @@ public final class ComponentUtils {
      * @return the placeholder, or null.
      */
     public static String getPlaceholder(Component component) {
-        return ComponentSupports.getPlaceholder(component);
+        if (component instanceof HasPlaceholder hasPlaceholder) {
+            return hasPlaceholder.getPlaceholder();
+        }
+        return null;
     }
 
     /**
@@ -427,7 +453,12 @@ public final class ComponentUtils {
      *             if the component doesn't support a placeholder.
      */
     public static void setPlaceholder(Component component, String value) {
-        ComponentSupports.setPlaceholder(component, value);
+        if (component instanceof HasPlaceholder hasPlaceholder) {
+            hasPlaceholder.setPlaceholder(value);
+        } else {
+            throw new IllegalStateException(component.getClass().getSimpleName()
+                    + " doesn't support setting placeholder");
+        }
     }
 
     /**
@@ -441,7 +472,7 @@ public final class ComponentUtils {
      * @return the label.
      */
     public static String getLabel(FormLayout.FormItem formItem) {
-        return ComponentSupports.getLabel(formItem);
+        return getLabel((Component) formItem);
     }
 
     /**
@@ -467,7 +498,19 @@ public final class ComponentUtils {
      * @return the label, never null.
      */
     public static String getLabel(Component component) {
-        return ComponentSupports.getLabel(component);
+        String label = null;
+        if (component instanceof HasLabel hasLabel) {
+            label = hasLabel.getLabel();
+        } else {
+            for (ComponentSupport support : SUPPORTS) {
+                String supportLabel = support.getLabel(component);
+                if (supportLabel != null) {
+                    return supportLabel;
+                }
+            }
+            label = component.getElement().getProperty("label");
+        }
+        return label != null ? label : "";
     }
 
     /**
@@ -486,7 +529,17 @@ public final class ComponentUtils {
      *            the label, not null.
      */
     public static void setLabel(Component component, String value) {
-        ComponentSupports.setLabel(component, value);
+        if (component instanceof HasLabel hasLabel) {
+            hasLabel.setLabel(value);
+            return;
+        }
+        for (ComponentSupport support : SUPPORTS) {
+            if (support.setLabel(component, value)) {
+                return;
+            }
+        }
+        component.getElement().setProperty("label",
+                Utils.isBlank(value) ? null : value);
     }
 
     /**
@@ -507,7 +560,13 @@ public final class ComponentUtils {
      */
     @Deprecated
     public static String getCaption(Component component) {
-        return ComponentSupports.getCaption(component);
+        for (ComponentSupport support : SUPPORTS) {
+            String caption = support.getCaption(component);
+            if (caption != null) {
+                return caption;
+            }
+        }
+        return getLabel(component);
     }
 
     /**
@@ -523,7 +582,12 @@ public final class ComponentUtils {
      */
     @Deprecated
     public static void setCaption(Component component, String value) {
-        ComponentSupports.setCaption(component, value);
+        for (ComponentSupport support : SUPPORTS) {
+            if (support.setCaption(component, value)) {
+                return;
+            }
+        }
+        setLabel(component, value);
     }
 
     /**
@@ -536,7 +600,19 @@ public final class ComponentUtils {
      *            the component, not null.
      */
     public static void simulateClosedEvent(Component component) {
-        ComponentSupports.simulateClosedEvent(component);
+        if (ComponentUtil.getData(component,
+                "hasSimulatedClosedEvent") != null) {
+            return;
+        }
+        if (firesClosedEvent(component)) {
+            ComponentUtil.setData(component, "hasSimulatedClosedEvent", true);
+            component.getElement().addPropertyChangeListener("opened",
+                    event -> {
+                        if (Boolean.FALSE.equals(event.getValue())) {
+                            BasicUtils._fireDomEvent(component, "closed");
+                        }
+                    });
+        }
     }
 
     /**
@@ -612,5 +688,81 @@ public final class ComponentUtils {
      */
     public static boolean isPolymerTemplate(Component component) {
         return Utils.isPolymerTemplate(component);
+    }
+
+    /**
+     * Returns the component's children as reported by the first implementation
+     * that handles it.
+     *
+     * @param component
+     *            the component, not null.
+     * @return the children, or {@code null} if no implementation handles the
+     *         component.
+     * @see ComponentSupport#getAllChildren(Component)
+     */
+    static List<Component> getAllChildren(Component component) {
+        for (ComponentSupport support : SUPPORTS) {
+            List<Component> children = support.getAllChildren(component);
+            if (children != null) {
+                return children;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks whether the component is a closed dialog to remove from the UI.
+     *
+     * @param component
+     *            the component, not null.
+     * @return true if any implementation says so.
+     * @see ComponentSupport#isClosedDialog(Component)
+     */
+    static boolean isClosedDialog(Component component) {
+        return SUPPORTS.stream()
+                .anyMatch(support -> support.isClosedDialog(component));
+    }
+
+    /**
+     * Returns the dialog types of all implementations.
+     *
+     * @return the dialog types, not null.
+     * @see ComponentSupport#getDialogTypes()
+     */
+    static List<Class<? extends Component>> getDialogTypes() {
+        List<Class<? extends Component>> types = new ArrayList<>();
+        for (ComponentSupport support : SUPPORTS) {
+            Collection<Class<? extends Component>> supportTypes = support
+                    .getDialogTypes();
+            types.addAll(supportTypes);
+        }
+        return types;
+    }
+
+    /**
+     * Checks whether the component fires a {@code closed} DOM event once it has
+     * closed.
+     *
+     * @param component
+     *            the component, not null.
+     * @return true if any implementation says so.
+     * @see ComponentSupport#firesClosedEvent(Component)
+     */
+    static boolean firesClosedEvent(Component component) {
+        return SUPPORTS.stream()
+                .anyMatch(support -> support.firesClosedEvent(component));
+    }
+
+    /**
+     * Lets every implementation add details to the component's description.
+     *
+     * @param component
+     *            the component, not null.
+     * @param description
+     *            the description parts collected so far, to add to.
+     * @see ComponentSupport#describe(Component, List)
+     */
+    static void describe(Component component, List<String> description) {
+        SUPPORTS.forEach(support -> support.describe(component, description));
     }
 }

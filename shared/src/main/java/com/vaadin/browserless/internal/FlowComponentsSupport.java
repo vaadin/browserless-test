@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.component;
+package com.vaadin.browserless.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,8 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.vaadin.browserless.internal.ComponentSupport;
-import com.vaadin.browserless.internal.Utils;
+import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.button.Button;

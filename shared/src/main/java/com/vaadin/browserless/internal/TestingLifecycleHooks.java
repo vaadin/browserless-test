@@ -87,7 +87,7 @@ public final class TestingLifecycleHooks {
         List<Component> dialogs = StreamSupport
                 .stream(DepthFirstTreeIterator.walk(UI.getCurrent())
                         .spliterator(), false)
-                .filter(ComponentSupports::isClosedDialog)
+                .filter(ComponentUtils::isClosedDialog)
                 .collect(Collectors.toList());
         dialogs.forEach(it -> it.getElement().removeFromParent());
     }

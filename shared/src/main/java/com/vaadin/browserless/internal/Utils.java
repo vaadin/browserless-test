@@ -444,14 +444,9 @@ public final class Utils {
 
     /**
      * Removes leading and trailing whitespace from given string, using the same
-     * definition as Kotlin's {@code String.trim()}, which also treats
-     * non-breaking spaces as whitespace.
-     *
-     * @param string
-     *            the string to trim, not null.
-     * @return the trimmed string.
+     * definition as Kotlin's {@code String.trim()}.
      */
-    public static String trim(String string) {
+    static String trim(String string) {
         int start = 0;
         int end = string.length();
         while (start < end && isWhitespace(string.charAt(start))) {

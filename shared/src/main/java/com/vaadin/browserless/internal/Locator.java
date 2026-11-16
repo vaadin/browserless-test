@@ -335,7 +335,7 @@ public final class Locator {
      *             if no {@link ComponentSupport} reports any dialog type.
      */
     public static void _expectNoDialogs() {
-        List<Class<? extends Component>> dialogTypes = ComponentSupports
+        List<Class<? extends Component>> dialogTypes = ComponentUtils
                 .getDialogTypes();
         if (dialogTypes.isEmpty()) {
             throw new IllegalStateException(

@@ -101,7 +101,7 @@ public interface TestingLifecycleHook {
     }
 
     private static List<Component> defaultGetAllChildren(Component component) {
-        List<Component> supported = ComponentSupports.getAllChildren(component);
+        List<Component> supported = ComponentUtils.getAllChildren(component);
         if (supported != null) {
             return supported;
         }

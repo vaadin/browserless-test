@@ -237,11 +237,11 @@ public final class PrettyPrintTree {
         if (!component.getElement().isEnabled()) {
             list.add("DISABLED");
         }
-        String label = ComponentSupports.getLabel(component);
+        String label = ComponentUtils.getLabel(component);
         if (!Utils.isBlank(label)) {
             list.add("label='" + label + "'");
         }
-        String caption = ComponentSupports.getCaption(component);
+        String caption = ComponentUtils.getCaption(component);
         if (!label.equals(caption) && !Utils.isBlank(caption)) {
             list.add("caption='" + caption + "'");
         }
@@ -278,13 +278,13 @@ public final class PrettyPrintTree {
         if (href != null) {
             list.add("href='" + href + "'");
         }
-        ComponentSupports.describe(component, list);
+        ComponentUtils.describe(component, list);
         if (component instanceof Html) {
             String outerHtml = Utils.trim(component.getElement().getOuterHTML())
                     .replaceAll("\\s+", " ");
             list.add(Utils.ellipsize(outerHtml, 100, "..."));
         }
-        DataProvider<?, ?> dataProvider = ComponentSupports
+        DataProvider<?, ?> dataProvider = ComponentUtils
                 .getDataProvider(component);
         if (dataProvider != null) {
             list.add("dataprovider='" + dataProvider + "'");
