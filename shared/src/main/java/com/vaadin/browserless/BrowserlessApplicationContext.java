@@ -94,7 +94,11 @@ import com.vaadin.flow.server.VaadinSession;
  * user fails with an {@link IllegalStateException} and changes nothing, because
  * Flow still holds that session's lock while the command runs. If the test
  * itself locks the active user's session once more, a switch releases only its
- * own hold, and the queued commands run when the test releases its.</li>
+ * own hold, and the queued commands run when the test releases its. An
+ * exception from them then goes to the session's
+ * {@link com.vaadin.flow.server.ErrorHandler}, as with any plain
+ * {@code unlock()}; call {@link MockVaadin#runUIQueue()} before releasing the
+ * extra hold to have it fail the test.</li>
  * <li>A test that changes a component of another user directly has to activate
  * one of that user's windows first, for example with
  * {@link BrowserlessUIContext#activate()}.</li>
