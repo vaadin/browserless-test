@@ -35,7 +35,6 @@ final class CaptionContainsPredicate<T extends Component>
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public boolean test(T t) {
         return ComponentUtils.getCaption(t).contains(substring);
     }

@@ -25,7 +25,6 @@ import com.vaadin.flow.component.HasOrderedComponents
 import com.vaadin.flow.component.HasStyle
 import com.vaadin.flow.component.Key
 import com.vaadin.flow.component.UI
-import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.dom.ClassList
 import com.vaadin.flow.dom.DomEvent
 import com.vaadin.flow.dom.DomEventListener
@@ -109,10 +108,6 @@ var Component.label: String
 
 @Suppress("DEPRECATION")
 var Component.caption: String
-    get() = ComponentUtils.getCaption(this)
-    set(value) = ComponentUtils.setCaption(this, value)
-
-var Button.caption: String
     get() = ComponentUtils.getCaption(this)
     set(value) = ComponentUtils.setCaption(this, value)
 

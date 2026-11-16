@@ -253,11 +253,4 @@ fun DynaNodeGroup.componentUtilsTests() {
         SlotUtils.addToSlot(item, "label", Span("  name "))
         expect("Last name") { item.caption }
     }
-
-    test("Button.caption") {
-        val c = Button("foo")
-        expect("foo") { c.caption }
-        c.caption = ""
-        expect("") { c.caption }
-    }
 }

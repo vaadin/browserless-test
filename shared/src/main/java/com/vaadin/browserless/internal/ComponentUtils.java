@@ -15,12 +15,13 @@
  */
 package com.vaadin.browserless.internal;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ServiceLoader;
 
 import kotlin.jvm.functions.Function1;
 
-import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ClickNotifier;
 import com.vaadin.flow.component.Component;
@@ -33,28 +34,6 @@ import com.vaadin.flow.component.HasOrderedComponents;
 import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.contextmenu.ContextMenuBase;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.listbox.ListBoxBase;
-import com.vaadin.flow.component.login.LoginOverlay;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
-import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.shared.SlotUtils;
-import com.vaadin.flow.component.sidenav.SideNav;
-import com.vaadin.flow.component.sidenav.SideNavItem;
-import com.vaadin.flow.component.textfield.PasswordField;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.HasDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.dom.DomListenerRegistration;
@@ -68,7 +47,18 @@ import com.vaadin.flow.router.Location;
  */
 public final class ComponentUtils {
 
+    private static final List<ComponentSupport> SUPPORTS = loadComponentSupports();
+
     private ComponentUtils() {
+    }
+
+    private static List<ComponentSupport> loadComponentSupports() {
+        List<ComponentSupport> supports = new ArrayList<>();
+        ServiceLoader
+                .load(ComponentSupport.class,
+                        ComponentSupport.class.getClassLoader())
+                .forEach(supports::add);
+        return List.copyOf(supports);
     }
 
     /**
@@ -84,7 +74,7 @@ public final class ComponentUtils {
     }
 
     /**
-     * Adds {@link Button#click()} functionality to all {@link ClickNotifier}s.
+     * Adds {@code Button.click()} functionality to all {@link ClickNotifier}s.
      * This function directly calls all click listeners, thus it avoids the
      * roundtrip to client and back. It even works with browserless testing.
      *
@@ -270,21 +260,12 @@ public final class ComponentUtils {
      * @return the data provider, or null.
      */
     public static DataProvider<?, ?> getDataProvider(Component component) {
-        // until https://github.com/vaadin/flow/issues/6296 is resolved
-        if (component instanceof HasDataProvider<?>) {
-            return GridKt.getDataProvider(component);
-        } else if (component instanceof Grid<?> grid) {
-            return grid.getDataProvider();
-        } else if (component instanceof Select<?> select) {
-            return select.getDataProvider();
-        } else if (component instanceof ListBoxBase<?, ?, ?> listBox) {
-            return listBox.getDataProvider();
-        } else if (component instanceof RadioButtonGroup<?> radioButtonGroup) {
-            return radioButtonGroup.getDataProvider();
-        } else if (component instanceof CheckboxGroup<?> checkboxGroup) {
-            return checkboxGroup.getDataProvider();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getDataProvider();
+        for (ComponentSupport support : SUPPORTS) {
+            DataProvider<?, ?> dataProvider = support
+                    .getDataProvider(component);
+            if (dataProvider != null) {
+                return dataProvider;
+            }
         }
         return null;
     }
@@ -453,18 +434,7 @@ public final class ComponentUtils {
      * @return the placeholder, or null.
      */
     public static String getPlaceholder(Component component) {
-        // modify when this is fixed: https://github.com/vaadin/flow/issues/4068
-        if (component instanceof TextField textField) {
-            return textField.getPlaceholder();
-        } else if (component instanceof TextArea textArea) {
-            return textArea.getPlaceholder();
-        } else if (component instanceof PasswordField passwordField) {
-            return passwordField.getPlaceholder();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getPlaceholder();
-        } else if (component instanceof DatePicker datePicker) {
-            return datePicker.getPlaceholder();
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
+        if (component instanceof HasPlaceholder hasPlaceholder) {
             return hasPlaceholder.getPlaceholder();
         }
         return null;
@@ -481,17 +451,7 @@ public final class ComponentUtils {
      *             if the component doesn't support a placeholder.
      */
     public static void setPlaceholder(Component component, String value) {
-        if (component instanceof TextField textField) {
-            textField.setPlaceholder(value);
-        } else if (component instanceof TextArea textArea) {
-            textArea.setPlaceholder(value);
-        } else if (component instanceof PasswordField passwordField) {
-            passwordField.setPlaceholder(value);
-        } else if (component instanceof ComboBox<?> comboBox) {
-            comboBox.setPlaceholder(value);
-        } else if (component instanceof DatePicker datePicker) {
-            datePicker.setPlaceholder(value);
-        } else if (component instanceof HasPlaceholder hasPlaceholder) {
+        if (component instanceof HasPlaceholder hasPlaceholder) {
             hasPlaceholder.setPlaceholder(value);
         } else {
             throw new IllegalStateException(component.getClass().getSimpleName()
@@ -500,36 +460,19 @@ public final class ComponentUtils {
     }
 
     /**
-     * Joins the (recursive) texts of all elements placed in the {@code label}
-     * slot with a space, collapsing runs of whitespace and trimming the result.
-     * This effectively returns whatever was provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
-     *
-     * @param formItem
-     *            the form item, not null.
-     * @return the label.
-     */
-    public static String getLabel(FormLayout.FormItem formItem) {
-        String joined = SlotUtils.getElementsInSlot(formItem, "label")
-                .map(Element::getTextRecursively)
-                .collect(Collectors.joining(" "));
-        return Utils.trim(joined.replaceAll("\\s+", " "));
-    }
-
-    /**
      * Determines the component's {@code label} (usually it's the HTML element's
-     * {@code label} property, but it's {@link Checkbox#getLabel()} for
-     * checkbox). Intended to be used for fields such as {@link TextField}.
+     * {@code label} property, but it's {@code Checkbox.getLabel()} for
+     * checkbox). Intended to be used for fields such as {@code TextField}.
      * <p>
      * <em>For {@code FormItem}:</em> Joins the (recursive) texts of all
      * elements placed in the {@code label} slot with a space, collapsing runs
      * of whitespace and trimming the result. This effectively returns whatever
      * was provided in the String label via
-     * {@link FormLayout#addFormItem(Component, String)}.
+     * {@code FormLayout.addFormItem(Component, String)}.
      * <p>
-     * {@link #getCaption(Button)} is displayed directly on the component while
-     * label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@link #getCaption(Component)} is displayed directly on the component
+     * while label is displayed next to the component in a layout (e.g. a
+     * {@code TextField} nested in a form layout).
      * <p>
      * Vote for <a href="https://github.com/vaadin/flow/issues/3241">issue
      * #3241</a>.
@@ -539,18 +482,16 @@ public final class ComponentUtils {
      * @return the label, never null.
      */
     public static String getLabel(Component component) {
-        String label;
+        String label = null;
         if (component instanceof HasLabel hasLabel) {
             label = hasLabel.getLabel();
-        } else if (component instanceof Checkbox checkbox) {
-            label = checkbox.getLabel();
-        } else if (component instanceof FormLayout.FormItem formItem) {
-            return getLabel(formItem);
-        } else if (component instanceof SideNav sideNav) {
-            label = sideNav.getLabel();
-        } else if (component instanceof SideNavItem sideNavItem) {
-            label = sideNavItem.getLabel();
         } else {
+            for (ComponentSupport support : SUPPORTS) {
+                String supportLabel = support.getLabel(component);
+                if (supportLabel != null) {
+                    return supportLabel;
+                }
+            }
             label = component.getElement().getProperty("label");
         }
         return label != null ? label : "";
@@ -562,9 +503,9 @@ public final class ComponentUtils {
      * <b>WARNING:</b> the label is displayed by the component itself, rather
      * than by the parent layout. If a component doesn't contain necessary
      * machinery to display a label, setting this property will have no visual
-     * effect. For example, setting a label to a {@link FormLayout} nested
+     * effect. For example, setting a label to a {@code FormLayout} nested
      * within a {@code VerticalLayout} will show nothing since
-     * {@link FormLayout} doesn't display a label itself.
+     * {@code FormLayout} doesn't display a label itself.
      *
      * @param component
      *            the component, not null.
@@ -574,41 +515,41 @@ public final class ComponentUtils {
     public static void setLabel(Component component, String value) {
         if (component instanceof HasLabel hasLabel) {
             hasLabel.setLabel(value);
-        } else if (component instanceof Checkbox checkbox) {
-            checkbox.setLabel(value);
-        } else if (component instanceof FormLayout.FormItem) {
-            throw new IllegalArgumentException(
-                    "Setting the caption of FormItem is currently unsupported");
-        } else if (component instanceof SideNav sideNav) {
-            sideNav.setLabel(value);
-        } else if (component instanceof SideNavItem sideNavItem) {
-            sideNavItem.setLabel(value);
-        } else {
-            component.getElement().setProperty("label",
-                    Utils.isBlank(value) ? null : value);
+            return;
         }
+        for (ComponentSupport support : SUPPORTS) {
+            if (support.setLabel(component, value)) {
+                return;
+            }
+        }
+        component.getElement().setProperty("label",
+                Utils.isBlank(value) ? null : value);
     }
 
     /**
-     * The Component's caption: {@link Button#getText()} for {@link Button},
-     * {@link #getLabel(Component)} for fields such as {@link TextField}.
+     * The Component's caption: {@code Button.getText()} for {@code Button},
+     * {@link #getLabel(Component)} for fields such as {@code TextField}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
+     * {@code TextField} nested in a form layout).
      *
      * @param component
      *            the component, not null.
      * @return the caption.
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
-     *             Also, there's only a {@link Button} which has the notion of a
-     *             caption. Will be removed with no replacement.
+     *             Also, there's only a {@code Button} which has the notion of a
+     *             caption. Will be removed; use {@code Button.getText()} for a
+     *             button and {@link #getLabel(Component)} for other components.
      */
     @Deprecated
     public static String getCaption(Component component) {
-        if (component instanceof Button button) {
-            return getCaption(button);
+        for (ComponentSupport support : SUPPORTS) {
+            String caption = support.getCaption(component);
+            if (caption != null) {
+                return caption;
+            }
         }
         return getLabel(component);
     }
@@ -622,15 +563,18 @@ public final class ComponentUtils {
      *            the caption, not null.
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
-     *             Will be removed with no replacement.
+     *             Will be removed; use {@code Button.setText(String)} for a
+     *             button and {@link #setLabel(Component, String)} for other
+     *             components.
      */
     @Deprecated
     public static void setCaption(Component component, String value) {
-        if (component instanceof Button button) {
-            setCaption(button, value);
-        } else {
-            setLabel(component, value);
+        for (ComponentSupport support : SUPPORTS) {
+            if (support.setCaption(component, value)) {
+                return;
+            }
         }
+        setLabel(component, value);
     }
 
     /**
@@ -647,10 +591,7 @@ public final class ComponentUtils {
                 "hasSimulatedClosedEvent") != null) {
             return;
         }
-        if (component instanceof Dialog || component instanceof ConfirmDialog
-                || component instanceof LoginOverlay
-                || component instanceof ContextMenuBase<?, ?, ?>
-                || component instanceof Notification) {
+        if (firesClosedEvent(component)) {
             ComponentUtil.setData(component, "hasSimulatedClosedEvent", true);
             component.getElement().addPropertyChangeListener("opened",
                     event -> {
@@ -659,33 +600,6 @@ public final class ComponentUtils {
                         }
                     });
         }
-    }
-
-    /**
-     * The Button's caption. Alias for {@link Button#getText()}.
-     * <p>
-     * Caption is generally displayed directly on the component (e.g. the Button
-     * text), while label is displayed next to the component in a layout (e.g. a
-     * {@link TextField} nested in a form layout).
-     *
-     * @param button
-     *            the button, not null.
-     * @return the button text.
-     */
-    public static String getCaption(Button button) {
-        return button.getText();
-    }
-
-    /**
-     * Sets the Button's caption. Alias for {@link Button#setText(String)}.
-     *
-     * @param button
-     *            the button, not null.
-     * @param value
-     *            the button text.
-     */
-    public static void setCaption(Button button, String value) {
-        button.setText(value);
     }
 
     /**
@@ -733,8 +647,82 @@ public final class ComponentUtils {
      * @return true if the component is a {@code PolymerTemplate}.
      */
     public static boolean isPolymerTemplate(Component component) {
-        Class<?> polymerTemplateClass = Utils.getPolymerTemplateClass();
-        return polymerTemplateClass != null
-                && polymerTemplateClass.isAssignableFrom(component.getClass());
+        return Utils.isPolymerTemplate(component);
+    }
+
+    /**
+     * Returns the component's children as reported by the first implementation
+     * that handles it.
+     *
+     * @param component
+     *            the component, not null.
+     * @return the children, or {@code null} if no implementation handles the
+     *         component.
+     * @see ComponentSupport#getAllChildren(Component)
+     */
+    static List<Component> getAllChildren(Component component) {
+        for (ComponentSupport support : SUPPORTS) {
+            List<Component> children = support.getAllChildren(component);
+            if (children != null) {
+                return children;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks whether the component is a closed dialog to remove from the UI.
+     *
+     * @param component
+     *            the component, not null.
+     * @return true if any implementation says so.
+     * @see ComponentSupport#isClosedDialog(Component)
+     */
+    static boolean isClosedDialog(Component component) {
+        return SUPPORTS.stream()
+                .anyMatch(support -> support.isClosedDialog(component));
+    }
+
+    /**
+     * Returns the dialog types of all implementations.
+     *
+     * @return the dialog types, not null.
+     * @see ComponentSupport#getDialogTypes()
+     */
+    static List<Class<? extends Component>> getDialogTypes() {
+        List<Class<? extends Component>> types = new ArrayList<>();
+        for (ComponentSupport support : SUPPORTS) {
+            Collection<Class<? extends Component>> supportTypes = support
+                    .getDialogTypes();
+            types.addAll(supportTypes);
+        }
+        return types;
+    }
+
+    /**
+     * Checks whether the component fires a {@code closed} DOM event once it has
+     * closed.
+     *
+     * @param component
+     *            the component, not null.
+     * @return true if any implementation says so.
+     * @see ComponentSupport#firesClosedEvent(Component)
+     */
+    static boolean firesClosedEvent(Component component) {
+        return SUPPORTS.stream()
+                .anyMatch(support -> support.firesClosedEvent(component));
+    }
+
+    /**
+     * Lets every implementation add details to the component's description.
+     *
+     * @param component
+     *            the component, not null.
+     * @param description
+     *            the description parts collected so far, to add to.
+     * @see ComponentSupport#describe(Component, List)
+     */
+    static void describe(Component component, List<String> description) {
+        SUPPORTS.forEach(support -> support.describe(component, description));
     }
 }
