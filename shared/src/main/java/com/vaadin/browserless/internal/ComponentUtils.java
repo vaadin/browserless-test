@@ -540,7 +540,8 @@ public final class ComponentUtils {
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
      *             Also, there's only a {@code Button} which has the notion of a
-     *             caption. Will be removed with no replacement.
+     *             caption. Will be removed; use {@code Button.getText()} for a
+     *             button and {@link #getLabel(Component)} for other components.
      */
     @Deprecated
     public static String getCaption(Component component) {
@@ -562,7 +563,9 @@ public final class ComponentUtils {
      *            the caption, not null.
      * @deprecated this property was intended to unify captions and labels, but
      *             only managed to create confusion between the two concepts.
-     *             Will be removed with no replacement.
+     *             Will be removed; use {@code Button.setText(String)} for a
+     *             button and {@link #setLabel(Component, String)} for other
+     *             components.
      */
     @Deprecated
     public static void setCaption(Component component, String value) {
