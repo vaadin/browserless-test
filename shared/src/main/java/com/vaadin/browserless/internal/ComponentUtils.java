@@ -34,8 +34,6 @@ import com.vaadin.flow.component.HasOrderedComponents;
 import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.dom.DomListenerRegistration;
@@ -462,20 +460,6 @@ public final class ComponentUtils {
     }
 
     /**
-     * Joins the (recursive) texts of all elements placed in the {@code label}
-     * slot with a space, collapsing runs of whitespace and trimming the result.
-     * This effectively returns whatever was provided in the String label via
-     * {@code FormLayout.addFormItem(Component, String)}.
-     *
-     * @param formItem
-     *            the form item, not null.
-     * @return the label.
-     */
-    public static String getLabel(FormLayout.FormItem formItem) {
-        return getLabel((Component) formItem);
-    }
-
-    /**
      * Determines the component's {@code label} (usually it's the HTML element's
      * {@code label} property, but it's {@code Checkbox.getLabel()} for
      * checkbox). Intended to be used for fields such as {@code TextField}.
@@ -486,8 +470,8 @@ public final class ComponentUtils {
      * was provided in the String label via
      * {@code FormLayout.addFormItem(Component, String)}.
      * <p>
-     * {@link #getCaption(Button)} is displayed directly on the component while
-     * label is displayed next to the component in a layout (e.g. a
+     * {@link #getCaption(Component)} is displayed directly on the component
+     * while label is displayed next to the component in a layout (e.g. a
      * {@code TextField} nested in a form layout).
      * <p>
      * Vote for <a href="https://github.com/vaadin/flow/issues/3241">issue
@@ -613,33 +597,6 @@ public final class ComponentUtils {
                         }
                     });
         }
-    }
-
-    /**
-     * The Button's caption. Alias for {@code Button.getText()}.
-     * <p>
-     * Caption is generally displayed directly on the component (e.g. the Button
-     * text), while label is displayed next to the component in a layout (e.g. a
-     * {@code TextField} nested in a form layout).
-     *
-     * @param button
-     *            the button, not null.
-     * @return the button text.
-     */
-    public static String getCaption(Button button) {
-        return button.getText();
-    }
-
-    /**
-     * Sets the Button's caption. Alias for {@code Button.setText(String)}.
-     *
-     * @param button
-     *            the button, not null.
-     * @param value
-     *            the button text.
-     */
-    public static void setCaption(Button button, String value) {
-        button.setText(value);
     }
 
     /**
