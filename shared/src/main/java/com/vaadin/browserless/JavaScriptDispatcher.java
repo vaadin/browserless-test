@@ -75,13 +75,32 @@ public final class JavaScriptDispatcher implements Serializable {
 
     private boolean dispatching;
 
+    private boolean simulatedClientSetUp;
+
     private JavaScriptDispatcher(UI ui) {
         this.ui = ui;
-        // Installed with the dispatcher rather than when focus is first
-        // tracked, so a focus call sent before any tester interaction, by a
-        // lookup for example, is simulated too
-        handlers.add(FocusTracker.handlerFor(ui));
-        handlers.add(ClientInitializers.handlerFor(ui));
+    }
+
+    /**
+     * Sets up the simulated client of a UI that the mocked environment has just
+     * created, before the UI is initialized: installs the handlers that
+     * simulate what a browser does with the JavaScript Browserless Test knows
+     * how to simulate, such as server-side {@code Focusable.focus()} and
+     * {@code blur()} calls and the element initializers of triggers. Installing
+     * them up front means a call sent before any tester interaction, while the
+     * initial view is built or by a lookup, is simulated too. Setting up the
+     * same UI again does nothing.
+     *
+     * @param ui
+     *            the UI, not null
+     */
+    public static void setUpSimulatedClient(UI ui) {
+        JavaScriptDispatcher dispatcher = forUI(ui);
+        if (!dispatcher.simulatedClientSetUp) {
+            dispatcher.simulatedClientSetUp = true;
+            dispatcher.addHandler(FocusTracker.handlerFor(ui));
+            dispatcher.addHandler(ClientInitializers.handlerFor(ui));
+        }
     }
 
     /**

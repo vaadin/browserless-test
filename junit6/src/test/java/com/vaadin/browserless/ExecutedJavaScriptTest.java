@@ -29,11 +29,14 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinition;
 import com.vaadin.flow.js.JsExpression;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
+
+    private static final String TIME_ZONE_EXPRESSION = "return Intl.DateTimeFormat().resolvedOptions().timeZone";
 
     @JsDefinition
     public interface OtherFocusJs extends Serializable {
@@ -52,6 +55,66 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         button = new Button("Save");
         Div container = new Div(calendar, field, button);
         getCurrentView().getElement().appendChild(container.getElement());
+    }
+
+    // A handler plays the browser: it reacts to each call the moment it is
+    // sent, in the middle of an interaction, and can change what the
+    // application does next. A capture plays the test: it only records, over
+    // a window the test chooses, so the test can check afterwards what was
+    // sent. The two tests below show one need each.
+
+    @Test
+    void handler_answersCallWhileInteractionRuns_applicationUsesAnswerBeforeTestContinues() {
+        button.addClickListener(
+                event -> calendar.getElement().executeJs(TIME_ZONE_EXPRESSION)
+                        .then(String.class, calendar::setText));
+        answerTimeZoneCalls("Europe/Helsinki");
+
+        // No capture and no resolve() in the test: the handler answered as
+        // the click's JavaScript was sent, like a browser would
+        test(button).click();
+
+        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
+    }
+
+    @Test
+    void capture_keepsCallsForTheTestToCheckAndAnswerAfterwards_evenOnesAHandlerSimulated() {
+        button.addClickListener(event -> {
+            calendar.getElement().executeJs(TIME_ZONE_EXPRESSION)
+                    .then(String.class, calendar::setText);
+            field.focus();
+        });
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        test(button).click();
+
+        // The built-in focus handler simulated the focus call as it was sent;
+        // a handler sees a call only at that moment, the capture still has it
+        Assertions.assertTrue(test(field).isFocused());
+        List<ExecutedJavaScript.Execution> sent = executed.getAll();
+        Assertions.assertEquals("focus",
+                sent.get(1).getJsCall().orElseThrow().methodName());
+        // No handler answers the time zone call, so the test does it
+        // afterwards, through the capture
+        Assertions.assertTrue(
+                sent.get(0).getExpression().contains(TIME_ZONE_EXPRESSION));
+        Assertions.assertEquals("", calendar.getText());
+        sent.get(0).resolve("Europe/Helsinki");
+        Assertions.assertEquals("Europe/Helsinki", calendar.getText());
+    }
+
+    private void answerTimeZoneCalls(String timeZone) {
+        JavaScriptDispatcher dispatcher = JavaScriptDispatcher
+                .forUI(UI.getCurrent());
+        dispatcher.addHandler(invocation -> {
+            if (invocation.isSubscribed()
+                    && invocation.getInvocation().getExpression()
+                            .contains(TIME_ZONE_EXPRESSION)
+                    && dispatcher.markAnswered(invocation)) {
+                invocation.complete(
+                        JacksonUtils.getMapper().valueToTree(timeZone));
+            }
+        });
     }
 
     @Test

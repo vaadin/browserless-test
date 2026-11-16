@@ -448,6 +448,7 @@ object MockVaadin {
                 null, null, null))
 
         UI.setCurrent(ui)
+        JavaScriptDispatcher.setUpSimulatedClient(ui)
         ui.doInit(request, 1, "ROOT")
         strongRefUI.set(ui)
 
