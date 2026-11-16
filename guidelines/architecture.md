@@ -137,6 +137,11 @@ but the `SignalOperation` it returns completes only when the queued
 confirmation runs. Blocking on the operation without draining the queue always
 times out, because the confirmation task needs the thread that is blocked.
 
+Unregistering the environment at teardown runs whatever is still queued. A
+shared signal can outlive the test, and a confirmation dropped with the queue
+would leave its write unconfirmed for good, so that every later conditional
+update of that signal is rejected and retried forever.
+
 ## Client-side behavior that has no client
 
 Some things the browser does have to be modeled explicitly, and the model is

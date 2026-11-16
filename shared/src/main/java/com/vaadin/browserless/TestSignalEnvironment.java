@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +99,19 @@ public class TestSignalEnvironment extends SignalEnvironment {
     }
 
     /**
-     * Unregisters this test environment if it was registered.
+     * Unregisters this test environment if it was registered, and then runs the
+     * tasks that are still pending on the calling thread.
+     *
+     * <p>
+     * A shared signal often outlives the test that wrote to it, for example
+     * when it is held by an application-scoped bean or a static field. If the
+     * confirmation of such a write were discarded with the queue, the signal
+     * would keep the write unconfirmed for good, and every later conditional
+     * update of it, such as {@code SharedValueSignal.update(...)}, would be
+     * rejected and retried forever. Running the pending tasks confirms those
+     * writes. A pending task that fails, for example an effect of a UI that has
+     * already been closed, is skipped. Tasks submitted while the pending ones
+     * run are dispatched by the environments that remain registered.
      *
      * <p>
      * This method is idempotent and safe to call multiple times. If a cleanup
@@ -109,6 +123,21 @@ public class TestSignalEnvironment extends SignalEnvironment {
         if (cleanup != null) {
             cleanup.run();
             cleanup = null;
+            runRemainingTasks();
+        }
+    }
+
+    private void runRemainingTasks() {
+        List<Runnable> remaining = new ArrayList<>();
+        tasks.drainTo(remaining);
+        for (Runnable task : remaining) {
+            try {
+                task.run();
+            } catch (RuntimeException e) {
+                LoggerFactory.getLogger(TestSignalEnvironment.class).debug(
+                        "Skipped a pending Signals task that failed after the test environment was unregistered",
+                        e);
+            }
         }
     }
 

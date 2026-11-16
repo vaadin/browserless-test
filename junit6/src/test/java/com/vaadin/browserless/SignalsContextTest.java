@@ -163,6 +163,31 @@ class SignalsContextTest {
     }
 
     @Test
+    void applicationContextClose_confirmsPendingSharedSignalWrite() {
+        window.activate();
+        // Outlives the context, like a signal in an application-scoped bean
+        var signal = new SharedValueSignal<>("initial");
+        signal.set("changed");
+
+        app.close();
+
+        Assertions.assertEquals("changed", signal.peekConfirmed(),
+                "A write left pending when the context closes must still "
+                        + "be confirmed");
+
+        // A write that never gets confirmed makes every later update fail
+        // its condition and retry forever.
+        app = BrowserlessApplicationContext.create(SignalsView.class);
+        window = app.newUser().newWindow();
+        window.activate();
+        var update = signal.update(value -> value + " again");
+        window.runPendingSignalsTasks();
+        Assertions.assertTrue(update.result().join().successful(),
+                "Update should have succeeded");
+        Assertions.assertEquals("changed again", signal.peekConfirmed());
+    }
+
+    @Test
     void applicationContextClose_unregistersSignalEnvironment()
             throws InterruptedException {
         // Pre-condition: the test environment is registered.

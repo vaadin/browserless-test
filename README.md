@@ -651,6 +651,11 @@ Blocking on the operation before draining the queue —
 task can only run on the thread that is blocked waiting for it. A timeout there
 means the queue has not been drained, not that the write was lost.
 
+Tasks still queued when a test ends — or when a `BrowserlessApplicationContext`
+is closed — are run during teardown, so a write to a shared signal that outlives
+the test (for example one held by an application-scoped bean) is always
+confirmed before the next test uses it.
+
 ## Focus and blur
 
 Focus is tracked per UI while a test runs, so focus and blur listeners fire
