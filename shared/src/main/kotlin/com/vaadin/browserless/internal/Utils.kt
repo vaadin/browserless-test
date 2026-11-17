@@ -109,30 +109,33 @@ val currentUI: UI
         ?: throw IllegalStateException("UI.getCurrent() is null. Have you called MockVaadin.setup()?")
 
 /**
- * Retrieves the mock request which backs up [VaadinRequest].
+ * Retrieves the mock request which backs up given [request].
  * ```
- * currentRequest.mock.addCookie(Cookie("foo", "bar"))
+ * getMock(currentRequest).addCookie(Cookie("foo", "bar"))
  * ```
  */
-val VaadinRequest.mock: MockRequest get() = (this as VaadinServletRequest).request as MockRequest
+fun getMock(request: VaadinRequest): MockRequest = (request as VaadinServletRequest).request as MockRequest
 
 /**
- * Retrieves the mock request which backs up [VaadinResponse].
+ * Retrieves the mock response which backs up given [response].
  * ```
- * currentResponse.mock.getCookie("foo").value
+ * getMock(currentResponse).getCookie("foo").value
  * ```
  */
-val VaadinResponse.mock: MockResponse get() = (this as VaadinServletResponse).response as MockResponse
+fun getMock(response: VaadinResponse): MockResponse = (response as VaadinServletResponse).response as MockResponse
 
 /**
- * Retrieves the mock session which backs up [VaadinSession].
+ * Retrieves the mock session which backs up given [session].
  * ```
- * VaadinSession.getCurrent().mock
+ * getMock(VaadinSession.getCurrent())
  * ```
  */
-val VaadinSession.mock: MockHttpSession get() = (session as WrappedHttpSession).httpSession as MockHttpSession
+fun getMock(session: VaadinSession): MockHttpSession = (session.session as WrappedHttpSession).httpSession as MockHttpSession
 
-val VaadinContext.context: ServletContext get() = (this as VaadinServletContext).context
+/**
+ * Retrieves the servlet context which backs up given [context].
+ */
+fun getServletContext(context: VaadinContext): ServletContext = (context as VaadinServletContext).context
 
 val Servlet.isInitialized: Boolean get() = servletConfig != null
 

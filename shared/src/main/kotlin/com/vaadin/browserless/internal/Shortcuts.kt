@@ -27,13 +27,13 @@ public fun fireShortcut(key: Key, vararg modifiers: Key) {
     // keep the modifiers of type Key[] instead of KeyModifier[], otherwise
     // you won't be able to call those from Kotlin: https://github.com/vaadin/flow/issues/5051
     // and https://youtrack.jetbrains.com/issue/KT-35021
-    currentUI._fireShortcut(key, *modifiers)
+    _fireShortcut(currentUI, key, *modifiers)
 }
 
 /**
  * Use the global `fireShortcut()` function unless you know what you're doing!
  */
-public fun Component._fireShortcut(key: Key, vararg modifiers: Key) {
+public fun _fireShortcut(component: Component, key: Key, vararg modifiers: Key) {
     // the shortcut registration is only updated in [UI.beforeClientResponse]; run the registration code now.
     MockVaadin.clientRoundtrip()
 
@@ -41,5 +41,5 @@ public fun Component._fireShortcut(key: Key, vararg modifiers: Key) {
     // and modifiers. Dispatching the keydown runs the filters the way the
     // browser does, so that only the listeners of matching shortcuts are
     // notified with a KeyDownEvent, which in turn invokes the ShortcutListener.
-    ClientDomEvent.dispatchKeyDown(element, key, modifiers.toList()).fire()
+    ClientDomEvent.dispatchKeyDown(component.element, key, modifiers.toList()).fire()
 }

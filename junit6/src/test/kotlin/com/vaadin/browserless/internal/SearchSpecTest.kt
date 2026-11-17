@@ -64,63 +64,63 @@ internal fun DynaNodeGroup.searchSpecTest() {
         expect(false) { spec.toPredicate()(Checkbox()) }
         expect(true) {
             spec.toPredicate()(CheckboxGroup<Int>().apply {
-                label = "foo"
+                element.setProperty("label", "foo")
             })
         }
         expect(false) {
             spec.toPredicate()(CheckboxGroup<Int>().apply {
-                label = "bar"
+                element.setProperty("label", "bar")
             })
         }
         expect(false) { spec.toPredicate()(CheckboxGroup<Int>()) }
         expect(true) {
             spec.toPredicate()(Select<Int>().apply {
-                label = "foo"
+                element.setProperty("label", "foo")
             })
         }
         expect(false) {
             spec.toPredicate()(Select<Int>().apply {
-                label = "bar"
+                element.setProperty("label", "bar")
             })
         }
         expect(false) { spec.toPredicate()(Select<Int>()) }
         expect(true) {
             spec.toPredicate()(ListBox<Int>().apply {
-                label = "foo"
+                element.setProperty("label", "foo")
             })
         }
         expect(false) {
             spec.toPredicate()(ListBox<Int>().apply {
-                label = "bar"
+                element.setProperty("label", "bar")
             })
         }
         expect(false) { spec.toPredicate()(ListBox<Int>()) }
         expect(true) {
             spec.toPredicate()(RadioButtonGroup<Int>().apply {
-                label = "foo"
+                element.setProperty("label", "foo")
             })
         }
         expect(false) {
             spec.toPredicate()(RadioButtonGroup<Int>().apply {
-                label = "bar"
+                element.setProperty("label", "bar")
             })
         }
         expect(false) { spec.toPredicate()(RadioButtonGroup<Int>()) }
         // tests CustomField
         expect(true) {
             spec.toPredicate()(DateRangePopup().apply {
-                label = "foo"
+                element.setProperty("label", "foo")
             })
         }
         expect(false) {
             spec.toPredicate()(DateRangePopup().apply {
-                label = "bar"
+                element.setProperty("label", "bar")
             })
         }
         expect(false) { spec.toPredicate()(DateRangePopup()) }
 
-        expect(true) { spec.toPredicate()(Input().apply { label = "foo" }) }
-        expect(false) { spec.toPredicate()(Input().apply { label = "bar" }) }
+        expect(true) { spec.toPredicate()(Input().apply { element.setProperty("label", "foo") }) }
+        expect(false) { spec.toPredicate()(Input().apply { element.setProperty("label", "bar") }) }
         expect(false) { spec.toPredicate()(Input()) }
         expect(true) { spec.toPredicate()(TextField("foo")) }
         expect(false) { spec.toPredicate()(TextField("bar")) }

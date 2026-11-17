@@ -55,7 +55,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 └── MockedUI[]
     └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
-""".trim().withSortedThemeNames()) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
+""".trim().withSortedThemeNames()) { toPrettyTree(UI.getCurrent()).trim().withSortedThemeNames() }
     }
     afterEach { MockVaadin.tearDown() }
 
@@ -210,7 +210,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
             expect(true) { UI.getCurrent().isAttached() }
 
             // Mock closing of UI after request handled
-            UI.getCurrent()._close()
+            _close(UI.getCurrent())
             expect(false) { vl.isAttached() }
             expect(1) { detachCalled }
             expect(false) { UI.getCurrent().isAttached() }
@@ -300,7 +300,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
     └── WelcomeView[@theme='spacing padding']
         └── Text[text='Welcome!']
 """.trim().withSortedThemeNames()
-            ) { UI.getCurrent().toPrettyTree().trim().withSortedThemeNames() }
+            ) { toPrettyTree(UI.getCurrent()).trim().withSortedThemeNames() }
         }
     }
 
@@ -390,7 +390,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
 
     group("request") {
         test("cookies") {
-            currentRequest.mock.addCookie(Cookie("foo", "bar"))
+            getMock(currentRequest).addCookie(Cookie("foo", "bar"))
             expectList("bar") { currentRequest.cookies!!.map { it.value } }
         }
     }
@@ -398,14 +398,14 @@ internal fun DynaNodeGroup.mockVaadinTest() {
     group("response") {
         test("cookies") {
             currentResponse.addCookie(Cookie("foo", "bar"))
-            expect("bar") { currentResponse.mock.getCookie("foo").value }
+            expect("bar") { getMock(currentResponse).getCookie("foo").value }
         }
 
         test("cookies in UI.init()") {
             MockVaadin.tearDown()
             var initCalled = false
             MockVaadin.setup(uiFactory = {
-                currentRequest.mock.addCookie(Cookie("foo", "bar"))
+                getMock(currentRequest).addCookie(Cookie("foo", "bar"))
                 object : UI() {
                     override fun init(request: VaadinRequest) {
                         expectList("bar") { currentRequest.cookies!!.map { it.value } }
@@ -420,7 +420,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
     group("session") {
         test("attributes") {
             VaadinSession.getCurrent().session.setAttribute("foo", "bar")
-            expect("bar") { VaadinSession.getCurrent().mock.getAttribute("foo") }
+            expect("bar") { getMock(VaadinSession.getCurrent()).getAttribute("foo") }
         }
         test("changeSessionId() keeps the VaadinSession") {
             // How an app without Spring Security protects against session

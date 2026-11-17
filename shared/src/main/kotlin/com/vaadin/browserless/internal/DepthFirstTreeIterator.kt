@@ -41,6 +41,6 @@ class DepthFirstTreeIterator<out T>(root: T, private val children: (T) -> List<T
  * Walks the component child tree, depth-first: first the component, then its descendants,
  * then its next sibling.
  */
-fun Component.walk(): Iterable<Component> = Iterable {
-    DepthFirstTreeIterator(this) { component: Component -> component.children.toList() }
+fun walk(component: Component): Iterable<Component> = Iterable {
+    DepthFirstTreeIterator(component) { component: Component -> component.children.toList() }
 }
