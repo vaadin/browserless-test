@@ -377,9 +377,10 @@ object MockVaadin {
 
         // init Session.
         val session: VaadinSession = service._createVaadinSession(request)
-        // The request lifecycle that does this is bypassed here. A
-        // development-mode session then throws on access without its lock rather
-        // than only asserting, so the check works also when assertions are disabled.
+        // Flow applies the lock check strategy only while handling a request,
+        // which the mock bypasses, so apply it here: a development-mode session
+        // then throws on access without its lock, also when assertions are
+        // disabled.
         service._applySessionLockCheckStrategy(session)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
