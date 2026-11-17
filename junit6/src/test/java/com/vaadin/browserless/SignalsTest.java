@@ -171,6 +171,19 @@ public class SignalsTest extends BrowserlessTest {
     }
 
     @Test
+    void cleanVaadinEnvironment_runsPendingEffectWhileUIIsOpen() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
     void cleanVaadinEnvironment_runsTasksQueuedByDetachListenerOnTestThread() {
         var view = navigate(SignalsView.class);
         // Outlives the test, like an application-scoped "users online"
