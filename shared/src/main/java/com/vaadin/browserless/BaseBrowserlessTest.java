@@ -169,11 +169,20 @@ public abstract class BaseBrowserlessTest {
      * Tears down mocked Vaadin.
      */
     protected void cleanVaadinEnvironment() {
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
+        try {
+            // Pending effects run while the UI is still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
+            MockVaadin.tearDown();
+        } finally {
+            // Unregistering runs what the UI and the destroy listeners queued
+            // while closing, on this thread
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
         }
-        MockVaadin.tearDown();
     }
 
     /**
