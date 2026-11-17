@@ -163,6 +163,18 @@ class SignalsContextTest {
     }
 
     @Test
+    void applicationContextClose_runsPendingEffectWhileWindowIsOpen() {
+        var view = window.navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        app.close();
+
+        Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
     void applicationContextClose_confirmsPendingSharedSignalWrite() {
         window.activate();
         // Outlives the context, like a signal in an application-scoped bean

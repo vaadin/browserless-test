@@ -117,9 +117,10 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * environment stays registered while the tasks run, so tasks they submit
      * are queued and run here too, on the calling thread, up to a limit of
      * {@value #MAX_TEARDOWN_TASKS} tasks; tasks beyond it are discarded with a
-     * warning. A task that fails, with any kind of {@link Throwable}, is logged
-     * and skipped, so that the remaining tasks still run and teardown
-     * completes.
+     * warning. A task that fails is logged and skipped, so that the remaining
+     * tasks still run and teardown completes. Only a
+     * {@link VirtualMachineError}, such as running out of memory, is passed on,
+     * after the environment has been unregistered.
      * <p>
      * The tasks run one after another on the calling thread, so a pending task
      * must not block waiting for another one. For example, an effect that calls
@@ -144,6 +145,8 @@ public class TestSignalEnvironment extends SignalEnvironment {
     }
 
     private void runRemainingTasks() {
+        VaadinSession session = VaadinSession.getCurrent();
+        boolean hasLock = session != null && session.hasLock();
         int run = 0;
         Runnable task;
         while ((task = tasks.poll()) != null) {
@@ -156,12 +159,22 @@ public class TestSignalEnvironment extends SignalEnvironment {
             }
             try {
                 task.run();
+            } catch (VirtualMachineError e) {
+                // The JVM may be unusable, so do not carry on silently
+                throw e;
             } catch (Throwable e) {
-                // Any failure, not only exceptions, must leave the rest of the
-                // queue and the caller's teardown running
+                // Any other failure, not only exceptions, must leave the rest
+                // of the queue and the caller's teardown running
                 LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
                         "Skipped a pending Signals task that failed at teardown",
                         e);
+            } finally {
+                if (hasLock) {
+                    // Unlocking runs the UI.access() tasks that the task
+                    // queued, as it does between tasks in runPendingTasks()
+                    session.unlock();
+                    session.lock();
+                }
             }
         }
     }

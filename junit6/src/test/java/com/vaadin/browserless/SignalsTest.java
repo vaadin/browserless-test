@@ -174,8 +174,12 @@ public class SignalsTest extends BrowserlessTest {
         SignalEnvironment.getDefaultEffectDispatcher().execute(new Runnable() {
             @Override
             public void run() {
-                runs.incrementAndGet();
-                SignalEnvironment.getDefaultEffectDispatcher().execute(this);
+                // Stops on its own one run past the limit, so that a missing
+                // limit fails the test instead of hanging it
+                if (runs.incrementAndGet() <= TestSignalEnvironment.MAX_TEARDOWN_TASKS) {
+                    SignalEnvironment.getDefaultEffectDispatcher()
+                            .execute(this);
+                }
             }
         });
 
