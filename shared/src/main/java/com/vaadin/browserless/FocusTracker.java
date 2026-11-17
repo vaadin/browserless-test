@@ -165,10 +165,12 @@ final class FocusTracker implements Serializable {
      * round-trips.
      *
      * @param ui
-     *            the UI whose pending JavaScript queue to process, may be null
+     *            the UI whose pending JavaScript queue to process, may be null;
+     *            nothing is done for a UI that has left its session, such as
+     *            one replaced by a page reload during the interaction
      */
     static void flush(UI ui) {
-        if (ui != null) {
+        if (ui != null && ui.getSession() != null) {
             getOrCreate(ui).flushServerInitiatedFocus(ui);
         }
     }
