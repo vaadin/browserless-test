@@ -18,6 +18,7 @@ package com.vaadin.browserless;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.base.signals.SignalsView;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +27,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
+import com.vaadin.flow.signals.shared.SharedNumberSignal;
 import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 /**
@@ -172,6 +175,29 @@ class SignalsContextTest {
         app.close();
 
         Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
+    void applicationContextClose_runsTasksQueuedByDetachListenerOnTestThread() {
+        var view = window.navigate(SignalsView.class);
+        // Outlives the test, like an application-scoped "users online"
+        // counter
+        var signal = new SharedNumberSignal();
+        view.addDetachListener(event -> signal.incrementBy(-1));
+        var effectThread = new AtomicReference<Thread>();
+        var effect = Signal.unboundEffect(() -> {
+            if (signal.get() == -1) {
+                effectThread.set(Thread.currentThread());
+            }
+        });
+
+        app.close();
+        effect.remove();
+
+        Assertions.assertSame(Thread.currentThread(), effectThread.get(),
+                "Tasks queued while the window closes must run on the test thread");
+        Assertions.assertEquals(-1.0, signal.peekConfirmed(),
+                "A write made while the window closes must be confirmed");
     }
 
     @Test

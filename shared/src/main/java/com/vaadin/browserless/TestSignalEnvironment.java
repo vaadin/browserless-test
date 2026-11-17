@@ -113,7 +113,8 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * would keep the write unconfirmed for good, and every later conditional
      * update of it, such as {@code SharedValueSignal.update(...)}, would be
      * rejected and retried forever. Running the pending tasks confirms those
-     * writes. Pending effects of UIs that are still open run as well. The
+     * writes. Pending effects of UIs that are still open run as well, which is
+     * why teardown also runs the pending tasks before it closes the UIs. The
      * environment stays registered while the tasks run, so tasks they submit
      * are queued and run here too, on the calling thread, up to a limit of
      * {@value #MAX_TEARDOWN_TASKS} tasks; tasks beyond it are discarded with a
@@ -144,7 +145,19 @@ public class TestSignalEnvironment extends SignalEnvironment {
         }
     }
 
-    private void runRemainingTasks() {
+    /**
+     * Runs the tasks that are still pending on the calling thread, like
+     * {@link #unregister()} does, but keeps this environment registered.
+     * <p>
+     * Teardown calls this before it closes the windows, so that pending effects
+     * still see open UIs, and calls {@link #unregister()} only after the
+     * windows are closed. Tasks queued while closing, such as the confirmation
+     * of a shared signal write made by a detach or session destroy listener,
+     * are then still queued here and run on the calling thread, instead of
+     * going to the next registered {@link SignalEnvironment}, which may run
+     * them asynchronously after the next test has started.
+     */
+    void runRemainingTasks() {
         VaadinSession session = VaadinSession.getCurrent();
         boolean hasLock = session != null && session.hasLock();
         int run = 0;

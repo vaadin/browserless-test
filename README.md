@@ -654,8 +654,10 @@ means the queue has not been drained, not that the write was lost.
 Tasks still queued when a test ends — or when a `BrowserlessApplicationContext`
 is closed — are run during teardown, so a write to a shared signal that outlives
 the test (for example one held by an application-scoped bean) is always
-confirmed before the next test uses it. Pending effects of UIs that are still
-open run then as well; a task that fails is logged and skipped. The tasks run
+confirmed before the next test uses it. The queue is run before the windows
+are closed, so pending effects still update open UIs, and once more after
+closing, so writes made by detach and session destroy listeners are confirmed
+too. A task that fails is logged and skipped. The tasks run
 one after another on the test thread, so a task must not block waiting for
 another one — an effect that calls `signal.update(...).result().join()` hangs
 teardown, outside the reach of `@Timeout`.

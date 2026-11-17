@@ -26,8 +26,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
+import com.vaadin.flow.signals.shared.SharedNumberSignal;
 import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 @ViewPackages(packages = "com.example.base.signals")
@@ -166,6 +168,30 @@ public class SignalsTest extends BrowserlessTest {
         Assertions.assertSame(Thread.currentThread(), nestedTaskThread.get(),
                 "A task submitted by a pending task must run on the test "
                         + "thread during teardown");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_runsTasksQueuedByDetachListenerOnTestThread() {
+        var view = navigate(SignalsView.class);
+        // Outlives the test, like an application-scoped "users online"
+        // counter
+        var signal = new SharedNumberSignal();
+        view.addDetachListener(event -> signal.incrementBy(-1));
+        var effectThread = new AtomicReference<Thread>();
+        var effect = Signal.unboundEffect(() -> {
+            if (signal.get() == -1) {
+                effectThread.set(Thread.currentThread());
+            }
+        });
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+        effect.remove();
+
+        Assertions.assertSame(Thread.currentThread(), effectThread.get(),
+                "Tasks queued while the UI closes must run on the test thread");
+        Assertions.assertEquals(-1.0, signal.peekConfirmed(),
+                "A write made while the UI closes must be confirmed");
     }
 
     @Test
