@@ -260,8 +260,8 @@ public class BrowserlessUIContext
      * {@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)},
      * opens one user and one window, and attaches the given component to that
      * window's UI. The returned window owns its bundled
-     * {@link BrowserlessApplicationContext}, which is torn down when the
-     * window's UI detaches, so a single try-with-resources is enough:
+     * {@link BrowserlessApplicationContext}, which is torn down when the window
+     * is closed, so a single try-with-resources is enough:
      *
      * <pre>
      * try (var window = BrowserlessUIContext.forComponent(new MyForm())) {
@@ -335,8 +335,8 @@ public class BrowserlessUIContext
      * whose constructor reads {@code UI.getCurrent()} observes the live
      * environment — unlike {@link #forComponent(Component)}, which receives an
      * already-constructed instance. The returned window owns its bundled
-     * {@link BrowserlessApplicationContext}, which is torn down when the
-     * window's UI detaches.
+     * {@link BrowserlessApplicationContext}, which is torn down when the window
+     * is closed.
      *
      * @param componentFactory
      *            supplies the component to attach; must not be {@code null}
@@ -729,10 +729,6 @@ public class BrowserlessUIContext
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.
             user.applyUIThreadLocals(ui);
-            // Detaching the UI fires its detach listeners. For an ad-hoc
-            // context (see BrowserlessApplicationContext.forComponent) this
-            // cascades back into app.close() -> user.close() -> this.close();
-            // re-entry is safe because the closed flag was already set above.
             MockVaadin.closeCurrentUI(true);
             // closeCurrentUI() records the closing UI's active view location
             // into MockVaadin's lastNavigation ThreadLocal so the single-user
@@ -754,6 +750,14 @@ public class BrowserlessUIContext
         } else {
             user.clearThreadLocals();
             user.getApp().holdSessionLock(null);
+        }
+        // An ad-hoc context (see BrowserlessApplicationContext.forComponent)
+        // goes away with its window. Closed only now, after the UI has left
+        // its session: closing the app destroys that session, which must not
+        // happen while the UI is still being removed from it. Re-entry is
+        // safe because the closed flag was already set above.
+        if (user.getApp().closesWithWindow()) {
+            user.getApp().close();
         }
     }
 

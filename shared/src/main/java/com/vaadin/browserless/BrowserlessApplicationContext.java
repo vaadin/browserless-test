@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -133,6 +132,9 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private int closeDepth;
     private Throwable deferredCloseFailure;
     private boolean closed;
+    // Set for forComponent(...) contexts, which BrowserlessUIContext.close()
+    // tears down together with their window.
+    private boolean closesWithWindow;
 
     BrowserlessApplicationContext(VaadinServletService service,
             UIFactory uiFactory, List<Runnable> closeHooks) {
@@ -229,10 +231,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * window; reusing a single instance across windows re-parents it and leaves
      * the earlier window empty.
      * <p>
-     * The returned context closes itself when its window's UI is detached, so a
-     * single try-with-resources — on the returned context, or on the window via
-     * {@link BrowserlessUIContext#forComponent(Component)} — tears everything
-     * down.
+     * The returned context closes itself when one of its windows is closed, so
+     * a single try-with-resources — on the returned context, or on the window
+     * via {@link BrowserlessUIContext#forComponent(Component)} — tears
+     * everything down.
      *
      * @param componentFactory
      *            supplies the component to attach to each window; must not be
@@ -279,31 +281,21 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         Objects.requireNonNull(componentFactory,
                 "componentFactory must not be null");
         Objects.requireNonNull(configuration, "configuration must not be null");
-        // Self-reference: the detach listener must close the app, but the app
-        // does not exist until create(...) returns — hold it in a one-slot ref.
-        AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
-        UIFactory uiFactory = () -> {
+        UIFactory uiFactory = () -> new MockedUI() {
             // Build the component from UI.init() rather than an attach
             // listener: init() runs from UI.doInit() after the current
             // UI/session are set, so a component whose constructor reads
             // UI.getCurrent() observes the live instance. withoutRoutes()
             // guarantees no initial navigate("") will later replace it.
-            MockedUI ui = new MockedUI() {
-                @Override
-                protected void init(VaadinRequest request) {
-                    add(componentFactory.get());
-                }
-            };
-            // Closing the UI tears down the bundled app. Safe against
-            // re-entrancy: BrowserlessUIContext.close() sets its closed flag
-            // before detaching the UI, so the cascade back through close()
-            // short-circuits.
-            ui.addDetachListener(event -> ownerApp.get().close());
-            return ui;
+            @Override
+            protected void init(VaadinRequest request) {
+                add(componentFactory.get());
+            }
         };
-        ownerApp.set(create(b -> b.withoutRoutes()
-                .withConfiguration(configuration).withUIFactory(uiFactory)));
-        return ownerApp.get();
+        BrowserlessApplicationContext app = create(b -> b.withoutRoutes()
+                .withConfiguration(configuration).withUIFactory(uiFactory));
+        app.closesWithWindow = true;
+        return app;
     }
 
     /**
@@ -393,6 +385,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
     UIFactory getUIFactory() {
         return uiFactory;
+    }
+
+    boolean closesWithWindow() {
+        return closesWithWindow;
     }
 
     TestSignalEnvironment getSignalsTestEnvironment() {

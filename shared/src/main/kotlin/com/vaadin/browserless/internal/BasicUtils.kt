@@ -31,7 +31,6 @@ import com.vaadin.flow.component.UI
 import com.vaadin.flow.dom.DomEvent
 import com.vaadin.flow.internal.JacksonUtils
 import com.vaadin.flow.router.InternalServerError
-import com.vaadin.flow.server.VaadinSession
 import tools.jackson.databind.node.ObjectNode
 
 /**
@@ -158,14 +157,17 @@ fun <T> T._blur() where T : Focusable<*>, T : Component {
 }
 
 /**
- * Closes the UI and simulates the end of the request. The [UI.close] is called,
- * but also the session is set to null which fires the detach listeners and makes
- * the UI and all of its components detached.
+ * Closes the UI and simulates the end of the request. The [UI.close] is called
+ * unless the UI is already closing, and then the UI is removed from its session,
+ * which fires the detach listeners and makes the UI and all of its components
+ * detached.
  */
 fun UI._close() {
-    close()
+    if (!isClosing) {
+        close()
+    }
     // Mock closing of UI after request handled.
-    VaadinSession.getCurrent().removeUI(this)
+    internals.session.removeUI(this)
 }
 
 /**
