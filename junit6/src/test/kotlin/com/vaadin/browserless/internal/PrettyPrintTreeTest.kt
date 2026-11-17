@@ -57,36 +57,36 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         expect("""
 └── Div[text='Foo']
     └── Text[text='Foo']
-""".trim()) { div.toPrettyTree().trim() }
+""".trim()) { PrettyPrintTree.toPrettyTree(div).trim() }
     }
 
     test("toPrettyStringHtmlComponent()") {
-        expect("Text[text='foo']") { Text("foo").toPrettyString() }
-        expect("Div[INVIS]") { Div().apply { isVisible = false }.toPrettyString() }
+        expect("Text[text='foo']") { PrettyPrintTree.toPrettyString(Text("foo")) }
+        expect("Div[INVIS]") { PrettyPrintTree.toPrettyString(Div().apply { isVisible = false }) }
         expect("Html[<b>foo bar baz <i>foobar</i></b>]") {
-            Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>").toPrettyString()
+            PrettyPrintTree.toPrettyString(Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>"))
         }
         expect("HtmlSpan[innerHTML='aaa<b>bbbb</b>ccc']") {
-            HtmlSpan("aaa<b>bbbb</b>ccc").toPrettyString()
+            PrettyPrintTree.toPrettyString(HtmlSpan("aaa<b>bbbb</b>ccc"))
         }
         expect("Div[@title='foobar']") {
-            Div().apply { tooltip = "foobar" }.toPrettyString()
+            PrettyPrintTree.toPrettyString(Div().apply { tooltip = "foobar" })
         }
         expect("Span[text='hi', @slot='prefix']") {
             val testSpan = Span("hi")
             TextField().prefixComponent = testSpan
-            testSpan.toPrettyString()
+            PrettyPrintTree.toPrettyString(testSpan)
         }
     }
     test("toPrettyStringTextField()") {
-        assertContains(TextField().apply { id_ = "25" }.toPrettyString(),"TextField\\[#25, value=''.*]".toRegex())
-        assertContains(TextArea("label").apply { value = "some text" }.toPrettyString(),"TextArea\\[label='label', value='some text'.*]".toRegex())
-        assertContains(TextField().apply { id_ = "25"; errorMessage = "failed validation" }.toPrettyString(),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
-        assertContains(TextField("foobar").toPrettyString(), "TextField\\[label='foobar', value=''.*]".toRegex() )
+        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { BasicUtils.setId_(this, "25") }),"TextField\\[#25, value=''.*]".toRegex())
+        assertContains(PrettyPrintTree.toPrettyString(TextArea("label").apply { value = "some text" }),"TextArea\\[label='label', value='some text'.*]".toRegex())
+        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { BasicUtils.setId_(this, "25"); errorMessage = "failed validation" }),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
+        assertContains(PrettyPrintTree.toPrettyString(TextField("foobar")), "TextField\\[label='foobar', value=''.*]".toRegex() )
     }
     test("toPrettyStringButton()") {
-        expect("Button[caption='click me']") { Button("click me").toPrettyString() }
-        expect("Button[icon='vaadin:abacus', @theme='icon']") { Button(VaadinIcon.ABACUS.create()).toPrettyString() }
+        expect("Button[caption='click me']") { PrettyPrintTree.toPrettyString(Button("click me")) }
+        expect("Button[icon='vaadin:abacus', @theme='icon']") { PrettyPrintTree.toPrettyString(Button(VaadinIcon.ABACUS.create())) }
 
     }
 //    test("toPrettyStringGrid()") {
@@ -101,60 +101,60 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
          */
 //    }
     test("toPrettyStringAnchor()") {
-        expect("Anchor[]") { Anchor().toPrettyString() }
-        expect("Anchor[href='vaadin.com']") { Anchor("vaadin.com").toPrettyString() }
+        expect("Anchor[]") { PrettyPrintTree.toPrettyString(Anchor()) }
+        expect("Anchor[href='vaadin.com']") { PrettyPrintTree.toPrettyString(Anchor("vaadin.com")) }
         // the href is dumped for any component declaring it, also when it is
         // inherited or declared as a plain href() method or a Kotlin property
-        expect("MyAnchor[href='vaadin.com']") { MyAnchor("vaadin.com").toPrettyString() }
+        expect("MyAnchor[href='vaadin.com']") { PrettyPrintTree.toPrettyString(MyAnchor("vaadin.com")) }
         expect("ComponentWithHrefFunction[href='vaadin.com']") {
-            ComponentWithHrefFunction().toPrettyString()
+            PrettyPrintTree.toPrettyString(ComponentWithHrefFunction())
         }
         expect("ComponentWithHrefProperty[href='vaadin.com']") {
-            ComponentWithHrefProperty().toPrettyString()
+            PrettyPrintTree.toPrettyString(ComponentWithHrefProperty())
         }
         expect("ComponentWithHrefInterface[href='vaadin.com']") {
-            ComponentWithHrefInterface().toPrettyString()
+            PrettyPrintTree.toPrettyString(ComponentWithHrefInterface())
         }
         // a bean getter is consulted as well, which is all a Kotlin href property
         // without a backing field compiles to
         expect("ComponentWithComputedHref[href='vaadin.com']") {
-            ComponentWithComputedHref().toPrettyString()
+            PrettyPrintTree.toPrettyString(ComponentWithComputedHref())
         }
         // a blank member doesn't end the lookup, the getter still gets its turn
         expect("ComponentWithBlankHrefField[href='vaadin.com']") {
-            ComponentWithBlankHrefField().toPrettyString()
+            PrettyPrintTree.toPrettyString(ComponentWithBlankHrefField())
         }
     }
     test("toPrettyStringRouterLink()") {
         // getHref() reports a missing href as an empty string, which is not dumped
-        expect("RouterLink[]") { RouterLink().toPrettyString() }
+        expect("RouterLink[]") { PrettyPrintTree.toPrettyString(RouterLink()) }
         expect("RouterLink[text='Hello', href='helloworld']") {
-            RouterLink("Hello", HelloWorldView::class.java).toPrettyString()
+            PrettyPrintTree.toPrettyString(RouterLink("Hello", HelloWorldView::class.java))
         }
     }
     test("toPrettyStringImage()") {
-        expect("Image[]") { Image().toPrettyString() }
-        expect("Image[@src='vaadin.com']") { Image("vaadin.com", "").toPrettyString() }
+        expect("Image[]") { PrettyPrintTree.toPrettyString(Image()) }
+        expect("Image[@src='vaadin.com']") { PrettyPrintTree.toPrettyString(Image("vaadin.com", "")) }
     }
     test("toPrettyStringIcon()") {
-        expect("Icon[@icon='vaadin:abacus']") { VaadinIcon.ABACUS.create().toPrettyString() }
+        expect("Icon[@icon='vaadin:abacus']") { PrettyPrintTree.toPrettyString(VaadinIcon.ABACUS.create()) }
     }
     test("toPrettyStringForm()") {
-        expect("FormItem[label='foo']") { FormLayout().addFormItem(TextField(), "foo").toPrettyString() }
+        expect("FormItem[label='foo']") { PrettyPrintTree.toPrettyString(FormLayout().addFormItem(TextField(), "foo")) }
     }
     test("toPrettyStringCustomComponent()") {
         expect("MyComponentWithToString[my-div(25)]") {
-            MyComponentWithToString().toPrettyString()
+            PrettyPrintTree.toPrettyString(MyComponentWithToString())
         }
     }
 
     test("styles not duplicated") {
         val div = Div()
-        expect("Div[]") { div.toPrettyString() }
+        expect("Div[]") { PrettyPrintTree.toPrettyString(div) }
         div.setWidthFull()
-        expect("Div[@style='width:100%']") { div.toPrettyString() }
+        expect("Div[@style='width:100%']") { PrettyPrintTree.toPrettyString(div) }
         div.style.set("flex-shrink", "1")
-        expect("Div[@style='width:100%;flex-shrink:1']") { div.toPrettyString() }
+        expect("Div[@style='width:100%;flex-shrink:1']") { PrettyPrintTree.toPrettyString(div) }
     }
 
     test("menu dump") {
@@ -172,7 +172,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
 └── ContextMenu[opened='false']
     ├── MenuItem[DISABLED, text='menu']
     │   └── MenuItem[text='click me']
-    └── MenuItem[text='save as']""".trim()) { cm.toPrettyTree().trim() }
+    └── MenuItem[text='save as']""".trim()) { PrettyPrintTree.toPrettyTree(cm).trim() }
 
     }
 
@@ -257,14 +257,14 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
         test("no cause exception") {
             val error = createErrorComponent(RuntimeException("OOPS!"))
-            val pretty = error.toPrettyString().trim()
+            val pretty = PrettyPrintTree.toPrettyString(error).trim()
             assertContains(pretty, "targetView='helloworld'")
             assertContains(pretty, "failureMessage='OOPS!'")
             assertContains(pretty, "exceptionType='java.lang.RuntimeException'")
         }
         test("custom message") {
             val error = createErrorComponent(RuntimeException("BOOM!"), "Something failed")
-            val pretty = error.toPrettyString().trim()
+            val pretty = PrettyPrintTree.toPrettyString(error).trim()
             assertContains(pretty, "targetView='helloworld'")
             assertContains(pretty, "failureMessage='Something failed'")
             assertContains(pretty, "exceptionType='java.lang.RuntimeException'")
@@ -278,7 +278,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
         expect("""
 └── Div[nonnull-property='OK']
-""".trim()) { div.toPrettyTree().trim() }
+""".trim()) { PrettyPrintTree.toPrettyTree(div).trim() }
     }
 
 }

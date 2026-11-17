@@ -36,22 +36,22 @@ fun DynaNodeGroup.elementUtilsTests() {
     test("setOrRemoveAttribute") {
         val t = Div().element
         expect(null) { t.getAttribute("foo") }
-        t.setOrRemoveAttribute("foo", "bar")
+        ElementUtils.setOrRemoveAttribute(t, "foo", "bar")
         expect("bar") { t.getAttribute("foo") }
-        t.setOrRemoveAttribute("foo", null)
+        ElementUtils.setOrRemoveAttribute(t, "foo", null)
         expect(null) { t.getAttribute("foo") }
     }
 
     group("toggle class name") {
         test("add") {
             val t = Div()
-            t.classNames.toggle("test")
+            ElementUtils.toggle(t.classNames, "test")
             expect(setOf("test")) { t.classNames }
         }
         test("remove") {
             val t = Div()
             t.classNames.add("test")
-            t.classNames.toggle("test")
+            ElementUtils.toggle(t.classNames, "test")
             expect(setOf<String>()) { t.classNames }
         }
     }
@@ -61,57 +61,57 @@ fun DynaNodeGroup.elementUtilsTests() {
         val first: Element = Span("first").element
         l.appendChild(first)
         val second: Element = Span("second").element
-        l.insertBefore(second, first)
+        ElementUtils.insertBefore(l, second, first)
         expect("second, first") { l.children.toList().joinToString { it.text } }
-        l.insertBefore(Span("third").element, first)
+        ElementUtils.insertBefore(l, Span("third").element, first)
         expect("second, third, first") { l.children.toList().joinToString { it.text } }
     }
 
     test("textRecursively2") {
-        expect("foo") { Span("foo").element.textRecursively2 }
+        expect("foo") { ElementUtils.getTextRecursively2(Span("foo").element) }
         expect("foobarbaz") {
             val div = Div()
             div.add(Span("foo"), Text("bar"), Paragraph("baz"))
-            div.element.textRecursively2
+            ElementUtils.getTextRecursively2(div.element)
         }
-        expect("foo") { Element("div").apply { setProperty("innerHTML", "foo") }.textRecursively2 }
+        expect("foo") { ElementUtils.getTextRecursively2(Element("div").apply { setProperty("innerHTML", "foo") }) }
     }
 
     group("getVirtualChildren()") {
         test("initially empty") {
-            expectList() { Div().element.getVirtualChildren() }
-            expectList() { Span().element.getVirtualChildren() }
+            expectList() { ElementUtils.getVirtualChildren(Div().element) }
+            expectList() { ElementUtils.getVirtualChildren(Span().element) }
             expectList() {
                 val b = Button()
                 UI.getCurrent().add(b)
-                b.element.getVirtualChildren()
+                ElementUtils.getVirtualChildren(b.element)
             }
         }
         test("add virtual child") {
             val span = Span().element
             val parent = Div()
             parent.element.appendVirtualChild(span)
-            expectList(span) { parent.element.getVirtualChildren() }
+            expectList(span) { ElementUtils.getVirtualChildren(parent.element) }
         }
     }
 
     test("getChildrenInSlot") {
-        expectList() { TextField().element.getChildrenInSlot("prefix") }
+        expectList() { ElementUtils.getChildrenInSlot(TextField().element, "prefix") }
         val div = Div()
-        expectList(div.element) { TextField().apply { prefixComponent = div } .element.getChildrenInSlot("prefix") }
+        expectList(div.element) { ElementUtils.getChildrenInSlot(TextField().apply { prefixComponent = div } .element, "prefix") }
     }
 
     test("clearSlot") {
         val tf = TextField()
         tf.prefixComponent = Div()
-        tf.element.clearSlot("prefix")
-        expectList() { tf.element.getChildrenInSlot("prefix") }
+        ElementUtils.clearSlot(tf.element, "prefix")
+        expectList() { ElementUtils.getChildrenInSlot(tf.element, "prefix") }
         expect(null) { tf.prefixComponent }
     }
 
     test("fireDomEvent() smoke") {
         val element = Div().element
-        element._fireDomEvent(DomEvent(element, "click", JacksonUtils.createObjectNode()))
+        ElementUtils._fireDomEvent(element, DomEvent(element, "click", JacksonUtils.createObjectNode()))
     }
 
 }

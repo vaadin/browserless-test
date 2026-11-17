@@ -64,7 +64,7 @@ fun DynaNodeGroup.componentUtilsTests() {
         val b = Button()
         var clicked = 0
         b.addClickListener { clicked++ }
-        b.serverClick()
+        ComponentUtils.serverClick(b, true, 0, 1, false, false, false, false)
         expect(1) { clicked }
     }
 
@@ -80,30 +80,30 @@ fun DynaNodeGroup.componentUtilsTests() {
     }
 
     test("addContextMenuListener smoke") {
-        Button().addContextMenuListener({})
+        ComponentUtils.addContextMenuListener(Button(), {})
     }
 
     group("findAncestorOrSelf") {
         test("null on no parent") {
-            expect(null) { Button().findAncestorOrSelf { false } }
+            expect(null) { ComponentUtils.findAncestorOrSelf(Button()) { false } }
         }
         test("null on no acceptance") {
             val button = Button()
             UI.getCurrent().add(button)
-            expect(null) { button.findAncestorOrSelf { false } }
+            expect(null) { ComponentUtils.findAncestorOrSelf(button) { false } }
         }
         test("finds self") {
             val button = Button()
             UI.getCurrent().add(button)
-            expect(button) { button.findAncestorOrSelf { true } }
+            expect(button) { ComponentUtils.findAncestorOrSelf(button) { true } }
         }
     }
 
     test("isNestedIn") {
-        expect(false) { Button().isNestedIn(UI.getCurrent()) }
+        expect(false) { ComponentUtils.isNestedIn(Button(), UI.getCurrent()) }
         val button = Button()
         UI.getCurrent().add(button)
-        expect(true) { button.isNestedIn(UI.getCurrent()) }
+        expect(true) { ComponentUtils.isNestedIn(button, UI.getCurrent()) }
     }
 
     test("isAttached") {
@@ -123,19 +123,19 @@ fun DynaNodeGroup.componentUtilsTests() {
         val first = Span("first")
         l.addComponentAsFirst(first)
         val second = Span("second")
-        l.insertBefore(second, first)
-        expect("second, first") { l.children.toList().map { it._text } .joinToString() }
-        l.insertBefore(Span("third"), first)
-        expect("second, third, first") { l.children.toList().map { it._text } .joinToString() }
+        ComponentUtils.insertBefore(l, second, first)
+        expect("second, first") { l.children.toList().map { BasicUtils.get_text(it) } .joinToString() }
+        ComponentUtils.insertBefore(l, Span("third"), first)
+        expect("second, third, first") { l.children.toList().map { BasicUtils.get_text(it) } .joinToString() }
     }
 
     test("hasChildren") {
         val l = HorizontalLayout()
-        expect(false) { l.hasChildren }
+        expect(false) { ComponentUtils.getHasChildren(l) }
         l.addComponentAsFirst(Span("first"))
-        expect(true) { l.hasChildren }
+        expect(true) { ComponentUtils.getHasChildren(l) }
         l.removeAll()
-        expect(false) { l.hasChildren }
+        expect(false) { ComponentUtils.getHasChildren(l) }
     }
 
     /*
@@ -160,41 +160,41 @@ fun DynaNodeGroup.componentUtilsTests() {
 
     group("classnames2") {
         test("addClassNames2") {
-            val div = Div().apply { addClassNames2("foo  bar    baz") }
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz") }
             expect(true) {
                 div.classNames.containsAll(listOf("foo", "bar", "baz"))
             }
         }
         test("addClassNames2(vararg)") {
-            val div = Div().apply { addClassNames2("foo  bar    baz", "  one  two") }
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz", "  one  two") }
             expect(true) {
                 div.classNames.containsAll(listOf("foo", "bar", "baz", "one", "two"))
             }
         }
         test("setClassNames2") {
-            val div = Div().apply { addClassNames2("foo  bar    baz", "  one  two") }
-            div.setClassNames2("  three four  ")
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz", "  one  two") }
+            ComponentUtils.setClassNames2(div, "  three four  ")
             expect(true) {
                 div.classNames.containsAll(listOf("three", "four"))
             }
         }
         test("setClassNames2(vararg)") {
-            val div = Div().apply { addClassNames2("foo  bar    baz", "  one  two") }
-            div.setClassNames2("  three ", "four  ")
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz", "  one  two") }
+            ComponentUtils.setClassNames2(div, "  three ", "four  ")
             expect(true) {
                 div.classNames.containsAll(listOf("three", "four"))
             }
         }
         test("removeClassNames2") {
-            val div = Div().apply { addClassNames2("foo  bar    baz", "  one  two") }
-            div.removeClassNames2("  bar baz  ")
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz", "  one  two") }
+            ComponentUtils.removeClassNames2(div, "  bar baz  ")
             expect(true) {
                 div.classNames.containsAll(listOf("foo", "one", "two"))
             }
         }
         test("removeClassNames2(vararg)") {
-            val div = Div().apply { addClassNames2("foo  bar    baz", "  one  two") }
-            div.removeClassNames2("  bar ", "baz  ")
+            val div = Div().apply { ComponentUtils.addClassNames2(this, "foo  bar    baz", "  one  two") }
+            ComponentUtils.removeClassNames2(div, "  bar ", "baz  ")
             expect(true) {
                 div.classNames.containsAll(listOf("foo", "one", "two"))
             }
@@ -203,54 +203,55 @@ fun DynaNodeGroup.componentUtilsTests() {
 
     test("placeholder") {
         var c: Component = TextField().apply { placeholder = "foo" }
-        expect("foo") { c.placeholder }
-        c.placeholder = ""
-        expect("") { c.placeholder }
+        expect("foo") { ComponentUtils.getPlaceholder(c) }
+        ComponentUtils.setPlaceholder(c, "")
+        expect("") { ComponentUtils.getPlaceholder(c) }
         c = TextArea().apply { placeholder = "foo" }
-        expect("foo") { c.placeholder }
-        c.placeholder = ""
-        expect("") { c.placeholder }
+        expect("foo") { ComponentUtils.getPlaceholder(c) }
+        ComponentUtils.setPlaceholder(c, "")
+        expect("") { ComponentUtils.getPlaceholder(c) }
         c = Button() // doesn't support placeholder
-        expect(null) { c.placeholder }
+        expect(null) { ComponentUtils.getPlaceholder(c) }
         expectThrows(IllegalStateException::class, "Button doesn't support setting placeholder") {
-            c.placeholder = "foo"
+            ComponentUtils.setPlaceholder(c, "foo")
         }
     }
 
     group("label") {
         test("TextField") {
             val c: Component = TextField()
-            expect("") { c.label }
-            c.label = "foo"
-            expect("foo") { c.label }
-            c.label = ""
-            expect("") { c.label }
+            expect("") { ComponentUtils.getLabel(c) }
+            ComponentUtils.setLabel(c, "foo")
+            expect("foo") { ComponentUtils.getLabel(c) }
+            ComponentUtils.setLabel(c, "")
+            expect("") { ComponentUtils.getLabel(c) }
         }
         test("Checkbox") {
             val c: Component = Checkbox()
-            expect("") { c.label }
-            c.label = "foo"
-            expect("foo") { c.label }
-            c.label = ""
-            expect("") { c.label }
+            expect("") { ComponentUtils.getLabel(c) }
+            ComponentUtils.setLabel(c, "foo")
+            expect("foo") { ComponentUtils.getLabel(c) }
+            ComponentUtils.setLabel(c, "")
+            expect("") { ComponentUtils.getLabel(c) }
         }
     }
 
+    @Suppress("DEPRECATION")
     test("caption") {
         var c: Component = Button("foo")
-        expect("foo") { c.caption }
-        c.caption = ""
-        expect("") { c.caption }
-        c = Checkbox().apply { caption = "foo" }
-        expect("foo") { c.caption }
-        c.caption = ""
-        expect("") { c.caption }
-        expect("") { FormLayout.FormItem().label }
+        expect("foo") { ComponentUtils.getCaption(c) }
+        ComponentUtils.setCaption(c, "")
+        expect("") { ComponentUtils.getCaption(c) }
+        c = Checkbox().apply { ComponentUtils.setCaption(this, "foo") }
+        expect("foo") { ComponentUtils.getCaption(c) }
+        ComponentUtils.setCaption(c, "")
+        expect("") { ComponentUtils.getCaption(c) }
+        expect("") { ComponentUtils.getLabel(FormLayout.FormItem()) }
         val fl = FormLayout()
         c = fl.addFormItem(Button(), "foo")
-        expect("foo") { c.caption }
+        expect("foo") { ComponentUtils.getCaption(c) }
         val item = fl.addFormItem(Button(), Div(Span("Last")))
         SlotUtils.addToSlot(item, "label", Span("  name "))
-        expect("Last name") { item.caption }
+        expect("Last name") { ComponentUtils.getCaption(item) }
     }
 }
