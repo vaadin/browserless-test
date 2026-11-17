@@ -86,10 +86,9 @@ public final class MockPage extends Page {
         UI current = UI.getCurrent();
         if (current != ui) {
             if (session.getState() != VaadinSessionState.OPEN) {
-                // The session of this UI was closed, so it is the logout idiom
-                // -
-                // capture the UI, close its session, then ask its page to
-                // reload. Closing the session already tore this UI down and
+                // The session of this UI was closed, so it is the logout
+                // idiom: capture the UI, close its session, then ask its page
+                // to reload. Closing the session already tore this UI down and
                 // rendered a fresh one for its window, which is what the
                 // reload is asking for, so there is nothing left to do. Not
                 // even the superclass call, which would fail: it schedules
