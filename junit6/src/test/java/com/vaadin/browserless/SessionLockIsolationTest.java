@@ -311,6 +311,10 @@ class SessionLockIsolationTest {
         var second = closing.newUser().newWindow();
         first.activate();
         queueFailingCommand(first);
+        // A pending signal task releases the lock before the windows close
+        closing.getSignalsTestEnvironment().getEffectDispatcher()
+                .execute(() -> {
+                });
 
         var ex = Assertions.assertThrows(ExecutionException.class,
                 closing::close);

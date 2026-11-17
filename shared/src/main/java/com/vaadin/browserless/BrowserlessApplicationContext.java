@@ -348,6 +348,12 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         try {
             // Pending effects run while the windows are still open
             if (signalsTestEnvironment != null) {
+                // Run the queued commands before the signal tasks do: these
+                // release the session lock with a plain unlock(), which only
+                // logs a failing command.
+                if (sessionLockHolder != null) {
+                    runQueuedCommands(sessionLockHolder.getSession());
+                }
                 signalsTestEnvironment.runRemainingTasks();
             }
             for (var user : users) {
