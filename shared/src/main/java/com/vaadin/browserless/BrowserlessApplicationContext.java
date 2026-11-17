@@ -346,6 +346,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         // e.g. the signals test environment stays registered for later tests.
         Throwable usersFailure = null;
         try {
+            // Pending effects run while the windows are still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
             for (var user : users) {
                 user.close();
             }
@@ -354,11 +358,16 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             throw t;
         } finally {
             users.clear();
-            if (signalsTestEnvironment != null) {
-                signalsTestEnvironment.unregister();
-                signalsTestEnvironment = null;
+            try {
+                MockVaadin.fireServiceDestroy(service);
+            } finally {
+                // Unregistering runs what the windows and the destroy
+                // listeners queued while closing, on this thread
+                if (signalsTestEnvironment != null) {
+                    signalsTestEnvironment.unregister();
+                    signalsTestEnvironment = null;
+                }
             }
-            MockVaadin.fireServiceDestroy(service);
             VaadinService.setCurrent(null);
             List<RuntimeException> hookFailures = new ArrayList<>();
             for (Runnable hook : closeHooks) {
