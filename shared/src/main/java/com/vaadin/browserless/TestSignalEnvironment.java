@@ -117,8 +117,14 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * environment stays registered while the tasks run, so tasks they submit
      * are queued and run here too, on the calling thread, up to a limit of
      * {@value #MAX_TEARDOWN_TASKS} tasks; tasks beyond it are discarded with a
-     * warning. A task that fails is logged and skipped, so that the remaining
-     * tasks still run and teardown completes.
+     * warning. A task that fails, with any kind of {@link Throwable}, is logged
+     * and skipped, so that the remaining tasks still run and teardown
+     * completes.
+     * <p>
+     * The tasks run one after another on the calling thread, so a pending task
+     * must not block waiting for another one. For example, an effect that calls
+     * {@code signal.update(...).result().join()} waits for a confirmation
+     * queued behind it and hangs teardown, which test timeouts do not cover.
      *
      * <p>
      * This method is idempotent and safe to call multiple times. If a cleanup
@@ -150,7 +156,9 @@ public class TestSignalEnvironment extends SignalEnvironment {
             }
             try {
                 task.run();
-            } catch (RuntimeException | AssertionError e) {
+            } catch (Throwable e) {
+                // Any failure, not only exceptions, must leave the rest of the
+                // queue and the caller's teardown running
                 LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
                         "Skipped a pending Signals task that failed at teardown",
                         e);

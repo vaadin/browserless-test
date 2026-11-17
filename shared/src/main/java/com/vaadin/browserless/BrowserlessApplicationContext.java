@@ -297,14 +297,16 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             return;
         }
         closed = true;
-        for (var user : users) {
-            user.close();
-        }
-        users.clear();
+        // Runs the pending Signals tasks while the windows are still open,
+        // like the single-user teardown does
         if (signalsTestEnvironment != null) {
             signalsTestEnvironment.unregister();
             signalsTestEnvironment = null;
         }
+        for (var user : users) {
+            user.close();
+        }
+        users.clear();
         MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);
         List<RuntimeException> hookFailures = new ArrayList<>();

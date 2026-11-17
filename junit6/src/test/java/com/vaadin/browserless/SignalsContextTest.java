@@ -168,7 +168,7 @@ class SignalsContextTest {
         // Outlives the context, like a signal in an application-scoped bean
         var signal = new SharedValueSignal<>("initial");
         SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
-            throw new AssertionError("failing pending task");
+            throw new NoClassDefFoundError("failing pending task");
         });
         signal.set("changed");
         Assertions.assertNull(signal.peekConfirmed(),
