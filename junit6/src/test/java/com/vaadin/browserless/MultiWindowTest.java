@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.util.List;
+import java.util.Set;
 
 import com.example.multiuser.SharedCounterView;
 import com.example.multiuser.SimpleView;
@@ -57,8 +58,28 @@ class MultiWindowTest {
         Assertions.assertSame(user.getSession(), window1.getUI().getSession());
         Assertions.assertSame(user.getSession(), window2.getUI().getSession());
 
-        // But different UI instances
-        Assertions.assertNotSame(window1.getUI(), window2.getUI());
+        // But different UIs, each registered under its own id
+        Assertions.assertNotEquals(window1.getUI().getUIId(),
+                window2.getUI().getUIId());
+        Assertions.assertEquals(Set.of(window1.getUI(), window2.getUI()),
+                Set.copyOf(user.getSession().getUIs()));
+    }
+
+    @Test
+    void sameUser_closingOrReloadingWindow_removesItsUIFromSession() {
+        var user = app.newUser();
+        var window1 = user.newWindow();
+        var window2 = user.newWindow();
+        var window3 = user.newWindow();
+
+        window1.navigate(SimpleView.class);
+        var uiBeforeReload = window1.getUI();
+        window1.reload(SimpleView.class);
+        window2.close();
+
+        Assertions.assertNull(uiBeforeReload.getSession());
+        Assertions.assertEquals(Set.of(window1.getUI(), window3.getUI()),
+                Set.copyOf(user.getSession().getUIs()));
     }
 
     @Test

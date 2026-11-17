@@ -25,7 +25,6 @@ import java.util.concurrent.locks.ReentrantLock
 import jakarta.servlet.ServletContext
 import com.vaadin.browserless.ExecutedJavaScript
 import com.vaadin.browserless.JavaScriptDispatcher
-import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.page.ExtendedClientDetails
 import com.vaadin.flow.component.page.Page
@@ -50,6 +49,7 @@ import com.vaadin.flow.server.VaadinServletRequest
 import com.vaadin.flow.server.VaadinServletResponse
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
+import com.vaadin.flow.server.VaadinSessionState
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
 import com.vaadin.browserless.BrowserlessConfiguration
@@ -267,8 +267,10 @@ object MockVaadin {
     }
 
     /**
-     * Properly closes the current UI and fire the detach event on it.
-     * Does nothing if there is no current UI.
+     * Clears the current UI. A UI that is closing, or any UI when
+     * [fireUIDetach] is true, is closed and removed from its session the way
+     * Flow removes the UI of a closed or reloaded browser tab, which fires its
+     * detach listeners. Does nothing if there is no current UI.
      */
     @JvmStatic
     fun closeCurrentUI(fireUIDetach: Boolean) {
@@ -277,11 +279,10 @@ object MockVaadin {
         // Preserve the window name so a following createUI (reload / session
         // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
         lastWindowName.set(ui.internals.extendedClientDetails.windowName)
-        if (ui.isClosing && ui.internals.session != null) {
+        if (ui.internals.session != null && (fireUIDetach || ui.isClosing)) {
+            // Every UI of a session has its own id, so the next UI does not
+            // replace this one in the session: it has to be removed.
             ui._close()
-        }
-        if (fireUIDetach) {
-            ComponentUtil.onComponentDetach(ui)
         }
         UI.setCurrent(null)
         strongRefUI.remove()
@@ -459,7 +460,7 @@ object MockVaadin {
 
         UI.setCurrent(ui)
         JavaScriptDispatcher.setUpSimulatedClient(ui)
-        ui.doInit(request, 1, "ROOT")
+        ui.doInit(request, session.nextUIid, "ROOT")
         strongRefUI.set(ui)
 
         session.addUI(ui)
@@ -702,8 +703,8 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
     override fun reload() {
         val current: UI? = UI.getCurrent()
         if (current !== ui) {
-            if (ui.session == null) {
-                // This UI lost its session, so it is the logout idiom -
+            if (session.state != VaadinSessionState.OPEN) {
+                // The session of this UI was closed, so it is the logout idiom -
                 // capture the UI, close its session, then ask its page to
                 // reload. Closing the session already tore this UI down and
                 // rendered a fresh one for its window, which is what the
@@ -724,7 +725,8 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
                         "UI belongs to another window - activate it first, " +
                         "e.g. through its BrowserlessUIContext or " +
                         "UI.access() - or an earlier reload already replaced " +
-                        "it, in which case reload the current UI instead.")
+                        "it or its window was closed, in which case reload " +
+                        "the current UI instead.")
         }
 
         // recreate the UI on reload(), to simulate browser's F5
