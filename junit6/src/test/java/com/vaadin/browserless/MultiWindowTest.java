@@ -94,8 +94,7 @@ class MultiWindowTest {
         Assertions.assertEquals(1, executed.getAll().size());
         ui.getElement().callJsFunction("late");
 
-        // The application closes the UI, which removes it from the session
-        ui.close();
+        // Closing the window removes its UI from the session
         window.close();
         Assertions.assertNull(ui.getSession());
 
