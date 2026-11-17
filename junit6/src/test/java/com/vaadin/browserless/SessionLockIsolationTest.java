@@ -329,14 +329,15 @@ class SessionLockIsolationTest {
         var closing = BrowserlessApplicationContext
                 .create(b -> b.withViewPackages(BroadcastView.class)
                         .withCloseHook(() -> hookRan.set(true)));
-        closing.newUser().newWindow().getUI().addDetachListener(e -> {
-            throw new IllegalArgumentException("detach");
-        });
+        closing.newUser().getSession().getService()
+                .addSessionDestroyListener(e -> {
+                    throw new IllegalArgumentException("destroy");
+                });
 
         var ex = Assertions.assertThrows(ExecutionException.class,
                 closing::close);
 
-        Assertions.assertEquals("detach", ex.getCause().getMessage());
+        Assertions.assertEquals("destroy", ex.getCause().getMessage());
         Assertions.assertTrue(hookRan.get());
         Assertions.assertNull(closing.getSignalsTestEnvironment());
         Assertions.assertNull(VaadinService.getCurrent());

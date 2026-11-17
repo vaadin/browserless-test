@@ -451,20 +451,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         if (previous != null) {
             VaadinSession outgoing = previous.getSession();
             checkNotRunningQueuedCommand();
-            if (((ReentrantLock) outgoing.getLockInstance())
-                    .getHoldCount() == 1) {
-                try {
-                    // A plain unlock() would hand a failing command to the
-                    // session's ErrorHandler, which only logs it, so the test
-                    // would pass.
-                    MockVaadin.runUIQueue(false, outgoing);
-                } catch (Throwable t) {
-                    handleQueuedCommandFailure(t);
-                }
-            }
-            // Otherwise test code holds the lock once more: unlock() below
-            // releases only this method's hold, and the commands run when the
-            // test releases its own.
+            // If test code holds the lock once more, unlock() below releases
+            // only this method's hold, and the commands run when the test
+            // releases its own.
+            runQueuedCommands(outgoing);
         }
         sessionLockHolder = null;
         try {
@@ -476,6 +466,28 @@ public class BrowserlessApplicationContext implements AutoCloseable {
                 user.getSession().lock();
                 sessionLockHolder = user;
             }
+        }
+    }
+
+    /**
+     * Runs the {@code UI.access()} commands queued for the given session, so
+     * that a failing command fails the test. A plain unlock(), or Flow's
+     * {@code UI.close()}, would hand it to the session's ErrorHandler, which
+     * only logs it. Does nothing unless the calling thread holds the session's
+     * lock exactly once, as the commands can only run when it is released.
+     * Within a close, a failure is rethrown when the outermost close ends.
+     *
+     * @param session
+     *            the session whose queued commands to run
+     */
+    void runQueuedCommands(VaadinSession session) {
+        if (((ReentrantLock) session.getLockInstance()).getHoldCount() != 1) {
+            return;
+        }
+        try {
+            MockVaadin.runUIQueue(false, session);
+        } catch (Throwable t) {
+            handleQueuedCommandFailure(t);
         }
     }
 

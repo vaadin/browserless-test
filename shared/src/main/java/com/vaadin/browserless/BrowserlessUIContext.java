@@ -729,6 +729,9 @@ public class BrowserlessUIContext
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.
             user.applyUIThreadLocals(ui);
+            // Closing the UI runs its session's queued commands; run them
+            // first so that a failing one fails the close.
+            user.getApp().runQueuedCommands(user.getSession());
             MockVaadin.closeCurrentUI(true);
             // closeCurrentUI() records the closing UI's active view location
             // into MockVaadin's lastNavigation ThreadLocal so the single-user
