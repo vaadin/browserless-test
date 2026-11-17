@@ -43,7 +43,6 @@ import com.vaadin.browserless.mocks.MockVaadinHelper;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.browserless.mocks.MockVaadinServletKt;
 import com.vaadin.browserless.mocks.MockedUI;
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
 import com.vaadin.flow.di.Lookup;
@@ -384,8 +383,13 @@ public final class MockVaadin {
     }
 
     /**
-     * Properly closes the current UI and fire the detach event on it. Does
-     * nothing if there is no current UI.
+     * Clears the current UI. A UI that is closing, or any UI when
+     * {@code fireUIDetach} is true, is closed and removed from its session the
+     * way Flow removes the UI of a closed or reloaded browser tab, which fires
+     * its detach listeners. Does nothing if there is no current UI.
+     *
+     * @param fireUIDetach
+     *            whether to close and remove the UI even if it isn't closing.
      */
     public static void closeCurrentUI(boolean fireUIDetach) {
         UI ui = UI.getCurrent();
@@ -398,11 +402,11 @@ public final class MockVaadin {
         // stable.
         lastWindowName.set(
                 ui.getInternals().getExtendedClientDetails().getWindowName());
-        if (ui.isClosing() && ui.getInternals().getSession() != null) {
+        if (ui.getInternals().getSession() != null
+                && (fireUIDetach || ui.isClosing())) {
+            // Every UI of a session has its own id, so the next UI does not
+            // replace this one in the session: it has to be removed.
             BasicUtils._close(ui);
-        }
-        if (fireUIDetach) {
-            ComponentUtil.onComponentDetach(ui);
         }
         UI.setCurrent(null);
         strongRefUI.remove();
@@ -628,7 +632,7 @@ public final class MockVaadin {
                         null, null, null, null, windowName, null, null, null));
 
         UI.setCurrent(ui);
-        ui.doInit(request, 1, "ROOT");
+        ui.doInit(request, session.getNextUIid(), "ROOT");
         strongRefUI.set(ui);
 
         session.addUI(ui);

@@ -24,6 +24,7 @@ import java.util.Set;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.page.Page;
 import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.server.VaadinSessionState;
 
 /**
  * A {@link Page} which records the external navigations and recreates the UI on
@@ -84,8 +85,9 @@ public final class MockPage extends Page {
     public void reload() {
         UI current = UI.getCurrent();
         if (current != ui) {
-            if (ui.getSession() == null) {
-                // This UI lost its session, so it is the logout idiom -
+            if (session.getState() != VaadinSessionState.OPEN) {
+                // The session of this UI was closed, so it is the logout idiom
+                // -
                 // capture the UI, close its session, then ask its page to
                 // reload. Closing the session already tore this UI down and
                 // rendered a fresh one for its window, which is what the
@@ -106,7 +108,8 @@ public final class MockPage extends Page {
                     + "UI belongs to another window - activate it first, "
                     + "e.g. through its BrowserlessUIContext or "
                     + "UI.access() - or an earlier reload already replaced "
-                    + "it, in which case reload the current UI instead.");
+                    + "it or its window was closed, in which case reload "
+                    + "the current UI instead.");
         }
 
         // recreate the UI on reload(), to simulate browser's F5
