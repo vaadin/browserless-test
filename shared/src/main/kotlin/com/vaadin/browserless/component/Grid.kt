@@ -60,7 +60,6 @@ import kotlin.streams.toList
  * sorted according to given [Grid.getSortOrder] and filtered according to the current filter.
  *
  * For [TreeGrid] this returns the x-th displayed row; skips children of collapsed nodes.
- * Uses [_rowSequence].
  *
  * @param rowIndex the row, 0..size - 1
  * @return the item at given row.

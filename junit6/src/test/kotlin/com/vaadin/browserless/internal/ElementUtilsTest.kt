@@ -29,14 +29,14 @@ fun DynaNodeGroup.elementUtilsTests() {
     beforeEach { MockVaadin.setup() }
     afterEach { MockVaadin.tearDown() }
 
-    test("getTextRecursively2") {
-        expect("foo") { getTextRecursively2(Span("foo").element) }
+    test("getTextIncludingInnerHtml") {
+        expect("foo") { getTextIncludingInnerHtml(Span("foo").element) }
         expect("foobarbaz") {
             val div = Div()
             div.add(Span("foo"), Text("bar"), Paragraph("baz"))
-            getTextRecursively2(div.element)
+            getTextIncludingInnerHtml(div.element)
         }
-        expect("foo") { getTextRecursively2(Element("div").apply { setProperty("innerHTML", "foo") }) }
+        expect("foo") { getTextIncludingInnerHtml(Element("div").apply { setProperty("innerHTML", "foo") }) }
     }
 
     test("fireDomEvent() smoke") {

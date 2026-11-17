@@ -35,7 +35,7 @@ import com.vaadin.flow.router.InternalServerError
  * @property id the required [Component.getId]; if null, no particular id is matched.
  * @property testId the required [Component.getTestId] (i.e. the `data-testid` attribute); if null, no particular test id is matched.
  * @property caption the required [getCaption]; if null, no particular caption is matched.
- * @property placeholder the required [Component.placeholder]; if null, no particular placeholder is matched.
+ * @property placeholder the required [getPlaceholder]; if null, no particular placeholder is matched.
  * @property text the [com.vaadin.flow.dom.Element.getText]
  * @property count expected count of matching components, defaults to `0..Int.MAX_VALUE`
  * @property value expected [com.vaadin.flow.component.HasValue.getValue]; if `null`, no particular value is matched.
@@ -313,9 +313,9 @@ fun <T : Component> _expectOne(clazz: Class<T>, block: SearchSpec<T>.() -> Unit 
  * Expects that there are exactly [count] VISIBLE components of given [clazz] match [block]. The [component] and all of its descendants are searched. Examples:
  * ```
  * // check that there are 5 buttons in a button bar
- * buttonBar._expect<Button>(5)
+ * _expect(buttonBar, Button::class.java, 5)
  * // check that there are either 3, 4 or 5 vertical layouts in the UI with given class
- * _expect<VerticalLayout>{ count = 3..5; styles = "menubar" }
+ * _expect(VerticalLayout::class.java) { count = 3..5; classes = "menubar" }
  * ```
  * Special cases: for asserting one component use [_expectOne]. For asserting no components use [_expectNone].
  * @throws AssertionError if incorrect count of component matched.
@@ -333,9 +333,9 @@ fun <T : Component> _expect(component: Component, clazz: Class<T>, count: Int = 
  * Expects that there are exactly [count] VISIBLE components in the current UI match [block]. The [currentUI] and all of its descendants are searched. Examples:
  * ```
  * // check that there are 5 buttons in a button bar
- * buttonBar._expect<Button>(5..5)
+ * _expect(buttonBar, Button::class.java, 5)
  * // check that there are either 3, 4 or 5 vertical layouts in the UI with given class
- * _expect<VerticalLayout>{ count = 3..5; styles = "menubar" }
+ * _expect(VerticalLayout::class.java) { count = 3..5; classes = "menubar" }
  * ```
  * Special cases: for asserting one component use [_expectOne]. For asserting no components use [_expectNone].
  * @throws AssertionError if incorrect count of component matched.
@@ -348,9 +348,9 @@ inline fun <reified T : Component> _expect(count: Int = 1, noinline block: Searc
  * Expects that there are exactly [count] VISIBLE components in the current UI with given [clazz] match [block]. The [currentUI] and all of its descendants are searched. Examples:
  * ```
  * // check that there are 5 buttons in a button bar
- * buttonBar._expect<Button>(5)
+ * _expect(buttonBar, Button::class.java, 5)
  * // check that there are either 3, 4 or 5 vertical layouts in the UI with given class
- * _expect<VerticalLayout>{ count = 3..5; styles = "menubar" }
+ * _expect(VerticalLayout::class.java) { count = 3..5; classes = "menubar" }
  * ```
  * Special cases: for asserting one component use [_expectOne]. For asserting no components use [_expectNone].
  * They provide

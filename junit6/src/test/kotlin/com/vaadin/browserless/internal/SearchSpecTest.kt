@@ -64,23 +64,23 @@ internal fun DynaNodeGroup.searchSpecTest() {
         expect(false) { spec.toPredicate()(Checkbox()) }
         expect(true) {
             spec.toPredicate()(CheckboxGroup<Int>().apply {
-                element.setProperty("label", "foo")
+                label = "foo"
             })
         }
         expect(false) {
             spec.toPredicate()(CheckboxGroup<Int>().apply {
-                element.setProperty("label", "bar")
+                label = "bar"
             })
         }
         expect(false) { spec.toPredicate()(CheckboxGroup<Int>()) }
         expect(true) {
             spec.toPredicate()(Select<Int>().apply {
-                element.setProperty("label", "foo")
+                label = "foo"
             })
         }
         expect(false) {
             spec.toPredicate()(Select<Int>().apply {
-                element.setProperty("label", "bar")
+                label = "bar"
             })
         }
         expect(false) { spec.toPredicate()(Select<Int>()) }
@@ -97,24 +97,24 @@ internal fun DynaNodeGroup.searchSpecTest() {
         expect(false) { spec.toPredicate()(ListBox<Int>()) }
         expect(true) {
             spec.toPredicate()(RadioButtonGroup<Int>().apply {
-                element.setProperty("label", "foo")
+                label = "foo"
             })
         }
         expect(false) {
             spec.toPredicate()(RadioButtonGroup<Int>().apply {
-                element.setProperty("label", "bar")
+                label = "bar"
             })
         }
         expect(false) { spec.toPredicate()(RadioButtonGroup<Int>()) }
         // tests CustomField
         expect(true) {
             spec.toPredicate()(DateRangePopup().apply {
-                element.setProperty("label", "foo")
+                label = "foo"
             })
         }
         expect(false) {
             spec.toPredicate()(DateRangePopup().apply {
-                element.setProperty("label", "bar")
+                label = "bar"
             })
         }
         expect(false) { spec.toPredicate()(DateRangePopup()) }

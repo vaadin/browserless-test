@@ -27,7 +27,7 @@ import org.jsoup.nodes.TextNode
  * Returns the text of given [element] and all of its descendants, including the
  * `innerHTML` property, which [Element.getTextRecursively] ignores.
  */
-fun getTextRecursively2(element: Element): String {
+fun getTextIncludingInnerHtml(element: Element): String {
     // remove when this is fixed: https://github.com/vaadin/flow/issues/3668
     val node = ElementUtil.toJsoup(Document(""), element)
     return node.textRecursively
