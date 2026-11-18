@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.tabs;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
@@ -164,6 +165,37 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
                     + " cannot be selected because it is not usable");
         }
         return tab;
+    }
+
+    /**
+     * Gets the labels of the visible tabs, in the order the user sees them.
+     * <p>
+     * Hidden tabs are left out, so the position of a label in the returned list
+     * is the index that {@link #select(int)} and {@link #getTab(int)} accept.
+     *
+     * @return the labels of the visible tabs, never {@code null}
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public List<String> getTabLabels() {
+        ensureVisible();
+        return getComponent().getChildren().filter(Tab.class::isInstance)
+                .map(Tab.class::cast).filter(Component::isVisible)
+                .map(Tab::getLabel).toList();
+    }
+
+    /**
+     * Gets the label of the selected tab.
+     *
+     * @return the label of the selected tab, or {@code null} if no tab is
+     *         selected
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public String getSelectedTabLabel() {
+        ensureVisible();
+        Tab selected = getComponent().getSelectedTab();
+        return selected == null ? null : selected.getLabel();
     }
 
     private Tab findTab(String label) {
