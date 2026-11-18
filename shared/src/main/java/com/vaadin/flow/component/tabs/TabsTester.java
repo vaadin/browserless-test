@@ -172,6 +172,9 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      * <p>
      * Hidden tabs are left out, so the position of a label in the returned list
      * is the index that {@link #select(int)} and {@link #getTab(int)} accept.
+     * <p>
+     * This only reads the tabs, so it also works when the component is
+     * disabled.
      *
      * @return the labels of the visible tabs, never {@code null}
      * @throws IllegalStateException
@@ -186,6 +189,10 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
 
     /**
      * Gets the label of the selected tab.
+     * <p>
+     * This only reads the selection, so it also works when the component is
+     * disabled. A selected tab that is hidden is still reported, the same way
+     * {@link #isSelected(String)} reports it.
      *
      * @return the label of the selected tab, or {@code null} if no tab is
      *         selected
