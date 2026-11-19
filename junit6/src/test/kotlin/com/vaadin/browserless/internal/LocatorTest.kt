@@ -139,7 +139,7 @@ internal fun DynaNodeGroup.locatorTest() {
 
     group("_find") {
         test("findMatchingId") {
-            val button = Button().apply { BasicUtils.setId_(this, "foo") }
+            val button = Button().apply { setId("foo") }
             expectList(button) { Locator._find(VerticalLayout(button, Button()), Button::class.java) { it.id = "foo" } }
             expectAfterLookupCalled()
         }
@@ -220,10 +220,10 @@ internal fun DynaNodeGroup.locatorTest() {
         test("id") {
             expect(true) { BasicUtils.matches(Button()) { } }
             expect(false) { BasicUtils.matches(Button()) { it.id = "a" } }
-            expect(true) { BasicUtils.matches(Button().apply { BasicUtils.setId_(this, "a") }) { } }
-            expect(true) { BasicUtils.matches(Button().apply { BasicUtils.setId_(this, "a") }) { it.id = "a" } }
-            expect(false) { BasicUtils.matches(Button().apply { BasicUtils.setId_(this, "a b") }) { it.id = "a" } }
-            expect(false) { BasicUtils.matches(Button().apply { BasicUtils.setId_(this, "a") }) { it.id = "a b" } }
+            expect(true) { BasicUtils.matches(Button().apply { setId("a") }) { } }
+            expect(true) { BasicUtils.matches(Button().apply { setId("a") }) { it.id = "a" } }
+            expect(false) { BasicUtils.matches(Button().apply { setId("a b") }) { it.id = "a" } }
+            expect(false) { BasicUtils.matches(Button().apply { setId("a") }) { it.id = "a b" } }
         }
         test("caption") {
             expect(true) { BasicUtils.matches(Button("click me")) { it.caption = "click me" } }

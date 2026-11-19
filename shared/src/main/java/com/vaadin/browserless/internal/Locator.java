@@ -245,7 +245,7 @@ public final class Locator {
         if (error != null) {
             throw new AssertionError(
                     "An internal server error occurred; please check log for the actual stack-trace. Error text: "
-                            + BasicUtils.getErrorMessage(error) + "\n"
+                            + error.getElement().getText() + "\n"
                             + PrettyPrintTree
                                     .toPrettyTree(Utils.getCurrentUI()));
         }
@@ -483,7 +483,7 @@ public final class Locator {
                             + PrettyPrintTree
                                     .toPrettyTree(Utils.getCurrentUI()));
         }
-        String errorMessage = BasicUtils.getErrorMessage(error);
+        String errorMessage = error.getElement().getText();
         if (!errorMessage.contains(expectedErrorMessage)) {
             throw new AssertionError(
                     "Expected InternalServerError with message '"

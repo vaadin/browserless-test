@@ -62,19 +62,14 @@ class ComponentSupportTest {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertEquals("panel title", ComponentUtils.getLabel(panel));
-        ComponentUtils.setLabel(panel, "renamed");
-        Assertions.assertEquals("renamed", ComponentUtils.getLabel(panel));
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     void caption_fallsBackToTheLabelFromSupport() {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertEquals("panel title",
                 ComponentUtils.getCaption(panel));
-        ComponentUtils.setCaption(panel, "renamed");
-        Assertions.assertEquals("renamed", ComponentUtils.getLabel(panel));
     }
 
     @Test
@@ -83,23 +78,18 @@ class ComponentSupportTest {
         panel.setLabel("own label");
 
         Assertions.assertEquals("own label", ComponentUtils.getLabel(panel));
-        ComponentUtils.setLabel(panel, "renamed");
-        Assertions.assertEquals("renamed", panel.getLabel());
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     void caption_fromSupport_winsOverLabel() {
         CaptionedPanel panel = new CaptionedPanel();
         UI.getCurrent().add(panel);
 
         Assertions.assertEquals("caption", ComponentUtils.getCaption(panel));
-        ComponentUtils.setCaption(panel, "new caption");
-        Assertions.assertEquals("new caption", panel.caption);
         Assertions.assertEquals("label", ComponentUtils.getLabel(panel));
         Assertions.assertSame(panel,
                 Locator._get(CaptionedPanel.class, spec -> {
-                    spec.setCaption("new caption");
+                    spec.setCaption("caption");
                     return kotlin.Unit.INSTANCE;
                 }));
     }
@@ -220,15 +210,6 @@ class ComponentSupportTest {
         }
 
         @Override
-        public boolean setCaption(Component component, String caption) {
-            if (component instanceof CaptionedPanel panel) {
-                panel.caption = caption;
-                return true;
-            }
-            return false;
-        }
-
-        @Override
         public List<Component> getAllChildren(Component component) {
             if (component instanceof PanelWithHiddenContent panel) {
                 return List.of(panel.content);
@@ -252,20 +233,6 @@ class ComponentSupportTest {
                 return "label from support";
             }
             return null;
-        }
-
-        @Override
-        public boolean setLabel(Component component, String label) {
-            if (component instanceof PanelWithHiddenContent panel) {
-                panel.title = label;
-                return true;
-            }
-            if (component instanceof LabelledPanel) {
-                // claims the component without setting anything, so a
-                // HasLabel component only gets its label if HasLabel wins
-                return true;
-            }
-            return false;
         }
     }
 }

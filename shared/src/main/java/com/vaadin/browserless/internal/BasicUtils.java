@@ -16,7 +16,6 @@
 package com.vaadin.browserless.internal;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
@@ -25,19 +24,16 @@ import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.flow.component.BlurNotifier;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.FocusNotifier;
 import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.HasEnabled;
-import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
-import com.vaadin.flow.router.InternalServerError;
 
 /**
  * Basic utilities for firing events on components and checking their state.
@@ -47,19 +43,6 @@ import com.vaadin.flow.router.InternalServerError;
 public final class BasicUtils {
 
     private BasicUtils() {
-    }
-
-    /**
-     * Allows us to fire any Vaadin event on any Vaadin component.
-     *
-     * @param component
-     *            the component, not null.
-     * @param event
-     *            the event, not null.
-     */
-    public static void _fireEvent(Component component,
-            ComponentEvent<?> event) {
-        ComponentUtil.fireEvent(component, event);
     }
 
     /**
@@ -92,31 +75,6 @@ public final class BasicUtils {
     }
 
     /**
-     * The same as {@link Component#getId()} but without Optional.
-     * <p>
-     * Workaround for https://github.com/vaadin/flow/issues/664
-     *
-     * @param component
-     *            the component, not null.
-     * @return the id, or null.
-     */
-    public static String getId_(Component component) {
-        return component.getId().orElse(null);
-    }
-
-    /**
-     * Sets the id of given component.
-     *
-     * @param component
-     *            the component, not null.
-     * @param value
-     *            the id, may be null.
-     */
-    public static void setId_(Component component, String value) {
-        component.setId(value);
-    }
-
-    /**
      * Checks whether the component is visible (usually
      * {@link Component#isVisible()} but for {@link Text} the text must be
      * non-empty).
@@ -125,26 +83,12 @@ public final class BasicUtils {
      *            the component, not null.
      * @return true if the component is visible.
      */
-    public static boolean get_isVisible(Component component) {
+    public static boolean _isVisible(Component component) {
         if (component instanceof Text text) {
             // workaround for https://github.com/vaadin/flow/issues/3201
             return !Utils.isBlank(text.getText());
         }
         return component.isVisible();
-    }
-
-    /**
-     * Returns direct text contents (it doesn't peek into the child elements).
-     *
-     * @param component
-     *            the component, not null.
-     * @return the text, or null if the component is not {@link HasText}.
-     */
-    public static String get_text(Component component) {
-        if (component instanceof HasText hasText) {
-            return hasText.getText();
-        }
-        return null;
     }
 
     /**
@@ -226,7 +170,7 @@ public final class BasicUtils {
      * @return true if the component and all of its ascendants are visible.
      */
     public static boolean isEffectivelyVisible(Component component) {
-        return get_isVisible(component) && (component.getParent().isEmpty()
+        return _isVisible(component) && (component.getParent().isEmpty()
                 || isEffectivelyVisible(component.getParent().get()));
     }
 
@@ -283,7 +227,7 @@ public final class BasicUtils {
     public static <T extends Component & Focusable<?>> void _focus(
             T component) {
         checkEditableByUser(component);
-        _fireEvent(component,
+        ComponentUtil.fireEvent(component,
                 new FocusNotifier.FocusEvent<T>(component, true, null));
     }
 
@@ -298,7 +242,7 @@ public final class BasicUtils {
      */
     public static <T extends Component & Focusable<?>> void _blur(T component) {
         checkEditableByUser(component);
-        _fireEvent(component,
+        ComponentUtil.fireEvent(component,
                 new BlurNotifier.BlurEvent<T>(component, true, null));
     }
 
@@ -317,34 +261,6 @@ public final class BasicUtils {
         }
         // Mock closing of UI after request handled.
         ui.getInternals().getSession().removeUI(ui);
-    }
-
-    /**
-     * Returns child components which were added to this component via
-     * {@link Element#appendVirtualChild(Element...)}.
-     *
-     * @param component
-     *            the component, not null.
-     * @return the virtual child components.
-     */
-    public static List<Component> _getVirtualChildren(Component component) {
-        List<Component> result = new ArrayList<>();
-        for (Element child : ElementUtils
-                .getVirtualChildren(component.getElement())) {
-            result.addAll(ElementUtils._findComponents(child));
-        }
-        return result;
-    }
-
-    /**
-     * Returns the error message shown by given error view.
-     *
-     * @param error
-     *            the error view, not null.
-     * @return the error message.
-     */
-    public static String getErrorMessage(InternalServerError error) {
-        return error.getElement().getText();
     }
 
     /**

@@ -166,6 +166,12 @@ See [`guidelines/architecture.md`](guidelines/architecture.md).
 public and protected members are API that applications compile against. The
 `locator-processor` options are an internal contract and can be broken freely.
 
+The framework tests Flow and the components; it does not extend their API. Do
+not declare Kotlin extension functions or properties on Flow or component
+types, and do not add a helper that duplicates what Flow or the component
+already offers — call the Flow method instead. A helper the framework does
+need takes the component as a parameter.
+
 Prefer an existing precedent over a new shape. There is already a pattern for
 value testers, for selection testers, for the context hierarchy
 (`BrowserlessApplicationContext` → `BrowserlessUserContext` →

@@ -343,7 +343,7 @@ public final class Utils {
      *            the Vaadin context, not null.
      * @return the backing servlet context.
      */
-    public static ServletContext getContext(VaadinContext context) {
+    public static ServletContext getServletContext(VaadinContext context) {
         return ((VaadinServletContext) context).getContext();
     }
 

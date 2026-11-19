@@ -167,11 +167,11 @@ public final class Routes implements Serializable {
         classSet.addAll(layouts);
         try {
             new RouteRegistryInitializer().onStartup(classSet,
-                    Utils.getContext(sc));
+                    Utils.getServletContext(sc));
         } catch (Exception e) {
             throw Utils.sneakyThrow(e);
         }
-        if (Utils.getContext(sc).getAttribute(
+        if (Utils.getServletContext(sc).getAttribute(
                 "com.vaadin.flow.server.startup.ApplicationRouteRegistry$ApplicationRouteRegistryWrapper") == null) {
             throw new IllegalStateException(
                     "RouteRegistryInitializer did not register the ApplicationRouteRegistry!");

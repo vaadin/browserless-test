@@ -296,7 +296,7 @@ public final class SearchSpec<T extends Component> {
         List<Function1<Component, Boolean>> p = new ArrayList<>();
         p.add(component -> clazz.isInstance(component));
         if (id != null) {
-            p.add(component -> Objects.equals(BasicUtils.getId_(component),
+            p.add(component -> Objects.equals(component.getId().orElse(null),
                     id));
         }
         if (testId != null) {

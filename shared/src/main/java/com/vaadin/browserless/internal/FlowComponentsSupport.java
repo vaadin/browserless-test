@@ -174,35 +174,11 @@ public class FlowComponentsSupport implements ComponentSupport {
     }
 
     @Override
-    public boolean setLabel(Component component, String label) {
-        if (component instanceof FormLayout.FormItem) {
-            throw new IllegalArgumentException(
-                    "Setting the caption of FormItem is currently unsupported");
-        } else if (component instanceof SideNav sideNav) {
-            sideNav.setLabel(label);
-            return true;
-        } else if (component instanceof SideNavItem sideNavItem) {
-            sideNavItem.setLabel(label);
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public String getCaption(Component component) {
         if (component instanceof Button button) {
             return button.getText();
         }
         return null;
-    }
-
-    @Override
-    public boolean setCaption(Component component, String caption) {
-        if (component instanceof Button button) {
-            button.setText(caption);
-            return true;
-        }
-        return false;
     }
 
     /**

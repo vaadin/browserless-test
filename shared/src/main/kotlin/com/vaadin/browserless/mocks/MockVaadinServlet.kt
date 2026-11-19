@@ -59,6 +59,6 @@ private val _VaadinService_createVaadinSession: Method =
         isAccessible = true
     }
 
-internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
-    return _VaadinService_createVaadinSession.invoke(this, request) as VaadinSession
+internal fun _createVaadinSession(service: VaadinService, request: VaadinRequest): VaadinSession {
+    return _VaadinService_createVaadinSession.invoke(service, request) as VaadinSession
 }

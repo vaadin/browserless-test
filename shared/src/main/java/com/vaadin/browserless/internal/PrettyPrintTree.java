@@ -28,6 +28,7 @@ import kotlin.Unit;
 import kotlin.jvm.functions.Function2;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
@@ -227,7 +228,7 @@ public final class PrettyPrintTree {
         if (component.getId().isPresent()) {
             list.add("#" + component.getId().get());
         }
-        if (!BasicUtils.get_isVisible(component)) {
+        if (!BasicUtils._isVisible(component)) {
             list.add("INVIS");
         }
         if (component instanceof HasValue<?, ?> hasValue
@@ -245,7 +246,8 @@ public final class PrettyPrintTree {
         if (!label.equals(caption) && !Utils.isBlank(caption)) {
             list.add("caption='" + caption + "'");
         }
-        String text = BasicUtils.get_text(component);
+        String text = component instanceof HasText hasText ? hasText.getText()
+                : null;
         if (!Utils.isBlank(text) && !text.equals(caption)) {
             list.add("text='" + text + "'");
         }

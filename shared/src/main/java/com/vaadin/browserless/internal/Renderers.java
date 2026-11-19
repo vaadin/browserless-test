@@ -212,7 +212,7 @@ public final class Renderers {
      * @return the value provider.
      */
     @SuppressWarnings("unchecked")
-    public static <T, V> ValueProvider<T, V> getValueProvider(
+    private static <T, V> ValueProvider<T, V> getValueProvider(
             BasicRenderer<T, V> renderer) {
         try {
             return (ValueProvider<T, V>) getBasicRendererValueProvider()

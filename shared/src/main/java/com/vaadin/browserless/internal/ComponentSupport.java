@@ -129,20 +129,6 @@ public interface ComponentSupport {
     }
 
     /**
-     * Sets the label of a component that doesn't implement
-     * {@link com.vaadin.flow.component.HasLabel}.
-     *
-     * @param component
-     *            the component, not null.
-     * @param label
-     *            the label.
-     * @return true if this implementation handled the component.
-     */
-    default boolean setLabel(Component component, String label) {
-        return false;
-    }
-
-    /**
      * Returns the caption of a component that shows it directly on itself, such
      * as a button's text.
      *
@@ -153,18 +139,5 @@ public interface ComponentSupport {
      */
     default String getCaption(Component component) {
         return null;
-    }
-
-    /**
-     * Sets the caption of a component that shows it directly on itself.
-     *
-     * @param component
-     *            the component, not null.
-     * @param caption
-     *            the caption.
-     * @return true if this implementation handled the component.
-     */
-    default boolean setCaption(Component component, String caption) {
-        return false;
     }
 }

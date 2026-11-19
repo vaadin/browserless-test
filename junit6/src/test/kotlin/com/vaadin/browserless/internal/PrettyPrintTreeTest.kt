@@ -79,9 +79,9 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
     }
     test("toPrettyStringTextField()") {
-        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { BasicUtils.setId_(this, "25") }),"TextField\\[#25, value=''.*]".toRegex())
+        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { setId("25") }),"TextField\\[#25, value=''.*]".toRegex())
         assertContains(PrettyPrintTree.toPrettyString(TextArea("label").apply { value = "some text" }),"TextArea\\[label='label', value='some text'.*]".toRegex())
-        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { BasicUtils.setId_(this, "25"); errorMessage = "failed validation" }),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
+        assertContains(PrettyPrintTree.toPrettyString(TextField().apply { setId("25"); errorMessage = "failed validation" }),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
         assertContains(PrettyPrintTree.toPrettyString(TextField("foobar")), "TextField\\[label='foobar', value=''.*]".toRegex() )
     }
     test("toPrettyStringButton()") {

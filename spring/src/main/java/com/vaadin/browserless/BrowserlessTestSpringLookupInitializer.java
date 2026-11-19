@@ -149,7 +149,7 @@ public class BrowserlessTestSpringLookupInitializer
             VaadinApplicationInitializationBootstrap bootstrap)
             throws ServletException {
         ApplicationContext appCtx = applicationContext.get();
-        ServletContext servletContext = Utils.getContext(context);
+        ServletContext servletContext = Utils.getServletContext(context);
         WebApplicationContext webAppCtx = WebApplicationContextUtils
                 .getWebApplicationContext(servletContext);
         if (webAppCtx == null) {

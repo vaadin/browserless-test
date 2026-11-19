@@ -48,7 +48,9 @@ open class MockedUI : UI() {
 
     override fun addToModalComponent(component: Component?) {
         super.addToModalComponent(component)
-        component?.let { simulateClosedEvent(it) }
+        if (component != null) {
+            simulateClosedEvent(component)
+        }
     }
 
     /**
