@@ -28,6 +28,7 @@ import kotlin.ranges.IntRange;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.router.InternalServerError;
 import com.vaadin.flow.router.Location;
 
@@ -193,7 +194,7 @@ public final class Locator {
             boolean hasPolymerTemplates = false;
             if (Utils.hasPolymerTemplates()) {
                 for (Component c : _walkAll(receiver)) {
-                    if (Utils.isPolymerTemplate(c)) {
+                    if (ComponentUtils.isPolymerTemplate(c)) {
                         hasPolymerTemplates = true;
                         break;
                     }
@@ -326,25 +327,10 @@ public final class Locator {
     }
 
     /**
-     * Expects that there are no dialogs shown. The dialog types come from the
-     * registered {@link ComponentSupport} implementations.
-     *
-     * @throws AssertionError
-     *             if a dialog is shown.
-     * @throws IllegalStateException
-     *             if no {@link ComponentSupport} reports any dialog type.
+     * Expects that there are no dialogs shown.
      */
     public static void _expectNoDialogs() {
-        List<Class<? extends Component>> dialogTypes = ComponentUtils
-                .getDialogTypes();
-        if (dialogTypes.isEmpty()) {
-            throw new IllegalStateException(
-                    "No ComponentSupport reports any dialog types, so there "
-                            + "is nothing to check");
-        }
-        for (Class<? extends Component> dialogType : dialogTypes) {
-            _expectNone(dialogType, spec -> Unit.INSTANCE);
-        }
+        _expectNone(Dialog.class, spec -> Unit.INSTANCE);
     }
 
     /**
