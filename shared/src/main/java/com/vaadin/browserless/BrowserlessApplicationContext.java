@@ -289,15 +289,24 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             return;
         }
         closed = true;
-        for (var user : users) {
-            user.close();
+        try {
+            // Pending effects run while the windows are still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
+            for (var user : users) {
+                user.close();
+            }
+            users.clear();
+            MockVaadin.fireServiceDestroy(service);
+        } finally {
+            // Unregistering runs what the windows and the destroy listeners
+            // queued while closing, on this thread
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
         }
-        users.clear();
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
-        }
-        MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);
         List<RuntimeException> hookFailures = new ArrayList<>();
         for (Runnable hook : closeHooks) {
