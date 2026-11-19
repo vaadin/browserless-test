@@ -67,6 +67,10 @@ public class BrowserlessNavigationTest extends BrowserlessTest {
                 .contains("Navigation resulted in unexpected class"));
         Assertions.assertTrue(exception.getMessage()
                 .contains(MockRouteNotFoundError.class.getName()));
+        Assertions.assertTrue(
+                exception.getMessage().contains("No route found for 'param'"),
+                "Failure should explain which location had no route: "
+                        + exception.getMessage());
     }
 
     @Test

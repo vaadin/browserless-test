@@ -141,5 +141,8 @@ class AdhocComponentTest {
         // thread once the bundled app is gone.
         Assertions.assertNull(UI.getCurrent(),
                 "Bundled app should be closed, clearing thread-locals");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> window.getUser().getApp().newUser(),
+                "Closing the forComponent window should close the bundled app");
     }
 }

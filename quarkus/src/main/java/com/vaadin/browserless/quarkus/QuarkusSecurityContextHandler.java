@@ -42,6 +42,12 @@ import com.vaadin.browserless.SecurityContextHandler;
 public class QuarkusSecurityContextHandler
         implements SecurityContextHandler<SecurityIdentity> {
 
+    /**
+     * Creates a new security context handler.
+     */
+    public QuarkusSecurityContextHandler() {
+    }
+
     @Override
     public void setupAuthentication(SecurityIdentity credentials) {
         SecurityIdentity identity = credentials != null ? credentials

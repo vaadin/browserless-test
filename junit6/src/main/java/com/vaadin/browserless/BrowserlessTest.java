@@ -130,6 +130,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
+    /**
+     * Creates a new browserless test.
+     */
+    public BrowserlessTest() {
+    }
+
     @BeforeEach
     @Override
     protected void initVaadinEnvironment() {

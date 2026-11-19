@@ -95,7 +95,7 @@ interface TestingLifecycleHook {
             component.children.toList()
         }
 
-        component.isTemplate -> {
+        isTemplate(component) -> {
             // don't include virtual children since those will include nested components.
             // however, those components are only they are only "shallow shells" of components constructed
             // server-side - almost none of their properties are transferred to the server-side.
@@ -146,8 +146,8 @@ interface TestingLifecycleHook {
     }
 }
 
-val Component.isTemplate: Boolean
-    get() = this is LitTemplate || isPolymerTemplate(this)
+fun isTemplate(component: Component): Boolean =
+    component is LitTemplate || isPolymerTemplate(component)
 
 /**
  * If you need to hook into the testing lifecycle (e.g. you need to wait for any async operations to finish),
@@ -179,7 +179,7 @@ fun cleanupDialogs() {
     // Starting with Vaadin 23, nested dialogs are also nested within respective
     // modal dialog within the UI. This is probably related to the "server-side
     // modality curtain" feature. Also see https://github.com/mvysny/karibu-testing/issues/102
-    UI.getCurrent().walk()
+    walk(UI.getCurrent())
         .filter { isDialogAndNeedsRemoval(it) }
         .forEach { it.element.removeFromParent() }
 }

@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import jakarta.servlet.ServletContext
-import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.page.ExtendedClientDetails
 import com.vaadin.flow.component.page.Page
@@ -49,6 +48,7 @@ import com.vaadin.flow.server.VaadinServletRequest
 import com.vaadin.flow.server.VaadinServletResponse
 import com.vaadin.flow.server.VaadinServletService
 import com.vaadin.flow.server.VaadinSession
+import com.vaadin.flow.server.VaadinSessionState
 import com.vaadin.flow.server.WrappedHttpSession
 import com.vaadin.flow.shared.communication.PushMode
 import com.vaadin.browserless.BrowserlessConfiguration
@@ -119,7 +119,7 @@ object MockVaadin {
      * [VaadinServletService.loadInstantiators] and provide your own way of instantiating Views, e.g. via Spring or Guice.
      * Please do that by extending [MockVaadinServlet] and overriding [MockVaadinServlet.createServletService]
      * `createServletService(DeploymentConfiguration)`.
-     * Please consult [MockService] on what methods you must override in your custom service.
+     * Please consult [com.vaadin.browserless.mocks.MockService] on what methods you must override in your custom service.
      * Alternatively, see `MockSpringServlet` (in the `browserless-test-spring` module) on how to extend your custom servlet and
      * provide all necessary mocking code.
      * @param routes all classes annotated with [com.vaadin.flow.router.Route]; use [Routes.autoDiscoverViews] to auto-discover all such classes.
@@ -256,8 +256,10 @@ object MockVaadin {
     }
 
     /**
-     * Properly closes the current UI and fire the detach event on it.
-     * Does nothing if there is no current UI.
+     * Clears the current UI. A UI that is closing, or any UI when
+     * [fireUIDetach] is true, is closed and removed from its session the way
+     * Flow removes the UI of a closed or reloaded browser tab, which fires its
+     * detach listeners. Does nothing if there is no current UI.
      */
     @JvmStatic
     fun closeCurrentUI(fireUIDetach: Boolean) {
@@ -266,11 +268,10 @@ object MockVaadin {
         // Preserve the window name so a following createUI (reload / session
         // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
         lastWindowName.set(ui.internals.extendedClientDetails.windowName)
-        if (ui.isClosing && ui.internals.session != null) {
-            ui._close()
-        }
-        if (fireUIDetach) {
-            ComponentUtil.onComponentDetach(ui)
+        if (ui.internals.session != null && (fireUIDetach || ui.isClosing)) {
+            // Every UI of a session has its own id, so the next UI does not
+            // replace this one in the session: it has to be removed.
+            _close(ui)
         }
         UI.setCurrent(null)
         strongRefUI.remove()
@@ -288,7 +289,7 @@ object MockVaadin {
         clearVaadinInstances(false)
         val service: VaadinService? = VaadinService.getCurrent()
         if (service != null) {
-            service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+            fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
             VaadinService.setCurrent(null)
         }
         lastNavigation.remove()
@@ -374,7 +375,7 @@ object MockVaadin {
         val request = VaadinServletRequest(mockRequest, service)
 
         // init Session.
-        val session: VaadinSession = service._createVaadinSession(request)
+        val session: VaadinSession = _createVaadinSession(service, request)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)
@@ -403,7 +404,7 @@ object MockVaadin {
         CurrentInstance.set(VaadinResponse::class.java, objs.response)
 
         // fire session init listeners
-        service.fireSessionInitListeners(SessionInitEvent(service, objs.session, objs.request))
+        fireSessionInitListeners(service, SessionInitEvent(service, objs.session, objs.request))
 
         // create UI
         createUI(uiFactory, objs.session)
@@ -447,7 +448,7 @@ object MockVaadin {
                 null, null, null))
 
         UI.setCurrent(ui)
-        ui.doInit(request, 1, "ROOT")
+        ui.doInit(request, session.nextUIid, "ROOT")
         strongRefUI.set(ui)
 
         session.addUI(ui)
@@ -498,7 +499,7 @@ object MockVaadin {
      * Runs all tasks scheduled by [UI.access].
      *
      * If [VaadinSession.errorHandler] is not set or [propagateExceptionToHandler]
-     * is false, any exceptions thrown from [Command]s scheduled via the [UI.access] will make this function fail.
+     * is false, any exceptions thrown from [Commands][com.vaadin.flow.server.Command] scheduled via the [UI.access] will make this function fail.
      * The exceptions will be wrapped in [ExecutionException]. Generally
      * it's best to keep [propagateExceptionToHandler] set to false to
      * make any exceptions fail the test; however if you're testing
@@ -509,7 +510,7 @@ object MockVaadin {
      * don't need to call this method unless you need to test your [ErrorHandler].
      *
      * @param propagateExceptionToHandler defaults to false. If true and [VaadinSession.errorHandler]
-     * is set, any exceptions thrown from [Command]s scheduled via the [UI.access] will be
+     * is set, any exceptions thrown from [Commands][com.vaadin.flow.server.Command] scheduled via the [UI.access] will be
      * redirected to [VaadinSession.errorHandler] and will not be re-thrown from this method.
      * @throws IllegalStateException if the environment is not mocked
      */
@@ -558,7 +559,7 @@ object MockVaadin {
      * Internal function, do not call directly.
      *
      * Only usable when you are providing your own implementation of [VaadinSession].
-     * See [MockVaadinSession] on how to call this properly.
+     * See [com.vaadin.browserless.mocks.MockVaadinSession] on how to call this properly.
      */
     @JvmStatic
     public fun afterSessionClose(session: VaadinSession, uiFactory: UIFactory) {
@@ -582,7 +583,7 @@ object MockVaadin {
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
-            val mockSession: MockHttpSession = session.mock
+            val mockSession: MockHttpSession = getMock(session)
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)
@@ -595,7 +596,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireSessionInit(service: VaadinService, session: VaadinSession, request: VaadinRequest) {
-        service.fireSessionInitListeners(SessionInitEvent(service, session, request))
+        fireSessionInitListeners(service, SessionInitEvent(service, session, request))
     }
 
     /**
@@ -604,7 +605,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireServiceDestroy(service: VaadinService) {
-        service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+        fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
     }
 
     /**
@@ -646,12 +647,12 @@ object MockVaadin {
 private val rethrowListenerFailure =
         SerializableBiConsumer<EventObject, Exception> { _, error -> throw error }
 
-internal fun VaadinService.fireSessionInitListeners(event: SessionInitEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireSessionInitListeners(service: VaadinService, event: SessionInitEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
-internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireServiceDestroyListeners(service: VaadinService, event: ServiceDestroyEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
 internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {
@@ -685,8 +686,8 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
     override fun reload() {
         val current: UI? = UI.getCurrent()
         if (current !== ui) {
-            if (ui.session == null) {
-                // This UI lost its session, so it is the logout idiom -
+            if (session.state != VaadinSessionState.OPEN) {
+                // The session of this UI was closed, so it is the logout idiom -
                 // capture the UI, close its session, then ask its page to
                 // reload. Closing the session already tore this UI down and
                 // rendered a fresh one for its window, which is what the
@@ -707,7 +708,8 @@ internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, pr
                         "UI belongs to another window - activate it first, " +
                         "e.g. through its BrowserlessUIContext or " +
                         "UI.access() - or an earlier reload already replaced " +
-                        "it, in which case reload the current UI instead.")
+                        "it or its window was closed, in which case reload " +
+                        "the current UI instead.")
         }
 
         // recreate the UI on reload(), to simulate browser's F5

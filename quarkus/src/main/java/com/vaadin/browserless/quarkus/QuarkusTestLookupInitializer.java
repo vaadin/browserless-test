@@ -37,6 +37,12 @@ import com.vaadin.flow.server.VaadinContext;
  */
 public class QuarkusTestLookupInitializer extends LookupInitializer {
 
+    /**
+     * Creates a new initializer.
+     */
+    public QuarkusTestLookupInitializer() {
+    }
+
     @Override
     public void initialize(VaadinContext context,
             Map<Class<?>, Collection<Class<?>>> services,

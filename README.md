@@ -651,6 +651,17 @@ Blocking on the operation before draining the queue —
 task can only run on the thread that is blocked waiting for it. A timeout there
 means the queue has not been drained, not that the write was lost.
 
+Tasks still queued when a test ends — or when a `BrowserlessApplicationContext`
+is closed — are run during teardown, so a write to a shared signal that outlives
+the test (for example one held by an application-scoped bean) is always
+confirmed before the next test uses it. The queue is run before the windows
+are closed, so pending effects still update open UIs, and once more after
+closing, so writes made by detach and session destroy listeners are confirmed
+too. A task that fails is logged and skipped. The tasks run
+one after another on the test thread, so a task must not block waiting for
+another one — an effect that calls `signal.update(...).result().join()` hangs
+teardown, outside the reach of `@Timeout`.
+
 ## Focus and blur
 
 Focus is tracked per UI while a test runs, so focus and blur listeners fire
@@ -712,10 +723,12 @@ assertTrue(test(quickAdd).isFocused());
   is disabled or not attached to a UI, since neither can take or lose focus in
   a browser either. A read-only field can be focused. `isFocused()` never
   throws and reports `false` for a component that is not attached.
-- Detecting server-side `Focusable` calls relies on matching the JavaScript that
-  Flow generates for them, and reading the pending JavaScript queue consumes it:
-  when a focus or blur call is pending, other JavaScript queued at the same time
-  is dropped. Everything the simulation takes off the queue is listed in a
+- Only focus and blur calls made through `Focusable` are simulated. JavaScript
+  the application schedules itself, such as
+  `getElement().executeJs("this.focus()")`, is not interpreted and stays
+  queued.
+- Reading the pending JavaScript queue consumes it: when a focus or blur call
+  is pending, other JavaScript queued at the same time is dropped. Everything the simulation takes off the queue is listed in a
   debug log under `com.vaadin.browserless.FocusTracker`. Handling the queue
   centrally is tracked in
   [#221](https://github.com/vaadin/browserless-test/issues/221).

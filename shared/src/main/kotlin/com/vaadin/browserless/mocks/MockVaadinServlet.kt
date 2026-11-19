@@ -26,7 +26,7 @@ import com.vaadin.browserless.internal.UIFactory
  * Makes sure that [routes] are properly registered, and that [MockService]
  * is used instead of vanilla [VaadinServletService].
  *
- * To use a custom servlet instead of this one, just pass it to [MockVaadin.setup].
+ * To use a custom servlet instead of this one, just pass it to [com.vaadin.browserless.internal.MockVaadin.setup].
  */
 open class MockVaadinServlet @JvmOverloads constructor(
         val routes: Routes = Routes(),
@@ -59,6 +59,6 @@ private val _VaadinService_createVaadinSession: Method =
         isAccessible = true
     }
 
-internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
-    return _VaadinService_createVaadinSession.invoke(this, request) as VaadinSession
+internal fun _createVaadinSession(service: VaadinService, request: VaadinRequest): VaadinSession {
+    return _VaadinService_createVaadinSession.invoke(service, request) as VaadinSession
 }

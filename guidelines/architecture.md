@@ -58,7 +58,11 @@ Test does it explicitly:
   it.
 - `ComponentTester#roundTrip()` (protected) is the tester-level entry point;
   `roundTrip()` on the test base class and `window.roundTrip()` are the
-  test-level ones.
+  test-level ones. All of them build on `MockVaadin.clientRoundtrip()`, so
+  they run the `UI.access()` queue and remove closed dialogs too, and then
+  also collect the state tree changes and apply server-initiated focus
+  changes. Tester actions that end in `roundTrip()` do the same. They call
+  `clientRoundtrip()` directly, not through the `TestingLifecycleHook`.
 - `TestingLifecycleHook.awaitBeforeLookup` calls the round trip before a
   component lookup by default, so a query already sees the state a real client
   response would have produced.
@@ -132,6 +136,14 @@ a shared signal is applied optimistically and visible through `peek()` at once,
 but the `SignalOperation` it returns completes only when the queued
 confirmation runs. Blocking on the operation without draining the queue always
 times out, because the confirmation task needs the thread that is blocked.
+
+Unregistering the environment at teardown runs whatever is still queued. A
+shared signal can outlive the test, and a confirmation dropped with the queue
+would leave its write unconfirmed for good, so that every later conditional
+update of that signal is rejected and retried forever. Teardown runs the queue
+before closing the UIs and again, through `unregister()`, after closing them,
+so that tasks queued by detach and destroy listeners stay on the test thread
+instead of reaching the next `SignalEnvironment`.
 
 ## Client-side behavior that has no client
 
