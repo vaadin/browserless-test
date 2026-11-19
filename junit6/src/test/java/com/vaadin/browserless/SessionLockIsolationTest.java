@@ -174,12 +174,18 @@ class SessionLockIsolationTest {
         var ex = Assertions.assertThrows(ExecutionException.class,
                 () -> bob.activate());
         Assertions.assertInstanceOf(IllegalStateException.class, ex.getCause());
+        Assertions.assertTrue(ex.getCause().getMessage()
+                .contains("from a UI.access() command"));
         assertLocked(true, alice);
         assertLocked(false, bob);
 
         bob.activate();
         assertLocked(false, alice);
         assertLocked(true, bob);
+
+        // A hold left over on bob's session would keep it locked
+        alice.activate();
+        assertLocked(false, bob);
     }
 
     @Test
