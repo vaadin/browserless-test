@@ -245,23 +245,27 @@ public class BrowserlessUserContext implements AutoCloseable {
         app.holdSessionLock(this);
         applySessionThreadLocals();
 
-        // Destroy session: fire destroy listeners and drain the queue,
-        // mirroring MockVaadin.closeCurrentSession (which gates the
-        // session-recreation hook via a thread-local flag).
-        MockVaadin.fireSessionDestroyAndDrain(session);
+        try {
+            // Destroy session: fire destroy listeners and drain the queue,
+            // mirroring MockVaadin.closeCurrentSession (which gates the
+            // session-recreation hook via a thread-local flag).
+            MockVaadin.fireSessionDestroyAndDrain(session);
+        } finally {
+            // Drop this user's thread-local state — including the security
+            // snapshot — so it does not leak into subsequent activations or
+            // tests sharing the thread. Done also when the destroy fails, as
+            // is the lock release below, so the closed session is not left
+            // locked.
+            clearThreadLocals();
 
-        // Drop this user's thread-local state — including the security
-        // snapshot — so it does not leak into subsequent activations or
-        // tests sharing the thread.
-        clearThreadLocals();
-
-        // If a different user's window is still active, re-establish its
-        // thread-locals (UI/Session/Request/Response/security) so any
-        // subsequent operation on it observes a coherent state.
-        if (activeIsAnotherUser && !active.isClosed()) {
-            BrowserlessUIContext.reactivateSurviving(active, app);
-        } else {
-            app.holdSessionLock(null);
+            // If a different user's window is still active, re-establish its
+            // thread-locals (UI/Session/Request/Response/security) so any
+            // subsequent operation on it observes a coherent state.
+            if (activeIsAnotherUser && !active.isClosed()) {
+                BrowserlessUIContext.reactivateSurviving(active, app);
+            } else {
+                app.holdSessionLock(null);
+            }
         }
     }
 

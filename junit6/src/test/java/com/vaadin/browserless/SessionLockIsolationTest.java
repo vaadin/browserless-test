@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -185,6 +186,31 @@ class SessionLockIsolationTest {
         assertLocked(true, bob);
 
         // A hold left over on bob's session would keep it locked
+        alice.activate();
+        assertLocked(false, bob);
+    }
+
+    @Test
+    void userSwitch_fromCommandRunBySignalsTasks_failsAndKeepsLocksBalanced() {
+        var failure = new AtomicReference<IllegalStateException>();
+        alice.activate();
+        alice.getUI().access(() -> {
+            try {
+                bob.activate();
+            } catch (IllegalStateException e) {
+                failure.set(e);
+            }
+        });
+
+        alice.runPendingSignalsTasks(0, TimeUnit.MILLISECONDS);
+
+        Assertions.assertNotNull(failure.get());
+        Assertions.assertTrue(failure.get().getMessage()
+                .contains("from a UI.access() command"));
+        assertLocked(true, alice);
+        assertLocked(false, bob);
+        bob.activate();
+        assertLocked(false, alice);
         alice.activate();
         assertLocked(false, bob);
     }
@@ -380,15 +406,16 @@ class SessionLockIsolationTest {
         var closing = BrowserlessApplicationContext
                 .create(b -> b.withViewPackages(BroadcastView.class)
                         .withCloseHook(() -> hookRan.set(true)));
-        closing.newUser().getSession().getService()
-                .addSessionDestroyListener(e -> {
-                    throw new IllegalArgumentException("destroy");
-                });
+        var closedSession = closing.newUser().getSession();
+        closedSession.getService().addSessionDestroyListener(e -> {
+            throw new IllegalArgumentException("destroy");
+        });
 
         var ex = Assertions.assertThrows(ExecutionException.class,
                 closing::close);
 
         Assertions.assertEquals("destroy", ex.getCause().getMessage());
+        Assertions.assertFalse(closedSession.hasLock());
         Assertions.assertTrue(hookRan.get());
         Assertions.assertNull(closing.getSignalsTestEnvironment());
         Assertions.assertNull(VaadinService.getCurrent());
