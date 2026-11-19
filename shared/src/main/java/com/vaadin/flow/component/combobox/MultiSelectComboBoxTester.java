@@ -80,13 +80,17 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     /**
      * Select items by client string representation.
      * <p/>
-     * Replaces the whole selection with the matching items, and empties it when
-     * {@code selection} is {@code null}.
+     * Replaces the whole selection with the items whose labels match, and
+     * empties it when {@code selection} is {@code null}. Labels that match no
+     * item are ignored as long as at least one label matches.
      *
      * @param selection
      *            item representations as strings
      * @throws IllegalStateException
      *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if none of the labels matches an item; the selection is then
+     *             left unchanged
      * @deprecated use {@link #selectItems(String...)}, which adds the items to
      *             the current selection as ticking them in the overlay does. To
      *             replace the selection, call {@link #deselectAll()} first; to

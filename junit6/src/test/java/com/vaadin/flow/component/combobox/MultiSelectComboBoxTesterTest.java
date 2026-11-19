@@ -161,6 +161,29 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
+    void selectItemsAndDeselectItems_multipleLabels_actOnEveryItem() {
+        test(view.combo).selectItems("test-foo", "test-bar");
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected());
+
+        test(view.combo).deselectItems("test-foo", "test-bar");
+
+        Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
+    }
+
+    @Test
+    void deprecatedSelectItem_isDeprecatedOnLocatorToo()
+            throws NoSuchMethodException {
+        Assertions.assertTrue(MultiSelectComboBoxLocator.class
+                .getMethod("selectItem", String[].class)
+                .isAnnotationPresent(Deprecated.class));
+        Assertions.assertFalse(MultiSelectComboBoxLocator.class
+                .getMethod("selectItems", String[].class)
+                .isAnnotationPresent(Deprecated.class));
+    }
+
+    @Test
     void deselectAll_emptiesSelectionWithoutClearButton() {
         view.combo.setValue(Set.copyOf(view.items));
         view.combo.setClearButtonVisible(false);

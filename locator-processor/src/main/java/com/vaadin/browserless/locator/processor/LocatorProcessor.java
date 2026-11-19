@@ -878,6 +878,11 @@ public class LocatorProcessor extends AbstractProcessor {
             String testerCtor, Map<String, String> subst) {
         StringBuilder sb = new StringBuilder();
         sb.append(renderJavadoc(m));
+        // Without the annotation, callers going through the locator would get
+        // the @deprecated text but no compiler warning.
+        if (processingEnv.getElementUtils().isDeprecated(m)) {
+            sb.append("    @Deprecated\n");
+        }
         // Method type parameters
         if (!m.getTypeParameters().isEmpty()) {
             sb.append("    public <");
