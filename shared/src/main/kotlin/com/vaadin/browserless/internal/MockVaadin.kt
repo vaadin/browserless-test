@@ -271,7 +271,7 @@ object MockVaadin {
         if (ui.internals.session != null && (fireUIDetach || ui.isClosing)) {
             // Every UI of a session has its own id, so the next UI does not
             // replace this one in the session: it has to be removed.
-            ui._close()
+            _close(ui)
         }
         UI.setCurrent(null)
         strongRefUI.remove()
@@ -289,7 +289,7 @@ object MockVaadin {
         clearVaadinInstances(false)
         val service: VaadinService? = VaadinService.getCurrent()
         if (service != null) {
-            service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+            fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
             VaadinService.setCurrent(null)
         }
         lastNavigation.remove()
@@ -375,7 +375,7 @@ object MockVaadin {
         val request = VaadinServletRequest(mockRequest, service)
 
         // init Session.
-        val session: VaadinSession = service._createVaadinSession(request)
+        val session: VaadinSession = _createVaadinSession(service, request)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)
@@ -404,7 +404,7 @@ object MockVaadin {
         CurrentInstance.set(VaadinResponse::class.java, objs.response)
 
         // fire session init listeners
-        service.fireSessionInitListeners(SessionInitEvent(service, objs.session, objs.request))
+        fireSessionInitListeners(service, SessionInitEvent(service, objs.session, objs.request))
 
         // create UI
         createUI(uiFactory, objs.session)
@@ -583,7 +583,7 @@ object MockVaadin {
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
-            val mockSession: MockHttpSession = session.mock
+            val mockSession: MockHttpSession = getMock(session)
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)
@@ -596,7 +596,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireSessionInit(service: VaadinService, session: VaadinSession, request: VaadinRequest) {
-        service.fireSessionInitListeners(SessionInitEvent(service, session, request))
+        fireSessionInitListeners(service, SessionInitEvent(service, session, request))
     }
 
     /**
@@ -605,7 +605,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireServiceDestroy(service: VaadinService) {
-        service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+        fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
     }
 
     /**
@@ -647,12 +647,12 @@ object MockVaadin {
 private val rethrowListenerFailure =
         SerializableBiConsumer<EventObject, Exception> { _, error -> throw error }
 
-internal fun VaadinService.fireSessionInitListeners(event: SessionInitEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireSessionInitListeners(service: VaadinService, event: SessionInitEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
-internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireServiceDestroyListeners(service: VaadinService, event: ServiceDestroyEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
 internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {

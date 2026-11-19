@@ -55,8 +55,7 @@ internal fun DynaNodeGroup.locatorTest2() {
             msg.matches(""".*Too many visible Dialogs \(1\) in MockedUI\[] matching Dialog and count=0\.\.0: \[Dialog\[.*]]\. Component tree:
 └── MockedUI\[]
 \s+└── Dialog\[.*].*
-""".toRegex(RegexOption.MULTILINE)
-            )
+""".toRegex(RegexOption.MULTILINE))
         }
         dlg.close()
         _expectNoDialogs()
@@ -104,83 +103,83 @@ internal fun DynaNodeGroup.locatorTest() {
     group("_get") {
         test("fails when no component match") {
             expectThrows(AssertionError::class) {
-                Button()._get(TextField::class.java)
+                _get(Button(), TextField::class.java)
             }
             expectAfterLookupCalled()
         }
 
         test("fail when multiple component match") {
             expectThrows(AssertionError::class) {
-                UI.getCurrent().verticalLayout {
+                _get(UI.getCurrent().verticalLayout {
                     verticalLayout { }
-                }._get(VerticalLayout::class.java)
+                }, VerticalLayout::class.java)
             }
             expectAfterLookupCalled()
         }
 
         test("ReturnsSelf") {
             val button = Button()
-            expect(button) { button._get(Button::class.java) }
+            expect(button) { _get(button, Button::class.java) }
             expectAfterLookupCalled()
         }
 
         test("ReturnsNested") {
             val button = Button()
-            expect(button) { VerticalLayout(button)._get(Button::class.java) }
+            expect(button) { _get(VerticalLayout(button), Button::class.java) }
             expectAfterLookupCalled()
         }
 
         test("fails on invisible") {
             val button = Button().apply { isVisible = false }
-            expectThrows(java.lang.AssertionError::class) { button._get(Button::class.java) }
+            expectThrows(java.lang.AssertionError::class) { _get(button, Button::class.java) }
             expectAfterLookupCalled()
         }
     }
 
     group("_find") {
         test("findMatchingId") {
-            val button = Button().apply { id_ = "foo" }
-            expectList(button) { VerticalLayout(button, Button())._find<Button> { id = "foo" } }
+            val button = Button().apply { setId("foo") }
+            expectList(button) { _find(VerticalLayout(button, Button()), Button::class.java) { id = "foo" } }
             expectAfterLookupCalled()
         }
 
         test("doesn't return invisible") {
             val button = Button().apply { isVisible = false }
-            expectList() { button._find(Button::class.java) }
+            expectList() { _find(button, Button::class.java) }
             expectAfterLookupCalled()
         }
 
         test("returns nested") {
             val vl = VerticalLayout().apply { verticalLayout {} }
-            expect(2) { vl._find(VerticalLayout::class.java).size }
+            expect(2) { _find(vl, VerticalLayout::class.java).size }
             expectAfterLookupCalled()
         }
     }
 
     group("_expectNone") {
         test("succeeds when no component match") {
-            Button()._expectNone<TextField>()
+            _expectNone(Button(), TextField::class.java)
             expectAfterLookupCalled()
         }
 
         test("fail when multiple component match") {
             expectThrows(AssertionError::class) {
-                UI.getCurrent().verticalLayout {
+                _expectNone(UI.getCurrent().verticalLayout {
                     verticalLayout { }
-                }._expectNone<VerticalLayout>()
+                }, VerticalLayout::class.java)
                 expectAfterLookupCalled()
             }
         }
 
         test("fails if self matches") {
             val button = Button()
-            expectThrows(AssertionError::class) { button._expectNone<Button>() }
+            expectThrows(AssertionError::class) { _expectNone(button, Button::class.java) }
             expectAfterLookupCalled()
         }
 
         test("fails if nested matches") {
             val button = Button()
-            expectThrows(AssertionError::class) { VerticalLayout(button)._expectNone<Button>() }
+            expectThrows(AssertionError::class) { _expectNone(VerticalLayout(button), Button::class.java) }
             expectAfterLookupCalled()
         }
     }
@@ -218,82 +217,80 @@ internal fun DynaNodeGroup.locatorTest() {
 
     group("matcher") {
         test("id") {
-            expect(true) { Button().matches { } }
-            expect(false) { Button().matches { id = "a" } }
-            expect(true) { Button().apply { id_ = "a" } .matches { } }
-            expect(true) { Button().apply { id_ = "a" } .matches { id = "a" } }
-            expect(false) { Button().apply { id_ = "a b" } .matches { id = "a" } }
-            expect(false) { Button().apply { id_ = "a" } .matches { id = "a b" } }
+            expect(true) { matches(Button()) { } }
+            expect(false) { matches(Button()) { id = "a" } }
+            expect(true) { matches(Button().apply { setId("a") }) { } }
+            expect(true) { matches(Button().apply { setId("a") }) { id = "a" } }
+            expect(false) { matches(Button().apply { setId("a b") }) { id = "a" } }
+            expect(false) { matches(Button().apply { setId("a") }) { id = "a b" } }
         }
         test("caption") {
-            expect(true) { Button("click me").matches { caption = "click me" } }
-            expect(true) { TextField("name:").matches { caption = "name:" } }
-            expect(true) { Button("click me").matches { } }
-            expect(true) { TextField("name:").matches { } }
-            expect(false) { Button("click me").matches { caption = "Click Me" } }
-            expect(false) { TextField("name:").matches { caption = "Name"} }
+            expect(true) { matches(Button("click me")) { caption = "click me" } }
+            expect(true) { matches(TextField("name:")) { caption = "name:" } }
+            expect(true) { matches(Button("click me")) { } }
+            expect(true) { matches(TextField("name:")) { } }
+            expect(false) { matches(Button("click me")) { caption = "Click Me" } }
+            expect(false) { matches(TextField("name:")) { caption = "Name"} }
         }
         test("placeholder") {
-            expect(true) { TextField("name", "the name").matches { placeholder = "the name" } }
-            expect(true) { PasswordField("password", "at least 6 characters").matches { placeholder = "at least 6 characters" } }
-            expect(true) { ComboBox<String>().apply { placeholder = "foo" }.matches { placeholder = "foo" } }
-            expect(false) { TextField("name", "the name").matches { placeholder = "name" } }
-            expect(false) { PasswordField("password", "at least 6 characters").matches { placeholder = "password" } }
+            expect(true) { matches(TextField("name", "the name")) { placeholder = "the name" } }
+            expect(true) { matches(PasswordField("password", "at least 6 characters")) { placeholder = "at least 6 characters" } }
+            expect(true) { matches(ComboBox<String>().apply { placeholder = "foo" }) { placeholder = "foo" } }
+            expect(false) { matches(TextField("name", "the name")) { placeholder = "name" } }
+            expect(false) { matches(PasswordField("password", "at least 6 characters")) { placeholder = "password" } }
         }
         test("value") {
-            expect(true) { TextField(null, "Mannerheim", "placeholder").matches { value = "Mannerheim" } }
-            expect(false) { TextField("Mannerheim").matches { value = "Mannerheim" } }
+            expect(true) { matches(TextField(null, "Mannerheim", "placeholder")) { value = "Mannerheim" } }
+            expect(false) { matches(TextField("Mannerheim")) { value = "Mannerheim" } }
         }
         test("styles") {
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { } }
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { classes = "a" } }
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { classes = "b" } }
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { classes = "a b" } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { classes = "a c" } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { classes = "c" } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { classes = "a" } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { classes = "b" } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { classes = "a b" } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { classes = "a c" } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { classes = "c" } }
         }
         test("withoutStyles") {
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { withoutClasses = "a" } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { withoutClasses = "b" } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { withoutClasses = "a b" } }
-            expect(false) { Button().apply { addClassNames("a", "b") } .matches { withoutClasses = "a c" } }
-            expect(true) { Button().apply { addClassNames("a", "b") } .matches { withoutClasses = "c" } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { withoutClasses = "a" } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { withoutClasses = "b" } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { withoutClasses = "a b" } }
+            expect(false) { matches(Button().apply { addClassNames("a", "b") }) { withoutClasses = "a c" } }
+            expect(true) { matches(Button().apply { addClassNames("a", "b") }) { withoutClasses = "c" } }
         }
         test("predicates") {
-            expect(true) { Button().matches {}}
-            expect(false) { Button().matches { predicates.add(Predicate { false }) }}
+            expect(true) { matches(Button()) {}}
+            expect(false) { matches(Button()) { predicates.add(Predicate { false }) }}
         }
         test("themes") {
-            expect(true) { Button().apply { addThemeNames("custom-theme", "my-theme") }.matches {} }
+            expect(true) { matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) {} }
             expect(true) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { themes = "custom-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { themes = "custom-theme" }
             }
             expect(true) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { themes = "my-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { themes = "my-theme" }
             }
             expect(true) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }
-                    .matches { themes = "custom-theme my-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { themes = "custom-theme my-theme" }
             }
             expect(false) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { themes = "no-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { themes = "no-theme" }
             }
         }
         test("withoutThemes") {
-            expect(true) { Button().apply { addThemeNames("custom-theme", "my-theme") }.matches {} }
+            expect(true) { matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) {} }
             expect(false) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { withoutThemes = "custom-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { withoutThemes = "custom-theme" }
             }
             expect(false) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { withoutThemes = "my-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { withoutThemes = "my-theme" }
             }
             expect(false) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }
-                    .matches { withoutThemes = "custom-theme my-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { withoutThemes = "custom-theme my-theme" }
             }
             expect(true) {
-                Button().apply { addThemeNames("custom-theme", "my-theme") }.matches { withoutThemes = "no-theme" }
+                matches(Button().apply { addThemeNames("custom-theme", "my-theme") }) { withoutThemes = "no-theme" }
             }
         }
     }
@@ -301,9 +298,9 @@ internal fun DynaNodeGroup.locatorTest() {
     group("unmocked env") {
         beforeEach { MockVaadin.tearDown(); testingLifecycleHook = TestingLifecycleHook.default }
         test("lookup functions should work in unmocked environment") {
-            Button()._get(Button::class.java)
+            _get(Button(), Button::class.java)
             expectThrows(AssertionError::class) {
-                Button()._get(TextField::class.java)
+                _get(Button(), TextField::class.java)
             }
         }
     }
@@ -318,38 +315,35 @@ internal fun DynaNodeGroup.locatorTest() {
 
         test("FailsOnNoComponents") {
             expectThrows(AssertionError::class) {
-                Button()._expectOne(Span::class.java)
+                _expectOne(Button(), Span::class.java)
             }
             expectAfterLookupCalled()
         }
 
         test("fails when multiple components match") {
             expectThrows(AssertionError::class) {
-                UI.getCurrent().verticalLayout {
+                _expectOne(UI.getCurrent().verticalLayout {
                     verticalLayout { }
-                }._expectOne(VerticalLayout::class.java)
+                }, VerticalLayout::class.java)
             }
             expectAfterLookupCalled()
         }
 
         test("selects self") {
-            Button()._expectOne(Button::class.java)
+            _expectOne(Button(), Button::class.java)
             expectAfterLookupCalled()
         }
 
         test("returns nested") {
-            VerticalLayout(Button())._expectOne(Button::class.java)
+            _expectOne(VerticalLayout(Button()), Button::class.java)
             expectAfterLookupCalled()
         }
 
         test("spec") {
             expectThrows(AssertionError::class) {
-                Button("foo")._expectOne<Button> { caption = "bar" }
+                _expectOne(Button("foo"), Button::class.java) { caption = "bar" }
             }
             expectAfterLookupCalled()
-            expectThrows(AssertionError::class) {
-                Button("foo")._expectOne(Button::class.java) { caption = "bar" }
-            }
         }
     }
 
@@ -360,50 +354,47 @@ internal fun DynaNodeGroup.locatorTest() {
         }
 
         test("FailsOnNoComponents") {
-            expectThrows(AssertionError::class) { Button()._expect<Span>() }
+            expectThrows(AssertionError::class) { _expect(Button(), Span::class.java) }
             expectAfterLookupCalled()
         }
 
         test("matching 0 components works") {
             _expect<Span>(0)
             expectAfterLookupCalled()
-            Button()._expect<Span>(0)
+            _expect(Button(), Span::class.java, 0)
         }
 
         test("fails when the count is wrong") {
             expectThrows(AssertionError::class) {
-                UI.getCurrent().verticalLayout {
+                _expect(UI.getCurrent().verticalLayout {
                     verticalLayout { }
-                }._expect<VerticalLayout>()
+                }, VerticalLayout::class.java)
             }
             expectAfterLookupCalled()
         }
 
         test("succeeds when the count is right") {
-            UI.getCurrent().verticalLayout {
+            _expect(UI.getCurrent().verticalLayout {
                 verticalLayout { }
-            }._expect<VerticalLayout>(2)
+            }, VerticalLayout::class.java, 2)
             expectAfterLookupCalled()
         }
 
         test("selects self") {
-            Button()._expect<Button>(1)
+            _expect(Button(), Button::class.java, 1)
             expectAfterLookupCalled()
         }
 
         test("returns nested") {
-            VerticalLayout(Button())._expect<Button>(1)
+            _expect(VerticalLayout(Button()), Button::class.java, 1)
             expectAfterLookupCalled()
         }
 
         test("spec") {
             expectThrows(AssertionError::class) {
-                Button("foo")._expect<Button> { caption = "bar" }
+                _expect(Button("foo"), Button::class.java) { caption = "bar" }
             }
             expectAfterLookupCalled()
-            expectThrows(AssertionError::class) {
-                Button("foo")._expect(Button::class.java) { caption = "bar" }
-            }
         }
     }
 }
