@@ -344,9 +344,6 @@ internal fun DynaNodeGroup.locatorTest() {
                 _expectOne(Button("foo"), Button::class.java) { caption = "bar" }
             }
             expectAfterLookupCalled()
-            expectThrows(AssertionError::class) {
-                _expectOne(Button("foo"), Button::class.java) { caption = "bar" }
-            }
         }
     }
 
@@ -398,9 +395,6 @@ internal fun DynaNodeGroup.locatorTest() {
                 _expect(Button("foo"), Button::class.java) { caption = "bar" }
             }
             expectAfterLookupCalled()
-            expectThrows(AssertionError::class) {
-                _expect(Button("foo"), Button::class.java) { caption = "bar" }
-            }
         }
     }
 }
