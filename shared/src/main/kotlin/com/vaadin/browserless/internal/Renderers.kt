@@ -17,10 +17,12 @@ package com.vaadin.browserless.internal
 
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.data.renderer.BasicRenderer
+import com.vaadin.flow.data.renderer.CompiledLitTemplate
 import com.vaadin.flow.data.renderer.ComponentRenderer
 import com.vaadin.flow.data.renderer.Renderer
 import com.vaadin.flow.data.renderer.TextRenderer
 import com.vaadin.flow.function.ValueProvider
+import com.vaadin.flow.js.JsDefinitionProxy
 import org.jsoup.Jsoup
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -50,9 +52,7 @@ fun <T> _getPresentationValue(renderer: Renderer<T>, rowObject: T): String? = wh
     }
     renderer::class.simpleName == "LitRenderer" -> {
         // LitRenderer re-declares private members
-        val templateProperty = renderer::class.java.getDeclaredField("templateExpression")
-        templateProperty.isAccessible = true
-        val templateExpression = templateProperty.get(renderer) as String
+        val templateExpression: String = getLitTemplateHtml(renderer)
 
         val valueProvidersProperty = renderer::class.java.getDeclaredField("valueProviders")
         valueProvidersProperty.isAccessible = true
@@ -62,6 +62,30 @@ fun <T> _getPresentationValue(renderer: Renderer<T>, rowObject: T): String? = wh
         Jsoup.parse(renderedLitTemplateHtml).textRecursively
     }
     else -> null
+}
+
+/**
+ * Returns the HTML of the Lit template that [renderer] renders with: either
+ * the template string it was created with, or the `html` tagged template that
+ * the body of its declared [CompiledLitTemplate] returns.
+ */
+private fun getLitTemplateHtml(renderer: Renderer<*>): String {
+    // LitRenderer has no public accessor for its template
+    val templateField = renderer::class.java.getDeclaredField("template")
+    templateField.isAccessible = true
+    val template = templateField.get(renderer) as CompiledLitTemplate?
+    if (template == null) {
+        val templateExpressionField = renderer::class.java.getDeclaredField("templateExpression")
+        templateExpressionField.isAccessible = true
+        return templateExpressionField.get(renderer) as String
+    }
+    val body: String = checkNotNull(JsDefinitionProxy.findDeclaredCall(template)) {
+        "The template of $renderer is not declared by a @JsDefinition method"
+    }.expression
+    // The body is a function body like return html`<span>${item.label}</span>`;
+    val start: Int = body.indexOf("html`")
+    val end: Int = body.lastIndexOf('`')
+    return if (start >= 0 && end > start + 4) body.substring(start + 5, end) else body
 }
 
 fun <T> renderLitTemplate(template: String, valueProviders: Map<String, ValueProvider<T, *>>, item: T): String {

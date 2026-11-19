@@ -101,11 +101,11 @@ import com.vaadin.flow.server.streams.UploadHandler;
 public class UploadTester<T extends Upload> extends ComponentTester<T> {
 
     /**
-     * Expression executed by {@link Upload#clearFileList()}. Clearing the file
-     * list has no server side state, so the emulated file list is synchronized
-     * by observing the pending JavaScript invocations.
+     * Method of {@link UploadJs} that {@link Upload#clearFileList()} calls.
+     * Clearing the file list has no server side state, so the emulated file
+     * list is synchronized by observing the pending JavaScript invocations.
      */
-    private static final String CLEAR_FILE_LIST_EXPRESSION = "this.files = [];";
+    private static final String CLEAR_FILE_LIST_METHOD = "clearFileList";
 
     private static final String STATE_KEY = UploadTester.class.getName()
             + ".state";
@@ -830,8 +830,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     private UploadState syncedState() {
         UploadState state = state();
         if (state.clearFileListCalls.hasNewInvocations(getComponent(),
-                invocation -> invocation.getExpression()
-                        .contains(CLEAR_FILE_LIST_EXPRESSION))) {
+                call -> call.definitionType() == UploadJs.class
+                        && CLEAR_FILE_LIST_METHOD.equals(call.methodName()))) {
             state.files.clear();
         }
         return state;

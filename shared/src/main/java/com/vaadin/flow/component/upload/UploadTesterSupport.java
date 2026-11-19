@@ -44,9 +44,9 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 import com.vaadin.flow.component.internal.UIInternals;
-import com.vaadin.flow.component.internal.UIInternals.JavaScriptInvocation;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.StateNode;
+import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
@@ -342,7 +342,8 @@ final class UploadTesterSupport {
 
     /**
      * Returns the JavaScript invocations scheduled so far for the given
-     * component that match the given condition.
+     * component that call a {@code @JsDefinition} method matching the given
+     * condition.
      * <p>
      * Clearing the file list of an upload component has no server side state,
      * so the testers learn about it by observing the invocations.
@@ -352,12 +353,12 @@ final class UploadTesterSupport {
      * @param component
      *            the component the invocations are scheduled for
      * @param condition
-     *            the condition the invocation matches
+     *            the condition the called method matches
      * @return the matching invocations
      */
     @SuppressWarnings("unchecked")
     static List<PendingJavaScriptInvocation> pendingInvocations(
-            Component component, Predicate<JavaScriptInvocation> condition) {
+            Component component, Predicate<JsCall> condition) {
         UI ui = component.getUI().orElse(null);
         if (ui == null) {
             return List.of();
@@ -370,9 +371,10 @@ final class UploadTesterSupport {
             return ((Stream<PendingJavaScriptInvocation>) method
                     .invoke(ui.getInternals()))
                     .filter(invocation -> invocation.getOwner() == node)
-                    .filter(invocation -> condition
-                            .test(invocation.getInvocation()))
-                    .toList();
+                    .filter(invocation -> {
+                        JsCall call = invocation.getInvocation().getJsCall();
+                        return call != null && condition.test(call);
+                    }).toList();
         } catch (NoSuchMethodException | IllegalAccessException
                 | InvocationTargetException e) {
             throw new RuntimeException(e);
@@ -393,18 +395,19 @@ final class UploadTesterSupport {
                 .newSetFromMap(new IdentityHashMap<>());
 
         /**
-         * Checks whether invocations matching the given condition were
-         * scheduled for the given component since the previous call.
+         * Checks whether invocations calling a {@code @JsDefinition} method
+         * matching the given condition were scheduled for the given component
+         * since the previous call.
          *
          * @param component
          *            the component the invocations are scheduled for
          * @param condition
-         *            the condition the invocation matches
+         *            the condition the called method matches
          * @return {@literal true} if a matching invocation was not seen by the
          *         previous call
          */
         boolean hasNewInvocations(Component component,
-                Predicate<JavaScriptInvocation> condition) {
+                Predicate<JsCall> condition) {
             List<PendingJavaScriptInvocation> pending = pendingInvocations(
                     component, condition);
             boolean found = pending.stream()
