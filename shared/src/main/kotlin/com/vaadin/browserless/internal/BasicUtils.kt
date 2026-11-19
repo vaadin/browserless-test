@@ -19,71 +19,37 @@ package com.vaadin.browserless.internal
 
 import com.vaadin.flow.component.BlurNotifier
 import com.vaadin.flow.component.Component
-import com.vaadin.flow.component.ComponentEvent
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.FocusNotifier
 import com.vaadin.flow.component.Focusable
-import com.vaadin.flow.component.HasEnabled
-import com.vaadin.flow.component.HasText
 import com.vaadin.flow.component.HasValue
 import com.vaadin.flow.component.Text
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.dom.DomEvent
 import com.vaadin.flow.internal.JacksonUtils
-import com.vaadin.flow.router.InternalServerError
 import tools.jackson.databind.node.ObjectNode
 
 /**
- * Allows us to fire any Vaadin event on any Vaadin component.
- * @receiver the component, not null.
- * @param event the event, not null.
- */
-fun Component._fireEvent(event: ComponentEvent<*>) {
-    ComponentUtil.fireEvent(this, event)
-}
-
-/**
- * Fires a DOM event on this component.
+ * Fires a DOM event on given [component].
  * @param eventType the event type, e.g. "click"
  * @param eventData optional event data, defaults to an empty object.
  */
 @JvmOverloads
-fun Component._fireDomEvent(eventType: String, eventData: ObjectNode = JacksonUtils.createObjectNode()) {
-    element._fireDomEvent(DomEvent(element, eventType, eventData))
+fun _fireDomEvent(component: Component, eventType: String, eventData: ObjectNode = JacksonUtils.createObjectNode()) {
+    _fireDomEvent(component.element, DomEvent(component.element, eventType, eventData))
 }
 
 /**
- * The same as [Component.getId] but without Optional.
- *
- * Workaround for https://github.com/vaadin/flow/issues/664
+ * Checks whether given [component] is visible (usually [Component.isVisible]
+ * but for [Text] the text must be non-empty).
  */
-var Component.id_: String?
-    get() = id.orElse(null)
-    set(value) {
-        setId(value)
-    }
+fun _isVisible(component: Component): Boolean = when (component) {
+    is Text -> !component.text.isNullOrBlank()   // workaround for https://github.com/vaadin/flow/issues/3201
+    else -> component.isVisible
+}
 
 /**
- * Checks whether the component is visible (usually [Component.isVisible] but for [Text]
- * the text must be non-empty).
- */
-val Component._isVisible: Boolean
-    get() = when (this) {
-        is Text -> !text.isNullOrBlank()   // workaround for https://github.com/vaadin/flow/issues/3201
-        else -> isVisible
-    }
-
-/**
- * Returns direct text contents (it doesn't peek into the child elements).
- */
-val Component._text: String?
-    get() = when (this) {
-        is HasText -> text
-        else -> null
-    }
-
-/**
- * Checks that a component is actually editable by the user:
+ * Checks that given [component] is actually editable by the user:
  * * The component must be effectively visible: it itself must be visible, its parent must be visible and all of its ascendants must be visible.
  *   For the purpose of testing individual components not attached to the [UI], a component may be considered visible even though it's not
  *   currently nested in a [UI].
@@ -91,93 +57,84 @@ val Component._text: String?
  * * If the component is [HasValue], it must not be [HasValue.isReadOnly].
  * @throws IllegalStateException if any of the above doesn't hold.
  */
-fun Component.checkEditableByUser() {
-    check(isEffectivelyVisible()) { "The ${toPrettyString()} is not effectively visible - either it is hidden, or its ascendant is hidden" }
-    val parentNullOrEnabled = !parent.isPresent || parent.get().isEffectivelyEnabled()
+fun checkEditableByUser(component: Component) {
+    check(isEffectivelyVisible(component)) { "The ${toPrettyString(component)} is not effectively visible - either it is hidden, or its ascendant is hidden" }
+    val parentNullOrEnabled = !component.parent.isPresent || isEffectivelyEnabled(component.parent.get())
     if (parentNullOrEnabled) {
-        check(element.isEnabled) { "The ${toPrettyString()} is not enabled" }
+        check(component.element.isEnabled) { "The ${toPrettyString(component)} is not enabled" }
     }
-    check(isEffectivelyEnabled()) { "The ${toPrettyString()} is nested in a disabled component" }
-    if (this is HasValue<*, *>) {
-        @Suppress("UNCHECKED_CAST")
-        val hasValue = this as HasValue<HasValue.ValueChangeEvent<Any?>, Any?>
-        check(!hasValue.isReadOnly) { "The ${toPrettyString()} is read-only" }
+    check(isEffectivelyEnabled(component)) { "The ${toPrettyString(component)} is nested in a disabled component" }
+    if (component is HasValue<*, *>) {
+        check(!component.isReadOnly) { "The ${toPrettyString(component)} is read-only" }
     }
-    check(isAttached) { " The ${toPrettyString()} is not attached" }
+    check(component.isAttached) { " The ${toPrettyString(component)} is not attached" }
 }
 
 /**
- * Fails if the component is editable. See [checkEditableByUser] for more details.
+ * Fails if given [component] is editable. See [checkEditableByUser] for more details.
  * @throws AssertionError if the component is editable.
  */
-fun Component.expectNotEditableByUser() {
+fun expectNotEditableByUser(component: Component) {
     try {
-        checkEditableByUser()
-        throw AssertionError("The ${toPrettyString()} is editable")
+        checkEditableByUser(component)
+        throw AssertionError("The ${toPrettyString(component)} is editable")
     } catch (ex: IllegalStateException) {
         // okay
     }
 }
 
-internal fun Component.isEffectivelyVisible(): Boolean = _isVisible && (!parent.isPresent || parent.get().isEffectivelyVisible())
+internal fun isEffectivelyVisible(component: Component): Boolean =
+    _isVisible(component) && (!component.parent.isPresent || isEffectivelyVisible(component.parent.get()))
 
 /**
- * Computes whether this component and all of its parents are enabled.
+ * Computes whether given [component] and all of its parents are enabled.
  *
- * Recursively checks that all ancestors are also enabled (the "implicitly disabled" effect, see [HasEnabled.isEnabled]
- * javadoc for more details).
+ * Recursively checks that all ancestors are also enabled (the "implicitly disabled" effect, see
+ * [com.vaadin.flow.component.HasEnabled.isEnabled] javadoc for more details).
  *
  * Also check that the component is not inert due to there being a modal component.
  *
  * @return false if this component or any of its parent is disabled or is inert.
  */
-fun Component.isEffectivelyEnabled(): Boolean = element.isEnabled && !element.node.isInert
+fun isEffectivelyEnabled(component: Component): Boolean =
+    component.element.isEnabled && !component.element.node.isInert
 
 /**
- * Checks whether this component matches given spec. All rules are matched except the [count] rule. The
+ * Checks whether given [component] matches given spec. All rules are matched except the [SearchSpec.count] rule. The
  * rules are matched against given component only (not against its children).
  */
-fun Component.matches(spec: SearchSpec<Component>.() -> Unit): Boolean =
-        SearchSpec(Component::class.java).apply { spec() }.toPredicate().invoke(this)
+fun matches(component: Component, spec: SearchSpec<Component>.() -> Unit): Boolean =
+        SearchSpec(Component::class.java).apply { spec() }.toPredicate().invoke(component)
 
 /**
- * Fires [FocusNotifier.FocusEvent] on the component, but only if it's editable.
+ * Fires [FocusNotifier.FocusEvent] on given [component], but only if it's editable.
  */
-fun <T> T._focus() where T : Focusable<*>, T : Component {
-    checkEditableByUser()
-    _fireEvent(FocusNotifier.FocusEvent<T>(this, true, null))
+fun <T> _focus(component: T) where T : Focusable<*>, T : Component {
+    checkEditableByUser(component)
+    ComponentUtil.fireEvent(component, FocusNotifier.FocusEvent<T>(component, true, null))
 }
 
 /**
- * Fires [BlurNotifier.BlurEvent] on the component, but only if it's editable.
+ * Fires [BlurNotifier.BlurEvent] on given [component], but only if it's editable.
  */
-fun <T> T._blur() where T : Focusable<*>, T : Component {
-    checkEditableByUser()
-    _fireEvent(BlurNotifier.BlurEvent<T>(this, true, null))
+fun <T> _blur(component: T) where T : Focusable<*>, T : Component {
+    checkEditableByUser(component)
+    ComponentUtil.fireEvent(component, BlurNotifier.BlurEvent<T>(component, true, null))
 }
 
 /**
- * Closes the UI and simulates the end of the request. The [UI.close] is called
+ * Closes given [ui] and simulates the end of the request. The [UI.close] is called
  * unless the UI is already closing, and then the UI is removed from its session,
  * which fires the detach listeners and makes the UI and all of its components
  * detached.
  */
-fun UI._close() {
-    if (!isClosing) {
-        close()
+fun _close(ui: UI) {
+    if (!ui.isClosing) {
+        ui.close()
     }
     // Mock closing of UI after request handled.
-    internals.session.removeUI(this)
+    ui.internals.session.removeUI(ui)
 }
-
-/**
- * Returns child components which were added to this component via
- * [com.vaadin.flow.dom.Element.appendVirtualChild].
- */
-fun Component._getVirtualChildren(): List<Component> =
-        element.getVirtualChildren().map { it._findComponents() }.flatten()
-
-internal val InternalServerError.errorMessage: String get() = element.text
 
 val _saneFetchLimit: Int get() =
 // don't use high value otherwise Vaadin 19+ will calculate negative limit and will pass it to SizeVerifier,
