@@ -78,9 +78,10 @@ class SessionLockIsolationTest {
         alice.navigate(BroadcastView.class);
         bob.navigate(BroadcastView.class);
 
-        var broadcast = alice.find(Button.class).withText("Broadcast").single();
+        var brokenBroadcast = alice.find(Button.class)
+                .withText("Broken broadcast").single();
         var ex = Assertions.assertThrows(IllegalStateException.class,
-                () -> alice.test(broadcast).click());
+                () -> alice.test(brokenBroadcast).click());
         Assertions.assertTrue(ex.getMessage().contains(
                 "Cannot access state in VaadinSession or UI without locking the session"),
                 ex.getMessage());
@@ -97,7 +98,7 @@ class SessionLockIsolationTest {
             w1.navigate(BroadcastView.class);
             var otherView = w2.navigate(BroadcastView.class);
 
-            w1.test(w1.find(Button.class).withText("Broadcast").single())
+            w1.test(w1.find(Button.class).withText("Broken broadcast").single())
                     .click();
 
             Assertions.assertEquals("Hello", otherView.getMessage());
@@ -248,7 +249,9 @@ class SessionLockIsolationTest {
 
         assertLocked(true, alice);
         Assertions.assertFalse(bobSession.hasLock());
-        alice.test(alice.find(Button.class).withText("Broadcast").single())
+        // Only alice's view is left, so this touches only her own session
+        alice.test(
+                alice.find(Button.class).withText("Broken broadcast").single())
                 .click();
         Assertions.assertEquals("Hello", aliceView.getMessage());
     }
