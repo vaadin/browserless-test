@@ -31,11 +31,11 @@ import com.vaadin.flow.server.VaadinSession;
  * session, used for testing cross-session UI updates.
  * <p>
  * "Broken broadcast" is <b>intentionally wrong</b>: it updates the instances of
- * other users directly, without their session lock. A running application fails
- * with "Cannot access state in VaadinSession or UI without locking the session"
- * as soon as another user has the view open, and a browserless test is expected
- * to fail the same way. "Broadcast with access" is the correct version, which
- * goes through {@code UI.access()}.
+ * other users directly, without their session lock. As soon as another user has
+ * the view open, a running application fails with "Cannot access state in
+ * VaadinSession or UI without locking the session", and so does a browserless
+ * test with session lock isolation, which is the default. "Broadcast with
+ * access" is the correct version, which goes through {@code UI.access()}.
  */
 @Route("broadcast")
 public class BroadcastView extends VerticalLayout {
@@ -47,7 +47,8 @@ public class BroadcastView extends VerticalLayout {
 
     public BroadcastView() {
         // Intentionally broken: another user's view is updated without
-        // holding that user's session lock, so this must throw in a test
+        // holding that user's session lock, so with session lock isolation
+        // this throws as soon as another user's view is attached
         Button brokenBroadcast = new Button("Broken broadcast",
                 e -> attached.forEach(view -> view.show("Hello")));
         Button broadcastWithAccess = new Button("Broadcast with access",
