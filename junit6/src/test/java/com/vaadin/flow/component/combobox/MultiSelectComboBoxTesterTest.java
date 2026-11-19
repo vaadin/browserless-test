@@ -116,12 +116,27 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertIterableEquals(Set.of(view.items.get(0)),
                 test(view.combo).getSelected());
 
+        test(view.combo).selectItem("test-bar");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                test(view.combo).getSelected(),
+                "selectItem should replace the selection");
+
+        test(view.combo).selectItem("test-foo", "test-baz");
+
+        Assertions.assertEquals(Set.of(view.items.get(0)),
+                test(view.combo).getSelected(),
+                "Unmatched labels should be ignored when another one matches");
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItem("test-baz"));
+        Assertions.assertEquals(Set.of(view.items.get(0)),
+                test(view.combo).getSelected());
+
         test(view.combo).selectItem("test-foo", "test-bar");
 
-        Assertions.assertTrue(
-                test(view.combo).getSelected().contains(view.items.get(0)));
-        Assertions.assertTrue(
-                test(view.combo).getSelected().contains(view.items.get(1)));
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected());
 
         test(view.combo).selectItem(null);
 
@@ -170,17 +185,6 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         test(view.combo).deselectItems("test-foo", "test-bar");
 
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
-    }
-
-    @Test
-    void deprecatedSelectItem_isDeprecatedOnLocatorToo()
-            throws NoSuchMethodException {
-        Assertions.assertTrue(MultiSelectComboBoxLocator.class
-                .getMethod("selectItem", String[].class)
-                .isAnnotationPresent(Deprecated.class));
-        Assertions.assertFalse(MultiSelectComboBoxLocator.class
-                .getMethod("selectItems", String[].class)
-                .isAnnotationPresent(Deprecated.class));
     }
 
     @Test
