@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.button.Button;
@@ -190,23 +192,51 @@ class SessionLockIsolationTest {
         assertLocked(false, bob);
     }
 
-    @Test
-    void userSwitch_fromCommandRunBySignalsTasks_failsAndKeepsLocksBalanced() {
+    enum SignalsDrain {
+        /** The command is queued before the tasks run. */
+        BEFORE_TASKS,
+        /** A signal task queues the command. */
+        BY_TASK,
+        /** A signal task left at close queues the command. */
+        AT_CLOSE
+    }
+
+    @ParameterizedTest
+    @EnumSource(SignalsDrain.class)
+    void userSwitch_fromCommandRunBySignalsTasks_failsAndKeepsLocksBalanced(
+            SignalsDrain drain) {
         var failure = new AtomicReference<IllegalStateException>();
-        alice.activate();
-        alice.getUI().access(() -> {
+        Runnable queueSwitch = () -> alice.getUI().access(() -> {
             try {
                 bob.activate();
             } catch (IllegalStateException e) {
                 failure.set(e);
             }
         });
+        alice.activate();
 
-        alice.runPendingSignalsTasks(0, TimeUnit.MILLISECONDS);
+        var aliceSession = alice.getUser().getSession();
+        var bobSession = bob.getUser().getSession();
+        if (drain == SignalsDrain.BEFORE_TASKS) {
+            queueSwitch.run();
+        } else {
+            app.getSignalsTestEnvironment().getEffectDispatcher()
+                    .execute(queueSwitch);
+        }
+        if (drain == SignalsDrain.AT_CLOSE) {
+            app.close();
+        } else {
+            alice.runPendingSignalsTasks(0, TimeUnit.MILLISECONDS);
+        }
 
         Assertions.assertNotNull(failure.get());
         Assertions.assertTrue(failure.get().getMessage()
                 .contains("from a UI.access() command"));
+        if (drain == SignalsDrain.AT_CLOSE) {
+            Assertions.assertFalse(aliceSession.hasLock());
+            Assertions.assertFalse(bobSession.hasLock());
+            return;
+        }
         assertLocked(true, alice);
         assertLocked(false, bob);
         bob.activate();
@@ -416,9 +446,30 @@ class SessionLockIsolationTest {
 
         Assertions.assertEquals("destroy", ex.getCause().getMessage());
         Assertions.assertFalse(closedSession.hasLock());
+        Assertions.assertNotSame(closedSession, VaadinSession.getCurrent());
         Assertions.assertTrue(hookRan.get());
         Assertions.assertNull(closing.getSignalsTestEnvironment());
         Assertions.assertNull(VaadinService.getCurrent());
+    }
+
+    @Test
+    void failingUserClose_whileAnotherUserIsActive_releasesClosedLock() {
+        var bobSession = bob.getUser().getSession();
+        bobSession.getService().addSessionDestroyListener(e -> {
+            if (e.getSession() == bobSession) {
+                throw new IllegalArgumentException("destroy");
+            }
+        });
+        alice.activate();
+
+        var ex = Assertions.assertThrows(ExecutionException.class,
+                () -> bob.getUser().close());
+
+        Assertions.assertEquals("destroy", ex.getCause().getMessage());
+        Assertions.assertFalse(bobSession.hasLock());
+        assertLocked(true, alice);
+        Assertions.assertSame(alice.getUser().getSession(),
+                VaadinSession.getCurrent());
     }
 
     private static void queueFailingCommand(BrowserlessUIContext window) {
