@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -293,6 +294,13 @@ class TabSheetTesterTest extends BrowserlessTest {
 
         view.payment.setVisible(false);
         Assertions.assertEquals(List.of("Details", "Shipping"),
+                tabs_.getTabLabels());
+
+        // Tabs keep insertion order, and a caption made of components has no
+        // label of its own
+        view.tabs.add(new Tab("Address"), new Span());
+        view.tabs.add(new Tab(new Span("Billing")), new Span());
+        Assertions.assertEquals(List.of("Details", "Shipping", "Address", ""),
                 tabs_.getTabLabels());
     }
 
