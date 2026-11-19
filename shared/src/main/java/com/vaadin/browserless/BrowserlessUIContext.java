@@ -749,6 +749,11 @@ public class BrowserlessUIContext
         // next activate() does not observe stale state from the closed
         // window.
         if (!wasActive && stillActive != null && !stillActive.closed) {
+            if (stillActive.user.getApp() != user.getApp()) {
+                // Re-activating it only hands over the lock in its own
+                // application context
+                user.getApp().holdSessionLock(null);
+            }
             reactivateSurviving(stillActive);
         } else {
             user.clearThreadLocals();

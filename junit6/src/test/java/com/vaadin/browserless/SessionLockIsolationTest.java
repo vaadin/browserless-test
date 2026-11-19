@@ -241,6 +241,29 @@ class SessionLockIsolationTest {
     }
 
     @Test
+    void closeInAnotherContext_whileWindowHereIsActive_releasesClosedLock() {
+        try (var other = BrowserlessApplicationContext
+                .create(BroadcastView.class)) {
+            var windowOwner = other.newUser();
+            var keptWindow = windowOwner.newWindow();
+            var closedWindow = windowOwner.newWindow();
+            var closedUser = other.newUser();
+            closedUser.newWindow();
+            alice.activate();
+
+            closedWindow.close();
+            Assertions.assertFalse(windowOwner.getSession().hasLock());
+            closedUser.close();
+            Assertions.assertFalse(closedUser.getSession().hasLock());
+
+            assertLocked(true, alice);
+            Assertions.assertDoesNotThrow(keptWindow::activate);
+        }
+        alice.activate();
+        assertLocked(true, alice);
+    }
+
+    @Test
     void closeAnotherUser_keepsActiveUserLockedAndUsable() {
         var aliceView = alice.navigate(BroadcastView.class);
         var bobSession = bob.getUser().getSession();
