@@ -62,12 +62,7 @@ class ComponentSupportTest {
         PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
 
         Assertions.assertEquals("panel title", ComponentUtils.getLabel(panel));
-    }
-
-    @Test
-    void caption_fallsBackToTheLabelFromSupport() {
-        PanelWithHiddenContent panel = new PanelWithHiddenContent(new Span());
-
+        // without a caption from a support, the caption is the label
         Assertions.assertEquals("panel title",
                 ComponentUtils.getCaption(panel));
     }
