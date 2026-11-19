@@ -54,9 +54,10 @@ import com.vaadin.flow.server.streams.UploadHandler;
 final class UploadManagerEmulation {
 
     /**
-     * The client-side function {@link UploadManager#clearFileList()} calls.
-     * Clearing the file list has no server side state, so the emulated file
-     * list is synchronized by observing the pending JavaScript invocations.
+     * The client-side function {@link UploadManager#clearFileList()} calls,
+     * through {@link Element#callJsFunction(String, Object...)}. Clearing the
+     * file list has no server side state, so the emulated file list is
+     * synchronized by observing the pending JavaScript invocations.
      */
     private static final String CLEAR_FILE_LIST_FUNCTION = "clearFileList";
 
@@ -499,12 +500,13 @@ final class UploadManagerEmulation {
 
     private State syncedState() {
         State state = state();
-        // the function is called through a generic expression that takes the
-        // function name as its first parameter
+        // callJsFunction calls a declared function that takes the name of the
+        // client-side function as its first argument
         if (state.clearFileListCalls.hasNewInvocations(connector,
-                invocation -> !invocation.getParameters().isEmpty()
+                call -> call.definitionType() == Element.CallFunctionJs.class
+                        && !call.arguments().isEmpty()
                         && CLEAR_FILE_LIST_FUNCTION
-                                .equals(invocation.getParameters().get(0)))) {
+                                .equals(call.arguments().get(0)))) {
             state.files.clear();
         }
         return state;

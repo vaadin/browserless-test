@@ -87,6 +87,12 @@ import com.vaadin.browserless.quarkus.mocks.MockQuarkusServlet;
 public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
+    /**
+     * Creates a new browserless Quarkus test.
+     */
+    public QuarkusBrowserlessTest() {
+    }
+
     @Override
     protected final String testingEngine() {
         return "JUnit 6";

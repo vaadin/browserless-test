@@ -72,6 +72,12 @@ public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
     @Autowired
     private ApplicationContext applicationContext;
 
+    /**
+     * Creates a new browserless Spring test.
+     */
+    public SpringBrowserlessTest() {
+    }
+
     @Override
     protected final String testingEngine() {
         return "JUnit 6";

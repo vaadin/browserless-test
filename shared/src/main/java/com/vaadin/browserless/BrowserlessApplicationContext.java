@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -86,6 +85,9 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private TestSignalEnvironment signalsTestEnvironment;
     private RequestContextHandler requestContextHandler;
     private boolean closed;
+    // Set for forComponent(...) contexts, which BrowserlessUIContext.close()
+    // tears down together with their window.
+    private boolean closesWithWindow;
 
     BrowserlessApplicationContext(VaadinServletService service,
             UIFactory uiFactory, List<Runnable> closeHooks) {
@@ -182,10 +184,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * window; reusing a single instance across windows re-parents it and leaves
      * the earlier window empty.
      * <p>
-     * The returned context closes itself when its window's UI is detached, so a
-     * single try-with-resources — on the returned context, or on the window via
-     * {@link BrowserlessUIContext#forComponent(Component)} — tears everything
-     * down.
+     * The returned context closes itself when one of its windows is closed, so
+     * a single try-with-resources — on the returned context, or on the window
+     * via {@link BrowserlessUIContext#forComponent(Component)} — tears
+     * everything down.
      *
      * @param componentFactory
      *            supplies the component to attach to each window; must not be
@@ -196,31 +198,57 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     public static BrowserlessApplicationContext forComponent(
             Supplier<Component> componentFactory) {
+        return forComponent(BrowserlessConfiguration.empty(), componentFactory);
+    }
+
+    /**
+     * Creates a self-contained application context for ad-hoc testing of a
+     * single component, applying the given custom Vaadin configuration
+     * (application properties, feature flags, lookup services) to the mocked
+     * environment. Behaves like {@link #forComponent(Supplier)} otherwise.
+     *
+     * <pre>
+     * var configuration = BrowserlessConfiguration.builder()
+     *         .withFeatureFlags("myExperimentalFeature").build();
+     * try (var app = BrowserlessApplicationContext.forComponent(configuration,
+     *         MyForm::new)) {
+     *     var window = app.newUser().newWindow();
+     *     // ...
+     * }
+     * </pre>
+     *
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
+     * @param componentFactory
+     *            supplies the component to attach to each window; must not be
+     *            {@code null}
+     * @return a new self-closing application context with no routes
+     * @throws NullPointerException
+     *             if {@code configuration} or {@code componentFactory} is
+     *             {@code null}
+     * @see Builder#withConfiguration(BrowserlessConfiguration)
+     */
+    public static BrowserlessApplicationContext forComponent(
+            BrowserlessConfiguration configuration,
+            Supplier<Component> componentFactory) {
         Objects.requireNonNull(componentFactory,
                 "componentFactory must not be null");
-        // Self-reference: the detach listener must close the app, but the app
-        // does not exist until create(...) returns — hold it in a one-slot ref.
-        AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
-        ownerApp.set(create(b -> b.withoutRoutes().withUIFactory(() -> {
+        Objects.requireNonNull(configuration, "configuration must not be null");
+        UIFactory uiFactory = () -> new MockedUI() {
             // Build the component from UI.init() rather than an attach
             // listener: init() runs from UI.doInit() after the current
             // UI/session are set, so a component whose constructor reads
             // UI.getCurrent() observes the live instance. withoutRoutes()
             // guarantees no initial navigate("") will later replace it.
-            MockedUI ui = new MockedUI() {
-                @Override
-                protected void init(VaadinRequest request) {
-                    add(componentFactory.get());
-                }
-            };
-            // Closing the UI tears down the bundled app. Safe against
-            // re-entrancy: BrowserlessUIContext.close() sets its closed flag
-            // before detaching the UI, so the cascade back through close()
-            // short-circuits.
-            ui.addDetachListener(event -> ownerApp.get().close());
-            return ui;
-        })));
-        return ownerApp.get();
+            @Override
+            protected void init(VaadinRequest request) {
+                add(componentFactory.get());
+            }
+        };
+        BrowserlessApplicationContext app = create(b -> b.withoutRoutes()
+                .withConfiguration(configuration).withUIFactory(uiFactory));
+        app.closesWithWindow = true;
+        return app;
     }
 
     /**
@@ -261,15 +289,24 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             return;
         }
         closed = true;
-        for (var user : users) {
-            user.close();
+        try {
+            // Pending effects run while the windows are still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
+            for (var user : users) {
+                user.close();
+            }
+            users.clear();
+            MockVaadin.fireServiceDestroy(service);
+        } finally {
+            // Unregistering runs what the windows and the destroy listeners
+            // queued while closing, on this thread
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
         }
-        users.clear();
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
-        }
-        MockVaadin.fireServiceDestroy(service);
         VaadinService.setCurrent(null);
         List<RuntimeException> hookFailures = new ArrayList<>();
         for (Runnable hook : closeHooks) {
@@ -293,6 +330,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
     UIFactory getUIFactory() {
         return uiFactory;
+    }
+
+    boolean closesWithWindow() {
+        return closesWithWindow;
     }
 
     TestSignalEnvironment getSignalsTestEnvironment() {

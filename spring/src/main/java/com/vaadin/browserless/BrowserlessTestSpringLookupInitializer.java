@@ -49,6 +49,12 @@ public class BrowserlessTestSpringLookupInitializer
 
     private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
+    /**
+     * Creates a new initializer.
+     */
+    public BrowserlessTestSpringLookupInitializer() {
+    }
+
     @Override
     public void prepareTestInstance(TestContext testContext) throws Exception {
         // SpringLookup requires a WebApplicationContext. Store current test
@@ -143,7 +149,7 @@ public class BrowserlessTestSpringLookupInitializer
             VaadinApplicationInitializationBootstrap bootstrap)
             throws ServletException {
         ApplicationContext appCtx = applicationContext.get();
-        ServletContext servletContext = UtilsKt.getContext(context);
+        ServletContext servletContext = UtilsKt.getServletContext(context);
         WebApplicationContext webAppCtx = WebApplicationContextUtils
                 .getWebApplicationContext(servletContext);
         if (webAppCtx == null) {

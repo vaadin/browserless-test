@@ -17,10 +17,12 @@ package com.vaadin.browserless.internal
 
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.data.renderer.BasicRenderer
+import com.vaadin.flow.data.renderer.CompiledLitTemplate
 import com.vaadin.flow.data.renderer.ComponentRenderer
 import com.vaadin.flow.data.renderer.Renderer
 import com.vaadin.flow.data.renderer.TextRenderer
 import com.vaadin.flow.function.ValueProvider
+import com.vaadin.flow.js.JsDefinitionProxy
 import org.jsoup.Jsoup
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -36,32 +38,54 @@ private val _BasicRenderer_getFormattedValue: Method by lazy(LazyThreadSafetyMod
  * Returns the output of this renderer for given [rowObject] formatted as close as possible
  * to the client-side output.
  */
-fun <T> Renderer<T>._getPresentationValue(rowObject: T): String? = when {
-    this is BasicRenderer<T, *> -> {
-        val value: Any? = this.valueProvider.apply(rowObject)
-        _BasicRenderer_getFormattedValue.invoke(this, value) as String?
+fun <T> _getPresentationValue(renderer: Renderer<T>, rowObject: T): String? = when {
+    renderer is BasicRenderer<T, *> -> {
+        val value: Any? = getValueProvider(renderer).apply(rowObject)
+        _BasicRenderer_getFormattedValue.invoke(renderer, value) as String?
     }
-    this is TextRenderer<T> -> {
-        renderText(rowObject)
+    renderer is TextRenderer<T> -> {
+        renderText(renderer, rowObject)
     }
-    this is ComponentRenderer<*, T> -> {
-        val component: Component = createComponent(rowObject)
-        component.toPrettyString()
+    renderer is ComponentRenderer<*, T> -> {
+        val component: Component = renderer.createComponent(rowObject)
+        toPrettyString(component)
     }
-    this::class.simpleName == "LitRenderer" -> {
+    renderer::class.simpleName == "LitRenderer" -> {
         // LitRenderer re-declares private members
-        val templateProperty = this::class.java.getDeclaredField("templateExpression")
-        templateProperty.isAccessible = true
-        val templateExpression = templateProperty.get(this) as String
+        val templateExpression: String = getLitTemplateHtml(renderer)
 
-        val valueProvidersProperty = this::class.java.getDeclaredField("valueProviders")
+        val valueProvidersProperty = renderer::class.java.getDeclaredField("valueProviders")
         valueProvidersProperty.isAccessible = true
-        val valueProviders = valueProvidersProperty.get(this) as Map<String, ValueProvider<T, *>>
+        val valueProviders = valueProvidersProperty.get(renderer) as Map<String, ValueProvider<T, *>>
 
         val renderedLitTemplateHtml: String = renderLitTemplate(templateExpression, valueProviders, rowObject)
         Jsoup.parse(renderedLitTemplateHtml).textRecursively
     }
     else -> null
+}
+
+/**
+ * Returns the HTML of the Lit template that [renderer] renders with: either
+ * the template string it was created with, or the `html` tagged template that
+ * the body of its declared [CompiledLitTemplate] returns.
+ */
+private fun getLitTemplateHtml(renderer: Renderer<*>): String {
+    // LitRenderer has no public accessor for its template
+    val templateField = renderer::class.java.getDeclaredField("template")
+    templateField.isAccessible = true
+    val template = templateField.get(renderer) as CompiledLitTemplate?
+    if (template == null) {
+        val templateExpressionField = renderer::class.java.getDeclaredField("templateExpression")
+        templateExpressionField.isAccessible = true
+        return templateExpressionField.get(renderer) as String
+    }
+    val body: String = checkNotNull(JsDefinitionProxy.findDeclaredCall(template)) {
+        "The template of $renderer is not declared by a @JsDefinition method"
+    }.expression
+    // The body is a function body like return html`<span>${item.label}</span>`;
+    val start: Int = body.indexOf("html`")
+    val end: Int = body.lastIndexOf('`')
+    return if (start >= 0 && end > start + 4) body.substring(start + 5, end) else body
 }
 
 fun <T> renderLitTemplate(template: String, valueProviders: Map<String, ValueProvider<T, *>>, item: T): String {
@@ -78,8 +102,8 @@ fun <T> renderLitTemplate(template: String, valueProviders: Map<String, ValuePro
  * Returns the text rendered for given [item].
  */
 @Suppress("UNCHECKED_CAST")
-fun <T> TextRenderer<T>.renderText(item: T): String =
-    createComponent(item).element.text
+fun <T> renderText(renderer: TextRenderer<T>, item: T): String =
+    renderer.createComponent(item).element.text
 
 private val _BasicRenderer_valueProvider: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val javaField: Field = BasicRenderer::class.java.getDeclaredField("valueProvider")
@@ -91,20 +115,6 @@ private val _BasicRenderer_valueProvider: Field by lazy(LazyThreadSafetyMode.PUB
  * Returns the [ValueProvider] set to [BasicRenderer].
  */
 @Suppress("UNCHECKED_CAST", "ConflictingExtensionProperty")
-val <T, V> BasicRenderer<T, V>.valueProvider: ValueProvider<T, V>
-    get() = _BasicRenderer_valueProvider.get(this) as ValueProvider<T, V>
+private fun <T, V> getValueProvider(renderer: BasicRenderer<T, V>): ValueProvider<T, V> =
+    _BasicRenderer_valueProvider.get(renderer) as ValueProvider<T, V>
 
-private val _Renderer_template: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {
-    val templateF: Field = Renderer::class.java.getDeclaredField("template")
-    templateF.isAccessible = true
-    templateF
-}
-
-/**
- * Returns the Polymer Template set to the [Renderer].
- */
-val Renderer<*>.template: String
-    get() {
-        val template: String? = _Renderer_template.get(this) as String?
-        return template ?: ""
-    }

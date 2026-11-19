@@ -21,6 +21,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.*
 import com.vaadin.flow.component.Component
+import com.vaadin.flow.component.HasText
 import com.vaadin.flow.component.HasValidation
 import com.vaadin.flow.component.HasValue
 import com.vaadin.flow.component.Html
@@ -28,6 +29,7 @@ import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.html.Anchor
 import com.vaadin.flow.component.icon.Icon
+import com.vaadin.browserless.component.getDataProvider
 import com.vaadin.browserless.internal.PrettyPrintTree.Companion.ofVaadin
 
 
@@ -68,7 +70,7 @@ class PrettyPrintTree(val name: String, val children: MutableList<PrettyPrintTre
     companion object {
 
         fun ofVaadin(root: Component): PrettyPrintTree {
-            val result = PrettyPrintTree(root.toPrettyString(), mutableListOf())
+            val result = PrettyPrintTree(toPrettyString(root), mutableListOf())
             for (child: Component in testingLifecycleHook.getAllChildren(root)) {
                 result.children.add(ofVaadin(child))
             }
@@ -77,25 +79,28 @@ class PrettyPrintTree(val name: String, val children: MutableList<PrettyPrintTre
     }
 }
 
-fun Component.toPrettyTree(): String = PrettyPrintTree.ofVaadin(this).print()
+fun toPrettyTree(component: Component): String = PrettyPrintTree.ofVaadin(component).print()
 
 /**
- * Returns the most basic properties of the component, formatted as a concise string:
+ * Returns the most basic properties of given [component], formatted as a concise string:
  * * The component class
  * * The [Component.getId]
  * * Whether the component is [Component.isVisible]
  * * Whether it is a [HasValue] that is read-only
  * * the styles
- * * The [Component.label] and text
+ * * The [getLabel] and text
  * * The [HasValue.getValue]
  */
 @Suppress("UNCHECKED_CAST")
-fun Component.toPrettyString(): String {
+fun toPrettyString(component: Component): String = with(component) {
+    val text: String? = (this as? HasText)?.text
+    val label: String = getLabel(this)
+    val caption: String = getCaption(this)
     val list = LinkedList<String>()
     if (id.isPresent) {
         list.add("#${id.get()}")
     }
-    if (!_isVisible) {
+    if (!_isVisible(this)) {
         list.add("INVIS")
     }
     if (this is HasValue<*, *> && (this as HasValue<HasValue.ValueChangeEvent<Any?>, Any?>).isReadOnly) {
@@ -110,8 +115,8 @@ fun Component.toPrettyString(): String {
     if (label != caption && caption.isNotBlank()) {
         list.add("caption='$caption'")
     }
-    if (!_text.isNullOrBlank() && _text != caption) {
-        list.add("text='$_text'")
+    if (!text.isNullOrBlank() && text != caption) {
+        list.add("text='$text'")
     }
     if (this is HasValue<*, *>) {
         list.add("value='${(this as HasValue<HasValue.ValueChangeEvent<Any?>, Any?>).value}'")
@@ -143,7 +148,7 @@ fun Component.toPrettyString(): String {
         }
     }
     // Any component with href should output it not only Anchor
-    hrefValue()?.let {
+    readHref(this)?.let {
         list.add("href='$it'")
     }
     if (this is Button && icon is Icon) {
@@ -156,8 +161,9 @@ fun Component.toPrettyString(): String {
     if (this is Grid<*> && this.beanType != null) {
         list.add("<${this.beanType.simpleName}>")
     }
-    if (this.dataProvider != null) {
-        list.add("dataprovider='${this.dataProvider}'")
+    val dataProvider = getDataProvider(this)
+    if (dataProvider != null) {
+        list.add("dataprovider='$dataProvider'")
     }
     element.attributeNames
         .filter { !dontDumpAttributes.contains(it) }
@@ -186,11 +192,11 @@ fun Component.toPrettyString(): String {
         // anonymous classes
         name = javaClass.name
     }
-    return name + list
+    name + list
 }
 
 /**
- * Reads the `href` value of this component, so that [toPrettyString] can dump it for
+ * Reads the `href` value of given [component], so that [toPrettyString] can dump it for
  * any component declaring it, not just [Anchor].
  *
  * The first member holding a non-blank value wins, looked up in this order: a no-arg
@@ -207,39 +213,39 @@ fun Component.toPrettyString(): String {
  *
  * @return the `href` value, or null if this component has none.
  */
-private fun Component.hrefValue(): Any? {
+private fun readHref(component: Component): Any? {
     // members declared by the component classes themselves, at any visibility:
     // Anchor.href e.g. is a private field
-    var clazz: Class<*>? = javaClass
+    var clazz: Class<*>? = component.javaClass
     while (clazz != null) {
         clazz.declaredMethods
             .firstOrNull { it.name == "href" && it.parameterCount == 0 }
-            ?.let { method -> readHref(method)?.let { return it } }
+            ?.let { method -> readHref(component, method)?.let { return it } }
         clazz.declaredFields
             .firstOrNull { it.name == "href" }
-            ?.let { field -> readHref(field)?.let { return it } }
+            ?.let { field -> readHref(component, field)?.let { return it } }
         clazz = clazz.superclass
     }
     // bean getters, e.g. RouterLink.getHref(), and members inherited from an
     // interface. getMethods() only gets consulted here, since it is the more
     // expensive call and most components declare no href member at all
-    javaClass.methods
+    component.javaClass.methods
         .filter { (it.name == "href" || it.name == "getHref") && it.parameterCount == 0 }
-        .forEach { method -> readHref(method)?.let { return it } }
+        .forEach { method -> readHref(component, method)?.let { return it } }
     return null
 }
 
 /**
- * Reads the value the given `href` [member] holds for this component.
+ * Reads the value the given `href` [member] holds for given [component].
  *
  * @return the value, or null if there is none or it is blank - a getter typically
  * reports a missing `href` as an empty string, e.g. [Anchor.getHref].
  */
-private fun Component.readHref(member: AccessibleObject): Any? {
+private fun readHref(component: Component, member: AccessibleObject): Any? {
     member.isAccessible = true
     val value: Any? = when (member) {
-        is Method -> member.invoke(this)
-        is Field -> member.get(this)
+        is Method -> member.invoke(component)
+        is Field -> member.get(component)
         else -> null
     }
     return value?.takeIf { it.toString().isNotBlank() }
@@ -258,6 +264,6 @@ var prettyStringHook: (component: Component, list: LinkedList<String>) -> Unit =
  *
  * * `disabled` - dumped separately as "DISABLED" string.
  * * `id` - dumped as Component.id
- * * `href` - there's special processing for [Anchor._href].
+ * * `href` - dumped separately for any component that has an `href` member.
  */
 var dontDumpAttributes: MutableSet<String> = mutableSetOf("disabled", "id", "href")

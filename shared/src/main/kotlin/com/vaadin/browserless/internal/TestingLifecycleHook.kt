@@ -15,12 +15,12 @@
  */
 package com.vaadin.browserless.internal
 
-import java.lang.reflect.Method
 import com.vaadin.flow.component.Component
 import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.Composite
 import com.vaadin.flow.component.UI
 import com.vaadin.flow.component.contextmenu.MenuItemBase
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog
 import com.vaadin.flow.component.dialog.Dialog
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.littemplate.LitTemplate
@@ -95,7 +95,7 @@ interface TestingLifecycleHook {
             component.children.toList()
         }
 
-        component.isTemplate -> {
+        isTemplate(component) -> {
             // don't include virtual children since those will include nested components.
             // however, those components are only they are only "shallow shells" of components constructed
             // server-side - almost none of their properties are transferred to the server-side.
@@ -146,8 +146,8 @@ interface TestingLifecycleHook {
     }
 }
 
-val Component.isTemplate: Boolean
-    get() = this is LitTemplate || isPolymerTemplate(this)
+fun isTemplate(component: Component): Boolean =
+    component is LitTemplate || isPolymerTemplate(component)
 
 /**
  * If you need to hook into the testing lifecycle (e.g. you need to wait for any async operations to finish),
@@ -155,11 +155,6 @@ val Component.isTemplate: Boolean
  * where exactly you can hook into.
  */
 var testingLifecycleHook: TestingLifecycleHook = TestingLifecycleHook.default
-
-private val _ConfirmDialog_Class: Class<*>? = findClass("com.vaadin.flow.component.confirmdialog.ConfirmDialog")
-
-private val _ConfirmDialog_isOpened: Method? =
-    _ConfirmDialog_Class?.getMethod("isOpened")
 
 /**
  * Checks whether given [component] is a dialog and needs to be removed from the UI.
@@ -169,11 +164,7 @@ private fun isDialogAndNeedsRemoval(component: Component): Boolean {
     if (component is Dialog && !component.isOpened) {
         return true
     }
-    // also support ConfirmDialog. But be careful - this is a Pro component and may not be on classpath.
-    if (_ConfirmDialog_Class != null && _ConfirmDialog_isOpened != null && _ConfirmDialog_Class.isInstance(
-            component
-        ) && !(_ConfirmDialog_isOpened.invoke(component) as Boolean)
-    ) {
+    if (component is ConfirmDialog && !component.isOpened) {
         return true
     }
     return false
@@ -188,7 +179,7 @@ fun cleanupDialogs() {
     // Starting with Vaadin 23, nested dialogs are also nested within respective
     // modal dialog within the UI. This is probably related to the "server-side
     // modality curtain" feature. Also see https://github.com/mvysny/karibu-testing/issues/102
-    UI.getCurrent().walk()
+    walk(UI.getCurrent())
         .filter { isDialogAndNeedsRemoval(it) }
         .forEach { it.element.removeFromParent() }
 }

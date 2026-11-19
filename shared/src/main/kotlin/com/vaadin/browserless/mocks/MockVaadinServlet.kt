@@ -21,14 +21,12 @@ import com.vaadin.flow.function.DeploymentConfiguration
 import com.vaadin.flow.server.*
 import com.vaadin.browserless.internal.Routes
 import com.vaadin.browserless.internal.UIFactory
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 
 /**
  * Makes sure that [routes] are properly registered, and that [MockService]
  * is used instead of vanilla [VaadinServletService].
  *
- * To use a custom servlet instead of this one, just pass it to [MockVaadin.setup].
+ * To use a custom servlet instead of this one, just pass it to [com.vaadin.browserless.internal.MockVaadin.setup].
  */
 open class MockVaadinServlet @JvmOverloads constructor(
         val routes: Routes = Routes(),
@@ -48,56 +46,6 @@ open class MockVaadinServlet @JvmOverloads constructor(
     }
 }
 
-private val _VaadinServlet_getService: Method =
-    VaadinServlet::class.java.getDeclaredMethod("getService")
-
-/**
- * Workaround for https://github.com/mvysny/karibu-testing/issues/66
- */
-internal val VaadinServlet.serviceSafe: VaadinServletService? get() {
-    // we need to use the reflection. The problem is that the signature
-    // of the method differs between Vaadin versions:
-    //
-    // Vaadin 14.6: getService() returns VaadinService
-    // Vaadin 20+: getService() returns VaadinServletService
-    //
-    // calling the method directly will cause MethodNotFoundError on Vaadin 20+
-    return _VaadinServlet_getService.invoke(this) as VaadinServletService?
-}
-
-/**
- * Workaround for https://github.com/mvysny/karibu-testing/issues/66
- */
-internal fun createVaadinServletRequest(request: HttpServletRequest, service: VaadinService): VaadinServletRequest {
-    // we need to use the reflection. The problem is that the signature
-    // of the constructor differs between Vaadin versions:
-    //
-    // Vaadin 14.6: VaadinServletRequest(HttpServletRequest, VaadinServletService)
-    // Vaadin 20+: VaadinServletRequest(HttpServletRequest, VaadinService)
-    //
-    // calling the constructor directly will cause MethodNotFoundError.
-    val constructor: Constructor<*> =
-        VaadinServletRequest::class.java.declaredConstructors.first { it.parameterCount == 2 }
-    return constructor.newInstance(request, service) as VaadinServletRequest
-}
-
-private val _VaadinServletResponse_constructor: Constructor<*> =
-    VaadinServletResponse::class.java.declaredConstructors.first { it.parameterCount == 2 }
-
-/**
- * Workaround for https://github.com/mvysny/karibu-testing/issues/66
- */
-internal fun createVaadinServletResponse(response: HttpServletResponse, service: VaadinService): VaadinServletResponse {
-    // we need to use the reflection. The problem is that the signature
-    // of the constructor differs between Vaadin versions:
-    //
-    // Vaadin 14.6: VaadinServletResponse(HttpServletResponse, VaadinServletService)
-    // Vaadin 20+: VaadinServletResponse(HttpServletResponse, VaadinService)
-    //
-    // calling the constructor directly will cause MethodNotFoundError.
-    return _VaadinServletResponse_constructor.newInstance(response, service) as VaadinServletResponse
-}
-
 private val _WebBrowser_constructor: Constructor<WebBrowser> =
     WebBrowser::class.java.getDeclaredConstructor(VaadinRequest::class.java).apply {
         isAccessible = true
@@ -111,6 +59,6 @@ private val _VaadinService_createVaadinSession: Method =
         isAccessible = true
     }
 
-internal fun VaadinService._createVaadinSession(request: VaadinRequest): VaadinSession {
-    return _VaadinService_createVaadinSession.invoke(this, request) as VaadinSession
+internal fun _createVaadinSession(service: VaadinService, request: VaadinRequest): VaadinSession {
+    return _VaadinService_createVaadinSession.invoke(service, request) as VaadinSession
 }

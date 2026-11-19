@@ -65,14 +65,14 @@ data class Routes(
     @Suppress("UNCHECKED_CAST")
     fun register(sc: VaadinContext) {
         val classSet: Set<Class<*>> = routes.toSet<Class<*>>() + layouts
-        RouteRegistryInitializer().onStartup(classSet, sc.context)
-        checkNotNull(sc.context.getAttribute("com.vaadin.flow.server.startup.ApplicationRouteRegistry${'$'}ApplicationRouteRegistryWrapper")) {
+        RouteRegistryInitializer().onStartup(classSet, getServletContext(sc))
+        checkNotNull(getServletContext(sc).getAttribute("com.vaadin.flow.server.startup.ApplicationRouteRegistry${'$'}ApplicationRouteRegistryWrapper")) {
             "RouteRegistryInitializer did not register the ApplicationRouteRegistry!"
         }
         val registry: ApplicationRouteRegistry = ApplicationRouteRegistry.getInstance(sc)
         registry.setErrorNavigationTargets(errorRoutes.map { it as Class<out Component> }.toSet())
         if (skipPwaInit) {
-            registry.clearPwaClass()
+            clearPwaClass(registry)
         }
     }
 
@@ -142,14 +142,14 @@ data class Routes(
 }
 
 /**
- * Clears the PWA class config from this registry.
+ * Clears the PWA class config from given [registry].
  */
 @Suppress("UNCHECKED_CAST")
-fun ApplicationRouteRegistry.clearPwaClass() {
+fun clearPwaClass(registry: ApplicationRouteRegistry) {
     val pwaClassField: Field = ApplicationRouteRegistry::class.java.getDeclaredField("pwaConfigurationClass").apply { isAccessible = true }
-    val ref: AtomicReference<Class<*>> = pwaClassField.get(this) as AtomicReference<Class<*>>
+    val ref: AtomicReference<Class<*>> = pwaClassField.get(registry) as AtomicReference<Class<*>>
     ref.set(null)
-    if (pwaConfigurationClass != null) {
+    if (registry.pwaConfigurationClass != null) {
         throw AssertionError("PWA configuration class should have been removed")
     }
 }
@@ -174,17 +174,17 @@ open class MockRouteNotFoundError : RouteNotFoundError() {
             }
             append("\nAvailable routes: ")
             val routes: List<RouteData> = event.source.registry.registeredRoutes
-            append(routes.map { it.toPrettyString() })
+            append(routes.map { toPrettyString(it) })
             append("\nIf you'd like to revert back to the original Vaadin RouteNotFoundError, please remove the ${MockRouteNotFoundError::class.java} from Routes.errorRoutes")
         }
         cause = NotFoundException(message).apply { initCause(parameter.caughtException) }
         return super.setErrorParameter(event, parameter)
     }
 
-    private fun RouteData.toPrettyString(): String {
-        val template = template
+    private fun toPrettyString(route: RouteData): String {
+        val template = route.template
         val path: String = if (template.isNullOrBlank()) "<root>" else "/$template"
-        return "${navigationTarget.simpleName} at '$path'"
+        return "${route.navigationTarget.simpleName} at '$path'"
     }
 }
 

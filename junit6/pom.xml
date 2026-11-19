@@ -165,9 +165,19 @@
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <artifactId>vaadin</artifactId>
-            <version>${vaadin.version}</version>
-            <scope>provided</scope>
+            <artifactId>vaadin-ordered-layout-flow</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Karibu-DSL's DateRangePopup, used in tests, is a CustomField -->
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-custom-field-flow</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-lumo-theme</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

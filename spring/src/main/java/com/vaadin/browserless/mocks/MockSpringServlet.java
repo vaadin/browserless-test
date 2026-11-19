@@ -52,13 +52,33 @@ import com.vaadin.flow.spring.SpringServlet;
  */
 public class MockSpringServlet extends SpringServlet {
 
+    /**
+     * The routes registered when the servlet is initialized.
+     */
     @NotNull
     public final Routes routes;
+    /**
+     * The Spring application context the servlet runs in.
+     */
     @NotNull
     public final ApplicationContext ctx;
+    /**
+     * Creates the UI for every new session.
+     */
     @NotNull
     public final UIFactory uiFactory;
 
+    /**
+     * Creates a new mocked Spring servlet.
+     *
+     * @param routes
+     *            the routes to register
+     * @param ctx
+     *            the Spring application context
+     * @param uiFactory
+     *            creates the UI for every new session
+     * @deprecated use the constructor taking a {@link UIFactory} instead
+     */
     @Deprecated(forRemoval = true)
     public MockSpringServlet(@NotNull Routes routes,
             @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
@@ -68,8 +88,17 @@ public class MockSpringServlet extends SpringServlet {
         this.uiFactory = uiFactory::invoke;
     }
 
+    /**
+     * Creates a new mocked Spring servlet.
+     *
+     * @param routes
+     *            the routes to register
+     * @param ctx
+     *            the Spring application context
+     * @param uiFactory
+     *            creates the UI for every new session
+     */
     public MockSpringServlet(@NotNull Routes routes,
-
             @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;
