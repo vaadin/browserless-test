@@ -173,6 +173,11 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      * Hidden tabs are left out, so the position of a label in the returned list
      * is the index that {@link #select(int)} and {@link #getTab(int)} accept.
      * <p>
+     * Each entry is the tab's {@link Tab#getLabel() label}, the same text that
+     * {@link #select(String)} and {@link #getTab(String)} match. A tab whose
+     * caption is made of components, such as an icon and a {@code Span}, has no
+     * label of its own and is listed as an empty string.
+     * <p>
      * This only reads the tabs, so it also works when the component is
      * disabled.
      *

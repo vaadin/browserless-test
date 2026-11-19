@@ -303,6 +303,9 @@ class TabSheetTesterTest extends BrowserlessTest {
         view.tabs.setSelectedTab(view.shipping);
         Assertions.assertEquals("Shipping", tabs_.getSelectedTabLabel());
 
+        view.shipping.setVisible(false);
+        Assertions.assertEquals("Shipping", tabs_.getSelectedTabLabel());
+
         view.tabs.setSelectedTab(null);
         Assertions.assertNull(tabs_.getSelectedTabLabel());
     }
