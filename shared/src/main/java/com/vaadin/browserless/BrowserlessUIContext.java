@@ -102,7 +102,7 @@ public class BrowserlessUIContext
             // Roll back thread-local state: do not leak this half-built
             // context as the active context.
             if (previous != null && !previous.closed) {
-                reactivateSurviving(previous);
+                reactivateSurviving(previous, user.getApp());
             } else {
                 user.clearThreadLocals();
                 user.getApp().holdSessionLock(null);
@@ -749,12 +749,7 @@ public class BrowserlessUIContext
         // next activate() does not observe stale state from the closed
         // window.
         if (!wasActive && stillActive != null && !stillActive.closed) {
-            if (stillActive.user.getApp() != user.getApp()) {
-                // Re-activating it only hands over the lock in its own
-                // application context
-                user.getApp().holdSessionLock(null);
-            }
-            reactivateSurviving(stillActive);
+            reactivateSurviving(stillActive, user.getApp());
         } else {
             user.clearThreadLocals();
             user.getApp().holdSessionLock(null);
@@ -783,8 +778,8 @@ public class BrowserlessUIContext
      * Clears the active-context ThreadLocal without otherwise touching the
      * thread-local Vaadin state. Reserved for defensive test cleanup; lifecycle
      * code paths should prefer
-     * {@link #reactivateSurviving(BrowserlessUIContext)} which both clears and
-     * re-installs the surviving window's state.
+     * {@link #reactivateSurviving(BrowserlessUIContext, BrowserlessApplicationContext)}
+     * which both clears and re-installs the surviving window's state.
      */
     static void clearActiveContext() {
         activeContext.remove();
@@ -798,8 +793,23 @@ public class BrowserlessUIContext
      * snapshot. Used by lifecycle paths (constructor rollback, non-active
      * window close, cross-user session destroy) that temporarily displaced the
      * active window's thread-local state.
+     * <p>
+     * Re-activating the window hands the session lock over only in its own
+     * application context. If the displacing path ran in another one, that
+     * context's lock is released first, so it does not keep the displacing
+     * user's session locked.
+     *
+     * @param stillActive
+     *            the surviving window to re-activate
+     * @param displacedBy
+     *            the application context of the window or user whose lifecycle
+     *            step displaced the active window's state
      */
-    static void reactivateSurviving(BrowserlessUIContext stillActive) {
+    static void reactivateSurviving(BrowserlessUIContext stillActive,
+            BrowserlessApplicationContext displacedBy) {
+        if (stillActive.user.getApp() != displacedBy) {
+            displacedBy.holdSessionLock(null);
+        }
         activeContext.remove();
         stillActive.activate();
     }

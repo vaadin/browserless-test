@@ -259,8 +259,23 @@ class SessionLockIsolationTest {
             assertLocked(true, alice);
             Assertions.assertDoesNotThrow(keptWindow::activate);
         }
-        alice.activate();
-        assertLocked(true, alice);
+    }
+
+    @Test
+    void failingNewWindowInAnotherContext_releasesItsLock() {
+        try (var failing = BrowserlessApplicationContext
+                .create(b -> b.withoutRoutes().withUIFactory(() -> {
+                    throw new IllegalArgumentException("no UI");
+                }))) {
+            var user = failing.newUser();
+            alice.activate();
+
+            Assertions.assertThrows(IllegalArgumentException.class,
+                    user::newWindow);
+
+            Assertions.assertFalse(user.getSession().hasLock());
+            assertLocked(true, alice);
+        }
     }
 
     @Test

@@ -259,12 +259,7 @@ public class BrowserlessUserContext implements AutoCloseable {
         // thread-locals (UI/Session/Request/Response/security) so any
         // subsequent operation on it observes a coherent state.
         if (activeIsAnotherUser && !active.isClosed()) {
-            if (active.getUser().getApp() != app) {
-                // Re-activating it only hands over the lock in its own
-                // application context
-                app.holdSessionLock(null);
-            }
-            BrowserlessUIContext.reactivateSurviving(active);
+            BrowserlessUIContext.reactivateSurviving(active, app);
         } else {
             app.holdSessionLock(null);
         }
