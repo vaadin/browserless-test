@@ -25,10 +25,12 @@ import org.jsoup.Jsoup;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.renderer.BasicRenderer;
+import com.vaadin.flow.data.renderer.CompiledLitTemplate;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.function.ValueProvider;
+import com.vaadin.flow.js.JsDefinitionProxy;
 
 /**
  * Functions for computing the output of renderers.
@@ -102,11 +104,7 @@ public final class Renderers {
             }
             if ("LitRenderer".equals(renderer.getClass().getSimpleName())) {
                 // LitRenderer re-declares private members
-                Field templateProperty = renderer.getClass()
-                        .getDeclaredField("templateExpression");
-                templateProperty.setAccessible(true);
-                String templateExpression = (String) templateProperty
-                        .get(renderer);
+                String templateExpression = getLitTemplateHtml(renderer);
 
                 Field valueProvidersProperty = renderer.getClass()
                         .getDeclaredField("valueProviders");
@@ -123,6 +121,39 @@ public final class Renderers {
         } catch (ReflectiveOperationException e) {
             throw Utils.sneakyThrow(e);
         }
+    }
+
+    /**
+     * Returns the HTML of the Lit template that {@code renderer} renders with:
+     * either the template string it was created with, or the {@code html}
+     * tagged template that the body of its declared {@link CompiledLitTemplate}
+     * returns.
+     */
+    private static String getLitTemplateHtml(Renderer<?> renderer)
+            throws ReflectiveOperationException {
+        // LitRenderer has no public accessor for its template
+        Field templateField = renderer.getClass().getDeclaredField("template");
+        templateField.setAccessible(true);
+        CompiledLitTemplate template = (CompiledLitTemplate) templateField
+                .get(renderer);
+        if (template == null) {
+            Field templateExpressionField = renderer.getClass()
+                    .getDeclaredField("templateExpression");
+            templateExpressionField.setAccessible(true);
+            return (String) templateExpressionField.get(renderer);
+        }
+        var declaredCall = JsDefinitionProxy.findDeclaredCall(template);
+        if (declaredCall == null) {
+            throw new IllegalStateException("The template of " + renderer
+                    + " is not declared by a @JsDefinition method");
+        }
+        String body = declaredCall.getExpression();
+        // The body is a function body like return
+        // html`<span>${item.label}</span>`;
+        int start = body.indexOf("html`");
+        int end = body.lastIndexOf('`');
+        return start >= 0 && end > start + 4 ? body.substring(start + 5, end)
+                : body;
     }
 
     /**
