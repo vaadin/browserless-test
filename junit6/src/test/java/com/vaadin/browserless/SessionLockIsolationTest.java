@@ -510,20 +510,23 @@ class SessionLockIsolationTest {
     }
 
     @Test
-    void failingUserClose_stillClosesLaterUsersOnApplicationClose() {
+    void failingUserCloses_stillCloseEveryUserOnApplicationClose() {
         var aliceSession = alice.getUser().getSession();
         var bobSession = bob.getUser().getSession();
         aliceSession.getService().addSessionDestroyListener(e -> {
-            if (e.getSession() == aliceSession) {
-                throw new IllegalArgumentException("destroy");
-            }
+            throw new IllegalArgumentException(
+                    e.getSession() == aliceSession ? "alice" : "bob");
         });
         bob.activate();
 
         var ex = Assertions.assertThrows(ExecutionException.class,
                 () -> app.close());
 
-        Assertions.assertEquals("destroy", ex.getCause().getMessage());
+        Assertions.assertEquals("alice", ex.getCause().getMessage());
+        Assertions.assertEquals(1, ex.getSuppressed().length);
+        Assertions.assertEquals("bob",
+                ex.getSuppressed()[0].getCause().getMessage());
+        Assertions.assertTrue(alice.isClosed());
         Assertions.assertTrue(bob.isClosed());
         Assertions.assertFalse(aliceSession.hasLock());
         Assertions.assertFalse(bobSession.hasLock());
