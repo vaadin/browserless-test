@@ -66,6 +66,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         expect("Html[<b>foo bar baz <i>foobar</i></b>]") {
             toPrettyString(Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>"))
         }
+        // Element.getText() includes only the top-level text of the innerHTML, so the <b> content is left out
         expect("HtmlSpan[text='aaaccc', innerHTML='aaa<b>bbbb</b>ccc']") {
             toPrettyString(HtmlSpan("aaa<b>bbbb</b>ccc"))
         }
