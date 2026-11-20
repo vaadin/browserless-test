@@ -76,6 +76,7 @@ public class BrowserlessUIContext
 
         BrowserlessUIContext previous = activeContext.get();
 
+        releaseLockOfOtherContext(previous);
         user.getApp().holdSessionLock(user);
 
         // Save outgoing user's security context on user switch — symmetric
@@ -129,7 +130,8 @@ public class BrowserlessUIContext
      * so mutations made by one window are observed by sibling windows.
      * <p>
      * Activating a window of another user also releases the outgoing user's
-     * session lock, which runs the commands still queued for that session with
+     * session lock, also when that user belongs to another application context,
+     * which runs the commands still queued for that session with
      * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
      * takes this user's session lock. If one of those commands throws, the
      * exception is rethrown, the outgoing window stays active and its user
@@ -150,6 +152,7 @@ public class BrowserlessUIContext
         // Release the outgoing user's session lock, running the commands
         // queued for it, while the thread still carries that user's state,
         // as at the end of that user's request.
+        releaseLockOfOtherContext(previous);
         user.getApp().holdSessionLock(user);
 
         // Save outgoing user's security context on user switch
@@ -805,6 +808,21 @@ public class BrowserlessUIContext
      *            the application context of the window or user whose lifecycle
      *            step displaced the active window's state
      */
+    /**
+     * Releases the session lock that the application context of the given
+     * outgoing window holds, if that is not this window's context. Each context
+     * hands over its own lock only, so without this a window of another context
+     * would keep its user's session locked while this one is active.
+     *
+     * @param previous
+     *            the window active until now, or {@code null}
+     */
+    private void releaseLockOfOtherContext(BrowserlessUIContext previous) {
+        if (previous != null && previous.user.getApp() != user.getApp()) {
+            previous.user.getApp().holdSessionLock(null);
+        }
+    }
+
     static void reactivateSurviving(BrowserlessUIContext stillActive,
             BrowserlessApplicationContext displacedBy) {
         if (stillActive.user.getApp() != displacedBy) {

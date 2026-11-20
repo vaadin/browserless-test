@@ -273,6 +273,29 @@ class SessionLockIsolationTest {
     }
 
     @Test
+    void windowInAnotherContext_takesTheOnlyHeldLock() {
+        alice.activate();
+        try (var other = BrowserlessApplicationContext
+                .create(BroadcastView.class)) {
+            var stranger = other.newUser();
+
+            var strangerWindow = stranger.newWindow();
+            assertLocked(false, alice);
+            assertLocked(true, strangerWindow);
+
+            alice.activate();
+            assertLocked(true, alice);
+            assertLocked(false, strangerWindow);
+
+            strangerWindow.activate();
+            assertLocked(false, alice);
+            assertLocked(true, strangerWindow);
+        }
+        alice.activate();
+        assertLocked(true, alice);
+    }
+
+    @Test
     void newUserInAnotherContext_doesNotTakeActiveWindowsLock() {
         AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
         alice.activate();
