@@ -45,7 +45,7 @@ public final class TestingLifecycleHooks {
      */
     public static boolean isTemplate(Component component) {
         return component instanceof LitTemplate
-                || Utils.isPolymerTemplate(component);
+                || ComponentUtils.isPolymerTemplate(component);
     }
 
     /**
@@ -77,7 +77,9 @@ public final class TestingLifecycleHooks {
      * called; instead it tells client-side dialog to close, which then fires
      * event back to the server that the dialog was closed, and removes itself
      * from the DOM. Since there's no browser with browserless testing, we need
-     * to cleanup closed dialogs manually, hence this method.
+     * to cleanup closed dialogs manually, hence this method. Which components
+     * are closed dialogs comes from the registered {@link ComponentSupport}
+     * implementations.
      */
     public static void cleanupDialogs() {
         // Starting with Vaadin 23, nested dialogs are also nested within
