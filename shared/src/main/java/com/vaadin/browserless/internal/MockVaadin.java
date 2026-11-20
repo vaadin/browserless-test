@@ -691,7 +691,7 @@ public final class MockVaadin {
         runUIQueue();
         UI.getCurrent().getInternals().getStateTree()
                 .runExecutionsBeforeClientResponse();
-        TestingLifecycleHooks.cleanupDialogs();
+        ComponentUtils.cleanupDialogs();
     }
 
     /**

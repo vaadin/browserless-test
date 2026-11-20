@@ -293,7 +293,7 @@ internal fun DynaNodeGroup.mockVaadinTest() {
             val dialog = Dialog(Div(Text("Dialog Text")))
             dialog.open()
             dialog.close()
-            TestingLifecycleHooks.cleanupDialogs()
+            ComponentUtils.cleanupDialogs()
             expect(
                     """
 └── MockedUI[]
