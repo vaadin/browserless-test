@@ -105,7 +105,7 @@ public interface TestingLifecycleHook {
         if (supported != null) {
             return supported;
         }
-        if (TestingLifecycleHooks.isTemplate(component)) {
+        if (ComponentUtils.isTemplate(component)) {
             // don't include virtual children since those will include nested
             // components. however, those components are only they are only
             // "shallow shells" of components constructed server-side - almost
