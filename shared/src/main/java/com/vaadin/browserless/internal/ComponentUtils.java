@@ -19,15 +19,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasPlaceholder;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.littemplate.LitTemplate;
 import com.vaadin.flow.data.provider.DataProvider;
 
 /**
@@ -255,38 +251,5 @@ public final class ComponentUtils {
      */
     static void describe(Component component, List<String> description) {
         SUPPORTS.forEach(support -> support.describe(component, description));
-    }
-
-    /**
-     * Checks whether the given component is a Lit or Polymer template.
-     *
-     * @param component
-     *            the component.
-     * @return true if the component is a template.
-     */
-    public static boolean isTemplate(Component component) {
-        return component instanceof LitTemplate || isPolymerTemplate(component);
-    }
-
-    /**
-     * Flow Server does not close the dialog when {@code Dialog.close()} is
-     * called; instead it tells client-side dialog to close, which then fires
-     * event back to the server that the dialog was closed, and removes itself
-     * from the DOM. Since there's no browser with browserless testing, we need
-     * to cleanup closed dialogs manually, hence this method. Which components
-     * are closed dialogs comes from the registered {@link ComponentSupport}
-     * implementations.
-     */
-    public static void cleanupDialogs() {
-        // Starting with Vaadin 23, nested dialogs are also nested within
-        // respective modal dialog within the UI. This is probably related to
-        // the "server-side modality curtain" feature. Also see
-        // https://github.com/mvysny/karibu-testing/issues/102
-        List<Component> dialogs = StreamSupport
-                .stream(DepthFirstTreeIterator.walk(UI.getCurrent())
-                        .spliterator(), false)
-                .filter(ComponentUtils::isClosedDialog)
-                .collect(Collectors.toList());
-        dialogs.forEach(it -> it.getElement().removeFromParent());
     }
 }
