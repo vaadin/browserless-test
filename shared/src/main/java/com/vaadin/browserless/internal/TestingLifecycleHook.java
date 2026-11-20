@@ -139,7 +139,7 @@ public interface TestingLifecycleHook {
             // MenuItems appear two times.
             return toList(component.getChildren());
         }
-        if (ComponentUtils.isTemplate(component)) {
+        if (TestingLifecycleHooks.isTemplate(component)) {
             // don't include virtual children since those will include nested
             // components. however, those components are only they are only
             // "shallow shells" of components constructed server-side - almost

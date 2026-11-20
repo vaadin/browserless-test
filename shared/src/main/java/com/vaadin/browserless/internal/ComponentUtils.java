@@ -15,23 +15,19 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.HasPlaceholder;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.ContextMenuBase;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.littemplate.LitTemplate;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.shared.SlotUtils;
@@ -165,51 +161,5 @@ public final class ComponentUtils {
         Class<?> polymerTemplateClass = Utils.getPolymerTemplateClass();
         return polymerTemplateClass != null
                 && polymerTemplateClass.isAssignableFrom(component.getClass());
-    }
-
-    /**
-     * Checks whether the given component is a Lit or Polymer template.
-     *
-     * @param component
-     *            the component.
-     * @return true if the component is a template.
-     */
-    public static boolean isTemplate(Component component) {
-        return component instanceof LitTemplate
-                || ComponentUtils.isPolymerTemplate(component);
-    }
-
-    /**
-     * Checks whether given component is a dialog and needs to be removed from
-     * the UI. See {@link #cleanupDialogs()} for more info.
-     */
-    private static boolean isDialogAndNeedsRemoval(Component component) {
-        if (component instanceof Dialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        if (component instanceof ConfirmDialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Flow Server does not close the dialog when {@link Dialog#close()} is
-     * called; instead it tells client-side dialog to close, which then fires
-     * event back to the server that the dialog was closed, and removes itself
-     * from the DOM. Since there's no browser with browserless testing, we need
-     * to cleanup closed dialogs manually, hence this method.
-     */
-    public static void cleanupDialogs() {
-        // Starting with Vaadin 23, nested dialogs are also nested within
-        // respective modal dialog within the UI. This is probably related to
-        // the "server-side modality curtain" feature. Also see
-        // https://github.com/mvysny/karibu-testing/issues/102
-        List<Component> dialogs = StreamSupport
-                .stream(DepthFirstTreeIterator.walk(UI.getCurrent())
-                        .spliterator(), false)
-                .filter(ComponentUtils::isDialogAndNeedsRemoval)
-                .collect(Collectors.toList());
-        dialogs.forEach(it -> it.getElement().removeFromParent());
     }
 }
