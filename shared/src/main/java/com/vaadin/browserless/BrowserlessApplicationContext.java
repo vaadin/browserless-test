@@ -356,8 +356,23 @@ public class BrowserlessApplicationContext implements AutoCloseable {
                 }
                 signalsTestEnvironment.runRemainingTasks();
             }
+            // Every user is closed even when one fails, so that no session
+            // is left undestroyed or locked
+            Throwable userFailure = null;
             for (var user : users) {
-                user.close();
+                try {
+                    user.close();
+                } catch (Throwable t) {
+                    if (userFailure == null) {
+                        userFailure = t;
+                    } else {
+                        userFailure.addSuppressed(t);
+                    }
+                }
+            }
+            if (userFailure != null) {
+                BrowserlessApplicationContext
+                        .<RuntimeException> sneakyThrow(userFailure);
             }
         } catch (Throwable t) {
             usersFailure = t;
