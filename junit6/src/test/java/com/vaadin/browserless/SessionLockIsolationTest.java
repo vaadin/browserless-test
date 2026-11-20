@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
@@ -293,6 +294,39 @@ class SessionLockIsolationTest {
         }
         alice.activate();
         assertLocked(true, alice);
+    }
+
+    @Test
+    void switchToAnotherContext_runsOutgoingCommands() {
+        AtomicReference<VaadinSession> ranIn = new AtomicReference<>();
+        try (var other = BrowserlessApplicationContext
+                .create(BroadcastView.class)) {
+            var strangerWindow = other.newUser().newWindow();
+            alice.activate();
+            alice.getUI().access(() -> ranIn.set(VaadinSession.getCurrent()));
+
+            strangerWindow.activate();
+
+            Assertions.assertSame(alice.getUser().getSession(), ranIn.get());
+        }
+    }
+
+    @Test
+    void failingQueuedCommand_failsSwitchToAnotherContextAndKeepsOutgoingLock() {
+        try (var other = BrowserlessApplicationContext
+                .create(BroadcastView.class)) {
+            var strangerWindow = other.newUser().newWindow();
+            alice.activate();
+            queueFailingCommand(alice);
+
+            var ex = Assertions.assertThrows(ExecutionException.class,
+                    strangerWindow::activate);
+
+            Assertions.assertEquals("boom", ex.getCause().getMessage());
+            assertLocked(true, alice);
+            assertLocked(false, strangerWindow);
+            Assertions.assertSame(alice.getUI(), UI.getCurrent());
+        }
     }
 
     @Test

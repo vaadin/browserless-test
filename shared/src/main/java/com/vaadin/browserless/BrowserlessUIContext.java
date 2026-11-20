@@ -129,9 +129,9 @@ public class BrowserlessUIContext
      * between windows of the same user does not save or restore security state,
      * so mutations made by one window are observed by sibling windows.
      * <p>
-     * Activating a window of another user also releases the outgoing user's
-     * session lock, also when that user belongs to another application context,
-     * which runs the commands still queued for that session with
+     * Activating a window of another user, also one in another application
+     * context, releases the outgoing user's session lock, which runs the
+     * commands still queued for that session with
      * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
      * takes this user's session lock. If one of those commands throws, the
      * exception is rethrown, the outgoing window stays active and its user
@@ -789,6 +789,21 @@ public class BrowserlessUIContext
     }
 
     /**
+     * Releases the session lock that the application context of the given
+     * outgoing window holds, if that is not this window's context. Each context
+     * hands over its own lock only, so without this a window of another context
+     * would keep its user's session locked while this one is active.
+     *
+     * @param previous
+     *            the window active until now, or {@code null}
+     */
+    private void releaseLockOfOtherContext(BrowserlessUIContext previous) {
+        if (previous != null && previous.user.getApp() != user.getApp()) {
+            previous.user.getApp().holdSessionLock(null);
+        }
+    }
+
+    /**
      * Re-establishes thread-local coherence with {@link #activeContext} by
      * re-activating the given surviving window. Clears {@code activeContext}
      * first so {@link #activate()} takes the full-restore branch
@@ -808,21 +823,6 @@ public class BrowserlessUIContext
      *            the application context of the window or user whose lifecycle
      *            step displaced the active window's state
      */
-    /**
-     * Releases the session lock that the application context of the given
-     * outgoing window holds, if that is not this window's context. Each context
-     * hands over its own lock only, so without this a window of another context
-     * would keep its user's session locked while this one is active.
-     *
-     * @param previous
-     *            the window active until now, or {@code null}
-     */
-    private void releaseLockOfOtherContext(BrowserlessUIContext previous) {
-        if (previous != null && previous.user.getApp() != user.getApp()) {
-            previous.user.getApp().holdSessionLock(null);
-        }
-    }
-
     static void reactivateSurviving(BrowserlessUIContext stillActive,
             BrowserlessApplicationContext displacedBy) {
         if (stillActive.user.getApp() != displacedBy) {
