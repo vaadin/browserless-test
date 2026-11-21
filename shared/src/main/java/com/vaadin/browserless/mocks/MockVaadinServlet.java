@@ -171,13 +171,16 @@ public class MockVaadinServlet extends VaadinServlet {
     }
 
     /**
-     * Creates a session, locks it and binds it to the request.
+     * Creates a session by calling the protected
+     * {@code VaadinService.createVaadinSession(VaadinRequest)}. The session is
+     * only constructed: locking it and storing it in the HTTP session are left
+     * to the caller.
      *
      * @param service
      *            the service the session belongs to
      * @param request
-     *            the request the session is bound to
-     * @return the new session, already locked
+     *            the request the session is created for
+     * @return the new session
      */
     public static VaadinSession createVaadinSession(VaadinService service,
             VaadinRequest request) {

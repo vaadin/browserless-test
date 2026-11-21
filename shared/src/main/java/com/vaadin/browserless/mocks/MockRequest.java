@@ -433,8 +433,7 @@ public class MockRequest implements HttpServletRequest {
     }
 
     /**
-     * Sets the user-in-role checker using a
-     * {@link java.util.function.BiPredicate}. Java-friendly alternative to
+     * Sets the user-in-role checker. Same as
      * {@link #setUserInRole(BiPredicate)}.
      *
      * @param checker
@@ -624,13 +623,16 @@ public class MockRequest implements HttpServletRequest {
     }
 
     /**
-     * Returns the principal from {@link #userPrincipalProvider} if set,
-     * otherwise falls back to {@link #userPrincipalInt}.
+     * Returns the principal from {@link #userPrincipalProvider} if it is set
+     * and returns one, otherwise falls back to {@link #userPrincipalInt}.
      */
     @Override
     public Principal getUserPrincipal() {
         if (userPrincipalProvider != null) {
-            return userPrincipalProvider.get();
+            Principal principal = userPrincipalProvider.get();
+            if (principal != null) {
+                return principal;
+            }
         }
         return userPrincipalInt;
     }
