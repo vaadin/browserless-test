@@ -65,6 +65,14 @@ import com.vaadin.flow.shared.Registration;
  * whatever is still pending first, so JavaScript scheduled just before is
  * included.
  * <p>
+ * A test that plays the browser step by step can call {@link #clear()} after
+ * reading a step, so that the next query only sees what is sent afterwards:
+ *
+ * <pre>
+ * List&lt;List&lt;Object&gt;&gt; pages = executed.getFunctionCalls(viewer, "scrollToPage");
+ * executed.clear();
+ * </pre>
+ * <p>
  * A call whose result the application waits for, with {@code then(...)} or
  * {@code toCompletableFuture(...)}, can be answered with
  * {@link Execution#resolve(Object)} or {@link Execution#reject(String)}, as the
@@ -138,8 +146,20 @@ public final class ExecutedJavaScript implements Serializable {
     }
 
     /**
-     * Gets everything sent to the browser since the capture started, and until
-     * it was stopped, in the order the browser received it.
+     * Forgets everything captured so far, so that the queries only see what is
+     * sent to the browser afterwards. JavaScript that is still pending is not
+     * sent first, so JavaScript scheduled just before, for example by a handler
+     * that {@link Execution#resolve(Object)} ran, is seen by the next query.
+     * Executions that were already returned can still be answered. Clearing
+     * does not stop the capture.
+     */
+    public void clear() {
+        executions.clear();
+    }
+
+    /**
+     * Gets everything sent to the browser since the capture started or was last
+     * cleared, and until it was stopped, in the order the browser received it.
      *
      * @return the sent JavaScript, not null
      */

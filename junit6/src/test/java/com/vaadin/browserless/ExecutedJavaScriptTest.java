@@ -300,6 +300,21 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
+    void clear_forgetsWhatWasCaptured_butNotWhatIsStillPending() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("return this.view").then(String.class,
+                view -> calendar.getElement().callJsFunction("render", view));
+        calendar.getElement().callJsFunction("refresh");
+
+        executed.getAll().get(0).resolve("week");
+        executed.clear();
+
+        Assertions.assertEquals(List.of("render"), functionNames(executed));
+        Assertions.assertEquals(List.of(List.of("week")),
+                executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
     void expressionAndParameters_ofElementAndPageJavaScript() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.render($0)", 5);
