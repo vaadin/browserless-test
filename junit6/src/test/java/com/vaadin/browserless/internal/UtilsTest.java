@@ -28,10 +28,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class UtilsTest {
 
-    private static final String NBSP = " ";
+    private static final String NBSP = String.valueOf((char) 0xA0);
 
     @Test
     void isBlank_nonBreakingSpace_isBlank() {
+        // the JDK doesn't see it as whitespace, which is the case under test
+        assertFalse(Character.isWhitespace(NBSP.charAt(0)));
         assertTrue(Utils.isBlank(NBSP));
         assertTrue(Utils.isBlank(" " + NBSP + "\t"));
         assertTrue(Utils.isBlank(null));
