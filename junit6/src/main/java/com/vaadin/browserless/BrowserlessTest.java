@@ -131,9 +131,9 @@ public abstract class BrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
     /**
-     * Creates the test base; subclasses are instantiated by the test engine.
+     * Creates a new browserless test.
      */
-    protected BrowserlessTest() {
+    public BrowserlessTest() {
     }
 
     @BeforeEach

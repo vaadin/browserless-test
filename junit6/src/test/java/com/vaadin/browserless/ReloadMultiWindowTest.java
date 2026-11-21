@@ -131,6 +131,25 @@ class ReloadMultiWindowTest {
     }
 
     @Test
+    void reloadingTheUIOfAClosedWindow_isRejected() {
+        var user = app.newUser();
+        var window1 = user.newWindow();
+        var window2 = user.newWindow();
+
+        var view1 = window1.navigate(PreservedCounterView.class);
+        UI ui2 = window2.getUI();
+        window2.close();
+
+        // The closed window's UI left the session, but the session is still
+        // open: this is not the logout idiom, so the reload must fail.
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> ui2.getPage().reload(),
+                "Reloading the page of a closed window must fail");
+        Assertions.assertSame(view1, window1.getCurrentView(),
+                "The rejected reload must leave window1 untouched");
+    }
+
+    @Test
     void closingWindowRightAfterAViewTriggeredReload_detachesTheLiveUI() {
         var user = app.newUser();
         var window = user.newWindow();

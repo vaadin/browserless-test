@@ -148,7 +148,7 @@ public final class GridContextMenuSupport {
             throw new IllegalStateException("Column with key " + columnKey
                     + " is not visible, so a user cannot reach it");
         }
-        return GridUtils._internalId(column);
+        return GridUtils.getInternalId(column);
     }
 
     private static List<GridContextMenu<?>> findContextMenus(Grid<?> grid) {

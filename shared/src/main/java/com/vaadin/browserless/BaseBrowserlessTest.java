@@ -192,11 +192,20 @@ public abstract class BaseBrowserlessTest {
      * Tears down mocked Vaadin.
      */
     protected void cleanVaadinEnvironment() {
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
+        try {
+            // Pending effects run while the UI is still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
+            MockVaadin.tearDown();
+        } finally {
+            // Unregistering runs what the UI and the destroy listeners queued
+            // while closing, on this thread
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
         }
-        MockVaadin.tearDown();
     }
 
     /**
@@ -643,7 +652,16 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
-     * Simulates a server round-trip, flushing pending component changes.
+     * Simulates a server round-trip: runs the tasks queued with
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
+     * pending component changes, as a real client response would. Dialogs that
+     * are no longer opened are removed from the UI, as after a lookup.
+     * <p>
+     * Only tasks that are already queued are run, so a test of a background
+     * thread must first wait for that thread to call {@code access()}. If a
+     * queued task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}.
      */
     protected static void roundTrip() {
         BrowserlessDSL.roundTrip(UI.getCurrent());

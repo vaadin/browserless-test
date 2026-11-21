@@ -337,7 +337,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void focus() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.moveFocusTo(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.moveFocusTo(component));
     }
 
     /**
@@ -372,7 +372,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void blur() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.blur(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.blur(component));
     }
 
     private void ensureComponentCanBeFocused() {
@@ -387,7 +387,16 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
-     * Simulates a server round-trip, flushing pending component changes.
+     * Simulates a server round-trip: runs the tasks queued with
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
+     * pending component changes, as a real client response would. Dialogs that
+     * are no longer opened are removed from the UI, as after a lookup.
+     * <p>
+     * Only tasks that are already queued are run, so a test of a background
+     * thread must first wait for that thread to call {@code access()}. If a
+     * queued task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}.
      */
     protected void roundTrip() {
         BaseBrowserlessTest.roundTrip();
@@ -683,7 +692,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         UI ui = FocusTracker.moveFocusTo(component);
         setValueAsUser(field, value);
         // Value change listeners may have called Focusable.focus()
-        FocusTracker.flush(ui);
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**

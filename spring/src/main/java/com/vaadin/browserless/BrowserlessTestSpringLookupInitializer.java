@@ -47,13 +47,13 @@ import com.vaadin.flow.spring.SpringLookupInitializer;
 public class BrowserlessTestSpringLookupInitializer
         extends SpringLookupInitializer implements TestExecutionListener {
 
+    private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
+
     /**
-     * Creates the initializer; Vaadin looks it up through the service loader.
+     * Creates a new initializer.
      */
     public BrowserlessTestSpringLookupInitializer() {
     }
-
-    private static final ThreadLocal<ApplicationContext> applicationContext = new ThreadLocal<>();
 
     @Override
     public void prepareTestInstance(TestContext testContext) throws Exception {
@@ -149,7 +149,7 @@ public class BrowserlessTestSpringLookupInitializer
             VaadinApplicationInitializationBootstrap bootstrap)
             throws ServletException {
         ApplicationContext appCtx = applicationContext.get();
-        ServletContext servletContext = Utils.getContext(context);
+        ServletContext servletContext = Utils.getServletContext(context);
         WebApplicationContext webAppCtx = WebApplicationContextUtils
                 .getWebApplicationContext(servletContext);
         if (webAppCtx == null) {

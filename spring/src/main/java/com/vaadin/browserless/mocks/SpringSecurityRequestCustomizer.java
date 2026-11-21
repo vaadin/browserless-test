@@ -27,7 +27,7 @@ import com.vaadin.browserless.internal.MockRequestCustomizer;
 public class SpringSecurityRequestCustomizer implements MockRequestCustomizer {
 
     /**
-     * Creates the customizer; Vaadin looks it up through the service loader.
+     * Creates a new request customizer.
      */
     public SpringSecurityRequestCustomizer() {
     }

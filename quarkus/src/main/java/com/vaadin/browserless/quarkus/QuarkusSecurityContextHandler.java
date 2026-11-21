@@ -43,7 +43,7 @@ public class QuarkusSecurityContextHandler
         implements SecurityContextHandler<SecurityIdentity> {
 
     /**
-     * Creates the handler.
+     * Creates a new security context handler.
      */
     public QuarkusSecurityContextHandler() {
     }

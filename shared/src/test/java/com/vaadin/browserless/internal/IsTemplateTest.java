@@ -46,9 +46,9 @@ public class IsTemplateTest {
 
     @Test
     void isTemplate_litAndPolymerTemplates_trueOnlyForTemplates() {
-        assertFalse(TestingLifecycleHook.isTemplate(new Button("foo")));
-        assertTrue(TestingLifecycleHook.isTemplate(new MyLitTemplate()));
-        assertTrue(TestingLifecycleHook.isTemplate(new MyPolymerTemplate()));
+        assertFalse(TestingLifecycleHooks.isTemplate(new Button("foo")));
+        assertTrue(TestingLifecycleHooks.isTemplate(new MyLitTemplate()));
+        assertTrue(TestingLifecycleHooks.isTemplate(new MyPolymerTemplate()));
     }
 
     public interface MyModel extends TemplateModel {

@@ -132,7 +132,8 @@ class RoutesTest {
                 () -> {
                     throw ((MockRouteNotFoundError) view).getCause();
                 });
-        String errorMessage = ElementUtils.textRecursively2(view.getElement());
+        String errorMessage = ElementUtils
+                .getTextIncludingInnerHtml(view.getElement());
         assertTrue(errorMessage
                 .contains("Could not navigate to 'A_VIEW_THAT_DOESNT_EXIST'"));
     }

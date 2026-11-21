@@ -49,12 +49,13 @@ class LocatorTest {
     @BeforeEach
     void setUp() {
         MockVaadin.setup();
-        TestingLifecycleHooks.setCurrent(new MyLifecycleHook());
+        TestingLifecycleHooks.setTestingLifecycleHook(new MyLifecycleHook());
     }
 
     @AfterEach
     void tearDown() {
-        TestingLifecycleHooks.setCurrent(TestingLifecycleHook.DEFAULT);
+        TestingLifecycleHooks
+                .setTestingLifecycleHook(TestingLifecycleHook.DEFAULT);
         MockVaadin.tearDown();
     }
 
@@ -64,7 +65,8 @@ class LocatorTest {
         @Test
         void get_noComponentMatches_fails() {
             assertThrows(AssertionError.class,
-                    () -> Locator._get(new Button(), TextField.class));
+                    () -> Locator._get(new Button(), TextField.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
@@ -72,22 +74,25 @@ class LocatorTest {
         void get_multipleComponentsMatch_fails() {
             assertThrows(AssertionError.class,
                     () -> Locator._get(nestedVerticalLayouts(UI.getCurrent()),
-                            VerticalLayout.class));
+                            VerticalLayout.class, spec -> {
+                            }));
             expectAfterLookupCalled();
         }
 
         @Test
         void get_containerItselfMatches_returnsTheContainer() {
             Button button = new Button();
-            assertSame(button, Locator._get(button, Button.class));
+            assertSame(button, Locator._get(button, Button.class, spec -> {
+            }));
             expectAfterLookupCalled();
         }
 
         @Test
         void get_nestedComponentMatches_returnsIt() {
             Button button = new Button();
-            assertSame(button,
-                    Locator._get(new VerticalLayout(button), Button.class));
+            assertSame(button, Locator._get(new VerticalLayout(button),
+                    Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
@@ -96,7 +101,8 @@ class LocatorTest {
             Button button = new Button();
             button.setVisible(false);
             assertThrows(AssertionError.class,
-                    () -> Locator._get(button, Button.class));
+                    () -> Locator._get(button, Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
     }
@@ -107,7 +113,7 @@ class LocatorTest {
         @Test
         void find_idSpec_returnsOnlyTheComponentWithThatId() {
             Button button = new Button();
-            BasicUtils.id_(button, "foo");
+            button.setId("foo");
             VerticalLayout layout = new VerticalLayout(button, new Button());
 
             assertEquals(List.of(button), Locator._find(layout, Button.class,
@@ -120,7 +126,9 @@ class LocatorTest {
             Button button = new Button();
             button.setVisible(false);
 
-            assertEquals(List.of(), Locator._find(button, Button.class));
+            assertEquals(List.of(),
+                    Locator._find(button, Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
@@ -128,7 +136,9 @@ class LocatorTest {
         void find_nestedComponents_returnsContainerAndDescendants() {
             VerticalLayout layout = nestedVerticalLayouts(null);
 
-            assertEquals(2, Locator._find(layout, VerticalLayout.class).size());
+            assertEquals(2,
+                    Locator._find(layout, VerticalLayout.class, spec -> {
+                    }).size());
             expectAfterLookupCalled();
         }
     }
@@ -138,7 +148,8 @@ class LocatorTest {
 
         @Test
         void expectNone_noComponentMatches_passes() {
-            Locator._expectNone(new Button(), TextField.class);
+            Locator._expectNone(new Button(), TextField.class, spec -> {
+            });
             expectAfterLookupCalled();
         }
 
@@ -147,7 +158,8 @@ class LocatorTest {
             assertThrows(AssertionError.class,
                     () -> Locator._expectNone(
                             nestedVerticalLayouts(UI.getCurrent()),
-                            VerticalLayout.class));
+                            VerticalLayout.class, spec -> {
+                            }));
             expectAfterLookupCalled();
         }
 
@@ -155,7 +167,8 @@ class LocatorTest {
         void expectNone_containerItselfMatches_fails() {
             Button button = new Button();
             assertThrows(AssertionError.class,
-                    () -> Locator._expectNone(button, Button.class));
+                    () -> Locator._expectNone(button, Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
@@ -163,7 +176,8 @@ class LocatorTest {
         void expectNone_nestedComponentMatches_fails() {
             VerticalLayout layout = new VerticalLayout(new Button());
             assertThrows(AssertionError.class,
-                    () -> Locator._expectNone(layout, Button.class));
+                    () -> Locator._expectNone(layout, Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
     }
@@ -340,7 +354,7 @@ class LocatorTest {
         }
 
         private Button withId(Button button, String id) {
-            BasicUtils.id_(button, id);
+            button.setId(id);
             return button;
         }
 
@@ -363,14 +377,17 @@ class LocatorTest {
         @BeforeEach
         void unmock() {
             MockVaadin.tearDown();
-            TestingLifecycleHooks.setCurrent(TestingLifecycleHook.DEFAULT);
+            TestingLifecycleHooks
+                    .setTestingLifecycleHook(TestingLifecycleHook.DEFAULT);
         }
 
         @Test
         void get_noMockedEnvironment_stillLooksUpComponents() {
-            Locator._get(new Button(), Button.class);
+            Locator._get(new Button(), Button.class, spec -> {
+            });
             assertThrows(AssertionError.class,
-                    () -> Locator._get(new Button(), TextField.class));
+                    () -> Locator._get(new Button(), TextField.class, spec -> {
+                    }));
         }
     }
 
@@ -380,14 +397,16 @@ class LocatorTest {
         @Test
         void expectOne_uiHasNoMatchingComponent_fails() {
             assertThrows(AssertionError.class,
-                    () -> Locator._expectOne(Button.class));
+                    () -> Locator._expectOne(Button.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
         @Test
         void expectOne_containerHasNoMatchingComponent_fails() {
             assertThrows(AssertionError.class,
-                    () -> Locator._expectOne(new Button(), Span.class));
+                    () -> Locator._expectOne(new Button(), Span.class, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
@@ -396,19 +415,23 @@ class LocatorTest {
             assertThrows(AssertionError.class,
                     () -> Locator._expectOne(
                             nestedVerticalLayouts(UI.getCurrent()),
-                            VerticalLayout.class));
+                            VerticalLayout.class, spec -> {
+                            }));
             expectAfterLookupCalled();
         }
 
         @Test
         void expectOne_containerItselfMatches_passes() {
-            Locator._expectOne(new Button(), Button.class);
+            Locator._expectOne(new Button(), Button.class, spec -> {
+            });
             expectAfterLookupCalled();
         }
 
         @Test
         void expectOne_nestedComponentMatches_passes() {
-            Locator._expectOne(new VerticalLayout(new Button()), Button.class);
+            Locator._expectOne(new VerticalLayout(new Button()), Button.class,
+                    spec -> {
+                    });
             expectAfterLookupCalled();
         }
 
@@ -427,22 +450,26 @@ class LocatorTest {
         @Test
         void expect_uiHasNoMatchingComponent_fails() {
             assertThrows(AssertionError.class,
-                    () -> Locator._expect(Span.class));
+                    () -> Locator._expect(Span.class, 1, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
         @Test
         void expect_containerHasNoMatchingComponent_fails() {
             assertThrows(AssertionError.class,
-                    () -> Locator._expect(new Button(), Span.class));
+                    () -> Locator._expect(new Button(), Span.class, 1, spec -> {
+                    }));
             expectAfterLookupCalled();
         }
 
         @Test
         void expect_zeroExpectedAndNoneMatch_passes() {
-            Locator._expect(Span.class, 0);
+            Locator._expect(Span.class, 0, spec -> {
+            });
             expectAfterLookupCalled();
-            Locator._expect(new Button(), Span.class, 0);
+            Locator._expect(new Button(), Span.class, 0, spec -> {
+            });
         }
 
         @Test
@@ -450,26 +477,31 @@ class LocatorTest {
             assertThrows(AssertionError.class,
                     () -> Locator._expect(
                             nestedVerticalLayouts(UI.getCurrent()),
-                            VerticalLayout.class));
+                            VerticalLayout.class, 1, spec -> {
+                            }));
             expectAfterLookupCalled();
         }
 
         @Test
         void expect_countIsRight_passes() {
             Locator._expect(nestedVerticalLayouts(UI.getCurrent()),
-                    VerticalLayout.class, 2);
+                    VerticalLayout.class, 2, spec -> {
+                    });
             expectAfterLookupCalled();
         }
 
         @Test
         void expect_containerItselfMatches_passes() {
-            Locator._expect(new Button(), Button.class, 1);
+            Locator._expect(new Button(), Button.class, 1, spec -> {
+            });
             expectAfterLookupCalled();
         }
 
         @Test
         void expect_nestedComponentMatches_passes() {
-            Locator._expect(new VerticalLayout(new Button()), Button.class, 1);
+            Locator._expect(new VerticalLayout(new Button()), Button.class, 1,
+                    spec -> {
+                    });
             expectAfterLookupCalled();
         }
 
@@ -501,12 +533,12 @@ class LocatorTest {
      */
     private static void expectAfterLookupCalled() {
         MyLifecycleHook hook = (MyLifecycleHook) TestingLifecycleHooks
-                .getCurrent();
+                .getTestingLifecycleHook();
         assertTrue(hook.beforeLookupCalled,
                 "awaitBeforeLookup() has not been called");
         assertTrue(hook.afterLookupCalled,
                 "awaitAfterLookup() has not been called");
-        TestingLifecycleHooks.setCurrent(new MyLifecycleHook());
+        TestingLifecycleHooks.setTestingLifecycleHook(new MyLifecycleHook());
     }
 
     /**

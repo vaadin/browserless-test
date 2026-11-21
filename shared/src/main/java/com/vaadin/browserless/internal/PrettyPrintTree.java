@@ -19,154 +19,78 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.BiConsumer;
-import java.util.regex.Pattern;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.data.provider.DataProvider;
-import com.vaadin.flow.dom.Element;
 
 /**
- * A pretty-printed ASCII tree of arbitrary nodes, for printing to a console.
+ * Utility class to create a pretty-printed ASCII tree of arbitrary nodes that
+ * can be printed to the console. You can build the tree out of any tree
+ * structure, just fill in this node {@link #getName() name} and its
+ * {@link #getChildren() children}.
  * <p>
- * Build it out of any tree structure by giving each node a name and its
- * children; {@link #ofVaadin(Component)} does that for a Vaadin component tree,
- * which is what {@code TreeOnFailureExtension} prints when a test fails and
- * what a failed lookup appends to its error message.
+ * To create a pretty tree dump of a Vaadin component, just use
+ * {@link #ofVaadin(Component)}.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
-public class PrettyPrintTree {
-
-    private static boolean prettyPrintUseAscii = false;
-
-    private static BiConsumer<Component, LinkedList<String>> prettyStringHook = (
-            c, l) -> {
-    };
-
-    private static Set<String> dontDumpAttributes = new HashSet<>(
-            Arrays.asList("disabled", "id", "href"));
-
-    /**
-     * Tells whether the tree is drawn with ASCII characters.
-     *
-     * @return {@code true} if ASCII is used
-     */
-    public static boolean getPrettyPrintUseAscii() {
-        return prettyPrintUseAscii;
-    }
-
-    /**
-     * Draws the tree with {@code \--} instead of {@code └──}, which some
-     * terminals render as {@code ???}.
-     *
-     * @param prettyPrintUseAscii
-     *            {@code true} to use ASCII
-     */
-    public static void setPrettyPrintUseAscii(boolean prettyPrintUseAscii) {
-        PrettyPrintTree.prettyPrintUseAscii = prettyPrintUseAscii;
-    }
-
-    /**
-     * Returns the hook that adds extra properties to a dumped component.
-     *
-     * @return the hook, never {@code null}
-     */
-    public static BiConsumer<Component, LinkedList<String>> getPrettyStringHook() {
-        return prettyStringHook;
-    }
-
-    /**
-     * Installs a hook invoked by {@link #toPrettyString(Component)} to add
-     * properties of a custom component to the dump, e.g.
-     * {@code list.add("icon='" + icon + "'")}. Does nothing by default.
-     *
-     * @param prettyStringHook
-     *            the hook to install
-     */
-    public static void setPrettyStringHook(
-            BiConsumer<Component, LinkedList<String>> prettyStringHook) {
-        PrettyPrintTree.prettyStringHook = prettyStringHook;
-    }
-
-    /**
-     * Returns the attribute names {@link #toPrettyString(Component)} never
-     * dumps. The set is live and directly modifiable.
-     * <p>
-     * Ignored by default: {@code disabled}, which is dumped separately as
-     * {@code DISABLED}; {@code id}, dumped as {@code #id}; and {@code href},
-     * which has its own handling so that it is reported for any component
-     * declaring it, not just an {@link Anchor}.
-     *
-     * @return the ignored attribute names
-     */
-    public static Set<String> getDontDumpAttributes() {
-        return dontDumpAttributes;
-    }
-
-    /**
-     * Replaces the attribute names {@link #toPrettyString(Component)} never
-     * dumps.
-     *
-     * @param dontDumpAttributes
-     *            the attribute names to ignore
-     */
-    public static void setDontDumpAttributes(Set<String> dontDumpAttributes) {
-        PrettyPrintTree.dontDumpAttributes = dontDumpAttributes;
-    }
+public final class PrettyPrintTree {
 
     private final String name;
-
     private final List<PrettyPrintTree> children;
+    private final char pipe;
+    private final String branchTail;
+    private final String branch;
 
     /**
-     * Creates a node.
+     * Creates a tree node.
      *
      * @param name
-     *            the text to print for this node
+     *            the node name.
      * @param children
-     *            this node's children, in print order
+     *            the node children, mutable.
      */
     public PrettyPrintTree(String name, List<PrettyPrintTree> children) {
         this.name = name;
         this.children = children;
+        boolean ascii = PrettyPrintTree.getPrettyPrintUseAscii();
+        this.pipe = !ascii ? '│' : '|';
+        this.branchTail = !ascii ? "└── " : "\\-- ";
+        this.branch = !ascii ? "├── " : "|-- ";
     }
 
     /**
-     * Returns the text printed for this node.
+     * Returns the node name.
      *
-     * @return the node name
+     * @return the node name.
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Returns this node's children, live and directly modifiable.
+     * Returns the node children.
      *
-     * @return the children, in print order
+     * @return the mutable list of children.
      */
     public List<PrettyPrintTree> getChildren() {
         return children;
     }
 
     /**
-     * Renders this node and everything below it.
+     * Prints this tree.
      *
-     * @return the rendered tree, one node per line
+     * @return the pretty-printed tree.
      */
     public String print() {
         StringBuilder sb = new StringBuilder();
@@ -175,31 +99,30 @@ public class PrettyPrintTree {
     }
 
     private void print(StringBuilder sb, String prefix, boolean isTail) {
-        char pipe = !prettyPrintUseAscii ? '│' : '|';
-        String branchTail = !prettyPrintUseAscii ? "└── " : "\\-- ";
-        String branch = !prettyPrintUseAscii ? "├── " : "|-- ";
-        sb.append(prefix).append(isTail ? branchTail : branch).append(name)
-                .append("\n");
-        String childPrefix = prefix + (isTail ? "    " : pipe + "   ");
+        sb.append(prefix + (isTail ? branchTail : branch) + name + "\n");
         for (int i = 0; i < children.size() - 1; i++) {
-            children.get(i).print(sb, childPrefix, false);
+            children.get(i).print(sb, prefix + (isTail ? "    " : pipe + "   "),
+                    false);
         }
-        if (!children.isEmpty()) {
-            children.get(children.size() - 1).print(sb, childPrefix, true);
+        if (children.size() > 0) {
+            children.get(children.size() - 1).print(sb,
+                    prefix + (isTail ? "    " : pipe + "   "), true);
         }
     }
 
     /**
-     * Builds a printable tree out of the component and its descendants.
+     * Creates a tree out of the given Vaadin component and all of its
+     * descendants, as provided by
+     * {@link TestingLifecycleHook#getAllChildren(Component)}.
      *
      * @param root
-     *            the component to start from
-     * @return the tree, ready to be printed
+     *            the root component.
+     * @return the tree.
      */
     public static PrettyPrintTree ofVaadin(Component root) {
-        PrettyPrintTree result = new PrettyPrintTree(toPrettyString(root),
-                new ArrayList<>());
-        for (Component child : TestingLifecycleHooks.getCurrent()
+        PrettyPrintTree result = new PrettyPrintTree(
+                PrettyPrintTree.toPrettyString(root), new ArrayList<>());
+        for (Component child : TestingLifecycleHooks.getTestingLifecycleHook()
                 .getAllChildren(root)) {
             result.children.add(ofVaadin(child));
         }
@@ -207,153 +130,183 @@ public class PrettyPrintTree {
     }
 
     /**
-     * Equivalent to {@code PrettyPrintTree.ofVaadin(c).print()}.
-     *
-     * @param c
-     *            the component to inspect
-     * @return the component tree rendered as text
+     * If true, {@link PrettyPrintTree} will use {@code \--} instead of
+     * {@code └──} which tend to render on some terminals as {@code ???}.
      */
-    public static String toPrettyTree(Component c) {
-        return PrettyPrintTree.ofVaadin(c).print();
+    private static boolean prettyPrintUseAscii = false;
+
+    /**
+     * Invoked by {@link #toPrettyString(Component)} to add additional
+     * properties for your custom component. Add additional properties to the
+     * {@code list} provided, e.g. {@code list.add("icon='" + icon + "'")}.
+     * <p>
+     * By default does nothing.
+     */
+    private static BiConsumer<Component, LinkedList<String>> prettyStringHook = (
+            component, list) -> {
+    };
+
+    /**
+     * Never dump these attributes in {@link #toPrettyString(Component)}. By
+     * default these attributes are ignored:
+     * <ul>
+     * <li>{@code disabled} - dumped separately as "DISABLED" string.</li>
+     * <li>{@code id} - dumped as Component.id</li>
+     * <li>{@code href} - dumped separately for any component that has an
+     * {@code href} member.</li>
+     * </ul>
+     */
+    private static Set<String> dontDumpAttributes = new LinkedHashSet<>(
+            List.of("disabled", "id", "href"));
+
+    /**
+     * If true, {@link PrettyPrintTree} will use {@code \--} instead of
+     * {@code └──} which tend to render on some terminals as {@code ???}.
+     *
+     * @return whether ASCII characters are used.
+     */
+    public static boolean getPrettyPrintUseAscii() {
+        return prettyPrintUseAscii;
     }
 
-    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    /**
+     * Sets whether {@link PrettyPrintTree} uses ASCII characters only.
+     *
+     * @param prettyPrintUseAscii
+     *            true to use ASCII characters only.
+     */
+    public static void setPrettyPrintUseAscii(boolean prettyPrintUseAscii) {
+        PrettyPrintTree.prettyPrintUseAscii = prettyPrintUseAscii;
+    }
 
-    private static final Set<String> IGNORED_PROPERTIES = new HashSet<>(
-            Arrays.asList("value", "invalid", "openOn", "label", "errorMessage",
-                    "innerHTML", "i18n", "error", "stackTrace"));
+    /**
+     * Returns a pretty-printed tree of the given component and its descendants.
+     *
+     * @param component
+     *            the root component.
+     * @return the pretty-printed tree.
+     */
+    public static String toPrettyTree(Component component) {
+        return PrettyPrintTree.ofVaadin(component).print();
+    }
 
     /**
      * Returns the most basic properties of the component, formatted as a
-     * concise string: * The component class * The {@link Component#getId} *
-     * Whether the component is {@link Component#isVisible} * Whether it is a
-     * {@link HasValue} that is read-only * the styles * The label and text *
-     * The {@link HasValue#getValue}
+     * concise string:
+     * <ul>
+     * <li>The component class</li>
+     * <li>The {@link Component#getId()}</li>
+     * <li>Whether the component is {@link Component#isVisible()}</li>
+     * <li>Whether it is a {@link HasValue} that is read-only</li>
+     * <li>the styles</li>
+     * <li>The label and text</li>
+     * <li>The {@link HasValue#getValue()}</li>
+     * </ul>
      *
-     * @param c
-     *            the component to inspect
-     * @return the most basic properties of the component, formatted as a
-     *         concise string: * The component class * The
-     *         {@link Component#getId} * Whether the component is
-     *         {@link Component#isVisible} * Whether it is a {@link HasValue}
-     *         that is read-only * the styles * The label and text * The
-     *         {@link HasValue#getValue}
+     * @param component
+     *            the component.
+     * @return the component properties as a concise string.
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static String toPrettyString(Component c) {
+    @SuppressWarnings({ "unchecked", "deprecation" })
+    public static String toPrettyString(Component component) {
         LinkedList<String> list = new LinkedList<>();
-        if (c.getId().isPresent()) {
-            list.add("#" + c.getId().get());
+        if (component.getId().isPresent()) {
+            list.add("#" + component.getId().get());
         }
-        if (!BasicUtils._isVisible(c)) {
+        if (!BasicUtils._isVisible(component)) {
             list.add("INVIS");
         }
-        if (c instanceof HasValue && ((HasValue) c).isReadOnly()) {
+        if (component instanceof HasValue<?, ?> hasValue
+                && hasValue.isReadOnly()) {
             list.add("RO");
         }
-        Element element = c.getElement();
-        if (!element.isEnabled()) {
+        if (!component.getElement().isEnabled()) {
             list.add("DISABLED");
         }
-        String labelText = ComponentUtils.label(c);
-        if (labelText != null && !labelText.isBlank()) {
-            list.add("label='" + labelText + "'");
+        String label = ComponentUtils.getLabel(component);
+        if (!Utils.isBlank(label)) {
+            list.add("label='" + label + "'");
         }
-        String captionText = ComponentUtils.caption(c);
-        if (!java.util.Objects.equals(labelText, captionText)
-                && captionText != null && !captionText.isBlank()) {
-            list.add("caption='" + captionText + "'");
+        String caption = ComponentUtils.getCaption(component);
+        if (!label.equals(caption) && !Utils.isBlank(caption)) {
+            list.add("caption='" + caption + "'");
         }
-        String textValue = BasicUtils._text(c);
-        if (textValue != null && !textValue.isBlank()
-                && !java.util.Objects.equals(textValue, captionText)) {
-            list.add("text='" + textValue + "'");
+        String text = component instanceof HasText hasText ? hasText.getText()
+                : null;
+        if (!Utils.isBlank(text) && !text.equals(caption)) {
+            list.add("text='" + text + "'");
         }
-        if (c instanceof HasValue) {
-            list.add("value='" + ((HasValue) c).getValue() + "'");
+        if (component instanceof HasValue<?, ?> hasValue) {
+            list.add("value='" + hasValue.getValue() + "'");
         }
-        if (c instanceof HasValidation) {
-            HasValidation hv = (HasValidation) c;
-            if (hv.isInvalid()) {
+        if (component instanceof HasValidation hasValidation) {
+            if (hasValidation.isInvalid()) {
                 list.add("INVALID");
             }
-            String errorMessage = hv.getErrorMessage();
-            if (errorMessage != null && !errorMessage.isBlank()) {
-                list.add("errorMessage='" + errorMessage + "'");
+            if (!Utils.isBlank(hasValidation.getErrorMessage())) {
+                list.add("errorMessage='" + hasValidation.getErrorMessage()
+                        + "'");
             }
         }
-        /*
-         * TODO: uncomment when importing Grid stuff if (c instanceof
-         * Grid.Column<?>) { if (this.header2.isNotBlank()) {
-         * list.add("header='${this.header2}'") } if (!this.key.isNullOrBlank())
-         * { list.add("key='${this.key}'") } }
-         */
         // TODO: add a system property to allow verbose pretty print with
         // ignored attributes
-        for (String propName : element.getPropertyNames().toList()) {
-            String propertyValue = element.getProperty(propName);
-            if (propertyValue != null && !IGNORED_PROPERTIES.contains(propName)
-                    && !propertyValue.isEmpty() && !propName.startsWith("_")) {
-                list.add(propName + "='" + propertyValue + "'");
+        List<String> ignoredAttr = List.of("value", "invalid", "openOn",
+                "label", "errorMessage", "innerHTML", "i18n", "error",
+                "stackTrace");
+        component.getElement().getPropertyNames().forEach(it -> {
+            String propertyValue = component.getElement().getProperty(it);
+            if (propertyValue != null && !ignoredAttr.contains(it)
+                    && !propertyValue.isEmpty() && !it.startsWith("_")) {
+                list.add(it + "='" + propertyValue + "'");
             }
-        }
+        });
         // Any component with href should output it not only Anchor
-        Object href = hrefValue(c);
+        Object href = hrefValue(component);
         if (href != null) {
             list.add("href='" + href + "'");
         }
-        if (c instanceof Button && ((Button) c).getIcon() instanceof Icon) {
-            Icon icon = (Icon) ((Button) c).getIcon();
-            list.add("icon='" + icon.getElement().getAttribute("icon") + "'");
+        ComponentUtils.describe(component, list);
+        if (component instanceof Html) {
+            String outerHtml = Utils.trim(component.getElement().getOuterHTML())
+                    .replaceAll("\\s+", " ");
+            list.add(Utils.ellipsize(outerHtml, 100, "..."));
         }
-        if (c instanceof Html) {
-            String outerHtml = WHITESPACE.matcher(element.getOuterHTML().trim())
-                    .replaceAll(" ");
-            list.add(Utils.ellipsize(outerHtml, 100));
+        DataProvider<?, ?> dataProvider = ComponentUtils
+                .getDataProvider(component);
+        if (dataProvider != null) {
+            list.add("dataprovider='" + dataProvider + "'");
         }
-        if (c instanceof Grid<?> && ((Grid<?>) c).getBeanType() != null) {
-            list.add("<" + ((Grid<?>) c).getBeanType().getSimpleName() + ">");
+        component.getElement().getAttributeNames()
+                .filter(it -> !dontDumpAttributes.contains(it))
+                // the attributes may come in arbitrary order; make sure to
+                // sort them, in order to have predictable order and repeatable
+                // tests.
+                .sorted().forEach(attributeName -> {
+                    String value = component.getElement()
+                            .getAttribute(attributeName);
+                    if (!Utils.isBlank(value)) {
+                        list.add("@" + attributeName + "='" + value + "'");
+                    }
+                });
+        if (!(component instanceof Html) && !Utils
+                .isBlank(component.getElement().getProperty("innerHTML"))) {
+            String innerHTML = Utils
+                    .trim(component.getElement().getProperty("innerHTML"))
+                    .replaceAll("\\s+", " ");
+            list.add("innerHTML='" + innerHTML + "'");
         }
-        DataProvider<?, ?> dp = ComponentUtils.dataProvider(c);
-        if (dp != null) {
-            list.add("dataprovider='" + dp + "'");
-        }
-        // the attributes may come in arbitrary order; make sure to sort them,
-        // in order to have predictable order and repeatable tests.
-        TreeSet<String> sortedAttrs = new TreeSet<>();
-        element.getAttributeNames().forEach(a -> {
-            if (!dontDumpAttributes.contains(a)) {
-                sortedAttrs.add(a);
-            }
-        });
-        for (String attributeName : sortedAttrs) {
-            String value = element.getAttribute(attributeName);
-            if (value != null && !value.isBlank()) {
-                list.add("@" + attributeName + "='" + value + "'");
-            }
-        }
-        if (!(c instanceof Html)) {
-            String innerHTML = element.getProperty("innerHTML");
-            if (innerHTML != null && !innerHTML.isBlank()) {
-                String compacted = WHITESPACE.matcher(innerHTML.trim())
-                        .replaceAll(" ");
-                list.add("innerHTML='" + compacted + "'");
-            }
-        }
-        if (Utils.hasCustomToString(c.getClass())) {
+        if (Utils.hasCustomToString(component.getClass())) {
             // by default Vaadin components do not introduce toString() at all;
             // toString() therefore defaults to Object's toString() which is
-            // useless. However,
-            // if a component does introduce a toString() then use it - it could
-            // provide
-            // valuable information.
-            list.add(c.toString());
+            // useless. However, if a component does introduce a toString()
+            // then use it - it could provide valuable information.
+            list.add(component.toString());
         }
-        prettyStringHook.accept(c, list);
-        String name = c.getClass().getSimpleName();
+        prettyStringHook.accept(component, list);
+        String name = component.getClass().getSimpleName();
         if (name.isEmpty()) {
             // anonymous classes
-            name = c.getClass().getName();
+            name = component.getClass().getName();
         }
         return name + list;
     }
@@ -361,12 +314,12 @@ public class PrettyPrintTree {
     /**
      * Reads the {@code href} value of the given component, so that
      * {@link #toPrettyString(Component)} can dump it for any component
-     * declaring it, not just an {@link Anchor}.
+     * declaring it, not just {@link Anchor}.
      * <p>
      * The first member holding a non-blank value wins, looked up in this order:
      * a no-arg {@code href()} method or an {@code href} field declared anywhere
-     * in the class hierarchy, at any visibility — that is also what a Kotlin
-     * {@code href} property with a backing field compiles to — and finally the
+     * in the class hierarchy, at any visibility - that is also what a Kotlin
+     * {@code href} property with a backing field compiles to - and finally the
      * public no-arg {@code href()} and {@code getHref()} methods, which covers
      * bean getters, Kotlin properties without a backing field and members
      * inherited from an interface.
@@ -376,20 +329,17 @@ public class PrettyPrintTree {
      * Spring ones) which may not be present in all projects, and eagerly
      * scanning all metadata (parameters, generics, ...) would fail for those.
      *
-     * @param c
-     *            the component to read from
-     * @return the {@code href} value, or {@code null} if this component has
-     *         none
+     * @return the {@code href} value, or null if the component has none.
      */
-    private static Object hrefValue(Component c) {
+    private static Object hrefValue(Component component) {
         // members declared by the component classes themselves, at any
         // visibility: Anchor.href e.g. is a private field
-        for (Class<?> clazz = c.getClass(); clazz != null; clazz = clazz
-                .getSuperclass()) {
+        Class<?> clazz = component.getClass();
+        while (clazz != null) {
             for (Method method : clazz.getDeclaredMethods()) {
-                if ("href".equals(method.getName())
+                if (method.getName().equals("href")
                         && method.getParameterCount() == 0) {
-                    Object value = readHref(c, method);
+                    Object value = readHref(component, method);
                     if (value != null) {
                         return value;
                     }
@@ -397,23 +347,25 @@ public class PrettyPrintTree {
                 }
             }
             for (Field field : clazz.getDeclaredFields()) {
-                if ("href".equals(field.getName())) {
-                    Object value = readHref(c, field);
+                if (field.getName().equals("href")) {
+                    Object value = readHref(component, field);
                     if (value != null) {
                         return value;
                     }
                     break;
                 }
             }
+            clazz = clazz.getSuperclass();
         }
         // bean getters, e.g. RouterLink.getHref(), and members inherited from
         // an interface. getMethods() only gets consulted here, since it is the
-        // more expensive call and most components declare no href member at all
-        for (Method method : c.getClass().getMethods()) {
-            if (("href".equals(method.getName())
-                    || "getHref".equals(method.getName()))
+        // more expensive call and most components declare no href member at
+        // all
+        for (Method method : component.getClass().getMethods()) {
+            if ((method.getName().equals("href")
+                    || method.getName().equals("getHref"))
                     && method.getParameterCount() == 0) {
-                Object value = readHref(c, method);
+                Object value = readHref(component, method);
                 if (value != null) {
                     return value;
                 }
@@ -425,29 +377,77 @@ public class PrettyPrintTree {
     /**
      * Reads the value the given {@code href} member holds for the component.
      *
-     * @param c
-     *            the component to read from
-     * @param member
-     *            the {@code href} method or field
-     * @return the value, or {@code null} if there is none or it is blank — a
-     *         getter typically reports a missing {@code href} as an empty
-     *         string, e.g. {@link Anchor#getHref()}
+     * @return the value, or null if there is none or it is blank - a getter
+     *         typically reports a missing {@code href} as an empty string, e.g.
+     *         {@link Anchor#getHref()}.
      */
-    private static Object readHref(Component c, AccessibleObject member) {
+    private static Object readHref(Component component,
+            AccessibleObject member) {
+        member.setAccessible(true);
+        Object value;
         try {
-            member.setAccessible(true);
-            Object value = null;
-            if (member instanceof Method) {
-                value = ((Method) member).invoke(c);
-            } else if (member instanceof Field) {
-                value = ((Field) member).get(c);
+            if (member instanceof Method method) {
+                value = method.invoke(component);
+            } else if (member instanceof Field field) {
+                value = field.get(component);
+            } else {
+                value = null;
             }
-            return value != null && !value.toString().isBlank() ? value : null;
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            // href is best-effort: a member that cannot be read, or whose
-            // metadata references a class this project does not have, simply
-            // does not contribute to the dump
-            return null;
+        } catch (ReflectiveOperationException e) {
+            throw Utils.sneakyThrow(e);
         }
+        return value != null && !Utils.isBlank(value.toString()) ? value : null;
+    }
+
+    /**
+     * Invoked by {@link #toPrettyString(Component)} to add additional
+     * properties for your custom component. Add additional properties to the
+     * {@code list} provided, e.g. {@code list.add("icon='" + icon + "'")}.
+     * <p>
+     * By default does nothing.
+     *
+     * @return the hook.
+     */
+    public static BiConsumer<Component, LinkedList<String>> getPrettyStringHook() {
+        return prettyStringHook;
+    }
+
+    /**
+     * Sets the hook invoked by {@link #toPrettyString(Component)}, see
+     * {@link #getPrettyStringHook()}.
+     *
+     * @param prettyStringHook
+     *            the hook, not null.
+     */
+    public static void setPrettyStringHook(
+            BiConsumer<Component, LinkedList<String>> prettyStringHook) {
+        PrettyPrintTree.prettyStringHook = prettyStringHook;
+    }
+
+    /**
+     * Never dump these attributes in {@link #toPrettyString(Component)}. By
+     * default these attributes are ignored:
+     * <ul>
+     * <li>{@code disabled} - dumped separately as "DISABLED" string.</li>
+     * <li>{@code id} - dumped as Component.id</li>
+     * <li>{@code href} - dumped separately for any component that has an
+     * {@code href} member.</li>
+     * </ul>
+     *
+     * @return the mutable set of attribute names.
+     */
+    public static Set<String> getDontDumpAttributes() {
+        return dontDumpAttributes;
+    }
+
+    /**
+     * Sets the attributes never dumped by {@link #toPrettyString(Component)},
+     * see {@link #getDontDumpAttributes()}.
+     *
+     * @param dontDumpAttributes
+     *            the set of attribute names, not null.
+     */
+    public static void setDontDumpAttributes(Set<String> dontDumpAttributes) {
+        PrettyPrintTree.dontDumpAttributes = dontDumpAttributes;
     }
 }

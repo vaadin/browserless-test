@@ -91,11 +91,13 @@ class PrettyPrintTreeTest {
         assertEquals("Html[<b>foo bar baz <i>foobar</i></b>]", toPrettyString(
                 new Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>")));
 
-        assertEquals("HtmlSpan[innerHTML='aaa<b>bbbb</b>ccc']",
+        // Element.getText() includes only the top-level text of the
+        // innerHTML, so the <b> content is left out
+        assertEquals("HtmlSpan[text='aaaccc', innerHTML='aaa<b>bbbb</b>ccc']",
                 toPrettyString(new HtmlSpan("aaa<b>bbbb</b>ccc")));
 
         Div tooltipped = new Div();
-        ComponentUtils.tooltip(tooltipped, "foobar");
+        tooltipped.getElement().setAttribute("title", "foobar");
         assertEquals("Div[@title='foobar']", toPrettyString(tooltipped));
 
         Span testSpan = new Span("hi");
@@ -107,7 +109,7 @@ class PrettyPrintTreeTest {
     @Test
     void toPrettyString_textFields_dumpIdLabelValueAndErrorMessage() {
         TextField withId = new TextField();
-        BasicUtils.id_(withId, "25");
+        withId.setId("25");
         assertMatches(toPrettyString(withId), "TextField\\[#25, value=''.*]");
 
         TextArea area = new TextArea("label");
@@ -116,7 +118,7 @@ class PrettyPrintTreeTest {
                 "TextArea\\[label='label', value='some text'.*]");
 
         TextField invalid = new TextField();
-        BasicUtils.id_(invalid, "25");
+        invalid.setId("25");
         invalid.setErrorMessage("failed validation");
         assertMatches(toPrettyString(invalid),
                 "TextField\\[#25, value='', errorMessage='failed validation'.*]");

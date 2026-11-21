@@ -27,7 +27,7 @@ import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.button.Button;
 
 import static com.vaadin.browserless.internal.Shortcuts.fireShortcut;
-import static com.vaadin.browserless.internal.Utils.currentUI;
+import static com.vaadin.browserless.internal.Utils.getCurrentUI;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,11 +58,11 @@ class ShortcutsTest {
         Button button = new Button();
         button.addClickListener(e -> clicked.set(true));
         button.addClickShortcut(key, modifiers);
-        currentUI().add(button);
+        getCurrentUI().add(button);
     }
 
     private void shortcutListener(Key key, KeyModifier... modifiers) {
-        com.vaadin.flow.component.Shortcuts.addShortcutListener(currentUI(),
+        com.vaadin.flow.component.Shortcuts.addShortcutListener(getCurrentUI(),
                 () -> clicked.set(true), key, modifiers);
     }
 

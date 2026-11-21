@@ -69,14 +69,14 @@ import com.vaadin.browserless.mocks.SpringSecurityRequestCustomizer;
 public abstract class SpringBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
-    /**
-     * Creates the test base; subclasses are instantiated by the test engine.
-     */
-    protected SpringBrowserlessTest() {
-    }
-
     @Autowired
     private ApplicationContext applicationContext;
+
+    /**
+     * Creates a new browserless Spring test.
+     */
+    public SpringBrowserlessTest() {
+    }
 
     @Override
     protected final String testingEngine() {

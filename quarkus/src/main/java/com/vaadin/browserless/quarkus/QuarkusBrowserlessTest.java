@@ -88,9 +88,9 @@ public abstract class QuarkusBrowserlessTest extends BaseBrowserlessTest
         implements TesterWrappers {
 
     /**
-     * Creates the test base; subclasses are instantiated by the test engine.
+     * Creates a new browserless Quarkus test.
      */
-    protected QuarkusBrowserlessTest() {
+    public QuarkusBrowserlessTest() {
     }
 
     @Override

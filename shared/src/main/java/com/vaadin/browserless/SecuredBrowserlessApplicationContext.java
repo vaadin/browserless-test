@@ -267,6 +267,24 @@ public class SecuredBrowserlessApplicationContext<C>
          * Forwards to the matching method on the underlying
          * {@link BrowserlessApplicationContext.Builder}.
          *
+         * @param sessionLockIsolation
+         *            whether each user gets a session lock of its own
+         * @return this builder, for chaining
+         * @see BrowserlessApplicationContext.Builder#withSessionLockIsolation
+         * @deprecated see
+         *             {@link BrowserlessApplicationContext.Builder#withSessionLockIsolation(boolean)}
+         */
+        @Deprecated(since = "25.4")
+        public Builder<C> withSessionLockIsolation(
+                boolean sessionLockIsolation) {
+            base.withSessionLockIsolation(sessionLockIsolation);
+            return this;
+        }
+
+        /**
+         * Forwards to the matching method on the underlying
+         * {@link BrowserlessApplicationContext.Builder}.
+         *
          * @param name
          *            the attribute name
          * @param value
@@ -388,6 +406,7 @@ public class SecuredBrowserlessApplicationContext<C>
                     base.buildService(), base.uiFactory(), handler,
                     base.buildCloseHooks());
             context.setRequestContextHandler(base.requestContextHandler());
+            context.setSessionLockIsolation(base.sessionLockIsolation());
             return context;
         }
     }

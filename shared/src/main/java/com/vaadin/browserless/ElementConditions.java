@@ -17,17 +17,21 @@ package com.vaadin.browserless;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.jsoup.Jsoup;
 
+import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasAriaLabel;
 import com.vaadin.flow.component.HasPlaceholder;
 import com.vaadin.flow.component.HasText;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.HtmlComponent;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.dom.Element;
 
 /**
@@ -38,6 +42,13 @@ import com.vaadin.flow.dom.Element;
  * @since 1.0
  */
 public final class ElementConditions {
+
+    /**
+     * Tags of native elements that have a {@code checkValidity} method and are
+     * thus treated as fields by {@code <vaadin-form-item>}.
+     */
+    private static final Set<String> NATIVE_FORM_CONTROL_TAGS = Set.of("input",
+            "select", "textarea", "button", "fieldset", "output");
 
     private ElementConditions() {
         throw new AssertionError("Must not be instantiated");
@@ -141,7 +152,8 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> hasAttribute(
             String attribute) {
-        return component -> component.getElement().hasAttribute(attribute);
+        return describedAs("hasAttribute('" + attribute + "')",
+                component -> component.getElement().hasAttribute(attribute));
     }
 
     /**
@@ -165,8 +177,9 @@ public final class ElementConditions {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }
-        return component -> Objects
-                .equals(component.getElement().getAttribute(attribute), value);
+        return describedAs("attribute '" + attribute + "'='" + value + "'",
+                component -> Objects.equals(
+                        component.getElement().getAttribute(attribute), value));
     }
 
     /**
@@ -184,7 +197,8 @@ public final class ElementConditions {
      */
     public static <T extends Component> Predicate<T> hasNotAttribute(
             String attribute) {
-        return component -> !component.getElement().hasAttribute(attribute);
+        return describedAs("hasNotAttribute('" + attribute + "')",
+                component -> !component.getElement().hasAttribute(attribute));
     }
 
     /**
@@ -208,8 +222,9 @@ public final class ElementConditions {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }
-        return component -> !Objects
-                .equals(component.getElement().getAttribute(attribute), value);
+        return describedAs("attribute '" + attribute + "'!='" + value + "'",
+                component -> !Objects.equals(
+                        component.getElement().getAttribute(attribute), value));
     }
 
     /**
@@ -221,12 +236,25 @@ public final class ElementConditions {
      * {@link com.vaadin.flow.component.HasLabel#getLabel()}) equals the text,
      * or</li>
      * <li>some {@code <label for="componentId">} element elsewhere in the UI
-     * has that text as its (recursive) content.</li>
+     * has that text as its (recursive) content, or</li>
+     * <li>the component has no label of its own (neither a {@code label}
+     * property nor a referring {@code <label>} element), is the field a
+     * {@link FormLayout.FormItem} labels, and the texts in the form item's
+     * {@code label} slot, joined with spaces and whitespace-normalized, match
+     * the text.</li>
      * </ul>
      *
      * The second form covers the HTML pattern where a separate
      * {@link com.vaadin.flow.component.html.NativeLabel} (or any
      * {@code <label>} element) targets an input via the {@code for} attribute.
+     * The third form covers fields added with
+     * {@link FormLayout#addFormItem(Component, String)}, where the label the
+     * user sees is rendered by the form item rather than by the field. As in
+     * the browser, a form item labels only the first field (a component
+     * implementing {@link HasValue} or a native form control) among its direct
+     * children; other children, such as a unit text next to the field or a
+     * layout wrapping it, are not labelled. Wrap several fields in a
+     * {@code CustomField} to label them together.
      *
      * @param <T>
      *            the item type
@@ -241,14 +269,16 @@ public final class ElementConditions {
         if (label == null) {
             throw new IllegalArgumentException("label cannot be null");
         }
-        return component -> matchesLabel(component, label, false);
+        return describedAs("label='" + label + "'",
+                component -> matchesLabel(component, label, false));
     }
 
     /**
      * Checks if the component's label contains the given text. The label is
      * read in the same way as {@link #hasLabel(String)} (component's
-     * {@code label} property or a referring {@code <label for="...">} element).
-     * Comparison is case-sensitive.
+     * {@code label} property, a referring {@code <label for="...">} element or
+     * the label of an enclosing {@link FormLayout.FormItem}). Comparison is
+     * case-sensitive.
      *
      * @param <T>
      *            the item type
@@ -263,7 +293,8 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> matchesLabel(component, text, true);
+        return describedAs("labelContains('" + text + "')",
+                component -> matchesLabel(component, text, true));
     }
 
     private static boolean matchesLabel(Component component, String expected,
@@ -272,9 +303,56 @@ public final class ElementConditions {
         if (matches(own, expected, substring)) {
             return true;
         }
-        return component.getId()
+        String referring = component.getId()
                 .map(id -> referringLabelText(component.getUI().get(), id))
-                .filter(text -> matches(text, expected, substring)).isPresent();
+                .orElse(null);
+        if (matches(referring, expected, substring)) {
+            return true;
+        }
+        // A form item label only names a field that has no visible label of
+        // its own.
+        if (isNullOrEmpty(own) && isNullOrEmpty(referring)) {
+            return matches(formItemLabelText(component), expected, substring);
+        }
+        return false;
+    }
+
+    /**
+     * Gets the label text of the form item that labels the given component.
+     * Like the {@code <vaadin-form-item>} web component, a form item labels
+     * only the first field among its direct children outside the label slot;
+     * other children, such as a unit {@code Span} next to the field or a layout
+     * wrapping it, are not labelled.
+     */
+    private static String formItemLabelText(Component component) {
+        return component.getParent()
+                .filter(FormLayout.FormItem.class::isInstance)
+                .map(FormLayout.FormItem.class::cast)
+                .filter(item -> item.getChildren()
+                        .filter(child -> !"label".equals(
+                                child.getElement().getAttribute("slot")))
+                        .filter(ElementConditions::isFormItemField).findFirst()
+                        .orElse(null) == component)
+                .map(ComponentUtils::getLabel).filter(text -> !text.isEmpty())
+                .orElse(null);
+    }
+
+    /**
+     * Mirrors the {@code <vaadin-form-item>} field detection, which treats an
+     * element with a {@code validate} or {@code checkValidity} method as a
+     * field: Vaadin fields and native form controls.
+     */
+    private static boolean isFormItemField(Component component) {
+        if (component instanceof HasValue<?, ?>) {
+            return true;
+        }
+        Element element = component.getElement();
+        return !element.isTextNode() && NATIVE_FORM_CONTROL_TAGS
+                .contains(element.getTag().toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isNullOrEmpty(String text) {
+        return text == null || text.isEmpty();
     }
 
     private static boolean matches(String actual, String expected,
@@ -304,13 +382,13 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> {
+        return describedAs("placeholderContains('" + text + "')", component -> {
             if (component instanceof HasPlaceholder hp) {
                 String placeholder = hp.getPlaceholder();
                 return placeholder != null && placeholder.contains(text);
             }
             return false;
-        };
+        });
     }
 
     private static String referringLabelText(Component root, String id) {
@@ -349,7 +427,8 @@ public final class ElementConditions {
         if (ariaLabel == null) {
             throw new IllegalArgumentException("ariaLabel cannot be null");
         }
-        return component -> ariaLabel.equals(resolveAriaLabel(component));
+        return describedAs("ariaLabel='" + ariaLabel + "'",
+                component -> ariaLabel.equals(resolveAriaLabel(component)));
     }
 
     /**
@@ -373,10 +452,10 @@ public final class ElementConditions {
         if (text == null) {
             throw new IllegalArgumentException("text cannot be null");
         }
-        return component -> {
+        return describedAs("ariaLabelContains('" + text + "')", component -> {
             String label = resolveAriaLabel(component);
             return label != null && label.contains(text);
-        };
+        });
     }
 
     private static String resolveAriaLabel(Component component) {
@@ -424,6 +503,45 @@ public final class ElementConditions {
                         .contains(text.toLowerCase(Locale.ROOT));
             }
             return componentText.contains(text);
+        }
+
+        @Override
+        public String toString() {
+            return (ignoreCase ? "textContainsIgnoringCase('"
+                    : "textContains('") + text + "')";
+        }
+    }
+
+    /**
+     * Wraps the given predicate so that its {@link Object#toString()} returns
+     * the given description. {@link ComponentQuery} lists the conditions of a
+     * query in the message of a failed lookup, where a lambda would otherwise
+     * show up as an unreadable synthetic class name.
+     *
+     * @param description
+     *            human-readable description of the condition, not
+     *            {@literal null}
+     * @param predicate
+     *            the predicate to wrap, not {@literal null}
+     * @return a predicate that delegates to {@code predicate} and describes
+     *         itself with {@code description}
+     */
+    static <T extends Component> Predicate<T> describedAs(String description,
+            Predicate<T> predicate) {
+        return new DescribedPredicate<>(description, predicate);
+    }
+
+    private record DescribedPredicate<T extends Component>(String description,
+            Predicate<T> predicate) implements Predicate<T> {
+
+        @Override
+        public boolean test(T component) {
+            return predicate.test(component);
+        }
+
+        @Override
+        public String toString() {
+            return description;
         }
     }
 }

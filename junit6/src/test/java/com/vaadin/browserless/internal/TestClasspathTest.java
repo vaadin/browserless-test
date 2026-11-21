@@ -39,6 +39,6 @@ class TestClasspathTest {
 
     @Test
     void isTemplate_withoutThePolymerTemplateDependency_returnsFalse() {
-        assertFalse(TestingLifecycleHook.isTemplate(new Button("foo")));
+        assertFalse(TestingLifecycleHooks.isTemplate(new Button("foo")));
     }
 }

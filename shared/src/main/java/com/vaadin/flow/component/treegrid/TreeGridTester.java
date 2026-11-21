@@ -15,14 +15,18 @@
  */
 package com.vaadin.flow.component.treegrid;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.data.renderer.CompiledLitTemplate;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
+import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.js.JsDefinitionProxy;
 
 /**
  * Tester for TreeGrid components.
@@ -48,8 +52,12 @@ import com.vaadin.flow.data.renderer.Renderer;
 @Tests(fqn = { "com.vaadin.flow.component.treegrid.TreeGrid" })
 public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
 
-    /** Element the hierarchy column renders as the clickable expand toggle. */
-    private static final String TREE_TOGGLE_ELEMENT = "vaadin-grid-tree-toggle";
+    /**
+     * Method of {@link TreeGridTemplates} that declares the template of a
+     * hierarchy column added through a value provider, which renders the
+     * clickable expand toggle.
+     */
+    private static final String HIERARCHY_COLUMN_TEMPLATE = "hierarchyColumnRenderer";
 
     /** LitRenderer property the tree toggle renders as its label. */
     private static final String HIERARCHY_NAME_PROPERTY = "name";
@@ -231,14 +239,32 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
                 || !(renderer instanceof LitRenderer<Y> litRenderer)) {
             return null;
         }
+        if (!litRenderer.getValueProviders()
+                .containsKey(HIERARCHY_NAME_PROPERTY)) {
+            return null;
+        }
+        final JsCall templateCall = getDeclaredTemplateCall(litRenderer);
+        return templateCall != null
+                && templateCall.definitionType() == TreeGridTemplates.class
+                && HIERARCHY_COLUMN_TEMPLATE.equals(templateCall.methodName())
+                        ? litRenderer
+                        : null;
+    }
+
+    /**
+     * Returns the call of the {@code @JsDefinition} method that declares the
+     * template the renderer renders with, or {@literal null} when the renderer
+     * renders with a template string instead.
+     */
+    private JsCall getDeclaredTemplateCall(LitRenderer<Y> litRenderer) {
+        // LitRenderer has no public accessor for the template it renders
+        // with; one belongs in LitRenderer itself (vaadin/flow-components)
         try {
-            final String template = (String) getField(LitRenderer.class,
-                    "templateExpression").get(litRenderer);
-            return template != null && template.contains(TREE_TOGGLE_ELEMENT)
-                    && litRenderer.getValueProviders()
-                            .containsKey(HIERARCHY_NAME_PROPERTY) ? litRenderer
-                                    : null;
-        } catch (IllegalAccessException e) {
+            final CompiledLitTemplate template = (CompiledLitTemplate) getMethod(
+                    LitRenderer.class, "getTemplate").invoke(litRenderer);
+            return template == null ? null
+                    : JsDefinitionProxy.findDeclaredCall(template);
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(
                     "Unable to read the template of the column renderer", e);
         }

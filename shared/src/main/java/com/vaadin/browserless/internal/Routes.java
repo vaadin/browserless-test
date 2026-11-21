@@ -208,7 +208,7 @@ public class Routes implements Serializable {
         Set<Class<?>> classSet = new LinkedHashSet<>();
         classSet.addAll(routes);
         classSet.addAll(layouts);
-        ServletContext servletContext = Utils.getContext(sc);
+        ServletContext servletContext = Utils.getServletContext(sc);
         try {
             new RouteRegistryInitializer().onStartup(classSet, servletContext);
         } catch (jakarta.servlet.ServletException e) {

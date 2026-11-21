@@ -15,36 +15,25 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Consumer;
 
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.flow.component.BlurNotifier;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.FocusNotifier;
 import com.vaadin.flow.component.Focusable;
-import com.vaadin.flow.component.HasText;
+import com.vaadin.flow.component.HasEnabled;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.dom.DomEvent;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
-import com.vaadin.flow.router.InternalServerError;
-import com.vaadin.flow.server.VaadinSession;
 
 /**
- * Helpers for driving a component the way a browser would: firing events on it,
- * asking whether a user could actually interact with it, and reading the few
- * properties Flow does not expose directly.
- * <p>
- * {@link #checkEditableByUser(Component)} is the one to reach for before any
- * simulated interaction. A component that is invisible, disabled, read-only or
- * detached cannot be touched by a user, and a test that pretends otherwise
- * asserts on a state the application can never reach.
+ * Basic utilities for firing events on components and checking their state.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
@@ -54,39 +43,14 @@ public final class BasicUtils {
     }
 
     /**
-     * Allows us to fire any Vaadin event on any Vaadin component.
-     * 
+     * Fires a DOM event on given component.
+     *
      * @param component
      *            the component, not null.
-     * @param event
-     *            the event, not null.
-     */
-    public static void _fireEvent(Component component,
-            ComponentEvent<?> event) {
-        ComponentUtil.fireEvent(component, event);
-    }
-
-    /**
-     * Fires a DOM event on this component.
-     * 
-     * @param component
-     *            the component to fire the event on
-     * @param eventType
-     *            the event type, e.g. "click"
-     */
-    public static void _fireDomEvent(Component component, String eventType) {
-        _fireDomEvent(component, eventType, JacksonUtils.createObjectNode());
-    }
-
-    /**
-     * Fires a DOM event on this component.
-     * 
-     * @param component
-     *            the component to fire the event on
      * @param eventType
      *            the event type, e.g. "click"
      * @param eventData
-     *            optional event data, defaults to an empty object.
+     *            the event data, not null.
      */
     public static void _fireDomEvent(Component component, String eventType,
             ObjectNode eventData) {
@@ -96,77 +60,51 @@ public final class BasicUtils {
     }
 
     /**
-     * The same as {@link Component#getId} but without Optional.
-     *
-     * Workaround for https://github.com/vaadin/flow/issues/664
+     * Fires a DOM event with empty event data on given component.
      *
      * @param component
-     *            the component to set the id on
-     * @return the component id, or null if it has none
+     *            the component, not null.
+     * @param eventType
+     *            the event type, e.g. "click"
      */
-    public static String id_(Component component) {
-        return component.getId().orElse(null);
-    }
-
-    /**
-     * Equivalent to {@code component.setId(value)}.
-     *
-     * @param component
-     *            the component to set the id on
-     * @param value
-     *            the value to set
-     */
-    public static void id_(Component component, String value) {
-        component.setId(value);
+    public static void _fireDomEvent(Component component, String eventType) {
+        _fireDomEvent(component, eventType, JacksonUtils.createObjectNode());
     }
 
     /**
      * Checks whether the component is visible (usually
-     * {@link Component#isVisible} but for {@link Text} the text must be
+     * {@link Component#isVisible()} but for {@link Text} the text must be
      * non-empty).
      *
      * @param component
-     *            the component to inspect
-     * @return {@code true} if the component is visible (usually
-     *         {@link Component#isVisible} but for {@link Text} the text must be
-     *         non-empty)
+     *            the component, not null.
+     * @return true if the component is visible.
      */
     public static boolean _isVisible(Component component) {
-        if (component instanceof Text) {
+        if (component instanceof Text text) {
             // workaround for https://github.com/vaadin/flow/issues/3201
-            String text = ((Text) component).getText();
-            return text != null && !text.isBlank();
+            return !Utils.isBlank(text.getText());
         }
         return component.isVisible();
     }
 
     /**
-     * Returns direct text contents (it doesn't peek into the child elements).
+     * Checks that a component is actually editable by the user:
+     * <ul>
+     * <li>The component must be effectively visible: it itself must be visible,
+     * its parent must be visible and all of its ascendants must be visible. For
+     * the purpose of testing individual components not attached to the
+     * {@link UI}, a component may be considered visible even though it's not
+     * currently nested in a {@link UI}.</li>
+     * <li>The component must be effectively enabled: it itself must be enabled,
+     * its parent must be enabled and all of its ascendants must be
+     * enabled.</li>
+     * <li>If the component is {@link HasValue}, it must not be
+     * {@link HasValue#isReadOnly()}.</li>
+     * </ul>
      *
      * @param component
-     *            the component to inspect
-     * @return direct text contents (it doesn't peek into the child elements)
-     */
-    public static String _text(Component component) {
-        if (component instanceof HasText) {
-            return ((HasText) component).getText();
-        }
-        return null;
-    }
-
-    /**
-     * Checks that a component is actually editable by the user: * The component
-     * must be effectively visible: it itself must be visible, its parent must
-     * be visible and all of its ascendants must be visible. For the purpose of
-     * testing individual components not attached to the {@link UI}, a component
-     * may be considered visible even though it's not currently nested in a
-     * {@link UI}. * The component must be effectively enabled: it itself must
-     * be enabled, its parent must be enabled and all of its ascendants must be
-     * enabled. * If the component is {@link HasValue}, it must not be
-     * {@link HasValue#isReadOnly}.
-     * 
-     * @param component
-     *            the component to check
+     *            the component, not null.
      * @throws IllegalStateException
      *             if any of the above doesn't hold.
      */
@@ -176,28 +114,23 @@ public final class BasicUtils {
                     + PrettyPrintTree.toPrettyString(component)
                     + " is not effectively visible - either it is hidden, or its ascendant is hidden");
         }
-        boolean parentNullOrEnabled = !component.getParent().isPresent()
+        boolean parentNullOrEnabled = component.getParent().isEmpty()
                 || isEffectivelyEnabled(component.getParent().get());
-        if (parentNullOrEnabled) {
-            if (!component.getElement().isEnabled()) {
-                throw new IllegalStateException(
-                        "The " + PrettyPrintTree.toPrettyString(component)
-                                + " is not enabled");
-            }
+        if (parentNullOrEnabled && !component.getElement().isEnabled()) {
+            throw new IllegalStateException(
+                    "The " + PrettyPrintTree.toPrettyString(component)
+                            + " is not enabled");
         }
         if (!isEffectivelyEnabled(component)) {
             throw new IllegalStateException(
                     "The " + PrettyPrintTree.toPrettyString(component)
                             + " is nested in a disabled component");
         }
-        if (component instanceof HasValue) {
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            HasValue<HasValue.ValueChangeEvent<Object>, Object> hasValue = (HasValue) component;
-            if (hasValue.isReadOnly()) {
-                throw new IllegalStateException(
-                        "The " + PrettyPrintTree.toPrettyString(component)
-                                + " is read-only");
-            }
+        if (component instanceof HasValue<?, ?> hasValue
+                && hasValue.isReadOnly()) {
+            throw new IllegalStateException(
+                    "The " + PrettyPrintTree.toPrettyString(component)
+                            + " is read-only");
         }
         if (!component.isAttached()) {
             throw new IllegalStateException(
@@ -207,43 +140,49 @@ public final class BasicUtils {
     }
 
     /**
-     * Fails if the component is editable. See {@link #checkEditableByUser} for
-     * more details.
-     * 
+     * Fails if the component is editable. See
+     * {@link #checkEditableByUser(Component)} for more details.
+     *
      * @param component
-     *            the component to check
+     *            the component, not null.
      * @throws AssertionError
      *             if the component is editable.
      */
     public static void expectNotEditableByUser(Component component) {
         try {
             checkEditableByUser(component);
+            throw new AssertionError(
+                    "The " + PrettyPrintTree.toPrettyString(component)
+                            + " is editable");
         } catch (IllegalStateException ex) {
             // okay
-            return;
         }
-        throw new AssertionError("The "
-                + PrettyPrintTree.toPrettyString(component) + " is editable");
     }
 
-    static boolean isEffectivelyVisible(Component component) {
-        return _isVisible(component) && (!component.getParent().isPresent()
+    /**
+     * Computes whether this component and all of its parents are visible.
+     *
+     * @param component
+     *            the component, not null.
+     * @return true if the component and all of its ascendants are visible.
+     */
+    public static boolean isEffectivelyVisible(Component component) {
+        return _isVisible(component) && (component.getParent().isEmpty()
                 || isEffectivelyVisible(component.getParent().get()));
     }
 
     /**
      * Computes whether this component and all of its parents are enabled.
-     *
+     * <p>
      * Recursively checks that all ancestors are also enabled (the "implicitly
-     * disabled" effect, see
-     * {@link com.vaadin.flow.component.HasEnabled#isEnabled()
-     * HasEnabled.isEnabled()} javadoc for more details).
-     *
+     * disabled" effect, see {@link HasEnabled#isEnabled()} javadoc for more
+     * details).
+     * <p>
      * Also check that the component is not inert due to there being a modal
      * component.
      *
      * @param component
-     *            the component to inspect
+     *            the component, not null.
      * @return false if this component or any of its parent is disabled or is
      *         inert.
      */
@@ -253,82 +192,79 @@ public final class BasicUtils {
     }
 
     /**
+     * Checks whether this component matches given spec. All rules are matched
+     * except the {@code count} rule. The rules are matched against given
+     * component only (not against its children).
+     *
+     * @param component
+     *            the component, not null.
+     * @param spec
+     *            configures the search spec, not null.
+     * @return true if the component matches the spec.
+     */
+    public static boolean matches(Component component,
+            Consumer<SearchSpec<Component>> spec) {
+        SearchSpec<Component> searchSpec = new SearchSpec<>(Component.class);
+        spec.accept(searchSpec);
+        return searchSpec.toPredicate().test(component);
+    }
+
+    /**
      * Fires {@link FocusNotifier.FocusEvent} on the component, but only if it's
      * editable.
      *
-     * @param <T>
-     *            the item type
      * @param component
-     *            the component to focus
+     *            the component, not null.
+     * @param <T>
+     *            the component type
      */
-    public static <T extends Component & Focusable<T>> void _focus(
+    public static <T extends Component & Focusable<?>> void _focus(
             T component) {
         checkEditableByUser(component);
-        _fireEvent(component,
-                new FocusNotifier.FocusEvent<>(component, true, null));
+        ComponentUtil.fireEvent(component,
+                new FocusNotifier.FocusEvent<T>(component, true, null));
     }
 
     /**
      * Fires {@link BlurNotifier.BlurEvent} on the component, but only if it's
      * editable.
      *
-     * @param <T>
-     *            the item type
      * @param component
-     *            the component to blur
+     *            the component, not null.
+     * @param <T>
+     *            the component type
      */
-    public static <T extends Component & Focusable<T>> void _blur(T component) {
+    public static <T extends Component & Focusable<?>> void _blur(T component) {
         checkEditableByUser(component);
-        _fireEvent(component,
-                new BlurNotifier.BlurEvent<>(component, true, null));
+        ComponentUtil.fireEvent(component,
+                new BlurNotifier.BlurEvent<T>(component, true, null));
     }
 
     /**
-     * Closes the UI and simulates the end of the request. The {@link UI#close}
-     * is called, but also the session is set to null which fires the detach
-     * listeners and makes the UI and all of its components detached.
+     * Closes the UI and simulates the end of the request. The
+     * {@link UI#close()} is called unless the UI is already closing, and then
+     * the UI is removed from its session, which fires the detach listeners and
+     * makes the UI and all of its components detached.
      *
      * @param ui
-     *            the UI to act on
+     *            the UI, not null.
      */
     public static void _close(UI ui) {
-        ui.close();
-        // Mock closing of UI after request handled.
-        VaadinSession.getCurrent().removeUI(ui);
-    }
-
-    /**
-     * Returns child components which were added to this component via
-     * {@code com.vaadin.flow.dom.Element.appendVirtualChild}.
-     *
-     * @param component
-     *            the component to inspect
-     * @return child components which were added to this component via
-     *         {@code com.vaadin.flow.dom.Element.appendVirtualChild}
-     */
-    public static List<Component> _getVirtualChildren(Component component) {
-        List<Component> result = new ArrayList<>();
-        for (Element child : ElementUtils
-                .getVirtualChildren(component.getElement())) {
-            result.addAll(ElementUtils._findComponents(child));
+        if (!ui.isClosing()) {
+            ui.close();
         }
-        return result;
-    }
-
-    static String errorMessage(InternalServerError error) {
-        return error.getElement().getText();
+        // Mock closing of UI after request handled.
+        ui.getInternals().getSession().removeUI(ui);
     }
 
     /**
-     * The number of rows a lookup fetches before it gives up, so that a
-     * misconfigured data provider fails the test instead of hanging it.
+     * Returns a fetch limit that is safe to pass to data providers.
      *
-     * @return the fetch limit
+     * @return the fetch limit.
      */
-    public static int _saneFetchLimit() {
+    public static int get_saneFetchLimit() {
         // don't use high value otherwise Vaadin 19+ will calculate negative
-        // limit and will pass it to SizeVerifier,
-        // failing instantly.
+        // limit and will pass it to SizeVerifier, failing instantly.
         return Integer.MAX_VALUE / 1000;
     }
 }

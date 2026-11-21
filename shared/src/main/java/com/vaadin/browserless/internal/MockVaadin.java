@@ -16,14 +16,11 @@
 package com.vaadin.browserless.internal;
 
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EventObject;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,6 +34,8 @@ import java.util.function.Function;
 
 import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestSetupException;
+import com.vaadin.browserless.ExecutedJavaScript;
+import com.vaadin.browserless.JavaScriptDispatcher;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
@@ -44,10 +43,8 @@ import com.vaadin.browserless.mocks.MockServletConfig;
 import com.vaadin.browserless.mocks.MockVaadinHelper;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
 import com.vaadin.browserless.mocks.MockedUI;
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
-import com.vaadin.flow.component.page.Page;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.function.SerializableBiConsumer;
 import com.vaadin.flow.internal.CurrentInstance;
@@ -62,34 +59,23 @@ import com.vaadin.flow.server.UIInitEvent;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServiceEventBus;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletContext;
+import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
 import com.vaadin.flow.server.VaadinServletService;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.WrappedHttpSession;
 import com.vaadin.flow.shared.communication.PushMode;
 
 /**
- * Builds and tears down the mocked Vaadin environment.
- * <p>
- * {@link #setup()} creates the servlet, service, session, request, response and
- * UI a deployed application would have, and installs them as the thread-locals
- * Flow reads. {@link #tearDown()} takes them down again and fires the lifecycle
- * events a container would. Strong references to the session, UI, request and
- * response are held in thread-locals, because Flow only soft-references them
- * and they would otherwise be collected mid-test.
- * <p>
- * It also stands in for the browser where Flow expects one to act:
- * {@link #clientRoundtrip()} runs what a client response would have triggered,
- * and {@link MockPage} recreates the UI on {@code Page.reload()} the way a
- * browser refresh does.
+ * Mocks the Vaadin environment: the servlet, the service, the session and the
+ * UI.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
 public final class MockVaadin {
-
-    private MockVaadin() {
-    }
 
     // prevent GC on Vaadin Session and Vaadin UI as they are only
     // soft-referenced from the Vaadin itself.
@@ -106,7 +92,6 @@ public final class MockVaadin {
     // (see closeCurrentUI); a brand-new window leaves it unset and gets a
     // fresh unique name. Mirrors the lastNavigation hand-off.
     private static final ThreadLocal<String> lastWindowName = new ThreadLocal<>();
-
     private static final AtomicLong windowNameCounter = new AtomicLong();
 
     // Maps a UI detached by a page reload to the UI that replaced it. A reload
@@ -117,12 +102,450 @@ public final class MockVaadin {
     private static final Map<UI, UI> reloadReplacements = Collections
             .synchronizedMap(new WeakHashMap<>());
 
+    // The application property Copilot reads, outside Spring, to decide
+    // whether it initializes. Copilot does not expose a constant for it.
+    private static final String COPILOT_ENABLE = "copilot.enable";
+
     private static final ThreadLocal<Boolean> currentlyClosingSession = ThreadLocal
-            .withInitial(() -> Boolean.FALSE);
+            .withInitial(() -> false);
 
     private static String userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0";
 
     private static Function<MockHttpSession, MockRequest> mockRequestFactory = MockRequest::new;
+
+    private MockVaadin() {
+    }
+
+    /**
+     * Mocks Vaadin for the current test method:
+     *
+     * <pre>
+     * MockVaadin.setup(new Routes().autoDiscoverViews("com.myapp"));
+     * </pre>
+     *
+     * The UI factory <em>must</em> provide a new, fresh instance of the UI, so
+     * that the tests start from a pre-known state. If you're using Spring and
+     * you're getting UI from the injector, you must reconfigure Spring to use
+     * prototype scope, otherwise an old UI from the UI scope or Session Scope
+     * will be provided.
+     * <p>
+     * Sometimes you wish to provide a specific {@link VaadinServletService},
+     * e.g. to override {@link VaadinServletService#loadInstantiators()} and
+     * provide your own way of instantiating Views, e.g. via Spring or Guice.
+     * Please do that by extending {@link MockVaadinServlet} and overriding
+     * {@code MockVaadinServlet.createServletService(DeploymentConfiguration)}.
+     * Please consult {@code MockService} on what methods you must override in
+     * your custom service. Alternatively, see {@code MockSpringServlet} (in the
+     * {@code browserless-test-spring} module) on how to extend your custom
+     * servlet and provide all necessary mocking code.
+     *
+     * @param routes
+     *            all classes annotated with
+     *            {@link com.vaadin.flow.router.Route}; use
+     *            {@link Routes#autoDiscoverViews} to auto-discover all such
+     *            classes.
+     * @param uiFactory
+     *            produces {@link UI} instances and sets them as current, by
+     *            default simply instantiates {@link MockedUI} class.
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     * @param configuration
+     *            custom Vaadin configuration, such as application properties,
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment.
+     */
+    public static void setup(Routes routes, UIFactory uiFactory,
+            Set<? extends Class<?>> lookupServices,
+            BrowserlessConfiguration configuration) {
+        // init servlet
+        MockVaadinServlet servlet = new MockVaadinServlet(routes);
+        setup(uiFactory, servlet, lookupServices, configuration);
+    }
+
+    /**
+     * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     */
+    public static void setup(Routes routes, UIFactory uiFactory,
+            Set<? extends Class<?>> lookupServices) {
+        setup(routes, uiFactory, lookupServices,
+                BrowserlessConfiguration.empty());
+    }
+
+    /**
+     * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI of each session
+     */
+    public static void setup(Routes routes, UIFactory uiFactory) {
+        setup(routes, uiFactory, Collections.emptySet());
+    }
+
+    /**
+     * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
+     */
+    public static void setup(Routes routes) {
+        setup(routes, defaultUIFactory());
+    }
+
+    /**
+     * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     */
+    public static void setup() {
+        setup(new Routes());
+    }
+
+    /**
+     * Use this method when you need to provide a completely custom servlet
+     * (e.g. {@code SpringServlet}). Do not forget to create a specialized
+     * service which works in mocked environment. See below for details on how
+     * to do this.
+     * <p>
+     * The UI factory <em>must</em> provide a new, fresh instance of the UI, so
+     * that the tests start from a pre-known state. If you're using Spring and
+     * you're getting UI from the injector, you must reconfigure Spring to use
+     * prototype scope, otherwise an old UI from the UI scope or Session Scope
+     * will be provided.
+     *
+     * @param uiFactory
+     *            produces {@link UI} instances and sets them as current, by
+     *            default simply instantiates {@link MockedUI} class.
+     * @param servlet
+     *            allows you to provide your own implementation of
+     *            {@link VaadinServlet}. You MUST override
+     *            {@code VaadinServlet.createServletService} and construct a
+     *            custom service which overrides important methods. Please
+     *            consult {@code com.vaadin.browserless.mocks.MockService} on
+     *            what methods you must override in your custom service.
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     * @param configuration
+     *            custom Vaadin configuration, such as application properties,
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment.
+     */
+    public static void setup(UIFactory uiFactory, VaadinServlet servlet,
+            Set<? extends Class<?>> lookupServices,
+            BrowserlessConfiguration configuration) {
+        VaadinServletService service = setupServlet(servlet, lookupServices,
+                configuration);
+        VaadinService.setCurrent(service);
+
+        // init Vaadin Session
+        createSession(servlet.getServletContext(), uiFactory);
+    }
+
+    /**
+     * See
+     * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     */
+    public static void setup(UIFactory uiFactory, VaadinServlet servlet,
+            Set<? extends Class<?>> lookupServices) {
+        setup(uiFactory, servlet, lookupServices,
+                BrowserlessConfiguration.empty());
+    }
+
+    /**
+     * See
+     * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param servlet
+     *            the servlet to initialize
+     */
+    public static void setup(UIFactory uiFactory, VaadinServlet servlet) {
+        setup(uiFactory, servlet, Collections.emptySet());
+    }
+
+    /**
+     * See
+     * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
+     */
+    public static void setup(VaadinServlet servlet) {
+        setup(defaultUIFactory(), servlet);
+    }
+
+    /**
+     * Initializes the given {@code servlet} and its service, but does NOT
+     * create a session, UI, or set any thread-locals. Call this when you need
+     * to share a single service across multiple independent sessions
+     * (multi-user testing).
+     *
+     * @param configuration
+     *            custom Vaadin configuration, such as application properties,
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment. Lookup services defined by
+     *            the configuration are used in addition to the ones given by
+     *            {@code lookupServices}. JavaScript handlers are applied even
+     *            to a servlet that is already initialized.
+     * @return the initialized {@link VaadinServletService}
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     */
+    public static VaadinServletService setupServlet(VaadinServlet servlet,
+            Set<? extends Class<?>> lookupServices,
+            BrowserlessConfiguration configuration) {
+        if (!Utils.isInitialized(servlet)) {
+            // Lookup services can be given both explicitly and through the
+            // configuration (e.g. by a @BrowserlessTestConfig annotation);
+            // they accumulate.
+            Set<Class<?>> allLookupServices = new LinkedHashSet<>(
+                    lookupServices);
+            allLookupServices.addAll(configuration.getLookupServices());
+            ServletContext ctx = MockVaadinHelper
+                    .createMockContext(allLookupServices);
+            // Context init parameters are read by ApplicationConfiguration,
+            // which is created and cached on first access, so they must be
+            // set before anything else touches the context.
+            // Copilot is a development tool for an application running in a
+            // browser, and its init listener scans the classpath on every
+            // servlet init. It is disabled by default, but the test
+            // configuration can enable it again.
+            Map<String, String> applicationProperties = new LinkedHashMap<>();
+            applicationProperties.put(COPILOT_ENABLE, "false");
+            applicationProperties
+                    .putAll(configuration.getApplicationProperties());
+            applicationProperties.forEach(ctx::setInitParameter);
+            // Installed before the servlet is initialized, so that feature
+            // flags read during startup (e.g. by a VaadinServiceInitListener)
+            // already observe the test configuration. Installed even without
+            // overrides, so that tests toggling feature flags at runtime don't
+            // write them into the project resources folder, from where other
+            // tests would then read them.
+            BrowserlessFeatureFlags.install(new VaadinServletContext(ctx),
+                    configuration.getFeatureFlags());
+            MockServletConfig config = new MockServletConfig(ctx);
+            config.getServletInitParams().putAll(applicationProperties);
+            // Enforced by the browserless environment, so it wins over test
+            // configuration
+            config.getServletInitParams().put(InitParameters.BROWSERLESS,
+                    "true");
+            try {
+                servlet.init(config);
+            } catch (Exception e) {
+                throw Utils.sneakyThrow(e);
+            }
+        } else if (!configuration.getApplicationProperties().isEmpty()
+                || !configuration.getFeatureFlags().isEmpty()
+                || !configuration.getLookupServices().isEmpty()) {
+            // Application properties, feature flags and lookup services are
+            // all read while the servlet is initialized, so there is no way
+            // to apply them afterwards. Failing here beats silently running
+            // the test against an environment that never saw its own
+            // configuration.
+            throw new BrowserlessTestSetupException(
+                    "Cannot apply a custom Vaadin configuration to "
+                            + servlet.getClass().getName()
+                            + ", because the servlet has already been initialized. The configuration "
+                            + "is read while the servlet initializes, so it must be provided to the "
+                            + "setup creating the servlet. Provide a servlet factory returning a new, "
+                            + "uninitialized servlet instance, or move the configuration to the setup "
+                            + "that initializes it. Discarded configuration: "
+                            + withoutJavaScriptHandlers(configuration));
+        }
+        VaadinServletService service = checkNotNull(servlet.getService());
+        if (service.getRouter() == null) {
+            throw new IllegalStateException(servlet
+                    + " failed to call VaadinServletService.init() in createServletService()");
+        }
+        // Read when each UI is created rather than while the servlet
+        // initializes, so they are set, or replaced, even for a servlet that
+        // is reused
+        JavaScriptDispatcher.setJavaScriptHandlers(service,
+                configuration.getJavaScriptHandlers());
+        return service;
+    }
+
+    private static BrowserlessConfiguration withoutJavaScriptHandlers(
+            BrowserlessConfiguration configuration) {
+        BrowserlessConfiguration.Builder builder = BrowserlessConfiguration
+                .builder()
+                .withApplicationProperties(
+                        configuration.getApplicationProperties())
+                .withLookupServices(configuration.getLookupServices()
+                        .toArray(new Class<?>[0]));
+        configuration.getFeatureFlags().forEach(builder::withFeatureFlag);
+        return builder.build();
+    }
+
+    /**
+     * See {@link #setupServlet(VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     * @return the initialized {@link VaadinServletService}
+     */
+    public static VaadinServletService setupServlet(VaadinServlet servlet,
+            Set<? extends Class<?>> lookupServices) {
+        return setupServlet(servlet, lookupServices,
+                BrowserlessConfiguration.empty());
+    }
+
+    /**
+     * See {@link #setupServlet(VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
+     * @return the initialized {@link VaadinServletService}
+     */
+    public static VaadinServletService setupServlet(VaadinServlet servlet) {
+        return setupServlet(servlet, Collections.emptySet());
+    }
+
+    /**
+     * Records that {@code detached} was replaced by {@code created} during a
+     * page reload, so that {@link #liveUI(UI)} can map the old UI to the new
+     * one.
+     *
+     * @param detached
+     *            the UI the reload tore down
+     * @param created
+     *            the UI the reload created
+     */
+    public static void recordReloadReplacement(UI detached, UI created) {
+        reloadReplacements.put(detached, created);
+    }
+
+    /**
+     * Follows the reload chain starting at {@code ui} and returns the UI that
+     * is live now: a reload detaches a UI and creates a fresh one for the same
+     * window, so a caller holding the detached UI must be redirected to its
+     * replacement. Returns {@code ui} itself if it was never replaced.
+     *
+     * @param ui
+     *            the UI to look up
+     * @return the UI that currently shows the window of {@code ui}
+     */
+    public static UI liveUI(UI ui) {
+        UI live = ui;
+        UI next = reloadReplacements.get(live);
+        while (next != null && next != live) {
+            live = next;
+            next = reloadReplacements.get(live);
+        }
+        return live;
+    }
+
+    /**
+     * Clears the current UI. A UI that is closing, or any UI when
+     * {@code fireUIDetach} is true, is closed and removed from its session the
+     * way Flow removes the UI of a closed or reloaded browser tab, which fires
+     * its detach listeners. Does nothing if there is no current UI.
+     *
+     * @param fireUIDetach
+     *            whether to close and remove the UI even if it isn't closing.
+     */
+    public static void closeCurrentUI(boolean fireUIDetach) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            return;
+        }
+        lastNavigation.set(ui.getInternals().getActiveViewLocation());
+        // Preserve the window name so a following createUI (reload / session
+        // recreation) reuses it, keeping @PreserveOnRefresh's cache key
+        // stable.
+        lastWindowName.set(
+                ui.getInternals().getExtendedClientDetails().getWindowName());
+        if (ui.getInternals().getSession() != null
+                && (fireUIDetach || ui.isClosing())) {
+            // Every UI of a session has its own id, so the next UI does not
+            // replace this one in the session: it has to be removed.
+            BasicUtils._close(ui);
+        }
+        UI.setCurrent(null);
+        strongRefUI.remove();
+    }
+
+    /**
+     * Cleans up and removes the Vaadin UI and Vaadin Session. You can call this
+     * function in {@code afterEach{}} block, to clean up after the test. This
+     * comes handy when you want to be extra-sure that the next test won't
+     * accidentally reuse old UI, should you forget to call {@link #setup()}
+     * properly.
+     * <p>
+     * You don't have to call this function though; {@link #setup()} will
+     * overwrite any current UI/Session instances with a fresh ones.
+     */
+    public static void tearDown() {
+        clearVaadinInstances(false);
+        VaadinService service = VaadinService.getCurrent();
+        if (service != null) {
+            MockVaadin.fireServiceDestroyListeners(service,
+                    new ServiceDestroyEvent(service));
+            VaadinService.setCurrent(null);
+        }
+        lastNavigation.remove();
+        lastWindowName.remove();
+    }
+
+    private static void clearVaadinInstances(boolean fireUIDetach) {
+        closeCurrentUI(fireUIDetach);
+        closeCurrentSession();
+        CurrentInstance.set(VaadinRequest.class, null);
+        CurrentInstance.set(VaadinResponse.class, null);
+        strongRefReq.remove();
+        strongRefRes.remove();
+    }
+
+    private static void closeCurrentSession() {
+        VaadinSession session = VaadinSession.getCurrent();
+        if (session != null) {
+            fireSessionDestroyAndDrain(session);
+        }
+        strongRefSession.remove();
+    }
+
+    /**
+     * Fires session-destroy listeners on {@code session} and drains pending
+     * {@link VaadinSession#access} tasks scheduled during destruction. The
+     * {@code currentlyClosingSession} flag is set for the duration so the
+     * {@code afterSessionClose} recreation hook (used by single-user
+     * {@code setup}) is suppressed — multi-user callers manage their own
+     * session lifecycle.
+     *
+     * @param session
+     *            the session
+     */
+    public static void fireSessionDestroyAndDrain(VaadinSession session) {
+        VaadinService service = session.getService();
+        service.fireSessionDestroy(session);
+        VaadinSession.setCurrent(null);
+        // service destroys session via session.access(); we need to run that
+        // action now.
+        currentlyClosingSession.set(true);
+        try {
+            runUIQueue(false, session);
+        } finally {
+            currentlyClosingSession.set(false);
+        }
+    }
 
     /**
      * Returns the {@code User-Agent} every mocked request reports. Defaults to
@@ -167,426 +590,17 @@ public final class MockVaadin {
     }
 
     /**
-     * Records that {@code detached} was replaced by {@code created} during a
-     * page reload, so that {@link #liveUI(UI)} can map the old UI to the new
-     * one.
-     *
-     * @param detached
-     *            the UI the reload tore down
-     * @param created
-     *            the UI that replaced it
-     */
-    public static void recordReloadReplacement(UI detached, UI created) {
-        reloadReplacements.put(detached, created);
-    }
-
-    /**
-     * Follows the reload chain starting at {@code ui} and returns the UI that
-     * is live now: a reload detaches a UI and creates a fresh one for the same
-     * window, so a caller holding the detached UI must be redirected to its
-     * replacement.
-     *
-     * @param ui
-     *            the UI to follow
-     * @return the live UI, or {@code ui} itself if it was never replaced
-     */
-    public static UI liveUI(UI ui) {
-        UI live = ui;
-        UI next = reloadReplacements.get(live);
-        while (next != null && next != live) {
-            live = next;
-            next = reloadReplacements.get(live);
-        }
-        return live;
-    }
-
-    /**
-     * Mocks Vaadin for the current test method:
-     * 
-     * <pre>
-     * MockVaadin.setup(Routes().autoDiscoverViews("com.myapp"))
-     * </pre>
-     *
-     * The UI factory <em>must</em> provide a new, fresh instance of the UI, so
-     * that the tests start from a pre-known state. If you're using Spring and
-     * you're getting UI from the injector, you must reconfigure Spring to use
-     * prototype scope, otherwise an old UI from the UI scope or Session Scope
-     * will be provided.
-     *
-     * Sometimes you wish to provide a specific {@link VaadinServletService},
-     * e.g. to override {@link VaadinServletService#loadInstantiators} and
-     * provide your own way of instantiating Views, e.g. via Spring or Guice.
-     * Please do that by extending {@link MockVaadinServlet} and overriding
-     * {@link MockVaadinServlet#createServletService}
-     * `createServletService(DeploymentConfiguration)`. Please consult
-     * {@link com.vaadin.browserless.mocks.MockService MockService} on what
-     * methods you must override in your custom service. Alternatively, see
-     * `MockSpringServlet` (in the `browserless-test-spring` module) on how to
-     * extend your custom servlet and provide all necessary mocking code.
-     *
-     * @param routes
-     *            all classes annotated with
-     *            {@code com.vaadin.flow.router.Route}; use
-     *            {@link Routes#autoDiscoverViews} to auto-discover all such
-     *            classes.
-     * @param uiFactory
-     *            produces {@link UI} instances and sets them as current, by
-     *            default simply instantiates {@link MockedUI} class.
-     * @param lookupServices
-     *            service classes to be provided to the lookup initializer
-     * @param configuration
-     *            the deployment configuration to use
-     */
-    public static void setup(Routes routes, UIFactory uiFactory,
-            Set<Class<?>> lookupServices,
-            BrowserlessConfiguration configuration) {
-        // init servlet
-        MockVaadinServlet servlet = new MockVaadinServlet(routes);
-        setup(uiFactory, servlet, lookupServices, configuration);
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup(routes, uiFactory, lookupServices, BrowserlessConfiguration.empty())}.
-     *
-     * @param routes
-     *            the routes to register
-     * @param uiFactory
-     *            creates the UI instance
-     * @param lookupServices
-     *            the lookup services to register
-     */
-    public static void setup(Routes routes, UIFactory uiFactory,
-            Set<Class<?>> lookupServices) {
-        setup(routes, uiFactory, lookupServices,
-                BrowserlessConfiguration.empty());
-    }
-
-    /**
-     * Equivalent to {@code setup(routes, uiFactory, Collections.emptySet())}.
-     *
-     * @param routes
-     *            the routes to register
-     * @param uiFactory
-     *            creates the UI instance
-     */
-    public static void setup(Routes routes, UIFactory uiFactory) {
-        setup(routes, uiFactory, Collections.emptySet());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup(routes, MockedUI::new, Collections.emptySet())}.
-     *
-     * @param routes
-     *            the routes to register
-     */
-    public static void setup(Routes routes) {
-        setup(routes, MockedUI::new, Collections.emptySet());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup(new Routes(), MockedUI::new, Collections.emptySet())}.
-     */
-    public static void setup() {
-        setup(new Routes(), MockedUI::new, Collections.emptySet());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup(new Routes(), uiFactory, Collections.emptySet())}.
-     *
-     * @param uiFactory
-     *            creates the UI instance
-     */
-    public static void setup(UIFactory uiFactory) {
-        setup(new Routes(), uiFactory, Collections.emptySet());
-    }
-
-    /**
-     * Use this method when you need to provide a completely custom servlet
-     * (e.g. `SpringServlet`). Do not forget to create a specialized service
-     * which works in mocked environment.
-     *
-     * @param uiFactory
-     *            produces {@link UI} instances and sets them as current.
-     * @param servlet
-     *            allows you to provide your own implementation of
-     *            {@link VaadinServlet}.
-     * @param lookupServices
-     *            service classes to be provided to the lookup initializer
-     * @param configuration
-     *            the deployment configuration to use
-     */
-    public static void setup(UIFactory uiFactory, VaadinServlet servlet,
-            Set<Class<?>> lookupServices,
-            BrowserlessConfiguration configuration) {
-        VaadinServletService service = setupServlet(servlet, lookupServices,
-                configuration);
-        VaadinService.setCurrent(service);
-
-        // init Vaadin Session
-        createSession(servlet.getServletContext(), uiFactory);
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup(uiFactory, servlet, lookupServices, BrowserlessConfiguration.empty())}.
-     *
-     * @param uiFactory
-     *            creates the UI instance
-     * @param servlet
-     *            the servlet to act on
-     * @param lookupServices
-     *            the lookup services to register
-     */
-    public static void setup(UIFactory uiFactory, VaadinServlet servlet,
-            Set<Class<?>> lookupServices) {
-        setup(uiFactory, servlet, lookupServices,
-                BrowserlessConfiguration.empty());
-    }
-
-    /**
-     * Equivalent to {@code setup(uiFactory, servlet, Collections.emptySet())}.
-     *
-     * @param uiFactory
-     *            creates the UI instance
-     * @param servlet
-     *            the servlet to act on
-     */
-    public static void setup(UIFactory uiFactory, VaadinServlet servlet) {
-        setup(uiFactory, servlet, Collections.emptySet());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup((UIFactory) MockedUI::new, servlet, Collections.emptySet())}.
-     *
-     * @param servlet
-     *            the servlet to act on
-     */
-    public static void setup(VaadinServlet servlet) {
-        setup((UIFactory) MockedUI::new, servlet, Collections.emptySet());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setup((UIFactory) MockedUI::new, servlet, lookupServices)}.
-     *
-     * @param servlet
-     *            the servlet to act on
-     * @param lookupServices
-     *            the lookup services to register
-     */
-    public static void setup(VaadinServlet servlet,
-            Set<Class<?>> lookupServices) {
-        setup((UIFactory) MockedUI::new, servlet, lookupServices);
-    }
-
-    /**
-     * Initializes the given {@code servlet} and its service, but does NOT
-     * create a session, UI, or set any thread-locals. Call this when you need
-     * to share a single service across multiple independent sessions
-     * (multi-user testing).
-     *
-     * @param servlet
-     *            the servlet to act on
-     * @param lookupServices
-     *            the lookup services to register
-     * @param configuration
-     *            the deployment configuration to use
-     * @return the initialized {@link VaadinServletService}
-     */
-    public static VaadinServletService setupServlet(VaadinServlet servlet,
-            Set<Class<?>> lookupServices,
-            BrowserlessConfiguration configuration) {
-        if (!Utils.isInitialized(servlet)) {
-            // Lookup services can be given both explicitly and through the
-            // configuration (e.g. by a @BrowserlessTestConfig annotation);
-            // they accumulate.
-            Set<Class<?>> allLookupServices = new LinkedHashSet<>(
-                    lookupServices);
-            allLookupServices.addAll(configuration.getLookupServices());
-            ServletContext ctx = MockVaadinHelper
-                    .createMockContext(allLookupServices);
-            // Context init parameters are read by ApplicationConfiguration,
-            // which is created and cached on first access, so they must be set
-            // before anything else touches the context.
-            configuration.getApplicationProperties()
-                    .forEach(ctx::setInitParameter);
-            // Installed before the servlet is initialized, so that feature
-            // flags read during startup (e.g. by a VaadinServiceInitListener)
-            // already observe the test configuration. Installed even without
-            // overrides, so that tests toggling feature flags at runtime don't
-            // write them into the project resources folder, from where other
-            // tests would then read them.
-            BrowserlessFeatureFlags.install(new VaadinServletContext(ctx),
-                    configuration.getFeatureFlags());
-            MockServletConfig config = new MockServletConfig(ctx);
-            config.getServletInitParams()
-                    .putAll(configuration.getApplicationProperties());
-            // Enforced by the browserless environment, so it wins over test
-            // configuration
-            config.getServletInitParams().put(InitParameters.BROWSERLESS,
-                    "true");
-            try {
-                servlet.init(config);
-            } catch (ServletException e) {
-                throw new RuntimeException(e);
-            }
-        } else if (!configuration.isEmpty()) {
-            // Application properties, feature flags and lookup services are all
-            // read while the servlet is initialized, so there is no way to
-            // apply them afterwards. Failing here beats silently running the
-            // test against an environment that never saw its own configuration.
-            throw new BrowserlessTestSetupException(
-                    "Cannot apply a custom Vaadin configuration to "
-                            + servlet.getClass().getName()
-                            + ", because the servlet has already been initialized. The configuration "
-                            + "is read while the servlet initializes, so it must be provided to the "
-                            + "setup creating the servlet. Provide a servlet factory returning a new, "
-                            + "uninitialized servlet instance, or move the configuration to the setup "
-                            + "that initializes it. Discarded configuration: "
-                            + configuration);
-        }
-        VaadinServletService service = MockVaadinServlet.serviceSafe(servlet);
-        if (service == null) {
-            throw new IllegalStateException("Service is null");
-        }
-        if (service.getRouter() == null) {
-            throw new IllegalStateException(servlet
-                    + " failed to call VaadinServletService.init() in createServletService()");
-        }
-        return service;
-    }
-
-    /**
-     * Equivalent to
-     * {@code setupServlet(servlet, lookupServices, BrowserlessConfiguration.empty())}.
-     *
-     * @param servlet
-     *            the servlet to act on
-     * @param lookupServices
-     *            the lookup services to register
-     * @return the service the servlet was initialized with
-     */
-    public static VaadinServletService setupServlet(VaadinServlet servlet,
-            Set<Class<?>> lookupServices) {
-        return setupServlet(servlet, lookupServices,
-                BrowserlessConfiguration.empty());
-    }
-
-    /**
-     * Equivalent to
-     * {@code setupServlet(servlet, Collections.emptySet(), BrowserlessConfiguration.empty())}.
-     *
-     * @param servlet
-     *            the servlet to act on
-     * @return the service the servlet was initialized with
-     */
-    public static VaadinServletService setupServlet(VaadinServlet servlet) {
-        return setupServlet(servlet, Collections.emptySet(),
-                BrowserlessConfiguration.empty());
-    }
-
-    /**
-     * Properly closes the current UI and fire the detach event on it. Does
-     * nothing if there is no current UI.
-     *
-     * @param fireUIDetach
-     *            whether the UI detach listeners are fired
-     */
-    public static void closeCurrentUI(boolean fireUIDetach) {
-        UI ui = UI.getCurrent();
-        if (ui == null) {
-            return;
-        }
-        lastNavigation.set(ui.getInternals().getActiveViewLocation());
-        // Preserve the window name so a following createUI (reload / session
-        // recreation) reuses it, keeping @PreserveOnRefresh's cache key stable.
-        lastWindowName.set(
-                ui.getInternals().getExtendedClientDetails().getWindowName());
-        if (ui.isClosing() && ui.getInternals().getSession() != null) {
-            BasicUtils._close(ui);
-        }
-        if (fireUIDetach) {
-            ComponentUtil.onComponentDetach(ui);
-        }
-        UI.setCurrent(null);
-        strongRefUI.remove();
-    }
-
-    /**
-     * Cleans up and removes the Vaadin UI and Vaadin Session. You can call this
-     * function in `afterEach{}` block, to clean up after the test. This comes
-     * handy when you want to be extra-sure that the next test won't
-     * accidentally reuse old UI, should you forget to call {@code setup}
-     * properly.
-     *
-     * You don't have to call this function though; {@code setup} will overwrite
-     * any current UI/Session instances with a fresh ones.
-     */
-    public static void tearDown() {
-        clearVaadinInstances(false);
-        VaadinService service = VaadinService.getCurrent();
-        if (service != null) {
-            fireServiceDestroyListeners(service,
-                    new ServiceDestroyEvent(service));
-            VaadinService.setCurrent(null);
-        }
-        lastNavigation.remove();
-    }
-
-    private static void clearVaadinInstances(boolean fireUIDetach) {
-        closeCurrentUI(fireUIDetach);
-        closeCurrentSession();
-        CurrentInstance.set(VaadinRequest.class, null);
-        CurrentInstance.set(VaadinResponse.class, null);
-        strongRefReq.remove();
-        strongRefRes.remove();
-    }
-
-    private static void closeCurrentSession() {
-        VaadinSession session = VaadinSession.getCurrent();
-        if (session != null) {
-            fireSessionDestroyAndDrain(session);
-        }
-        strongRefSession.remove();
-    }
-
-    /**
-     * Fires session-destroy listeners on {@code session} and drains pending
-     * {@link VaadinSession#access} tasks scheduled during destruction. The
-     * `currentlyClosingSession` flag is set for the duration so the
-     * `afterSessionClose` recreation hook (used by single-user `setup`) is
-     * suppressed — multi-user callers manage their own session lifecycle.
-     *
-     * @param session
-     *            the session to act on
-     */
-    public static void fireSessionDestroyAndDrain(VaadinSession session) {
-        VaadinService service = session.getService();
-        service.fireSessionDestroy(session);
-        VaadinSession.setCurrent(null);
-        // service destroys session via session.access(); we need to run that
-        // action now.
-        currentlyClosingSession.set(Boolean.TRUE);
-        try {
-            runUIQueue(false, session);
-        } finally {
-            currentlyClosingSession.set(Boolean.FALSE);
-        }
-    }
-
-    /**
      * Creates a new session, request and response for the given
      * {@code service}, but does NOT set any thread-locals or create a UI.
+     * <p>
+     * Use this when you need to create multiple independent sessions for
+     * multi-user testing. The caller is responsible for setting thread-locals
+     * (via {@link VaadinSession#setCurrent}, {@link CurrentInstance}, etc.) and
+     * for creating the UI via {@link #createUI}.
      *
      * @param service
-     *            the service to act on
-     * @return a new session, request and response for the given {@code
-     *         service}, but does NOT set any thread-locals or create a UI
+     *            the initialized Vaadin service (from {@link #setupServlet})
+     * @return the created session objects
      */
     public static SessionObjects createSessionObjects(
             VaadinServletService service) {
@@ -597,18 +611,22 @@ public final class MockVaadin {
         MockRequest mockRequest = mockRequestFactory.apply(httpSession);
         mockRequest.getHeaders().put("User-Agent",
                 Collections.singletonList(userAgent));
-        MockRequestCustomizer customizer = (MockRequestCustomizer) service
-                .getContext().getAttribute(Lookup.class)
-                .lookup(MockRequestCustomizer.class);
+        MockRequestCustomizer customizer = service.getContext()
+                .getAttribute(Lookup.class).lookup(MockRequestCustomizer.class);
         if (customizer != null) {
             customizer.apply(mockRequest);
         }
-        com.vaadin.flow.server.VaadinServletRequest request = MockVaadinServlet
-                .createVaadinServletRequest(mockRequest, service);
+        VaadinServletRequest request = new VaadinServletRequest(mockRequest,
+                service);
 
         // init Session.
         VaadinSession session = MockVaadinServlet.createVaadinSession(service,
                 request);
+        // Flow applies the lock check strategy only while handling a request,
+        // which the mock bypasses, so apply it here: a development-mode session
+        // then throws on access without its lock, also when assertions are
+        // disabled.
+        MockVaadinServlet.applySessionLockCheckStrategy(service, session);
         ReentrantLock lock = new ReentrantLock();
         lock.lock();
         httpSession.setAttribute(service.getServiceName() + ".lock", lock);
@@ -632,18 +650,15 @@ public final class MockVaadin {
         }
 
         // init Vaadin Response
-        com.vaadin.flow.server.VaadinServletResponse response = MockVaadinServlet
-                .createVaadinServletResponse(new MockResponse(), service);
+        VaadinServletResponse response = new VaadinServletResponse(
+                new MockResponse(), service);
 
         return new SessionObjects(session, request, response, httpSession);
     }
 
     private static void createSession(ServletContext ctx, UIFactory uiFactory) {
-        VaadinServletService service = (VaadinServletService) VaadinService
-                .getCurrent();
-        if (service == null) {
-            throw new IllegalStateException("No current VaadinService");
-        }
+        VaadinServletService service = (VaadinServletService) checkNotNull(
+                VaadinService.getCurrent());
         SessionObjects objs = createSessionObjects(service);
 
         // install thread-locals
@@ -655,27 +670,24 @@ public final class MockVaadin {
         CurrentInstance.set(VaadinResponse.class, objs.getResponse());
 
         // fire session init listeners
-        fireSessionInitListeners(service, new SessionInitEvent(service,
-                objs.getSession(), objs.getRequest()));
+        MockVaadin.fireSessionInitListeners(service, new SessionInitEvent(
+                service, objs.getSession(), objs.getRequest()));
 
         // create UI
         createUI(uiFactory, objs.getSession());
     }
 
     /**
-     * Creates a new UI in the given session and navigates it to the current
-     * location, as a browser would on a fresh page load.
+     * Creates a UI with the given factory and attaches it to the given session,
+     * which must be the current one.
      *
      * @param uiFactory
-     *            produces the UI instance
+     *            creates the UI of each session
      * @param session
-     *            the session the UI belongs to
+     *            the session
      */
     public static void createUI(UIFactory uiFactory, VaadinSession session) {
-        VaadinRequest request = VaadinRequest.getCurrent();
-        if (request == null) {
-            throw new IllegalStateException("No current request");
-        }
+        VaadinRequest request = checkNotNull(VaadinRequest.getCurrent());
         UI ui = uiFactory.invoke();
         if (ui.getSession() != null) {
             throw new IllegalArgumentException("uiFactory produced UI " + ui
@@ -687,24 +699,24 @@ public final class MockVaadin {
 
         // hook into Page.reload() and recreate the UI
         try {
-            Field pageField = UI.class.getDeclaredField("page");
-            pageField.setAccessible(true);
-            pageField.set(ui, new MockPage(ui, uiFactory, session));
+            Field page = UI.class.getDeclaredField("page");
+            page.setAccessible(true);
+            page.set(ui, new MockPage(ui, uiFactory, session));
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            throw Utils.sneakyThrow(e);
         }
         ui.getInternals().setSession(session);
 
         // Assign a stable, non-null window name via ExtendedClientDetails so
         // @PreserveOnRefresh works. Flow keys its preserved-component cache on
         // window.name, and the name must (a) be non-null and (b) stay constant
-        // across reloads of the same window. A reload carries the previous UI's
-        // name in lastWindowName; a brand-new window gets a fresh unique name.
-        // The name is consumed before the UI is initialized, so a failing
-        // initialization cannot leak it into the next createUI on this thread.
-        // Every other detail stays at its placeholder default, exactly as in
-        // the instance Flow would have created lazily: the window name is all
-        // the router reads, so the mock does not fabricate a screen or
+        // across reloads of the same window. A reload carries the previous
+        // UI's name in lastWindowName; a brand-new window gets a fresh unique
+        // name. The name is consumed before the UI is initialized, so a
+        // failing initialization cannot leak it into the next createUI on this
+        // thread. Every other detail stays at its placeholder default, exactly
+        // as in the instance Flow would have created lazily: the window name
+        // is all the router reads, so the mock does not fabricate a screen or
         // viewport geometry it has no way to know.
         String windowName = lastWindowName.get();
         if (windowName == null) {
@@ -717,13 +729,14 @@ public final class MockVaadin {
                         null, null, null, null, windowName, null, null, null));
 
         UI.setCurrent(ui);
-        ui.doInit(request, 1, "ROOT");
+        JavaScriptDispatcher.setUpSimulatedClient(ui);
+        ui.doInit(request, session.getNextUIid(), "ROOT");
         strongRefUI.set(ui);
 
         session.addUI(ui);
         session.getService().getEventBus().fireEvent(
                 new UIInitEvent(ui, session.getService()),
-                rethrowListenerFailure);
+                MockVaadin.RETHROW_LISTENER_FAILURE);
 
         // navigate to the initial page
         if (lastNavigation.get() != null) {
@@ -740,24 +753,36 @@ public final class MockVaadin {
         // make sure that UI.getCurrent().push() can be called.
         // https://github.com/mvysny/karibu-testing/issues/80
         ui.getPushConfiguration().setPushMode(PushMode.AUTOMATIC);
+
+        // The first response to the browser runs the JavaScript the initial
+        // view scheduled while it was built
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**
      * Since Browserless Testing runs in the same JVM as the server and there is
      * no browser, the boundaries between the client and the server become
-     * unclear.
-     *
+     * unclear. When looking into sources of any test method, it's really hard
+     * to tell where exactly the server request ends, and where another request
+     * starts.
+     * <p>
+     * You can establish an explicit client boundary in your test, by explicitly
+     * calling this method. However, since that would be both laborous and
+     * error-prone, the default operation is that Browserless Testing pretends
+     * as if there was a client-server roundtrip before every component lookup
+     * via the {@code _get}/{@code _find}/{@code _expectNone}/{@code _expectOne}
+     * call. See {@link TestingLifecycleHook} for more details.
+     * <p>
      * Calls the following:
      * <ul>
-     * <li>{@code runUIQueue}
-     * <li>{@link com.vaadin.flow.internal.StateTree#runExecutionsBeforeClientResponse()
-     * StateTree.runExecutionsBeforeClientResponse} which runs all blocks
-     * scheduled via {@link UI#beforeClientResponse}
-     * <li>{@link TestingLifecycleHooks#cleanupDialogs}
+     * <li>{@link #runUIQueue()}</li>
+     * <li>{@link JavaScriptDispatcher#dispatch(UI)} which runs all blocks
+     * scheduled via {@link UI#beforeClientResponse} and sends the pending
+     * JavaScript to the simulated client, see {@link ExecutedJavaScript}</li>
+     * <li>{@code cleanupDialogs()}</li>
      * </ul>
-     *
      * If you'd like to test your {@link ErrorHandler} then take a look at
-     * {@code runUIQueue} instead.
+     * {@link #runUIQueue()} instead.
      *
      * @throws IllegalStateException
      *             if the environment is not mocked
@@ -767,49 +792,96 @@ public final class MockVaadin {
             throw new IllegalStateException("No VaadinSession");
         }
         runUIQueue();
-        UI.getCurrent().getInternals().getStateTree()
-                .runExecutionsBeforeClientResponse();
+        JavaScriptDispatcher.dispatch(UI.getCurrent());
         TestingLifecycleHooks.cleanupDialogs();
+    }
+
+    private static final ThreadLocal<VaadinSession> sessionRunningUIQueue = new ThreadLocal<>();
+
+    /**
+     * Internal function, do not call directly.
+     * <p>
+     * Returns whether {@link #runUIQueue} or
+     * {@link #unlockRunningUIQueue(VaadinSession)} is running the
+     * {@link UI#access} commands of {@code session} on the current thread, that
+     * is, whether the caller is such a command.
+     *
+     * @param session
+     *            the session, not null.
+     * @return true if the commands of the session are running on this thread.
+     */
+    public static boolean isRunningUIQueue(VaadinSession session) {
+        return sessionRunningUIQueue.get() == session;
+    }
+
+    /**
+     * Internal function, do not call directly.
+     * <p>
+     * Releases one hold of the {@code session} lock with
+     * {@link VaadinSession#unlock()}. When that is the last hold, Flow runs the
+     * {@link UI#access} commands queued for the session, and
+     * {@link #isRunningUIQueue(VaadinSession)} reports them as running.
+     *
+     * @param session
+     *            the session, not null.
+     */
+    public static void unlockRunningUIQueue(VaadinSession session) {
+        VaadinSession outerSession = sessionRunningUIQueue.get();
+        sessionRunningUIQueue.set(session);
+        try {
+            session.unlock();
+        } finally {
+            sessionRunningUIQueue.set(outerSession);
+        }
     }
 
     /**
      * Runs all tasks scheduled by {@link UI#access}.
-     *
-     * If {@link VaadinSession#errorHandler} is not set or
+     * <p>
+     * If {@link VaadinSession#getErrorHandler()} is not set or
      * {@code propagateExceptionToHandler} is false, any exceptions thrown from
-     * {@link com.vaadin.flow.server.Command Command}s scheduled via the
-     * {@link UI#access} will make this function fail. The exceptions will be
-     * wrapped in {@link ExecutionException}.
+     * {@code Command}s scheduled via the {@link UI#access} will make this
+     * function fail. The exceptions will be wrapped in
+     * {@link ExecutionException}. Generally it's best to keep
+     * {@code propagateExceptionToHandler} set to false to make any exceptions
+     * fail the test; however if you're testing how your own custom
+     * {@link VaadinSession#getErrorHandler()} responds to exceptions then set
+     * this parameter to true.
+     * <p>
+     * Called automatically by {@link #clientRoundtrip()} which is by default
+     * called automatically from {@link TestingLifecycleHook}. You generally
+     * don't need to call this method unless you need to test your
+     * {@link ErrorHandler}.
      *
      * @param propagateExceptionToHandler
      *            defaults to false. If true and
-     *            {@link VaadinSession#errorHandler} is set, any exceptions
-     *            thrown from {@link com.vaadin.flow.server.Command Command}s
-     *            scheduled via the {@link UI#access} will be redirected to
-     *            {@link VaadinSession#errorHandler} and will not be re-thrown
-     *            from this method.
+     *            {@link VaadinSession#getErrorHandler()} is set, any exceptions
+     *            thrown from {@code Command}s scheduled via the
+     *            {@link UI#access} will be redirected to
+     *            {@link VaadinSession#getErrorHandler()} and will not be
+     *            re-thrown from this method.
      * @param session
-     *            the session to act on
+     *            the session to run the queue of, defaults to
+     *            {@link VaadinSession#getCurrent()}.
      * @throws IllegalStateException
      *             if the environment is not mocked
      */
     public static void runUIQueue(boolean propagateExceptionToHandler,
             VaadinSession session) {
         // we need to set up UI error handler which will be notified for every
-        // exception thrown out of the access{} block
-        // otherwise the exceptions would simply be logged but unlock() wouldn't
-        // fail.
-        final List<Throwable> errors = new ArrayList<>();
+        // exception thrown out of the acccess{} block otherwise the exceptions
+        // would simply be logged but unlock() wouldn't fail.
+        List<Throwable> errors = new ArrayList<>();
         ErrorHandler oldErrorHandler = session.getErrorHandler();
         if (oldErrorHandler == null
                 || oldErrorHandler instanceof DefaultErrorHandler
                 || !propagateExceptionToHandler) {
-            session.setErrorHandler(e -> {
-                Throwable t = e.getThrowable();
+            session.setErrorHandler(event -> {
+                Throwable t = event.getThrowable();
                 if (!(t instanceof ExecutionException)) {
                     // for some weird reason t may not be ExecutionException
-                    // when it originates from a coroutine :confused:
-                    // the stacktrace would point someplace random. Wrap it in
+                    // when it originates from a coroutine :confused: the
+                    // stacktrace would point someplace random. Wrap it in
                     // ExecutionException whose stacktrace will point to the
                     // test
                     t = new ExecutionException(t.getMessage(), t);
@@ -820,8 +892,8 @@ public final class MockVaadin {
 
         try {
             // make sure the lock is held exactly once, otherwise the
-            // session.unlock() won't
-            // process all Runnables registered via ui.access()
+            // session.unlock() won't process all Runnables registered via
+            // ui.access()
             int lockCount = ((ReentrantLock) session.getLockInstance())
                     .getHoldCount();
             if (lockCount != 1) {
@@ -829,8 +901,8 @@ public final class MockVaadin {
                         "Expected 1 lock, actual " + lockCount);
             }
 
-            session.unlock(); // this will process all Runnables registered via
-                              // ui.access()
+            // this will process all Runnables registered via ui.access()
+            unlockRunningUIQueue(session);
             // lock the session back, so that the test can continue running
             // as-if in the UI thread.
             session.lock();
@@ -839,86 +911,72 @@ public final class MockVaadin {
         }
 
         if (!errors.isEmpty()) {
-            Throwable first = errors.get(0);
-            for (int i = 1; i < errors.size(); i++) {
-                first.addSuppressed(errors.get(i));
+            for (Throwable suppressed : errors.subList(1, errors.size())) {
+                errors.get(0).addSuppressed(suppressed);
             }
-            sneakyThrow(first);
+            throw Utils.sneakyThrow(errors.get(0));
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends Throwable> void sneakyThrow(Throwable t)
-            throws T {
-        throw (T) t;
-    }
-
     /**
-     * Equivalent to
-     * {@code runUIQueue(propagateExceptionToHandler, VaadinSession.getCurrent())}.
+     * See {@link #runUIQueue(boolean, VaadinSession)}.
      *
      * @param propagateExceptionToHandler
-     *            whether a failing command is handed to the session's error
-     *            handler instead of being rethrown
+     *            whether an exception thrown by a task is passed to the
+     *            session's error handler instead of being rethrown
      */
     public static void runUIQueue(boolean propagateExceptionToHandler) {
         runUIQueue(propagateExceptionToHandler, VaadinSession.getCurrent());
     }
 
     /**
-     * Equivalent to {@code runUIQueue(false, VaadinSession.getCurrent())}.
+     * See {@link #runUIQueue(boolean, VaadinSession)}.
      */
     public static void runUIQueue() {
-        runUIQueue(false, VaadinSession.getCurrent());
+        runUIQueue(false);
     }
 
     /**
      * Internal function, do not call directly.
-     *
+     * <p>
      * Only usable when you are providing your own implementation of
-     * {@link VaadinSession}. See
-     * {@link com.vaadin.browserless.mocks.MockVaadinSession MockVaadinSession}
-     * on how to call this properly.
+     * {@link VaadinSession}. See {@code MockVaadinSession} on how to call this
+     * properly.
      *
      * @param session
-     *            the session to act on
+     *            the session
      * @param uiFactory
-     *            creates the UI instance
+     *            creates the UI of each session
      */
     public static void afterSessionClose(VaadinSession session,
             UIFactory uiFactory) {
         // We need to simulate the actual browser + servlet container behavior
-        // here.
-        // Imagine that we want a test scenario where the user logs out, and we
-        // want to check that a login prompt appears.
+        // here. Imagine that we want a test scenario where the user logs out,
+        // and we want to check that a login prompt appears.
 
         // To log out the user, the code typically closes the session and tells
-        // the browser to reload
-        // the page (Page.getCurrent().reload() or similar).
-        // Thus the page is reloaded by the browser, and since the session is
-        // gone, the servlet container
-        // will create a new, fresh session.
+        // the browser to reload the page (Page.getCurrent().reload() or
+        // similar). Thus the page is reloaded by the browser, and since the
+        // session is gone, the servlet container will create a new, fresh
+        // session.
 
         // That's exactly what we need to do here. We need to close the current
-        // UI and eradicate it,
-        // then we need to close the current session and eradicate it, and then
-        // we need to create a completely fresh
-        // new UI and Session.
+        // UI and eradicate it, then we need to close the current session and
+        // eradicate it, and then we need to create a completely fresh new UI
+        // and Session.
 
         // A problem appears when the uiFactory accidentally doesn't create a
-        // new, fresh instance of UI. Say that
-        // we call Spring injector to provide us an instance of the UI, but we
-        // accidentally scoped the UI to Session.
-        // Spring doesn't know that (since we haven't told Spring that the
-        // Session scope is gone) and provides
-        // the previous UI instance which is still attached to the session. And
-        // it blows.
+        // new, fresh instance of UI. Say that we call Spring injector to
+        // provide us an instance of the UI, but we accidentally scoped the UI
+        // to Session. Spring doesn't know that (since we haven't told Spring
+        // that the Session scope is gone) and provides the previous UI
+        // instance which is still attached to the session. And it blows.
 
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped
-            // VaadinSession.getSession().
-            // Acquire the wrapped session beforehand.
-            MockHttpSession mockSession = Utils.mock(session);
+            // VaadinSession.getSession(). Acquire the wrapped session
+            // beforehand.
+            MockHttpSession mockSession = Utils.getMock(session);
             clearVaadinInstances(true);
             mockSession.destroy();
             createSession(mockSession.getServletContext(), uiFactory);
@@ -930,15 +988,15 @@ public final class MockVaadin {
      * wrapper for the internal extension function.
      *
      * @param service
-     *            the service to act on
+     *            the service
      * @param session
-     *            the session to act on
+     *            the session
      * @param request
-     *            the request to act on
+     *            the request the session was created for
      */
     public static void fireSessionInit(VaadinService service,
             VaadinSession session, VaadinRequest request) {
-        fireSessionInitListeners(service,
+        MockVaadin.fireSessionInitListeners(service,
                 new SessionInitEvent(service, session, request));
     }
 
@@ -947,10 +1005,11 @@ public final class MockVaadin {
      * static wrapper for the internal extension function.
      *
      * @param service
-     *            the service to act on
+     *            the service
      */
     public static void fireServiceDestroy(VaadinService service) {
-        fireServiceDestroyListeners(service, new ServiceDestroyEvent(service));
+        MockVaadin.fireServiceDestroyListeners(service,
+                new ServiceDestroyEvent(service));
     }
 
     /**
@@ -963,195 +1022,73 @@ public final class MockVaadin {
     }
 
     /**
-     * Clears the `lastNavigation` ThreadLocal recorded by
-     * {@code closeCurrentUI}.
+     * Clears the {@code lastNavigation} ThreadLocal recorded by
+     * {@link #closeCurrentUI(boolean)}.
+     * <p>
+     * {@link #closeCurrentUI(boolean)} records the closing UI's active view
+     * location into {@code lastNavigation} so that the immediately following
+     * {@link #createUI} call (in the single-user reload / session-recreation
+     * flow) can restore that location on the new UI. Multi-user lifecycle close
+     * paths ({@code BrowserlessUIContext.close}) call
+     * {@link #closeCurrentUI(boolean)} without a matching {@link #createUI}, so
+     * this method must be invoked afterwards to prevent the recorded location
+     * from leaking into the next unrelated {@link #createUI} on the same thread
+     * (e.g. {@code user.newWindow()}). Also clears the recorded window name for
+     * the same reason: a fresh window must get a new unique name, not inherit
+     * the closed window's name.
      */
     public static void clearLastNavigation() {
         lastNavigation.remove();
         lastWindowName.remove();
     }
 
-    // ---------------------------------------------------------------
-    // Service lifecycle events
-    // ---------------------------------------------------------------
+    private static UIFactory defaultUIFactory() {
+        return MockedUI::new;
+    }
+
+    private static <T> T checkNotNull(T value) {
+        if (value == null) {
+            throw new IllegalStateException("Required value was null.");
+        }
+        return value;
+    }
 
     /**
      * Hands a listener failure back to the caller instead of logging it, which
-     * is what {@code VaadinServiceEventBus.fireEvent} does by default. A
+     * is what {@link VaadinServiceEventBus#fireEvent} does by default. A
      * listener that throws during a test should fail that test rather than only
      * leave a line in the log.
      */
-    private static final SerializableBiConsumer<EventObject, Exception> rethrowListenerFailure = (
+    static final SerializableBiConsumer<EventObject, Exception> RETHROW_LISTENER_FAILURE = (
             event, error) -> {
-        sneakyThrow(error);
+        throw Utils.sneakyThrow(error);
     };
 
-    static void fireSessionInitListeners(VaadinService service,
+    /**
+     * Fires the given session init event to the listeners registered on the
+     * given service, rethrowing any exception a listener throws.
+     *
+     * @param service
+     *            the service
+     * @param event
+     *            the event to fire
+     */
+    public static void fireSessionInitListeners(VaadinService service,
             SessionInitEvent event) {
-        service.getEventBus().fireEvent(event, rethrowListenerFailure);
+        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
     }
-
-    static void fireServiceDestroyListeners(VaadinService service,
-            ServiceDestroyEvent event) {
-        service.getEventBus().fireEvent(event, rethrowListenerFailure);
-    }
-
-    // ---------------------------------------------------------------
-    // Nested types
-    // ---------------------------------------------------------------
 
     /**
-     * A Vaadin Session-recreate aware {@link Page} that recreates the UI on
-     * reload (simulating the browser pressing F5) and records outbound
-     * navigation calls so tests can assert on them.
+     * Fires the given service destroy event to the listeners registered on the
+     * given service, rethrowing any exception a listener throws.
+     *
+     * @param service
+     *            the service
+     * @param event
+     *            the event to fire
      */
-    public static class MockPage extends Page {
-
-        private static final Set<String> SELF_NAMES = new HashSet<>(
-                Arrays.asList("_self", "_parent", "_top", ""));
-
-        /**
-         * The UI this page belongs to.
-         */
-        private final UI ui;
-        /**
-         * Produces the UI instance a reload puts in place of the old one.
-         */
-        private final UIFactory uiFactory;
-        /**
-         * The session the UI belongs to.
-         */
-        private final VaadinSession session;
-        /**
-         * The recorded outbound navigations, by window name.
-         */
-        private final Map<String, List<String>> navigations = new LinkedHashMap<>();
-
-        /**
-         * Creates the page of the given UI.
-         *
-         * @param ui
-         *            the UI this page belongs to
-         * @param uiFactory
-         *            produces the UI a reload puts in place of the old one
-         * @param session
-         *            the session the UI belongs to
-         */
-        public MockPage(UI ui, UIFactory uiFactory, VaadinSession session) {
-            super(ui);
-            this.ui = ui;
-            this.uiFactory = uiFactory;
-            this.session = session;
-        }
-
-        /**
-         * Returns the URL of the last navigation that replaced the current
-         * page.
-         *
-         * @return the URL, or null if nothing navigated away
-         */
-        public String getLastExternalNavigationURL() {
-            List<String> list = navigations.get("_self");
-            if (list == null || list.isEmpty()) {
-                return null;
-            }
-            return list.get(list.size() - 1);
-        }
-
-        /**
-         * Returns the URL of the last navigation into the given window.
-         *
-         * @param windowName
-         *            the target window name, as passed to {@code open()}
-         * @return the URL, or null if nothing opened that window
-         */
-        public String getExternalNavigationURL(String windowName) {
-            List<String> list = navigations
-                    .get(normalizeWindowName(windowName));
-            if (list == null || list.isEmpty()) {
-                return null;
-            }
-            return list.get(list.size() - 1);
-        }
-
-        /**
-         * Returns the URLs opened in each window other than the current one.
-         *
-         * @return the opened URLs, by window name
-         */
-        public Map<String, List<String>> getOpenedWindows() {
-            Map<String, List<String>> result = new LinkedHashMap<>();
-            for (Map.Entry<String, List<String>> e : navigations.entrySet()) {
-                if (!"_self".equals(e.getKey())) {
-                    result.put(e.getKey(), new ArrayList<>(e.getValue()));
-                }
-            }
-            return result;
-        }
-
-        @Override
-        public void open(String url, String windowName) {
-            String normalized = normalizeWindowName(windowName);
-            if ("_blank".equals(normalized)) {
-                navigations.computeIfAbsent(normalized, k -> new ArrayList<>())
-                        .add(url);
-            } else {
-                List<String> list = new ArrayList<>();
-                list.add(url);
-                navigations.put(normalized, list);
-            }
-            super.open(url, windowName);
-        }
-
-        @Override
-        public void reload() {
-            UI current = UI.getCurrent();
-            if (current != ui) {
-                if (ui.getSession() == null) {
-                    // This UI lost its session, so it is the logout idiom -
-                    // capture the UI, close its session, then ask its page to
-                    // reload. Closing the session already tore this UI down and
-                    // rendered a fresh one for its window, which is what the
-                    // reload is asking for, so there is nothing left to do. Not
-                    // even the superclass call, which would fail: it schedules
-                    // JavaScript on a UI whose session is gone.
-                    return;
-                }
-                // A live UI, but not the current one. Recreating the UI runs on
-                // the thread-locals of the current UI, so going on would detach
-                // and recreate whichever window is current. Fail before
-                // anything
-                // is changed.
-                throw new IllegalStateException("Cannot reload the page of UI "
-                        + ui + ", because the current UI is "
-                        + (current != null ? current.toString() : "not set")
-                        + ". Reloading recreates the current UI, so the "
-                        + "reloaded window must be the current one. Either this "
-                        + "UI belongs to another window - activate it first, "
-                        + "e.g. through its BrowserlessUIContext or "
-                        + "UI.access() - or an earlier reload already replaced "
-                        + "it, in which case reload the current UI instead.");
-            }
-
-            // recreate the UI on reload(), to simulate browser's F5
-            super.reload();
-            MockVaadin.closeCurrentUI(true);
-            MockVaadin.createUI(uiFactory, session);
-            // Record the swap so holders of the detached UI
-            // (BrowserlessUIContext) can follow the window to the new UI. This
-            // path is also taken when application code calls Page.reload()
-            // itself, not only from the reload() DSL.
-            UI created = UI.getCurrent();
-            if (created != null && created != ui) {
-                MockVaadin.recordReloadReplacement(ui, created);
-            }
-        }
-
-        private String normalizeWindowName(String windowName) {
-            if (windowName == null || SELF_NAMES.contains(windowName)) {
-                return "_self";
-            }
-            return windowName;
-        }
+    public static void fireServiceDestroyListeners(VaadinService service,
+            ServiceDestroyEvent event) {
+        service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
     }
 }

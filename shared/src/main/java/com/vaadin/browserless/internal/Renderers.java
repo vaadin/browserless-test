@@ -17,25 +17,23 @@ package com.vaadin.browserless.internal;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.jsoup.Jsoup;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.data.renderer.BasicRenderer;
+import com.vaadin.flow.data.renderer.CompiledLitTemplate;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.function.ValueProvider;
+import com.vaadin.flow.js.JsDefinitionProxy;
 
 /**
- * Renders a {@link com.vaadin.flow.data.renderer.Renderer} server-side, as
- * close as possible to what the client would show.
- * <p>
- * This is what lets a test assert on a rendered grid cell without a browser.
- * Each renderer kind needs its own route to the value: a basic renderer formats
- * it, a component renderer builds the component, and a Lit renderer has its
- * template expression interpolated and the resulting HTML stripped to text.
+ * Functions for computing the output of renderers.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
@@ -44,77 +42,69 @@ public final class Renderers {
     private Renderers() {
     }
 
-    private static final Method _BasicRenderer_getFormattedValue;
-    private static final Field _BasicRenderer_valueProvider;
-    private static final Field _Renderer_template;
+    private static volatile Method basicRendererGetFormattedValue;
 
-    static {
-        try {
-            Method m = null;
-            for (Method candidate : BasicRenderer.class.getDeclaredMethods()) {
-                if (candidate.getName().equals("getFormattedValue")) {
-                    m = candidate;
-                    break;
-                }
-            }
-            if (m == null) {
-                throw new NoSuchMethodException("getFormattedValue");
-            }
+    private static volatile Field basicRendererValueProvider;
+
+    private static Method getBasicRendererGetFormattedValue() {
+        Method m = basicRendererGetFormattedValue;
+        if (m == null) {
+            m = Arrays.stream(BasicRenderer.class.getDeclaredMethods())
+                    .filter(it -> it.getName().equals("getFormattedValue"))
+                    .findFirst().orElseThrow(() -> new NoSuchElementException(
+                            "Array contains no element matching the predicate."));
             m.setAccessible(true);
-            _BasicRenderer_getFormattedValue = m;
-
-            Field valueProviderField = BasicRenderer.class
-                    .getDeclaredField("valueProvider");
-            valueProviderField.setAccessible(true);
-            _BasicRenderer_valueProvider = valueProviderField;
-
-            Field templateField = Renderer.class.getDeclaredField("template");
-            templateField.setAccessible(true);
-            _Renderer_template = templateField;
-        } catch (NoSuchMethodException | NoSuchFieldException e) {
-            throw new RuntimeException(e);
+            basicRendererGetFormattedValue = m;
         }
+        return m;
+    }
+
+    private static Field getBasicRendererValueProvider() {
+        Field f = basicRendererValueProvider;
+        if (f == null) {
+            try {
+                f = BasicRenderer.class.getDeclaredField("valueProvider");
+            } catch (NoSuchFieldException e) {
+                throw Utils.sneakyThrow(e);
+            }
+            f.setAccessible(true);
+            basicRendererValueProvider = f;
+        }
+        return f;
     }
 
     /**
      * Returns the output of this renderer for given {@code rowObject} formatted
      * as close as possible to the client-side output.
      *
-     * @param <T>
-     *            the item type
      * @param renderer
-     *            the renderer to read the value from
+     *            the renderer, not null.
      * @param rowObject
-     *            the item the row shows
-     * @return the output of this renderer for given {@code rowObject} formatted
-     *         as close as possible to the client-side output
+     *            the item to render.
+     * @param <T>
+     *            the item type.
+     * @return the rendered value, or null if the renderer is not supported.
      */
     @SuppressWarnings("unchecked")
     public static <T> String _getPresentationValue(Renderer<T> renderer,
             T rowObject) {
         try {
-            if (renderer instanceof BasicRenderer) {
-                BasicRenderer<T, ?> basicRenderer = (BasicRenderer<T, ?>) renderer;
-                Object value = valueProvider(basicRenderer).apply(rowObject);
-                return (String) _BasicRenderer_getFormattedValue
+            if (renderer instanceof BasicRenderer<T, ?> basicRenderer) {
+                Object value = getValueProvider(basicRenderer).apply(rowObject);
+                return (String) getBasicRendererGetFormattedValue()
                         .invoke(basicRenderer, value);
             }
-            if (renderer instanceof TextRenderer) {
-                return renderText((TextRenderer<T>) renderer, rowObject);
+            if (renderer instanceof TextRenderer<T> textRenderer) {
+                return renderText(textRenderer, rowObject);
             }
-            if (renderer instanceof ComponentRenderer) {
-                ComponentRenderer<?, T> componentRenderer = (ComponentRenderer<?, T>) renderer;
+            if (renderer instanceof ComponentRenderer<?, T> componentRenderer) {
                 Component component = componentRenderer
                         .createComponent(rowObject);
                 return PrettyPrintTree.toPrettyString(component);
             }
-            if (renderer.getClass().getSimpleName().equals("LitRenderer")) {
+            if ("LitRenderer".equals(renderer.getClass().getSimpleName())) {
                 // LitRenderer re-declares private members
-                Field templateProperty = renderer.getClass()
-                        .getDeclaredField("templateExpression");
-                templateProperty.setAccessible(true);
-                String templateExpression = (String) templateProperty
-                        .get(renderer);
+                String templateExpression = getLitTemplateHtml(renderer);
 
                 Field valueProvidersProperty = renderer.getClass()
                         .getDeclaredField("valueProviders");
@@ -124,38 +114,72 @@ public final class Renderers {
 
                 String renderedLitTemplateHtml = renderLitTemplate(
                         templateExpression, valueProviders, rowObject);
-                return ElementUtils
-                        .textRecursively(Jsoup.parse(renderedLitTemplateHtml));
+                return ElementUtils.getTextRecursively(
+                        Jsoup.parse(renderedLitTemplateHtml));
             }
             return null;
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            throw Utils.sneakyThrow(e);
         }
     }
 
     /**
-     * Renders a Lit template the way the client would, substituting every
-     * {@code ${item.x}} expression with the matching value provider's output.
+     * Returns the HTML of the Lit template that {@code renderer} renders with:
+     * either the template string it was created with, or the {@code html}
+     * tagged template that the body of its declared {@link CompiledLitTemplate}
+     * returns.
+     */
+    private static String getLitTemplateHtml(Renderer<?> renderer)
+            throws ReflectiveOperationException {
+        // LitRenderer has no public accessor for its template
+        Field templateField = renderer.getClass().getDeclaredField("template");
+        templateField.setAccessible(true);
+        CompiledLitTemplate template = (CompiledLitTemplate) templateField
+                .get(renderer);
+        if (template == null) {
+            Field templateExpressionField = renderer.getClass()
+                    .getDeclaredField("templateExpression");
+            templateExpressionField.setAccessible(true);
+            return (String) templateExpressionField.get(renderer);
+        }
+        var declaredCall = JsDefinitionProxy.findDeclaredCall(template);
+        if (declaredCall == null) {
+            throw new IllegalStateException("The template of " + renderer
+                    + " is not declared by a @JsDefinition method");
+        }
+        String body = declaredCall.getExpression();
+        // The body is a function body like return
+        // html`<span>${item.label}</span>`;
+        int start = body.indexOf("html`");
+        int end = body.lastIndexOf('`');
+        return start >= 0 && end > start + 4 ? body.substring(start + 5, end)
+                : body;
+    }
+
+    /**
+     * Renders the given lit {@code template}, replacing each
+     * <code>${item.key}</code> with the output of the corresponding value
+     * provider.
      *
-     * @param <T>
-     *            the item type
      * @param template
-     *            the Lit template source
+     *            the lit template expression.
      * @param valueProviders
-     *            the value providers, by the name used in the template
+     *            the value providers, keyed by property name.
      * @param item
-     *            the item the row shows
-     * @return the template with every expression substituted
+     *            the item to render.
+     * @param <T>
+     *            the item type.
+     * @return the rendered template.
      */
     public static <T> String renderLitTemplate(String template,
-            Map<String, ValueProvider<T, ?>> valueProviders, T item) {
+            Map<String, ? extends ValueProvider<T, ?>> valueProviders, T item) {
         String renderedTemplate = template;
-        for (Map.Entry<String, ValueProvider<T, ?>> entry : valueProviders
+        for (Map.Entry<String, ? extends ValueProvider<T, ?>> entry : valueProviders
                 .entrySet()) {
             String placeholder = "${item." + entry.getKey() + "}";
             if (renderedTemplate.contains(placeholder)) {
                 renderedTemplate = renderedTemplate.replace(placeholder,
-                        String.valueOf(entry.getValue().apply(item)));
+                        entry.getValue().apply(item).toString());
             }
         }
         return renderedTemplate;
@@ -164,13 +188,13 @@ public final class Renderers {
     /**
      * Returns the text rendered for given {@code item}.
      *
-     * @param <T>
-     *            the item type
      * @param renderer
-     *            the renderer to read the value from
+     *            the text renderer, not null.
      * @param item
-     *            the item to act on
-     * @return the text rendered for given {@code item}
+     *            the item to render.
+     * @param <T>
+     *            the item type.
+     * @return the rendered text.
      */
     public static <T> String renderText(TextRenderer<T> renderer, T item) {
         return renderer.createComponent(item).getElement().getText();
@@ -179,38 +203,23 @@ public final class Renderers {
     /**
      * Returns the {@link ValueProvider} set to {@link BasicRenderer}.
      *
-     * @param <T>
-     *            the item type
-     * @param <V>
-     *            the value type
      * @param renderer
-     *            the renderer to read the value from
-     * @return the {@link ValueProvider} set to {@link BasicRenderer}
+     *            the renderer, not null.
+     * @param <T>
+     *            the item type.
+     * @param <V>
+     *            the value type.
+     * @return the value provider.
      */
     @SuppressWarnings("unchecked")
-    public static <T, V> ValueProvider<T, V> valueProvider(
+    private static <T, V> ValueProvider<T, V> getValueProvider(
             BasicRenderer<T, V> renderer) {
         try {
-            return (ValueProvider<T, V>) _BasicRenderer_valueProvider
+            return (ValueProvider<T, V>) getBasicRendererValueProvider()
                     .get(renderer);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw Utils.sneakyThrow(e);
         }
     }
 
-    /**
-     * Returns the Polymer Template set to the {@link Renderer}.
-     *
-     * @param renderer
-     *            the renderer to read the value from
-     * @return the Polymer Template set to the {@link Renderer}
-     */
-    public static String template(Renderer<?> renderer) {
-        try {
-            String template = (String) _Renderer_template.get(renderer);
-            return template != null ? template : "";
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

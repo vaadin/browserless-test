@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,6 +39,7 @@ import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinServlet;
 import com.vaadin.flow.server.VaadinServletService;
+import com.vaadin.flow.server.VaadinSession;
 
 /**
  * Application-level context for multi-user browserless testing.
@@ -62,6 +63,47 @@ import com.vaadin.flow.server.VaadinServletService;
  * returns the typed {@link SecuredBrowserlessApplicationContext}, which exposes
  * credential-aware {@code newUser(...)} overloads. Framework-specific modules
  * (Spring, Quarkus) provide convenience factory methods for both paths.
+ * <p>
+ * <strong>Session locking.</strong> A user's
+ * {@link com.vaadin.flow.server.VaadinSession} lock is held only while one of
+ * that user's windows is active, the way a real request holds only the lock of
+ * its own session:
+ * <ul>
+ * <li>Application code running in one user's window that changes another user's
+ * UI directly fails, as it does in a running application. Use
+ * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+ * UI.access()} for such changes. As in a development-mode server, the failure
+ * is an {@link IllegalStateException} with the message "Cannot access state in
+ * VaadinSession or UI without locking the session".</li>
+ * <li>A {@code UI.access()} command for another user's UI runs at once on the
+ * calling thread, with that user's session and UI current, because nothing else
+ * holds that session's lock. As in a running application, an exception thrown
+ * by such a command goes to that session's
+ * {@link com.vaadin.flow.server.ErrorHandler} and is only logged by the default
+ * one; it does not fail the test.</li>
+ * <li>Switching to another user's window, or closing the active window,
+ * releases the outgoing session's lock and runs the commands still queued for
+ * it. Switching then takes the incoming session's lock. Switching between
+ * windows of the same user keeps the lock. As with the commands run before a
+ * component lookup, an exception thrown by a queued command fails the test. A
+ * switch rethrows it at once and leaves the outgoing session locked; a close
+ * completes first and then rethrows it.</li>
+ * <li>Switching to another user's window, or closing a window, a user or the
+ * application context, from inside a {@code UI.access()} command of the active
+ * user fails with an {@link IllegalStateException} and changes nothing, because
+ * Flow still holds that session's lock while the command runs. If the test
+ * itself locks the active user's session once more, a switch releases only its
+ * own hold, and the queued commands run when the test releases its. An
+ * exception from them then goes to the session's
+ * {@link com.vaadin.flow.server.ErrorHandler}, as with any plain
+ * {@code unlock()}. To have it fail the test, call
+ * {@link MockVaadin#runUIQueue(boolean, com.vaadin.flow.server.VaadinSession)
+ * MockVaadin.runUIQueue(false, session)} for that session after the switch,
+ * before releasing the extra hold.</li>
+ * <li>A test that changes a component of another user directly has to activate
+ * one of that user's windows first, for example with
+ * {@link BrowserlessUIContext#activate()}.</li>
+ * </ul>
  *
  * <pre>
  * var app = BrowserlessApplicationContext.create(MyView.class);
@@ -85,7 +127,14 @@ public class BrowserlessApplicationContext implements AutoCloseable {
     private final List<BrowserlessUserContext> users = new ArrayList<>();
     private TestSignalEnvironment signalsTestEnvironment;
     private RequestContextHandler requestContextHandler;
+    private boolean sessionLockIsolation = true;
+    private BrowserlessUserContext sessionLockHolder;
+    private int closeDepth;
+    private Throwable deferredCloseFailure;
     private boolean closed;
+    // Set for forComponent(...) contexts, which BrowserlessUIContext.close()
+    // tears down together with their window.
+    private boolean closesWithWindow;
 
     BrowserlessApplicationContext(VaadinServletService service,
             UIFactory uiFactory, List<Runnable> closeHooks) {
@@ -182,10 +231,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      * window; reusing a single instance across windows re-parents it and leaves
      * the earlier window empty.
      * <p>
-     * The returned context closes itself when its window's UI is detached, so a
-     * single try-with-resources — on the returned context, or on the window via
-     * {@link BrowserlessUIContext#forComponent(Component)} — tears everything
-     * down.
+     * The returned context closes itself when one of its windows is closed, so
+     * a single try-with-resources — on the returned context, or on the window
+     * via {@link BrowserlessUIContext#forComponent(Component)} — tears
+     * everything down.
      *
      * @param componentFactory
      *            supplies the component to attach to each window; must not be
@@ -196,31 +245,57 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     public static BrowserlessApplicationContext forComponent(
             Supplier<Component> componentFactory) {
+        return forComponent(BrowserlessConfiguration.empty(), componentFactory);
+    }
+
+    /**
+     * Creates a self-contained application context for ad-hoc testing of a
+     * single component, applying the given custom Vaadin configuration
+     * (application properties, feature flags, lookup services) to the mocked
+     * environment. Behaves like {@link #forComponent(Supplier)} otherwise.
+     *
+     * <pre>
+     * var configuration = BrowserlessConfiguration.builder()
+     *         .withFeatureFlags("myExperimentalFeature").build();
+     * try (var app = BrowserlessApplicationContext.forComponent(configuration,
+     *         MyForm::new)) {
+     *     var window = app.newUser().newWindow();
+     *     // ...
+     * }
+     * </pre>
+     *
+     * @param configuration
+     *            the configuration to apply; must not be {@code null}
+     * @param componentFactory
+     *            supplies the component to attach to each window; must not be
+     *            {@code null}
+     * @return a new self-closing application context with no routes
+     * @throws NullPointerException
+     *             if {@code configuration} or {@code componentFactory} is
+     *             {@code null}
+     * @see Builder#withConfiguration(BrowserlessConfiguration)
+     */
+    public static BrowserlessApplicationContext forComponent(
+            BrowserlessConfiguration configuration,
+            Supplier<Component> componentFactory) {
         Objects.requireNonNull(componentFactory,
                 "componentFactory must not be null");
-        // Self-reference: the detach listener must close the app, but the app
-        // does not exist until create(...) returns — hold it in a one-slot ref.
-        AtomicReference<BrowserlessApplicationContext> ownerApp = new AtomicReference<>();
-        ownerApp.set(create(b -> b.withoutRoutes().withUIFactory(() -> {
+        Objects.requireNonNull(configuration, "configuration must not be null");
+        UIFactory uiFactory = () -> new MockedUI() {
             // Build the component from UI.init() rather than an attach
             // listener: init() runs from UI.doInit() after the current
             // UI/session are set, so a component whose constructor reads
             // UI.getCurrent() observes the live instance. withoutRoutes()
             // guarantees no initial navigate("") will later replace it.
-            MockedUI ui = new MockedUI() {
-                @Override
-                protected void init(VaadinRequest request) {
-                    add(componentFactory.get());
-                }
-            };
-            // Closing the UI tears down the bundled app. Safe against
-            // re-entrancy: BrowserlessUIContext.close() sets its closed flag
-            // before detaching the UI, so the cascade back through close()
-            // short-circuits.
-            ui.addDetachListener(event -> ownerApp.get().close());
-            return ui;
-        })));
-        return ownerApp.get();
+            @Override
+            protected void init(VaadinRequest request) {
+                add(componentFactory.get());
+            }
+        };
+        BrowserlessApplicationContext app = create(b -> b.withoutRoutes()
+                .withConfiguration(configuration).withUIFactory(uiFactory));
+        app.closesWithWindow = true;
+        return app;
     }
 
     /**
@@ -257,33 +332,80 @@ public class BrowserlessApplicationContext implements AutoCloseable {
      */
     @Override
     public void close() {
+        runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }
+        checkNotRunningQueuedCommand();
         closed = true;
-        for (var user : users) {
-            user.close();
-        }
-        users.clear();
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
-        }
-        MockVaadin.fireServiceDestroy(service);
-        VaadinService.setCurrent(null);
-        List<RuntimeException> hookFailures = new ArrayList<>();
-        for (Runnable hook : closeHooks) {
-            try {
-                hook.run();
-            } catch (RuntimeException e) {
-                hookFailures.add(e);
+        // A user's close fails when a UI.access() command queued for its
+        // session throws. The global state below must still be released, or
+        // e.g. the signals test environment stays registered for later tests.
+        Throwable usersFailure = null;
+        try {
+            // Pending effects run while the windows are still open
+            if (signalsTestEnvironment != null) {
+                // Run the queued commands before the signal tasks do: these
+                // release the session lock with a plain unlock(), which only
+                // logs a failing command.
+                if (sessionLockHolder != null) {
+                    runQueuedCommands(sessionLockHolder.getSession());
+                }
+                signalsTestEnvironment.runRemainingTasks();
             }
-        }
-        if (!hookFailures.isEmpty()) {
-            RuntimeException aggregate = new RuntimeException(
-                    "One or more close hooks failed");
-            hookFailures.forEach(aggregate::addSuppressed);
-            throw aggregate;
+            // Every user is closed even when one fails, so that no session
+            // is left undestroyed or locked
+            Throwable userFailure = null;
+            for (var user : users) {
+                try {
+                    user.close();
+                } catch (Throwable t) {
+                    if (userFailure == null) {
+                        userFailure = t;
+                    } else {
+                        userFailure.addSuppressed(t);
+                    }
+                }
+            }
+            if (userFailure != null) {
+                BrowserlessApplicationContext
+                        .<RuntimeException> sneakyThrow(userFailure);
+            }
+        } catch (Throwable t) {
+            usersFailure = t;
+            throw t;
+        } finally {
+            users.clear();
+            try {
+                MockVaadin.fireServiceDestroy(service);
+            } finally {
+                // Unregistering runs what the windows and the destroy
+                // listeners queued while closing, on this thread
+                if (signalsTestEnvironment != null) {
+                    signalsTestEnvironment.unregister();
+                    signalsTestEnvironment = null;
+                }
+            }
+            VaadinService.setCurrent(null);
+            List<RuntimeException> hookFailures = new ArrayList<>();
+            for (Runnable hook : closeHooks) {
+                try {
+                    hook.run();
+                } catch (RuntimeException e) {
+                    hookFailures.add(e);
+                }
+            }
+            if (usersFailure != null) {
+                hookFailures.forEach(usersFailure::addSuppressed);
+            } else if (!hookFailures.isEmpty()) {
+                RuntimeException aggregate = new RuntimeException(
+                        "One or more close hooks failed");
+                hookFailures.forEach(aggregate::addSuppressed);
+                throw aggregate;
+            }
         }
     }
 
@@ -293,6 +415,10 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
     UIFactory getUIFactory() {
         return uiFactory;
+    }
+
+    boolean closesWithWindow() {
+        return closesWithWindow;
     }
 
     TestSignalEnvironment getSignalsTestEnvironment() {
@@ -319,6 +445,152 @@ public class BrowserlessApplicationContext implements AutoCloseable {
 
     void setRequestContextHandler(RequestContextHandler handler) {
         this.requestContextHandler = handler;
+    }
+
+    boolean isSessionLockIsolation() {
+        return sessionLockIsolation;
+    }
+
+    void setSessionLockIsolation(boolean sessionLockIsolation) {
+        this.sessionLockIsolation = sessionLockIsolation;
+    }
+
+    /**
+     * Makes the given user's session the only one whose lock the current thread
+     * holds, as if a request for that user had started. Releasing the
+     * previously held lock runs the commands queued for that session with
+     * {@code UI.access()}, like the end of a real request does; if one of them
+     * throws, the exception is rethrown and the previously held lock is kept.
+     * Passing {@code null} releases the held lock without taking another one.
+     * Does nothing when session lock isolation has been turned off, because
+     * then every session stays locked for its whole lifetime.
+     *
+     * @param user
+     *            the user whose session lock to hold, or {@code null} to hold
+     *            none
+     * @throws IllegalStateException
+     *             if called from a {@code UI.access()} command of the
+     *             previously held session, see
+     *             {@link #checkNotRunningQueuedCommand()}
+     */
+    void holdSessionLock(BrowserlessUserContext user) {
+        if (!sessionLockIsolation || sessionLockHolder == user) {
+            return;
+        }
+        BrowserlessUserContext previous = sessionLockHolder;
+        if (previous != null) {
+            VaadinSession outgoing = previous.getSession();
+            checkNotRunningQueuedCommand();
+            // If test code holds the lock once more, unlock() below releases
+            // only this method's hold, and the commands run when the test
+            // releases its own.
+            runQueuedCommands(outgoing);
+        }
+        sessionLockHolder = null;
+        try {
+            if (previous != null) {
+                previous.getSession().unlock();
+            }
+        } finally {
+            if (user != null) {
+                user.getSession().lock();
+                sessionLockHolder = user;
+            }
+        }
+    }
+
+    /**
+     * Runs the {@code UI.access()} commands queued for the given session, so
+     * that a failing command fails the test. A plain unlock(), or Flow's
+     * {@code UI.close()}, would hand it to the session's ErrorHandler, which
+     * only logs it. Does nothing unless the calling thread holds the session's
+     * lock exactly once, as the commands can only run when it is released.
+     * Within a close, a failure is rethrown when the outermost close ends.
+     *
+     * @param session
+     *            the session whose queued commands to run
+     */
+    void runQueuedCommands(VaadinSession session) {
+        if (((ReentrantLock) session.getLockInstance()).getHoldCount() != 1) {
+            return;
+        }
+        try {
+            MockVaadin.runUIQueue(false, session);
+        } catch (Throwable t) {
+            handleQueuedCommandFailure(t);
+        }
+    }
+
+    /**
+     * Fails if the current thread runs a {@code UI.access()} command of the
+     * session whose lock is held. Flow runs such commands while it still holds
+     * that lock, so it cannot be handed over to another user, and a close would
+     * be left half done.
+     *
+     * @throws IllegalStateException
+     *             if called from such a command
+     */
+    void checkNotRunningQueuedCommand() {
+        if (sessionLockIsolation && sessionLockHolder != null && MockVaadin
+                .isRunningUIQueue(sessionLockHolder.getSession())) {
+            throw new IllegalStateException(
+                    "Cannot switch to another user's window or close a "
+                            + "window, user or application context from a "
+                            + "UI.access() command. Do it after the command "
+                            + "has run.");
+        }
+    }
+
+    private void handleQueuedCommandFailure(Throwable failure) {
+        if (closeDepth == 0) {
+            BrowserlessApplicationContext
+                    .<RuntimeException> sneakyThrow(failure);
+        }
+        // Finish the close first, so that no window or session is left half
+        // closed, and rethrow when the outermost close ends.
+        if (deferredCloseFailure == null) {
+            deferredCloseFailure = failure;
+        } else {
+            deferredCloseFailure.addSuppressed(failure);
+        }
+    }
+
+    /**
+     * Runs a close of this application context, one of its users or one of
+     * their windows. An exception from a {@code UI.access()} command that runs
+     * while a session lock is released during the close does not stop it; it is
+     * rethrown once the outermost close has completed.
+     *
+     * @param close
+     *            the close to run
+     */
+    void runClose(Runnable close) {
+        closeDepth++;
+        Throwable failure = null;
+        try {
+            close.run();
+        } catch (Throwable t) {
+            failure = t;
+            throw t;
+        } finally {
+            closeDepth--;
+            if (closeDepth == 0 && deferredCloseFailure != null) {
+                Throwable deferred = deferredCloseFailure;
+                deferredCloseFailure = null;
+                if (failure != null) {
+                    failure.addSuppressed(deferred);
+                } else {
+                    BrowserlessApplicationContext
+                            .<RuntimeException> sneakyThrow(deferred);
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void sneakyThrow(Throwable t)
+            throws T {
+        throw (T) t;
     }
 
     void checkNotClosed() {
@@ -348,6 +620,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         private final Set<String> componentTesterPackages = new LinkedHashSet<>();
         private final List<Runnable> closeHooks = new ArrayList<>();
         private RequestContextHandler requestContextHandler;
+        private boolean sessionLockIsolation = true;
 
         /**
          * Creates a builder with no pre-seeded routes. Routes are derived from
@@ -690,6 +963,40 @@ public class BrowserlessApplicationContext implements AutoCloseable {
         }
 
         /**
+         * Sets whether a user's {@link com.vaadin.flow.server.VaadinSession}
+         * lock is held only while one of that user's windows is active, as
+         * described in {@link BrowserlessApplicationContext}. Enabled by
+         * default. Passing {@code false} makes the test thread hold the lock of
+         * every user's session for the session's whole lifetime, so application
+         * code that changes another user's UI without
+         * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+         * UI.access()} passes in a test even though it fails in a running
+         * application.
+         *
+         * @param sessionLockIsolation
+         *            {@code true} to hold a session lock only while one of its
+         *            user's windows is active, {@code false} to keep every
+         *            session locked
+         * @return this builder
+         * @deprecated session lock isolation is enabled by default and
+         *             disabling it is meant only as a temporary way to keep
+         *             existing tests running. A test that fails with it enabled
+         *             usually changes another user's UI without
+         *             {@code UI.access()}: fix the application code, or
+         *             activate that user's window first if the test changes it
+         *             directly. If the failure looks wrong, report an issue.
+         */
+        @Deprecated(since = "25.4")
+        public Builder withSessionLockIsolation(boolean sessionLockIsolation) {
+            this.sessionLockIsolation = sessionLockIsolation;
+            return this;
+        }
+
+        boolean sessionLockIsolation() {
+            return sessionLockIsolation;
+        }
+
+        /**
          * Registers a hook to be invoked when the built application context is
          * closed.
          * <p>
@@ -723,6 +1030,7 @@ public class BrowserlessApplicationContext implements AutoCloseable {
             BrowserlessApplicationContext context = new BrowserlessApplicationContext(
                     buildService(), uiFactory, buildCloseHooks());
             context.setRequestContextHandler(requestContextHandler);
+            context.setSessionLockIsolation(sessionLockIsolation);
             return context;
         }
 

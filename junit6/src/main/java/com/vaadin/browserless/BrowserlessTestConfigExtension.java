@@ -42,7 +42,7 @@ public class BrowserlessTestConfigExtension
         implements BeforeEachCallback, AfterEachCallback {
 
     /**
-     * Creates the extension; JUnit instantiates it through {@code @ExtendWith}.
+     * Creates a new extension. Instantiated by JUnit.
      */
     public BrowserlessTestConfigExtension() {
     }

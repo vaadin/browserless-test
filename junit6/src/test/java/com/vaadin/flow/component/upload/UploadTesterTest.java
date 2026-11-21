@@ -39,6 +39,8 @@ import org.junit.jupiter.api.io.TempDir;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
+import com.vaadin.flow.router.PreserveOnRefresh;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
 
@@ -107,6 +109,8 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.removeFile(file1));
         Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.startUpload(file1));
+        Assertions.assertThrows(IllegalStateException.class,
                 () -> multi_.uploadAll(file1, file2));
         // not being usable is reported before the file count is validated
         Assertions.assertThrows(IllegalStateException.class,
@@ -139,6 +143,8 @@ class UploadTesterTest extends BrowserlessTest {
                 uploadedData.metadata().contentType());
         Assertions.assertEquals(FIRST_FILE_CONTENTS,
                 uploadedDataToString(uploadedData));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed(), "Every file was uploaded");
     }
 
     @Test
@@ -180,6 +186,7 @@ class UploadTesterTest extends BrowserlessTest {
                 single_.getLastUploadStatus().get(0).status());
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        single_.ensureUploadFailed();
     }
 
     @Test
@@ -207,6 +214,152 @@ class UploadTesterTest extends BrowserlessTest {
         Assertions.assertEquals(
                 Set.of(file1.getName(), file2.getName(), file3.getName()),
                 fileNames);
+    }
+
+    @Test
+    void upload_sameFileTwice_bothUploaded() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadMulti.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.upload(file1);
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName(), file1.getName()),
+                listener.assertFilesReceived(2).stream()
+                        .map(ud -> ud.metadata().fileName()).toList());
+        Assertions.assertTrue(rejected.isEmpty(), "Got " + rejected);
+
+        // both entries count towards maxFiles
+        multi_.upload(file1);
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+
+        // removing by name removes the newest entry and frees one slot
+        multi_.removeFile(file1);
+        Assertions.assertEquals(List.of(file1.getName()), removed);
+        multi_.upload(file1);
+        Assertions.assertEquals(1, rejected.size(),
+                "The removed entry should have freed exactly one slot");
+        multi_.upload(file1);
+        Assertions.assertEquals(2, rejected.size(),
+                "The other entry should still occupy its slot");
+    }
+
+    @Test
+    void upload_autoUploadOff_fileUploadedOnlyWhenStarted() {
+        AtomicInteger allFinished = new AtomicInteger();
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle
+                .addAllFinishedListener(ev -> allFinished.incrementAndGet());
+        view.uploadSingle.setAutoUpload(false);
+
+        single_.upload(file1);
+
+        listener.assertNotStarted();
+        Assertions.assertEquals(0, allFinished.get());
+        List<UploadTester.FileStatus> pending = List
+                .of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.PENDING, null));
+        Assertions.assertEquals(pending, single_.getLastUploadStatus());
+        Assertions.assertEquals(pending, single_.getFiles());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploaded());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed());
+
+        single_.startUpload(file1);
+
+        Assertions.assertEquals(FIRST_FILE_CONTENTS,
+                uploadedDataToString(listener.assertFileReceived()));
+        Assertions.assertEquals(1, allFinished.get());
+        single_.ensureUploaded();
+        Assertions.assertEquals(
+                List.of(new UploadTester.FileStatus(file1.getName(),
+                        UploadTester.UploadStatus.UPLOADED, null)),
+                single_.getFiles());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> single_.startUpload(file1),
+                "An uploaded file cannot be started again");
+    }
+
+    @Test
+    void upload_autoUploadOff_heldFilesCountTowardsMaxFiles() {
+        List<String> received = new ArrayList<>();
+        view.uploadMulti.setUploadHandler(UploadHandler
+                .inMemory((metadata, data) -> received.add(metadata.fileName()
+                        + ":" + new String(data, StandardCharsets.UTF_8))));
+        view.uploadMulti.setAutoUpload(false);
+        view.uploadMulti.setMaxFiles(2);
+
+        multi_.upload("a.txt", "text/plain",
+                "older".getBytes(StandardCharsets.UTF_8));
+        multi_.upload("a.txt", "text/plain",
+                "newer".getBytes(StandardCharsets.UTF_8));
+        multi_.upload(file1);
+
+        Assertions.assertEquals(List.of(file1.getName() + ":Too Many Files."),
+                rejected);
+
+        // the list shows the newest entry first
+        multi_.startUpload(1);
+        Assertions.assertEquals(List.of("a.txt:older"), received);
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(1),
+                "An uploaded file cannot be started again");
+
+        // by name, the newest entry still waiting is started
+        multi_.startUpload("a.txt");
+        Assertions.assertEquals(List.of("a.txt:older", "a.txt:newer"),
+                received);
+    }
+
+    @Test
+    void removeFile_sameNameTwice_newestEntryRemoved() {
+        List<String> received = new ArrayList<>();
+        view.uploadMulti.setUploadHandler(UploadHandler
+                .inMemory((metadata, data) -> received.add(metadata.fileName()
+                        + ":" + new String(data, StandardCharsets.UTF_8))));
+        view.uploadMulti.setAutoUpload(false);
+        multi_.upload("a.txt", "text/plain",
+                "older".getBytes(StandardCharsets.UTF_8));
+        multi_.upload("a.txt", "text/plain",
+                "newer".getBytes(StandardCharsets.UTF_8));
+
+        multi_.removeFile("a.txt");
+
+        Assertions.assertEquals(List.of("a.txt"), removed);
+        Assertions.assertEquals(1, multi_.getFiles().size());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(1));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.startUpload(-1));
+        multi_.startUpload(0);
+        Assertions.assertEquals(List.of("a.txt:older"), received,
+                "The newest entry should have been removed");
+    }
+
+    @Test
+    void startUpload_handlerFails_fileListedAsFailed() {
+        view.uploadSingle.setUploadHandler(
+                new AssertingTransferProgressListener().asFailingHandler());
+        view.uploadSingle.setAutoUpload(false);
+        single_.upload(file1);
+
+        Assertions.assertThrows(UncheckedIOException.class,
+                () -> single_.startUpload(file1));
+
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getLastUploadStatus().get(0).status());
+        Assertions.assertEquals(UploadTester.UploadStatus.FAILED,
+                single_.getFiles().get(0).status(),
+                "A failed file should stay in the file list");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> single_.startUpload(file1),
+                "A failed file cannot be started again");
     }
 
     @Test
@@ -388,12 +541,15 @@ class UploadTesterTest extends BrowserlessTest {
                 multi_.getLastUploadStatus().stream()
                         .map(UploadTester.FileStatus::status).toList(),
                 "The upload never got to the file following the failing one");
+        multi_.ensureUploadFailed();
     }
 
     @Test
     void ensureUploaded_noUploadSimulated_throws() {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> single_.ensureUploaded());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> single_.ensureUploadFailed());
     }
 
     @Test
@@ -567,6 +723,26 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void removeFile_byIndex_newestFileFirst() {
+        view.uploadMulti.setUploadHandler(UploadHandler.inMemory((m, d) -> {
+        }));
+        multi_.upload(file1);
+        multi_.upload(file2);
+
+        multi_.removeFile(0);
+
+        Assertions.assertEquals(List.of(file2.getName()), removed,
+                "The list shows the most recently uploaded file first");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(1));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> multi_.removeFile(-1));
+        multi_.removeFile(0);
+        Assertions.assertEquals(List.of(file2.getName(), file1.getName()),
+                removed);
+    }
+
+    @Test
     void removeFile_fileNotInFileList_throws() {
         view.uploadSingle.setUploadHandler(UploadHandler.inMemory((m, d) -> {
         }));
@@ -585,6 +761,55 @@ class UploadTesterTest extends BrowserlessTest {
         view.uploadSingle.clearFileList();
         single_.upload(file2);
         // every clearFileList() has to be picked up, not only the first one
+        view.uploadSingle.clearFileList();
+        single_.upload(file3);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(3);
+    }
+
+    @Test
+    void clearFileList_afterReloadOfPreservedView_slotsFreed() {
+        RouteConfiguration.forApplicationScope()
+                .setAnnotatedRoute(PreservedUploadView.class);
+        UploadView preserved = navigate(PreservedUploadView.class);
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        preserved.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        preserved.uploadSingle.setMaxFiles(1);
+        preserved.uploadSingle.addFileRejectedListener(ev -> rejected
+                .add(ev.getFileName() + ":" + ev.getErrorMessage()));
+        test(preserved.uploadSingle).upload(file1);
+
+        Assertions.assertSame(preserved, reload(PreservedUploadView.class));
+        // the clearFileList() call goes to the new UI of the preserved view
+        preserved.uploadSingle.clearFileList();
+        test(preserved.uploadSingle).upload(file2);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(2);
+    }
+
+    @Route(value = "preserved-upload", registerAtStartup = false)
+    @PreserveOnRefresh
+    public static class PreservedUploadView extends UploadView {
+    }
+
+    @Test
+    void clearFileList_afterPendingJavaScriptSent_slotsFreed() {
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        view.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        view.uploadSingle.setMaxFiles(1);
+
+        single_.upload(file1);
+        view.uploadSingle.clearFileList();
+        single_.upload(file2);
+        // a round trip that sends the pending JavaScript to the client empties
+        // the queue, which must not hide the next clearFileList() call
+        roundTrip();
         view.uploadSingle.clearFileList();
         single_.upload(file3);
 

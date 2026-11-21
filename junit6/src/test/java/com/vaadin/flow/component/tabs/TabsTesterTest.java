@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.tabs;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -211,6 +213,50 @@ class TabsTesterTest extends BrowserlessTest {
                 () -> tabs_.isSelected(4));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> tabs_.isSelected(-1));
+    }
+
+    @Test
+    void getTabLabels_listsVisibleTabsInOrder() {
+        Assertions.assertEquals(List.of("Details", "Payment", "Shipping"),
+                tabs_.getTabLabels());
+
+        view.payment.setVisible(false);
+        Assertions.assertEquals(List.of("Details", "Shipping"),
+                tabs_.getTabLabels());
+
+        // Tabs keep insertion order, and a caption made of components has no
+        // label of its own
+        view.tabs.add(new Tab("Address"), new Tab(new Span("Billing")));
+        Assertions.assertEquals(List.of("Details", "Shipping", "Address", ""),
+                tabs_.getTabLabels());
+    }
+
+    @Test
+    void getSelectedTabLabel_returnsSelectedLabelOrNull() {
+        Assertions.assertEquals("Details", tabs_.getSelectedTabLabel());
+
+        view.tabs.setSelectedTab(view.shipping);
+        Assertions.assertEquals("Shipping", tabs_.getSelectedTabLabel());
+
+        view.shipping.setVisible(false);
+        Assertions.assertEquals("Shipping", tabs_.getSelectedTabLabel());
+
+        view.tabs.setSelectedTab(null);
+        Assertions.assertNull(tabs_.getSelectedTabLabel());
+    }
+
+    @Test
+    void readTabLabels_disabledComponent_readable_hiddenComponent_throws() {
+        view.tabs.setEnabled(false);
+        Assertions.assertEquals(List.of("Details", "Payment", "Shipping"),
+                tabs_.getTabLabels());
+        Assertions.assertEquals("Details", tabs_.getSelectedTabLabel());
+
+        view.tabs.setVisible(false);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> tabs_.getTabLabels());
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> tabs_.getSelectedTabLabel());
     }
 
 }

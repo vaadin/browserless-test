@@ -293,14 +293,16 @@ class MockVaadinTest {
         void navigate_toAParametrizedView_rendersIt() {
             UI.getCurrent().navigate("params/1");
 
-            Locator._get(ParametrizedView.class);
+            Locator._get(ParametrizedView.class, spec -> {
+            });
         }
 
         @Test
         void navigate_toAViewWithAParentRoute_rendersIt() {
             UI.getCurrent().navigate("parent/child");
 
-            Locator._get(ChildView.class);
+            Locator._get(ChildView.class, spec -> {
+            });
         }
 
         @Test
@@ -339,7 +341,8 @@ class MockVaadinTest {
                     context -> assertEquals(1, ran.incrementAndGet(),
                             "the block was supposed to be run only once"));
 
-            Locator._get(UI.class);
+            Locator._get(UI.class, spec -> {
+            });
 
             assertEquals(1, ran.get());
         }
@@ -354,7 +357,8 @@ class MockVaadinTest {
                             ran.incrementAndGet(),
                             "the block was supposed to be run only once"));
 
-            Locator._get(UI.class);
+            Locator._get(UI.class, spec -> {
+            });
 
             assertEquals(1, ran.get());
         }
@@ -365,19 +369,22 @@ class MockVaadinTest {
 
         @Test
         void openDialog_putsItAndItsContentsInTheComponentTree() {
-            Locator._expectNone(Dialog.class);
+            Locator._expectNone(Dialog.class, spec -> {
+            });
             Locator._expectNone(Div.class, spec -> spec.setText("Dialog Text"));
 
             Dialog dialog = new Dialog(new Div(new Text("Dialog Text")));
             dialog.open();
 
-            Locator._get(Dialog.class);
+            Locator._get(Dialog.class, spec -> {
+            });
             Locator._get(Div.class, spec -> spec.setText("Dialog Text"));
 
             dialog.close();
 
             Locator._expectNone(Div.class, spec -> spec.setText("Dialog Text"));
-            Locator._expectNone(Dialog.class);
+            Locator._expectNone(Dialog.class, spec -> {
+            });
         }
 
         @Test
@@ -414,21 +421,27 @@ class MockVaadinTest {
 
         @Test
         void reload_navigatesToTheCurrentUrl() {
-            Locator._get(WelcomeView.class);
+            Locator._get(WelcomeView.class, spec -> {
+            });
 
             UI.getCurrent().getPage().reload();
 
-            Locator._get(WelcomeView.class);
+            Locator._get(WelcomeView.class, spec -> {
+            });
 
             UI.getCurrent().navigate("helloworld");
 
-            Locator._expectNone(WelcomeView.class);
-            Locator._get(HelloWorldView.class);
+            Locator._expectNone(WelcomeView.class, spec -> {
+            });
+            Locator._get(HelloWorldView.class, spec -> {
+            });
 
             UI.getCurrent().getPage().reload();
 
-            Locator._expectNone(WelcomeView.class);
-            Locator._get(HelloWorldView.class);
+            Locator._expectNone(WelcomeView.class, spec -> {
+            });
+            Locator._get(HelloWorldView.class, spec -> {
+            });
         }
 
         @Test
@@ -467,11 +480,11 @@ class MockVaadinTest {
     @Test
     void setup_reusingAUiInstance_failsWithHelpfulMessage() {
         MockedUI ui = new MockedUI();
-        MockVaadin.setup(() -> ui);
+        MockVaadin.setup(new Routes(), () -> ui);
 
         expectThrows(IllegalArgumentException.class,
                 "which is already attached to a Session",
-                () -> MockVaadin.setup(() -> ui));
+                () -> MockVaadin.setup(new Routes(), () -> ui));
     }
 
     @Nested
@@ -497,11 +510,11 @@ class MockVaadinTest {
 
         @Test
         void cookies_addedToTheRequest_areVisibleOnTheCurrentRequest() {
-            Utils.mock(Utils.currentRequest())
+            Utils.getMock(Utils.getCurrentRequest())
                     .addCookie(new Cookie("foo", "bar"));
 
             assertEquals(List.of("bar"),
-                    Arrays.stream(Utils.currentRequest().getCookies())
+                    Arrays.stream(Utils.getCurrentRequest().getCookies())
                             .map(Cookie::getValue).toList());
         }
     }
@@ -511,9 +524,9 @@ class MockVaadinTest {
 
         @Test
         void cookies_addedToTheResponse_areRecordedOnTheMockResponse() {
-            Utils.currentResponse().addCookie(new Cookie("foo", "bar"));
+            Utils.getCurrentResponse().addCookie(new Cookie("foo", "bar"));
 
-            assertEquals("bar", Utils.mock(Utils.currentResponse())
+            assertEquals("bar", Utils.getMock(Utils.getCurrentResponse())
                     .getCookie("foo").getValue());
         }
 
@@ -521,14 +534,14 @@ class MockVaadinTest {
         void cookies_addedBeforeUiInit_areVisibleFromUiInit() {
             MockVaadin.tearDown();
             AtomicInteger initCalled = new AtomicInteger();
-            MockVaadin.setup(() -> {
-                Utils.mock(Utils.currentRequest())
+            MockVaadin.setup(new Routes(), () -> {
+                Utils.getMock(Utils.getCurrentRequest())
                         .addCookie(new Cookie("foo", "bar"));
                 return new UI() {
                     @Override
                     protected void init(VaadinRequest request) {
                         assertEquals(List.of("bar"), Arrays
-                                .stream(Utils.currentRequest().getCookies())
+                                .stream(Utils.getCurrentRequest().getCookies())
                                 .map(Cookie::getValue).toList());
                         initCalled.incrementAndGet();
                     }
@@ -546,8 +559,8 @@ class MockVaadinTest {
         void attributes_setOnTheHttpSession_areReadableThroughTheMock() {
             VaadinSession.getCurrent().getSession().setAttribute("foo", "bar");
 
-            assertEquals("bar",
-                    Utils.mock(VaadinSession.getCurrent()).getAttribute("foo"));
+            assertEquals("bar", Utils.getMock(VaadinSession.getCurrent())
+                    .getAttribute("foo"));
         }
 
         @Test
@@ -643,9 +656,9 @@ class MockVaadinTest {
                                     spec -> spec.setCaption("Hello, World!"))
                                     .addClickListener(
                                             event -> service.callService());
-                            ComponentUtils.serverClick(Locator._get(
-                                    Button.class,
-                                    spec -> spec.setCaption("Hello, World!")));
+                            Locator._get(Button.class,
+                                    spec -> spec.setCaption("Hello, World!"))
+                                    .click();
                         } catch (Throwable t) {
                             failure.compareAndSet(null, t);
                         }

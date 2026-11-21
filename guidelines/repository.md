@@ -3,13 +3,15 @@
 ## Technology stack
 
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
-- **Vaadin 25 / Flow** as a `provided` dependency, one fixed version per
-  branch — see [Flow Version](flow-version.md).
+- **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
+  fixed version per branch — see [Flow Version](flow-version.md).
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
   own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
-- **maven-javadoc-plugin** for Javadoc in every module.
+- **maven-javadoc-plugin** for Javadoc in every module. It fails the build on
+  any warning it reports: a link that does not resolve or a missing comment,
+  for example.
 
 ## Module structure
 
@@ -58,10 +60,21 @@ The `locator-processor` module has to be installed before `shared` compiles,
 which `mvn install` at the root handles. When you build `shared` alone, include
 `-am` so the processor is built too.
 
-CI (`.github/workflows/validation.yml`) runs `spotless:check`, then
-`mvn clean install -DskipTests -Djavadocs`, then `mvn test`, and publishes the
-surefire reports. Commenting `/format` on a pull request runs `spotless:apply`
-and pushes the result.
+CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
+changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
+`mvn test`, and publishes the surefire reports. When the build fails on Javadoc,
+`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc problem
+into an annotation on the PR diff and a failed test in the published results.
+`formatter-suggestions.yml` posts the formatting changes as review suggestions
+on the pull request, also for forks.
+
+`.github/workflows/code-review.yml` reviews pull requests against `main` with
+the shared `vaadin/github-actions/code-review` action when they are opened or
+marked ready for review, skipping drafts, `chore:` pull requests and forks.
+Commenting `/code-review` or requesting a review from `vaadin-review-bot`
+triggers a review on demand; on fork pull requests and pull requests against
+maintenance branches only the comment does.
+Every trigger needs write access to the repository from whoever caused it.
 
 ## Code style
 

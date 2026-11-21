@@ -47,7 +47,7 @@ public class SpringSecurityContextHandler
         implements SecurityContextHandler<Authentication> {
 
     /**
-     * Creates the handler.
+     * Creates a new security context handler.
      */
     public SpringSecurityContextHandler() {
     }

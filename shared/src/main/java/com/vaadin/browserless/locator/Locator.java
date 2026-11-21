@@ -250,6 +250,23 @@ public abstract class Locator<C extends Component, SELF extends Locator<C, SELF>
     }
 
     /**
+     * Requires the matched component to satisfy the given predicate, described
+     * by the given text in the message of a failed lookup.
+     *
+     * @param condition
+     *            the predicate the component must satisfy
+     * @param description
+     *            describes the condition in the message of a failed lookup
+     * @return this locator, for chaining
+     * @see ComponentQuery#withCondition(Predicate, String)
+     */
+    public SELF withCondition(Predicate<C> condition, String description) {
+        resetCache();
+        query.withCondition(condition, description);
+        return self();
+    }
+
+    /**
      * Escape hatch for filters not directly exposed on Locator. Applies the
      * given operator to the underlying {@link ComponentQuery}, letting users
      * compose any filter the query supports without subclassing.

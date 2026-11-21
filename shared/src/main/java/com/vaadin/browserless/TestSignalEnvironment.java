@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
+import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.signals.SignalEnvironment;
 
@@ -74,6 +75,12 @@ import com.vaadin.flow.signals.SignalEnvironment;
  */
 public class TestSignalEnvironment extends SignalEnvironment {
 
+    /**
+     * The maximum number of pending tasks that {@link #unregister()} runs, so
+     * that a task that keeps submitting new ones cannot hang teardown.
+     */
+    static final int MAX_TEARDOWN_TASKS = 10_000;
+
     private final LinkedBlockingQueue<Runnable> tasks = new LinkedBlockingQueue<>();
     private Runnable cleanup;
 
@@ -100,7 +107,30 @@ public class TestSignalEnvironment extends SignalEnvironment {
     }
 
     /**
-     * Unregisters this test environment if it was registered.
+     * Runs the tasks that are still pending on the calling thread, and then
+     * unregisters this test environment if it was registered.
+     *
+     * <p>
+     * A shared signal often outlives the test that wrote to it, for example
+     * when it is held by an application-scoped bean or a static field. If the
+     * confirmation of such a write were discarded with the queue, the signal
+     * would keep the write unconfirmed for good, and every later conditional
+     * update of it, such as {@code SharedValueSignal.update(...)}, would be
+     * rejected and retried forever. Running the pending tasks confirms those
+     * writes. Pending effects of UIs that are still open run as well, which is
+     * why teardown also runs the pending tasks before it closes the UIs. The
+     * environment stays registered while the tasks run, so tasks they submit
+     * are queued and run here too, on the calling thread, up to a limit of
+     * {@value #MAX_TEARDOWN_TASKS} tasks; tasks beyond it are discarded with a
+     * warning. A task that fails is logged and skipped, so that the remaining
+     * tasks still run and teardown completes. Only a
+     * {@link VirtualMachineError}, such as running out of memory, is passed on,
+     * after the environment has been unregistered.
+     * <p>
+     * The tasks run one after another on the calling thread, so a pending task
+     * must not block waiting for another one. For example, an effect that calls
+     * {@code signal.update(...).result().join()} waits for a confirmation
+     * queued behind it and hangs teardown, which test timeouts do not cover.
      *
      * <p>
      * This method is idempotent and safe to call multiple times. If a cleanup
@@ -110,8 +140,59 @@ public class TestSignalEnvironment extends SignalEnvironment {
      */
     public void unregister() {
         if (cleanup != null) {
-            cleanup.run();
-            cleanup = null;
+            try {
+                runRemainingTasks();
+            } finally {
+                cleanup.run();
+                cleanup = null;
+            }
+        }
+    }
+
+    /**
+     * Runs the tasks that are still pending on the calling thread, like
+     * {@link #unregister()} does, but keeps this environment registered.
+     * <p>
+     * Teardown calls this before it closes the windows, so that pending effects
+     * still see open UIs, and calls {@link #unregister()} only after the
+     * windows are closed. Tasks queued while closing, such as the confirmation
+     * of a shared signal write made by a detach or session destroy listener,
+     * are then still queued here and run on the calling thread, instead of
+     * going to the next registered {@link SignalEnvironment}, which may run
+     * them asynchronously after the next test has started.
+     */
+    void runRemainingTasks() {
+        VaadinSession session = VaadinSession.getCurrent();
+        boolean hasLock = session != null && session.hasLock();
+        int run = 0;
+        Runnable task;
+        while ((task = tasks.poll()) != null) {
+            if (run++ == MAX_TEARDOWN_TASKS) {
+                tasks.clear();
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
+                        "Discarded pending Signals tasks after running {} of them at teardown; a task probably keeps submitting new ones",
+                        MAX_TEARDOWN_TASKS);
+                return;
+            }
+            try {
+                task.run();
+            } catch (VirtualMachineError e) {
+                // The JVM may be unusable, so do not carry on silently
+                throw e;
+            } catch (Throwable e) {
+                // Any other failure, not only exceptions, must leave the rest
+                // of the queue and the caller's teardown running
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
+                        "Skipped a pending Signals task that failed at teardown",
+                        e);
+            } finally {
+                if (hasLock) {
+                    // Unlocking runs the UI.access() tasks that the task
+                    // queued, as it does between tasks in runPendingTasks()
+                    MockVaadin.unlockRunningUIQueue(session);
+                    session.lock();
+                }
+            }
         }
     }
 
@@ -167,7 +248,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
         boolean hadLock = false;
         if (session != null && session.hasLock()) {
             hadLock = true;
-            session.unlock();
+            MockVaadin.unlockRunningUIQueue(session);
         }
         try {
             boolean processedAny = false;
@@ -203,7 +284,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
                     task.run();
                 } finally {
                     if (hadLock) {
-                        session.unlock();
+                        MockVaadin.unlockRunningUIQueue(session);
                     }
                 }
                 processedAny = true;

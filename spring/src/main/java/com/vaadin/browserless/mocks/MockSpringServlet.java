@@ -82,7 +82,6 @@ public class MockSpringServlet extends SpringServlet {
      *            produces the UI instances the sessions hand out
      */
     public MockSpringServlet(@NonNull Routes routes,
-
             @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;

@@ -57,11 +57,11 @@ abstract class AbstractBrowserlessExtension
     // --- Protected builder helpers ---
 
     /**
-     * Adds the packages of the given classes to the packages scanned for
-     * routes.
+     * Adds packages to scan for {@code @Route}-annotated views, derived from
+     * the given classes' packages.
      *
      * @param classes
-     *            classes whose packages are scanned
+     *            classes whose packages should be scanned
      */
     protected void addViewPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
@@ -69,41 +69,42 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Adds the given packages to the packages scanned for routes.
+     * Adds packages to scan for {@code @Route}-annotated views.
      *
      * @param packages
-     *            the packages to scan
+     *            package names to scan
      */
     protected void addViewPackages(String... packages) {
         viewPackages.addAll(Arrays.asList(packages));
     }
 
     /**
-     * Registers extra service classes with the lookup initializer.
+     * Adds Vaadin {@link com.vaadin.flow.di.Lookup} service implementation
+     * classes.
      *
      * @param serviceClasses
-     *            the service classes to register
+     *            service implementation classes to register
      */
     protected void addServices(Class<?>... serviceClasses) {
         configuration.withLookupServices(serviceClasses);
     }
 
     /**
-     * Adds the given packages to the packages scanned for component testers.
+     * Adds extra packages to scan for {@link ComponentTester} implementations.
      *
      * @param packages
-     *            the packages to scan
+     *            package names to scan for testers
      */
     protected void addComponentTesterPackages(String... packages) {
         componentTesterPackages.addAll(Arrays.asList(packages));
     }
 
     /**
-     * Adds the packages of the given classes to the packages scanned for
-     * component testers.
+     * Adds the packages of the given classes to the set of packages to scan for
+     * {@link ComponentTester} implementations.
      *
      * @param classes
-     *            classes whose packages are scanned
+     *            classes whose packages should be scanned for testers
      */
     protected void addComponentTesterPackages(Class<?>... classes) {
         Stream.of(classes).map(Class::getPackageName)
@@ -111,7 +112,8 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Sets an application property on the deployment configuration.
+     * Sets a Vaadin application property (init parameter) for the tests using
+     * this extension.
      *
      * @param name
      *            the property name
@@ -123,7 +125,8 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Sets several application properties on the deployment configuration.
+     * Sets Vaadin application properties (init parameters) for the tests using
+     * this extension.
      *
      * @param properties
      *            the properties to set
@@ -133,54 +136,65 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Turns on the given feature flags.
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
      *
      * @param featureIds
-     *            the ids of the features to turn on
+     *            the identifiers of the features to enable
      */
     protected void addFeatureFlags(String... featureIds) {
         configuration.withFeatureFlags(featureIds);
     }
 
     /**
-     * Turns on the given feature flags.
+     * Enables the given Vaadin feature flags for the tests using this
+     * extension.
      *
      * @param features
-     *            the features to turn on
+     *            the features to enable
      */
     protected void addFeatureFlags(Feature... features) {
         configuration.withFeatureFlags(features);
     }
 
     /**
-     * Turns the given feature flag on or off.
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
      *
      * @param featureId
-     *            the id of the feature
+     *            the identifier of the feature
      * @param enabled
-     *            whether the feature is on
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
      */
     protected void addFeatureFlag(String featureId, boolean enabled) {
         configuration.withFeatureFlag(featureId, enabled);
     }
 
     /**
-     * Turns the given feature flag on or off.
+     * Enables or disables the given Vaadin feature flag for the tests using
+     * this extension.
      *
      * @param feature
      *            the feature
      * @param enabled
-     *            whether the feature is on
+     *            {@code true} to enable the feature, {@code false} to disable
+     *            it
      */
     protected void addFeatureFlag(Feature feature, boolean enabled) {
         configuration.withFeatureFlag(feature, enabled);
     }
 
     /**
-     * Merges the given configuration into the one this extension builds.
+     * Applies the given configuration on top of the one built so far for the
+     * tests using this extension.
+     * <p>
+     * The configuration wins over the one declared by a
+     * {@link BrowserlessTestConfig} annotation on the test class, but loses
+     * against the one declared on the test method.
      *
      * @param configuration
-     *            the configuration to merge in
+     *            the configuration to apply
      */
     protected void addConfiguration(BrowserlessConfiguration configuration) {
         this.configuration.withConfiguration(configuration);
@@ -189,13 +203,20 @@ abstract class AbstractBrowserlessExtension
     // --- Lifecycle callbacks ---
 
     /**
-     * Creates the Vaadin environment for a test, arming the cleanup action
-     * first so that a setup that fails halfway through still tears down.
+     * Sets up the mocked Vaadin environment for a test, with the configuration
+     * built by this extension merged with the {@link BrowserlessTestConfig}
+     * annotations of the test.
+     * <p>
+     * When the test instance is a {@link BaseBrowserlessTest}, the environment
+     * is initialized through it; otherwise this extension sets it up on its
+     * own. Call {@link #doCleanup()} afterwards to tear it down, also when this
+     * method throws.
      *
      * @param testInstance
-     *            the test instance, if the test has one
+     *            the test instance, or {@literal null} when the extension runs
+     *            without one
      * @param ctx
-     *            the JUnit extension context
+     *            the JUnit extension context of the test or test class
      */
     protected void doInit(Object testInstance, ExtensionContext ctx) {
         BrowserlessConfiguration effectiveConfiguration = BrowserlessTestConfigExtension
@@ -230,7 +251,9 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Runs the cleanup action armed by {@code doInit}, if there is one.
+     * Tears down the mocked Vaadin environment set up by
+     * {@code doInit(Object, ExtensionContext)}. Does nothing when there is
+     * nothing to tear down.
      */
     protected void doCleanup() {
         if (cleanupAction != null) {
@@ -240,11 +263,20 @@ abstract class AbstractBrowserlessExtension
     }
 
     private void standaloneCleanup() {
-        if (signalsTestEnvironment != null) {
-            signalsTestEnvironment.unregister();
-            signalsTestEnvironment = null;
+        try {
+            // Pending effects run while the UI is still open
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.runRemainingTasks();
+            }
+            MockVaadin.tearDown();
+        } finally {
+            // Unregistering runs what the UI and the destroy listeners queued
+            // while closing, on this thread
+            if (signalsTestEnvironment != null) {
+                signalsTestEnvironment.unregister();
+                signalsTestEnvironment = null;
+            }
         }
-        MockVaadin.tearDown();
     }
 
     private void standaloneInit(Class<?> testClass,
@@ -458,7 +490,16 @@ abstract class AbstractBrowserlessExtension
     }
 
     /**
-     * Simulates a server round-trip, flushing pending component changes.
+     * Simulates a server round-trip: runs the tasks queued with
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
+     * pending component changes, as a real client response would. Dialogs that
+     * are no longer opened are removed from the UI, as after a lookup.
+     * <p>
+     * Only tasks that are already queued are run, so a test of a background
+     * thread must first wait for that thread to call {@code access()}. If a
+     * queued task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}.
      */
     public void roundTrip() {
         BrowserlessDSL.roundTrip(getUI());

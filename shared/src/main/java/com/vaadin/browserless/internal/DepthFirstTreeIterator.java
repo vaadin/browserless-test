@@ -27,10 +27,6 @@ import java.util.stream.Collectors;
 import com.vaadin.flow.component.Component;
 
 /**
- * Walks the child tree, depth-first: first the node, then its descendants,
- * then its next sibling.
- */
-/**
  * Walks a tree depth-first: a node, then its descendants, then its next
  * sibling.
  * <p>

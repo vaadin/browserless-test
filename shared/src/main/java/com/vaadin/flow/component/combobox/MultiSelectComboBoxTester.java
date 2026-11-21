@@ -169,8 +169,8 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
             final Method fetchFromProvider = getMethod(DataCommunicator.class,
                     "fetchFromProvider", int.class, int.class);
-            List<Y> result = ((Stream<Y>) fetchFromProvider
-                    .invoke(dataCommunicator, 0, BasicUtils._saneFetchLimit()))
+            List<Y> result = ((Stream<Y>) fetchFromProvider.invoke(
+                    dataCommunicator, 0, BasicUtils.get_saneFetchLimit()))
                     .collect(Collectors.toList());
             return result;
         } catch (IllegalAccessException | InvocationTargetException e) {

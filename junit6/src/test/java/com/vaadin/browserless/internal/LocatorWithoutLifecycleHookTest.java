@@ -78,7 +78,8 @@ class LocatorWithoutLifecycleHookTest {
 
             expectThrows(AssertionError.class, Pattern.quote(
                     "An internal server error occurred; please check log for the actual stack-trace. Error text: There was an exception while trying to navigate to"),
-                    () -> Locator._expectOne(UI.class));
+                    () -> Locator._expectOne(UI.class, spec -> {
+                    }));
         }
 
         @Test
@@ -86,14 +87,14 @@ class LocatorWithoutLifecycleHookTest {
             expectThrows(AssertionError.class, Pattern.quote(
                     "Expected an internal server error but none happened. Component tree:\n"
                             + "└── MockedUI[]"),
-                    Locator::_expectInternalServerError);
+                    () -> Locator._expectInternalServerError(""));
         }
 
         @Test
         void expectInternalServerError_navigationFailed_passes() {
             rerouteToError();
 
-            Locator._expectInternalServerError();
+            Locator._expectInternalServerError("");
         }
 
         @Test
@@ -104,7 +105,7 @@ class LocatorWithoutLifecycleHookTest {
         }
 
         private void rerouteToError() {
-            Utils.currentUI()
+            Utils.getCurrentUI()
                     .addBeforeEnterListener(event -> event.rerouteToError(
                             new RuntimeException("Simulated"), "Simulated"));
             UI.getCurrent().navigate("");

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasLabel;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -163,7 +164,11 @@ class SearchSpecTest {
     }
 
     private static <T extends Component> T labelled(T component, String label) {
-        ComponentUtils.label(component, label);
+        if (component instanceof HasLabel hasLabel) {
+            hasLabel.setLabel(label);
+        } else {
+            component.getElement().setProperty("label", label);
+        }
         return component;
     }
 

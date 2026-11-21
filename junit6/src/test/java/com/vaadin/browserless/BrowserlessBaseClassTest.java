@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.example.SingleParam;
@@ -31,6 +32,7 @@ import com.vaadin.browserless.internal.TestViews;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.geolocation.GeolocationFacadeIntegrationTest;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.di.InstantiatorFactory;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.router.RouteBaseData;
@@ -64,6 +66,29 @@ class BrowserlessBaseClassTest {
                     "Expecting default route to be active, but was not");
         }
 
+        @Test
+        void roundTrip_runsPendingAccessTasks() {
+            Span span = new Span("old");
+            UI ui = UI.getCurrent();
+            ui.add(span);
+            ui.access(() -> span.setText("new"));
+
+            roundTrip();
+
+            Assertions.assertEquals("new", span.getText());
+        }
+
+        @Test
+        void roundTrip_accessTaskFails_rethrowsWrapped() {
+            UI.getCurrent().access(() -> {
+                throw new IllegalStateException("simulated");
+            });
+
+            ExecutionException e = Assertions
+                    .assertThrows(ExecutionException.class, () -> roundTrip());
+            Assertions.assertEquals("simulated", e.getCause().getMessage());
+        }
+
     }
 
     @Nested
@@ -84,11 +109,13 @@ class BrowserlessBaseClassTest {
             allViews.add(com.example.multiuser.SharedCounterView.class);
             allViews.add(com.example.multiuser.ExternalNavigationView.class);
             allViews.add(com.example.multiuser.SimpleView.class);
+            allViews.add(com.example.multiuser.BroadcastView.class);
             allViews.add(com.example.locator.LocatorDemoView.class);
             allViews.add(com.example.failing.FailingAssertionView.class);
             allViews.add(com.example.reload.PreservedCounterView.class);
             allViews.add(com.example.reload.PlainCounterView.class);
             allViews.add(com.example.reload.ParameterizedCounterView.class);
+            allViews.add(com.example.javascript.ScheduleView.class);
             Assertions.assertEquals(allViews.size(), routes.size());
             Assertions.assertTrue(routes.containsAll(allViews));
         }
