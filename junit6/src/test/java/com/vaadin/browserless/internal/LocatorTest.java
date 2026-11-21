@@ -16,14 +16,12 @@
 package com.vaadin.browserless.internal;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
@@ -34,6 +32,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 
+import static com.vaadin.browserless.internal.BasicUtils.matches;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -363,12 +362,6 @@ class LocatorTest {
          * matched except the count rule, and only against the component itself,
          * not against its children.
          */
-        private boolean matches(Component component,
-                Consumer<SearchSpec<Component>> block) {
-            SearchSpec<Component> spec = new SearchSpec<>(Component.class);
-            block.accept(spec);
-            return spec.toPredicate().test(component);
-        }
     }
 
     @Nested

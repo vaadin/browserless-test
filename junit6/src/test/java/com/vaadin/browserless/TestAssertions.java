@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Assertion helpers replacing the ones the Kotlin tests took from DynaTest.
+ * Assertion helpers for this repository's tests.
  */
 public final class TestAssertions {
 

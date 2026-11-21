@@ -151,6 +151,16 @@ class MockRequestTest {
     }
 
     @Test
+    void getUserPrincipal_providerReturnsNull_fallsBackToThePrincipalSet() {
+        request.setUserPrincipalInt(new MockPrincipal("foo"));
+        request.principalProvider(() -> null);
+        assertEquals(new MockPrincipal("foo"), request.getUserPrincipal());
+
+        request.principalProvider(() -> new MockPrincipal("bar"));
+        assertEquals(new MockPrincipal("bar"), request.getUserPrincipal());
+    }
+
+    @Test
     void isUserInRole_withoutRoleChecker_grantsNothing() {
         assertFalse(request.isUserInRole("foo"));
         request.setUserPrincipalInt(new MockPrincipal("foo"));
