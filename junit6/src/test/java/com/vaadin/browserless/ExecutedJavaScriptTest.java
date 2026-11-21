@@ -17,12 +17,14 @@ package com.vaadin.browserless;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Focusable;
@@ -32,7 +34,11 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.internal.UIInternals;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.dom.DisabledUpdateMode;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.function.SerializableConsumer;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelMap;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinition;
 import com.vaadin.flow.js.JsExpression;
@@ -328,6 +334,88 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ExecutedJavaScript.Execution onPage = onUI.get(0);
         Assertions.assertEquals("window.render($0)", onPage.getExpression());
         Assertions.assertEquals(List.of("week"), onPage.getParameters());
+    }
+
+    @Test
+    void invokeReturnChannel_runsTheChannelHandler_andSendsWhatItSchedules() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration channel = registerChannel(calendar,
+                arguments -> {
+                    received.add(arguments.toString());
+                    calendar.getElement().callJsFunction("render");
+                });
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("this.listen($0, $1)", "change",
+                channel);
+
+        executed.getAll().get(0).invokeReturnChannel("week", 7);
+
+        Assertions.assertEquals(List.of("[\"week\",7]"), received);
+        Assertions.assertEquals(List.of(List.of()),
+                executed.getFunctionCalls(calendar, "render"),
+                "JavaScript the handler schedules should be sent right away");
+    }
+
+    @Test
+    void invokeReturnChannel_withSeveralChannels_picksOneByParameterIndex() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration first = registerChannel(calendar,
+                arguments -> received.add("first"));
+        ReturnChannelRegistration second = registerChannel(calendar,
+                arguments -> received.add("second"));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("this.listen($0, $1)", first, second);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.invokeReturnChannel("x"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(2, "x"),
+                "Parameter 2 is the element, not a channel");
+        execution.invokeReturnChannelAt(1);
+
+        Assertions.assertEquals(List.of("second"), received);
+    }
+
+    @Test
+    void invokeReturnChannel_whenFlowWouldIgnoreTheMessage_throws() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration channel = registerChannel(button,
+                arguments -> received.add(arguments.toString()));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        button.getElement().executeJs("this.listen($0)", channel);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+
+        button.setEnabled(false);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.invokeReturnChannel("disabled"));
+        channel.setDisabledUpdateMode(DisabledUpdateMode.ALWAYS);
+        execution.invokeReturnChannel("always");
+
+        button.setVisible(false);
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.invokeReturnChannel("hidden"));
+        button.setVisible(true);
+
+        channel.remove();
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.invokeReturnChannel("removed"));
+
+        ReturnChannelRegistration other = registerChannel(button,
+                arguments -> received.add(arguments.toString()));
+        button.getElement().executeJs("this.listen($0)", other);
+        ExecutedJavaScript.Execution later = executed.getAll().get(1);
+        button.getElement().removeFromParent();
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> later.invokeReturnChannel("detached"));
+
+        Assertions.assertEquals(List.of("[\"always\"]"), received);
+    }
+
+    private static ReturnChannelRegistration registerChannel(
+            Component component, SerializableConsumer<ArrayNode> handler) {
+        return component.getElement().getNode()
+                .getFeature(ReturnChannelMap.class).registerChannel(handler);
     }
 
     private static List<Object> functionNames(ExecutedJavaScript executed) {
