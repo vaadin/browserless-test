@@ -70,8 +70,8 @@ See [`guidelines/testers.md`](guidelines/testers.md).
 Every method name contains a verb that says what the method does. A name that
 is only a noun or a category — `header(…)`, `names(…)`, `report(…)` — leaves
 the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
-`warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
-internal helpers and the Kotlin layer as much as for tester API.
+`warnAboutMissingFiles(…)` say what happens. This holds for the mocks and the
+internal helpers as much as for tester API.
 
 Three families take their names from elsewhere and keep them:
 
@@ -154,9 +154,7 @@ Go through the Vaadin extension points rather than around them — fire service
 and session lifecycle events through the `VaadinService` event bus, and forward
 `Instantiator` calls to the real instantiator instead of reimplementing them.
 
-New code in `shared` is written in Java. The Kotlin sources under
-`shared/src/main/kotlin` are the older mock layer and Grid helpers and are being
-ported to Java; do not add new Kotlin files there.
+This repository is written in Java; do not add Kotlin sources.
 
 See [`guidelines/architecture.md`](guidelines/architecture.md).
 
@@ -167,9 +165,8 @@ public and protected members are API that applications compile against. The
 `locator-processor` options are an internal contract and can be broken freely.
 
 The framework tests Flow and the components; it does not extend their API. Do
-not declare Kotlin extension functions or properties on Flow or component
-types, and do not add a helper that duplicates what Flow or the component
-already offers — call the Flow method instead. A helper the framework does
+not add a helper that duplicates what Flow or the component already offers —
+call the Flow method instead. A helper the framework does
 need takes the component as a parameter.
 
 Prefer an existing precedent over a new shape. There is already a pattern for
