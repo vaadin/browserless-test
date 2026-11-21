@@ -16,6 +16,7 @@
 package com.vaadin.browserless.internal;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 
+import static com.vaadin.browserless.TestAssertions.expectThrows;
 import static com.vaadin.browserless.internal.BasicUtils.matches;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -93,6 +95,14 @@ class LocatorTest {
                     Button.class, spec -> {
                     }));
             expectAfterLookupCalled();
+        }
+
+        @Test
+        void get_countChanged_throws() {
+            expectThrows(IllegalStateException.class,
+                    Pattern.quote("supposed to return exactly 1 component"),
+                    () -> Locator._get(new Button(), Button.class,
+                            spec -> spec.setCount(CountRange.exactly(2))));
         }
 
         @Test
@@ -305,14 +315,6 @@ class LocatorTest {
         }
 
         @Test
-        void predicates_mustAllAccept() {
-            assertTrue(matches(new Button(), spec -> {
-            }));
-            assertFalse(matches(new Button(),
-                    spec -> spec.getPredicates().add(component -> false)));
-        }
-
-        @Test
         void themes_matchWhenAllOfThemArePresent() {
             assertTrue(matches(withThemes(), spec -> {
             }));
@@ -356,12 +358,6 @@ class LocatorTest {
             button.setId(id);
             return button;
         }
-
-        /**
-         * Checks whether the component matches the given spec. All rules are
-         * matched except the count rule, and only against the component itself,
-         * not against its children.
-         */
     }
 
     @Nested
@@ -467,12 +463,23 @@ class LocatorTest {
 
         @Test
         void expect_countIsWrong_fails() {
-            assertThrows(AssertionError.class,
+            expectThrows(AssertionError.class,
+                    Pattern.quote("Too many visible VerticalLayouts (2)"),
                     () -> Locator._expect(
                             nestedVerticalLayouts(UI.getCurrent()),
                             VerticalLayout.class, 1, spec -> {
                             }));
             expectAfterLookupCalled();
+        }
+
+        @Test
+        void expect_fewerThanExpectedMatch_failsWithTooFew() {
+            expectThrows(AssertionError.class,
+                    Pattern.quote("Too few (2) visible VerticalLayouts"),
+                    () -> Locator._expect(
+                            nestedVerticalLayouts(UI.getCurrent()),
+                            VerticalLayout.class, 3, spec -> {
+                            }));
         }
 
         @Test

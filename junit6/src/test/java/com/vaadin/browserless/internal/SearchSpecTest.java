@@ -155,6 +155,9 @@ class SearchSpecTest {
 
     @Test
     void predicates_customPredicateIsApplied() {
+        assertTrue(new SearchSpec<>(Component.class).toPredicate()
+                .test(new Button()));
+
         SearchSpec<Component> spec = new SearchSpec<>(Component.class);
         spec.getPredicates().add(c -> c instanceof Button);
         Predicate<Component> p = spec.toPredicate();
