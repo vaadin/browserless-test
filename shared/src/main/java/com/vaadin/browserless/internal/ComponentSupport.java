@@ -36,9 +36,15 @@ import com.vaadin.flow.data.provider.DataProvider;
  * Every method has a default that handles nothing, so an implementation only
  * overrides what its components need.
  * <p>
- * Implementations are consulted in {@link java.util.ServiceLoader} order; for
- * the methods that return a value, the first implementation that handles the
- * component wins.
+ * Implementations are consulted in {@link java.util.ServiceLoader} order. For
+ * {@link #getAllChildren(Component)}, {@link #getDataProvider(Component)},
+ * {@link #getLabel(Component)} and {@link #getCaption(Component)} the first
+ * implementation that handles the component wins. The other methods combine the
+ * answers of all implementations: {@link #isClosedDialog(Component)} and
+ * {@link #firesClosedEvent(Component)} apply if any implementation returns
+ * true, {@link #getDialogTypes()} uses the types of all implementations
+ * together, and {@link #describe(Component, List)} lets every implementation
+ * add its details.
  * <p>
  * This is an internal extension point and may change without notice.
  */
@@ -61,7 +67,8 @@ public interface ComponentSupport {
     /**
      * Checks whether the component is a closed dialog that a browser would have
      * removed from the DOM after closing it. Such components are removed from
-     * the UI after every round trip.
+     * the UI after every round trip. The component is removed if any
+     * implementation returns true.
      *
      * @param component
      *            the component, not null.
@@ -73,7 +80,7 @@ public interface ComponentSupport {
 
     /**
      * Returns the dialog types that {@link Locator#_expectNoDialogs()} checks
-     * for.
+     * for. The types of all implementations are checked together.
      *
      * @return the dialog types, not null.
      */
@@ -84,7 +91,8 @@ public interface ComponentSupport {
     /**
      * Checks whether the component is an overlay whose client-side part fires a
      * {@code closed} DOM event once it has closed, which the mocked environment
-     * then simulates.
+     * then simulates. The event is simulated if any implementation returns
+     * true.
      *
      * @param component
      *            the component, not null.
@@ -96,7 +104,8 @@ public interface ComponentSupport {
 
     /**
      * Adds component-specific details to the one-line description produced by
-     * {@link PrettyPrintTree#toPrettyString(Component)}.
+     * {@link PrettyPrintTree#toPrettyString(Component)}. Every implementation
+     * is asked, in order.
      *
      * @param component
      *            the component, not null.
