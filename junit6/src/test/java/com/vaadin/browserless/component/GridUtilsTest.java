@@ -35,8 +35,9 @@ class GridUtilsTest {
     void get_negativeRow_throws() {
         Grid<String> grid = new Grid<>();
         grid.setItems("a");
-        assertThrows(IllegalArgumentException.class,
-                () -> GridUtils._get(grid, -1));
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class, () -> GridUtils._get(grid, -1));
+        assertEquals("rowIndex must be 0 or greater: -1", error.getMessage());
     }
 
     @Test
@@ -45,6 +46,8 @@ class GridUtilsTest {
         Grid.Column<String> name = grid.addColumn(s -> s).setHeader("Name")
                 .setComparator(s -> s);
         grid.addColumn(String::length).setHeader("Length");
+        grid.addColumn(String::toUpperCase).setHeader("Hidden")
+                .setVisible(false);
         grid.setItems(
                 IntStream.range(0, 12).mapToObj(i -> "item" + i).toList());
         grid.sort(GridSortOrder.asc(name).build());
@@ -87,6 +90,37 @@ class GridUtilsTest {
                 1: b
                 2: c
                 --
+                """, error.getMessage());
+    }
+
+    @Test
+    void get_rowPastTheEndOfALongLazyGrid_failsWithTheFirstRows() {
+        Grid<String> grid = new Grid<>();
+        Grid.Column<String> name = grid.addColumn(s -> s).setHeader("Name")
+                .setSortable(true);
+        List<String> items = IntStream.range(0, 12).mapToObj(i -> "item" + i)
+                .toList();
+        grid.setItems(query -> items.stream().skip(query.getOffset())
+                .limit(query.getLimit()));
+        grid.sort(GridSortOrder.desc(name).build());
+
+        AssertionError error = assertThrows(AssertionError.class,
+                () -> GridUtils._get(grid, 20));
+
+        assertEquals("""
+                Requested to get row 20 but the data provider returned 0 rows
+                --[Name]^--
+                0: item0
+                1: item1
+                2: item2
+                3: item3
+                4: item4
+                5: item5
+                6: item6
+                7: item7
+                8: item8
+                9: item9
+                --and possibly more
                 """, error.getMessage());
     }
 
