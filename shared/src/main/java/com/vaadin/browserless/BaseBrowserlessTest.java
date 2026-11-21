@@ -421,6 +421,7 @@ public abstract class BaseBrowserlessTest {
      * any {@link ExecutedJavaScript}, querying it sends whatever is still
      * pending first. To look at the JavaScript of a single step, start a
      * separate capture with {@link ExecutedJavaScript#capture()} before it.
+     * This capture runs for as long as the UI lives and cannot be stopped.
      *
      * @return the JavaScript sent to the browser of the UI, not null
      */

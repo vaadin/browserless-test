@@ -19,29 +19,67 @@ import java.util.List;
 
 import com.example.javascript.ScheduleView;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.dom.Element;
 
 /**
  * The capture each UI gets when it is created, which holds the JavaScript sent
  * before the test could start a capture of its own.
  */
-@ViewPackages(classes = ScheduleView.class)
-class UIJavaScriptCaptureTest extends BrowserlessTest {
+class UIJavaScriptCaptureTest {
 
-    @Test
-    void reload_newUIHasItsOwnCapture_withWhatItsViewSentWhileBuilt() {
-        ScheduleView view = navigate(ScheduleView.class);
-        ExecutedJavaScript beforeReload = getExecutedJavaScript();
+    @Nested
+    @ViewPackages(classes = ScheduleView.class)
+    class OnBaseClass extends BrowserlessTest {
 
-        ScheduleView reloaded = (ScheduleView) reload();
-        ExecutedJavaScript afterReload = getExecutedJavaScript();
+        @Test
+        void reload_newUIHasItsOwnCapture_withWhatItsViewSentWhileBuilt() {
+            ScheduleView view = navigate(ScheduleView.class);
+            ExecutedJavaScript beforeReload = getExecutedJavaScript();
 
-        Assertions.assertEquals(List.of(view.getElement()),
-                findTimeZoneRequests(beforeReload));
-        Assertions.assertEquals(List.of(reloaded.getElement()),
-                findTimeZoneRequests(afterReload));
+            ScheduleView reloaded = (ScheduleView) reload();
+            ExecutedJavaScript afterReload = getExecutedJavaScript();
+
+            Assertions.assertEquals(List.of(view.getElement()),
+                    findTimeZoneRequests(beforeReload));
+            Assertions.assertEquals(List.of(reloaded.getElement()),
+                    findTimeZoneRequests(afterReload));
+        }
+
+        @Test
+        void stop_isRefused_andTheCaptureKeepsEverything() {
+            ScheduleView view = navigate(ScheduleView.class);
+            ExecutedJavaScript executed = getExecutedJavaScript();
+
+            Assertions.assertThrows(IllegalStateException.class,
+                    executed::stop);
+            view.getElement().executeJs("this.print()");
+
+            Assertions.assertEquals(List.of(view.getElement()),
+                    findTimeZoneRequests(executed));
+            Assertions.assertTrue(executed.getAll().getLast().getExpression()
+                    .contains("this.print()"));
+        }
+    }
+
+    @Nested
+    @ViewPackages(classes = ScheduleView.class)
+    class OnExtension {
+
+        @RegisterExtension
+        BrowserlessExtension ext = new BrowserlessExtension();
+
+        @Test
+        void navigate_viewsJavaScriptIsInTheUIsCapture() {
+            ScheduleView view = ext.navigate(ScheduleView.class);
+
+            Assertions.assertEquals(List.of(view.getElement()),
+                    findTimeZoneRequests(ext.getExecutedJavaScript()));
+        }
     }
 
     @Test
@@ -52,13 +90,23 @@ class UIJavaScriptCaptureTest extends BrowserlessTest {
             BrowserlessUIContext window1 = user.newWindow();
             BrowserlessUIContext window2 = user.newWindow();
 
-            ScheduleView view = window1.navigate(ScheduleView.class);
+            ScheduleView view1 = window1.navigate(ScheduleView.class);
+            ScheduleView view2 = window2.navigate(ScheduleView.class);
 
-            Assertions.assertEquals(List.of(view.getElement()),
+            Assertions.assertEquals(List.of(view1.getElement()),
                     findTimeZoneRequests(window1.getExecutedJavaScript()));
-            Assertions.assertEquals(List.of(),
+            Assertions.assertEquals(List.of(view2.getElement()),
                     findTimeZoneRequests(window2.getExecutedJavaScript()));
         }
+    }
+
+    @Test
+    void uiNotCreatedByBrowserlessTest_hasNoCapture() {
+        IllegalStateException e = Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> BrowserlessDSL.getExecutedJavaScript(new UI()));
+        Assertions.assertTrue(
+                e.getMessage().contains("ExecutedJavaScript.capture(ui)"));
     }
 
     private static List<Element> findTimeZoneRequests(

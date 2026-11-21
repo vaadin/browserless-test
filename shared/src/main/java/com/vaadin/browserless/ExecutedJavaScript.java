@@ -84,10 +84,13 @@ public final class ExecutedJavaScript implements Serializable {
 
     private final List<Execution> executions = new ArrayList<>();
 
+    private final boolean stoppable;
+
     private @Nullable Registration registration;
 
-    private ExecutedJavaScript(UI ui) {
+    private ExecutedJavaScript(UI ui, boolean stoppable) {
         this.ui = ui;
+        this.stoppable = stoppable;
     }
 
     /**
@@ -119,15 +122,18 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        return startCapture(dispatcher);
+        return startCapture(dispatcher, true);
     }
 
     /**
      * Starts capturing what the given dispatcher sends from now on, without
-     * sending what is pending first.
+     * sending what is pending first. The capture of a UI, which other code
+     * relies on to hold everything, is not stoppable.
      */
-    static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher) {
-        ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI());
+    static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher,
+            boolean stoppable) {
+        ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI(),
+                stoppable);
         capture.registration = dispatcher
                 .addHandler(invocation -> capture.executions
                         .add(new Execution(dispatcher, invocation)));
@@ -138,8 +144,19 @@ public final class ExecutedJavaScript implements Serializable {
      * Stops capturing, after first sending whatever is still pending. What was
      * captured so far can still be queried. Stopping a capture that is already
      * stopped does nothing.
+     *
+     * @throws IllegalStateException
+     *             if this is the capture that a UI got when it was created,
+     *             which runs for as long as the UI lives
      */
     public void stop() {
+        if (!stoppable) {
+            throw new IllegalStateException("The capture that the UI got "
+                    + "when it was created cannot be stopped, as it holds "
+                    + "everything sent to the UI. Use "
+                    + "ExecutedJavaScript.capture() for a capture that can "
+                    + "be stopped.");
+        }
         if (registration != null) {
             try {
                 JavaScriptDispatcher.dispatch(ui);

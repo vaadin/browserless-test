@@ -122,7 +122,8 @@ public final class JavaScriptDispatcher implements Serializable {
             return;
         }
         dispatcher.simulatedClientSetUp = true;
-        dispatcher.uiCapture = ExecutedJavaScript.startCapture(dispatcher);
+        dispatcher.uiCapture = ExecutedJavaScript.startCapture(dispatcher,
+                false);
         dispatcher.addHandler(FocusTracker.HANDLER);
         VaadinSession session = ui.getSession();
         ConfiguredHandlers configured = session == null ? null
