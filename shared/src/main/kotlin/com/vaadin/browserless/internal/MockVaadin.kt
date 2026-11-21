@@ -62,6 +62,7 @@ import com.vaadin.browserless.mocks.MockVaadinHelper
 import com.vaadin.browserless.mocks.MockVaadinServlet
 import com.vaadin.browserless.mocks.MockedUI
 import com.vaadin.browserless.mocks.WebBrowser
+import com.vaadin.browserless.mocks._applySessionLockCheckStrategy
 import com.vaadin.browserless.mocks._createVaadinSession
 
 /**
@@ -282,7 +283,7 @@ object MockVaadin {
         if (ui.internals.session != null && (fireUIDetach || ui.isClosing)) {
             // Every UI of a session has its own id, so the next UI does not
             // replace this one in the session: it has to be removed.
-            ui._close()
+            _close(ui)
         }
         UI.setCurrent(null)
         strongRefUI.remove()
@@ -300,7 +301,7 @@ object MockVaadin {
         clearVaadinInstances(false)
         val service: VaadinService? = VaadinService.getCurrent()
         if (service != null) {
-            service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+            fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
             VaadinService.setCurrent(null)
         }
         lastNavigation.remove()
@@ -386,7 +387,12 @@ object MockVaadin {
         val request = VaadinServletRequest(mockRequest, service)
 
         // init Session.
-        val session: VaadinSession = service._createVaadinSession(request)
+        val session: VaadinSession = _createVaadinSession(service, request)
+        // Flow applies the lock check strategy only while handling a request,
+        // which the mock bypasses, so apply it here: a development-mode session
+        // then throws on access without its lock, also when assertions are
+        // disabled.
+        _applySessionLockCheckStrategy(service, session)
         httpSession.setAttribute(service.serviceName + ".lock", ReentrantLock().apply { lock() })
         httpSession.setAttribute(VaadinSession::class.java.name + "." + service.serviceName, session)
         session.refreshTransients(WrappedHttpSession(httpSession), service)
@@ -415,7 +421,7 @@ object MockVaadin {
         CurrentInstance.set(VaadinResponse::class.java, objs.response)
 
         // fire session init listeners
-        service.fireSessionInitListeners(SessionInitEvent(service, objs.session, objs.request))
+        fireSessionInitListeners(service, SessionInitEvent(service, objs.session, objs.request))
 
         // create UI
         createUI(uiFactory, objs.session)
@@ -512,6 +518,34 @@ object MockVaadin {
         cleanupDialogs()
     }
 
+    private val sessionRunningUIQueue = ThreadLocal<VaadinSession?>()
+
+    /**
+     * Internal function, do not call directly.
+     *
+     * Returns whether [runUIQueue] or [unlockRunningUIQueue] is running the [UI.access] commands of [session] on the
+     * current thread, that is, whether the caller is such a command.
+     */
+    @JvmStatic
+    public fun isRunningUIQueue(session: VaadinSession): Boolean = sessionRunningUIQueue.get() === session
+
+    /**
+     * Internal function, do not call directly.
+     *
+     * Releases one hold of the [session] lock with [VaadinSession.unlock]. When that is the last hold, Flow runs the
+     * [UI.access] commands queued for the session, and [isRunningUIQueue] reports them as running.
+     */
+    @JvmStatic
+    public fun unlockRunningUIQueue(session: VaadinSession) {
+        val outerSession = sessionRunningUIQueue.get()
+        sessionRunningUIQueue.set(session)
+        try {
+            session.unlock()
+        } finally {
+            sessionRunningUIQueue.set(outerSession)
+        }
+    }
+
     /**
      * Runs all tasks scheduled by [UI.access].
      *
@@ -559,7 +593,7 @@ object MockVaadin {
                 throw AssertionError("Expected 1 lock, actual $lockCount")
             }
 
-            session.unlock()  // this will process all Runnables registered via ui.access()
+            unlockRunningUIQueue(session)  // this will process all Runnables registered via ui.access()
             // lock the session back, so that the test can continue running as-if in the UI thread.
             session.lock()
         } finally {
@@ -600,7 +634,7 @@ object MockVaadin {
         if (!currentlyClosingSession.get()) {
             // Vaadin 20.0.5+: closing session also clears the wrapped VaadinSession.getSession().
             // Acquire the wrapped session beforehand.
-            val mockSession: MockHttpSession = session.mock
+            val mockSession: MockHttpSession = getMock(session)
             clearVaadinInstances(true)
             mockSession.destroy()
             createSession(mockSession.servletContext, uiFactory)
@@ -613,7 +647,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireSessionInit(service: VaadinService, session: VaadinSession, request: VaadinRequest) {
-        service.fireSessionInitListeners(SessionInitEvent(service, session, request))
+        fireSessionInitListeners(service, SessionInitEvent(service, session, request))
     }
 
     /**
@@ -622,7 +656,7 @@ object MockVaadin {
      */
     @JvmStatic
     fun fireServiceDestroy(service: VaadinService) {
-        service.fireServiceDestroyListeners(ServiceDestroyEvent(service))
+        fireServiceDestroyListeners(service, ServiceDestroyEvent(service))
     }
 
     /**
@@ -664,12 +698,12 @@ object MockVaadin {
 private val rethrowListenerFailure =
         SerializableBiConsumer<EventObject, Exception> { _, error -> throw error }
 
-internal fun VaadinService.fireSessionInitListeners(event: SessionInitEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireSessionInitListeners(service: VaadinService, event: SessionInitEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
-internal fun VaadinService.fireServiceDestroyListeners(event: ServiceDestroyEvent) {
-    eventBus.fireEvent(event, rethrowListenerFailure)
+internal fun fireServiceDestroyListeners(service: VaadinService, event: ServiceDestroyEvent) {
+    service.eventBus.fireEvent(event, rethrowListenerFailure)
 }
 
 internal class MockPage(private val ui: UI, private val uiFactory: UIFactory, private val session: VaadinSession) : Page(ui) {

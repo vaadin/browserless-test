@@ -57,104 +57,105 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         expect("""
 └── Div[text='Foo']
     └── Text[text='Foo']
-""".trim()) { div.toPrettyTree().trim() }
+""".trim()) { toPrettyTree(div).trim() }
     }
 
     test("toPrettyStringHtmlComponent()") {
-        expect("Text[text='foo']") { Text("foo").toPrettyString() }
-        expect("Div[INVIS]") { Div().apply { isVisible = false }.toPrettyString() }
+        expect("Text[text='foo']") { toPrettyString(Text("foo")) }
+        expect("Div[INVIS]") { toPrettyString(Div().apply { isVisible = false }) }
         expect("Html[<b>foo bar baz <i>foobar</i></b>]") {
-            Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>").toPrettyString()
+            toPrettyString(Html("\n    <b>foo\nbar\n    baz\n<i>foobar</i></b>"))
         }
-        expect("HtmlSpan[innerHTML='aaa<b>bbbb</b>ccc']") {
-            HtmlSpan("aaa<b>bbbb</b>ccc").toPrettyString()
+        // Element.getText() includes only the top-level text of the innerHTML, so the <b> content is left out
+        expect("HtmlSpan[text='aaaccc', innerHTML='aaa<b>bbbb</b>ccc']") {
+            toPrettyString(HtmlSpan("aaa<b>bbbb</b>ccc"))
         }
         expect("Div[@title='foobar']") {
-            Div().apply { tooltip = "foobar" }.toPrettyString()
+            toPrettyString(Div().apply { tooltip = "foobar" })
         }
         expect("Span[text='hi', @slot='prefix']") {
             val testSpan = Span("hi")
             TextField().prefixComponent = testSpan
-            testSpan.toPrettyString()
+            toPrettyString(testSpan)
         }
     }
     test("toPrettyStringTextField()") {
-        assertContains(TextField().apply { id_ = "25" }.toPrettyString(),"TextField\\[#25, value=''.*]".toRegex())
-        assertContains(TextArea("label").apply { value = "some text" }.toPrettyString(),"TextArea\\[label='label', value='some text'.*]".toRegex())
-        assertContains(TextField().apply { id_ = "25"; errorMessage = "failed validation" }.toPrettyString(),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
-        assertContains(TextField("foobar").toPrettyString(), "TextField\\[label='foobar', value=''.*]".toRegex() )
+        assertContains(toPrettyString(TextField().apply { setId("25") }),"TextField\\[#25, value=''.*]".toRegex())
+        assertContains(toPrettyString(TextArea("label").apply { value = "some text" }),"TextArea\\[label='label', value='some text'.*]".toRegex())
+        assertContains(toPrettyString(TextField().apply { setId("25"); errorMessage = "failed validation" }),"TextField\\[#25, value='', errorMessage='failed validation'.*]".toRegex())
+        assertContains(toPrettyString(TextField("foobar")), "TextField\\[label='foobar', value=''.*]".toRegex() )
     }
     test("toPrettyStringButton()") {
-        expect("Button[caption='click me']") { Button("click me").toPrettyString() }
-        expect("Button[icon='vaadin:abacus', @theme='icon']") { Button(VaadinIcon.ABACUS.create()).toPrettyString() }
+        expect("Button[caption='click me']") { toPrettyString(Button("click me")) }
+        expect("Button[icon='vaadin:abacus', @theme='icon']") { toPrettyString(Button(VaadinIcon.ABACUS.create())) }
 
     }
 //    test("toPrettyStringGrid()") {
         /* TODO: uncomment when importing Grid stuff
-        expect("Grid[<String>, dataprovider='ListDataProvider2{0 items}']") { Grid<String>(String::class.java).apply { setItems2(listOf()) }.toPrettyString() }
+        expect("Grid[<String>, dataprovider='ListDataProvider2{0 items}']") { toPrettyString(Grid<String>(String::class.java).apply { setItems2(listOf()) }) }
         expect("Column[header='My Header']") {
-            Grid<Any>().run { addColumn { it }.apply { header2 = "My Header" } }.toPrettyString()
+            toPrettyString(Grid<Any>().run { addColumn { it }.apply { header2 = "My Header" } })
         }
         expect("Column[header='My Header', key='foo']") {
-            Grid<Any>().run { addColumn { it }.apply { header2 = "My Header"; key = "foo" } }.toPrettyString()
+            toPrettyString(Grid<Any>().run { addColumn { it }.apply { header2 = "My Header"; key = "foo" } })
         }
          */
 //    }
     test("toPrettyStringAnchor()") {
-        expect("Anchor[]") { Anchor().toPrettyString() }
-        expect("Anchor[href='vaadin.com']") { Anchor("vaadin.com").toPrettyString() }
+        expect("Anchor[]") { toPrettyString(Anchor()) }
+        expect("Anchor[href='vaadin.com']") { toPrettyString(Anchor("vaadin.com")) }
         // the href is dumped for any component declaring it, also when it is
         // inherited or declared as a plain href() method or a Kotlin property
-        expect("MyAnchor[href='vaadin.com']") { MyAnchor("vaadin.com").toPrettyString() }
+        expect("MyAnchor[href='vaadin.com']") { toPrettyString(MyAnchor("vaadin.com")) }
         expect("ComponentWithHrefFunction[href='vaadin.com']") {
-            ComponentWithHrefFunction().toPrettyString()
+            toPrettyString(ComponentWithHrefFunction())
         }
         expect("ComponentWithHrefProperty[href='vaadin.com']") {
-            ComponentWithHrefProperty().toPrettyString()
+            toPrettyString(ComponentWithHrefProperty())
         }
         expect("ComponentWithHrefInterface[href='vaadin.com']") {
-            ComponentWithHrefInterface().toPrettyString()
+            toPrettyString(ComponentWithHrefInterface())
         }
         // a bean getter is consulted as well, which is all a Kotlin href property
         // without a backing field compiles to
         expect("ComponentWithComputedHref[href='vaadin.com']") {
-            ComponentWithComputedHref().toPrettyString()
+            toPrettyString(ComponentWithComputedHref())
         }
         // a blank member doesn't end the lookup, the getter still gets its turn
         expect("ComponentWithBlankHrefField[href='vaadin.com']") {
-            ComponentWithBlankHrefField().toPrettyString()
+            toPrettyString(ComponentWithBlankHrefField())
         }
     }
     test("toPrettyStringRouterLink()") {
         // getHref() reports a missing href as an empty string, which is not dumped
-        expect("RouterLink[]") { RouterLink().toPrettyString() }
+        expect("RouterLink[]") { toPrettyString(RouterLink()) }
         expect("RouterLink[text='Hello', href='helloworld']") {
-            RouterLink("Hello", HelloWorldView::class.java).toPrettyString()
+            toPrettyString(RouterLink("Hello", HelloWorldView::class.java))
         }
     }
     test("toPrettyStringImage()") {
-        expect("Image[]") { Image().toPrettyString() }
-        expect("Image[@src='vaadin.com']") { Image("vaadin.com", "").toPrettyString() }
+        expect("Image[]") { toPrettyString(Image()) }
+        expect("Image[@src='vaadin.com']") { toPrettyString(Image("vaadin.com", "")) }
     }
     test("toPrettyStringIcon()") {
-        expect("Icon[@icon='vaadin:abacus']") { VaadinIcon.ABACUS.create().toPrettyString() }
+        expect("Icon[@icon='vaadin:abacus']") { toPrettyString(VaadinIcon.ABACUS.create()) }
     }
     test("toPrettyStringForm()") {
-        expect("FormItem[label='foo']") { FormLayout().addFormItem(TextField(), "foo").toPrettyString() }
+        expect("FormItem[label='foo']") { toPrettyString(FormLayout().addFormItem(TextField(), "foo")) }
     }
     test("toPrettyStringCustomComponent()") {
         expect("MyComponentWithToString[my-div(25)]") {
-            MyComponentWithToString().toPrettyString()
+            toPrettyString(MyComponentWithToString())
         }
     }
 
     test("styles not duplicated") {
         val div = Div()
-        expect("Div[]") { div.toPrettyString() }
+        expect("Div[]") { toPrettyString(div) }
         div.setWidthFull()
-        expect("Div[@style='width:100%']") { div.toPrettyString() }
+        expect("Div[@style='width:100%']") { toPrettyString(div) }
         div.style.set("flex-shrink", "1")
-        expect("Div[@style='width:100%;flex-shrink:1']") { div.toPrettyString() }
+        expect("Div[@style='width:100%;flex-shrink:1']") { toPrettyString(div) }
     }
 
     test("menu dump") {
@@ -172,7 +173,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
 └── ContextMenu[opened='false']
     ├── MenuItem[DISABLED, text='menu']
     │   └── MenuItem[text='click me']
-    └── MenuItem[text='save as']""".trim()) { cm.toPrettyTree().trim() }
+    └── MenuItem[text='save as']""".trim()) { toPrettyTree(cm).trim() }
 
     }
 
@@ -186,7 +187,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
             expect("""
 └── Grid[<String>, dataprovider='ListDataProvider2{0 items}']
     └── Column[header='Hello!']
-""".trim()) { grid.toPrettyTree().trim() }
+""".trim()) { toPrettyTree(grid).trim() }
         }
 
         test("grid menu dump") {
@@ -204,7 +205,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
 └── GridContextMenu[]
     ├── GridMenuItem[DISABLED, text='menu']
     │   └── GridMenuItem[text='click me']
-    └── GridMenuItem[text='save as']""".trim()) { cm.toPrettyTree().trim() }
+    └── GridMenuItem[text='save as']""".trim()) { toPrettyTree(cm).trim() }
         }
 
         // tests https://github.com/mvysny/karibu-testing/issues/37
@@ -217,7 +218,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
             expect("""
 └── Grid[<String>, dataprovider='ListDataProvider2{0 items}']
     ├── TextField[label='Filter:', value='']
-    └── Column[]""".trim()) { grid.toPrettyTree().trim() }
+    └── Column[]""".trim()) { toPrettyTree(grid).trim() }
         }
 
         // tests https://github.com/mvysny/karibu-testing/issues/37
@@ -236,7 +237,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         ├── ColumnGroup[]
         │   └── Column[header='foo']
         └── ColumnGroup[]
-            └── Column[header='bar']""".trim()) { grid.toPrettyTree().trim() }
+            └── Column[header='bar']""".trim()) { toPrettyTree(grid).trim() }
         }
     }
          */
@@ -257,14 +258,14 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
         test("no cause exception") {
             val error = createErrorComponent(RuntimeException("OOPS!"))
-            val pretty = error.toPrettyString().trim()
+            val pretty = toPrettyString(error).trim()
             assertContains(pretty, "targetView='helloworld'")
             assertContains(pretty, "failureMessage='OOPS!'")
             assertContains(pretty, "exceptionType='java.lang.RuntimeException'")
         }
         test("custom message") {
             val error = createErrorComponent(RuntimeException("BOOM!"), "Something failed")
-            val pretty = error.toPrettyString().trim()
+            val pretty = toPrettyString(error).trim()
             assertContains(pretty, "targetView='helloworld'")
             assertContains(pretty, "failureMessage='Something failed'")
             assertContains(pretty, "exceptionType='java.lang.RuntimeException'")
@@ -278,7 +279,7 @@ internal fun DynaNodeGroup.prettyPrintTreeTest() {
         }
         expect("""
 └── Div[nonnull-property='OK']
-""".trim()) { div.toPrettyTree().trim() }
+""".trim()) { toPrettyTree(div).trim() }
     }
 
 }
@@ -352,7 +353,7 @@ private class HtmlSpan(@Language("html") innerHTML: String = "") : Span() {
     @get:Language("html")
     @set:Language("html")
     var innerHTML: String
-        get() = element.getProperty("innerHTML", "")
+        get() = element.getProperty("innerHTML", "") ?: ""
         set(value) {
             removeAll()
             element.setProperty("innerHTML", value)

@@ -38,25 +38,25 @@ private val _BasicRenderer_getFormattedValue: Method by lazy(LazyThreadSafetyMod
  * Returns the output of this renderer for given [rowObject] formatted as close as possible
  * to the client-side output.
  */
-fun <T> Renderer<T>._getPresentationValue(rowObject: T): String? = when {
-    this is BasicRenderer<T, *> -> {
-        val value: Any? = this.valueProvider.apply(rowObject)
-        _BasicRenderer_getFormattedValue.invoke(this, value) as String?
+fun <T> _getPresentationValue(renderer: Renderer<T>, rowObject: T): String? = when {
+    renderer is BasicRenderer<T, *> -> {
+        val value: Any? = getValueProvider(renderer).apply(rowObject)
+        _BasicRenderer_getFormattedValue.invoke(renderer, value) as String?
     }
-    this is TextRenderer<T> -> {
-        renderText(rowObject)
+    renderer is TextRenderer<T> -> {
+        renderText(renderer, rowObject)
     }
-    this is ComponentRenderer<*, T> -> {
-        val component: Component = createComponent(rowObject)
-        component.toPrettyString()
+    renderer is ComponentRenderer<*, T> -> {
+        val component: Component = renderer.createComponent(rowObject)
+        toPrettyString(component)
     }
-    this::class.simpleName == "LitRenderer" -> {
+    renderer::class.simpleName == "LitRenderer" -> {
         // LitRenderer re-declares private members
-        val templateExpression: String = getLitTemplateHtml(this)
+        val templateExpression: String = getLitTemplateHtml(renderer)
 
-        val valueProvidersProperty = this::class.java.getDeclaredField("valueProviders")
+        val valueProvidersProperty = renderer::class.java.getDeclaredField("valueProviders")
         valueProvidersProperty.isAccessible = true
-        val valueProviders = valueProvidersProperty.get(this) as Map<String, ValueProvider<T, *>>
+        val valueProviders = valueProvidersProperty.get(renderer) as Map<String, ValueProvider<T, *>>
 
         val renderedLitTemplateHtml: String = renderLitTemplate(templateExpression, valueProviders, rowObject)
         Jsoup.parse(renderedLitTemplateHtml).textRecursively
@@ -102,8 +102,8 @@ fun <T> renderLitTemplate(template: String, valueProviders: Map<String, ValuePro
  * Returns the text rendered for given [item].
  */
 @Suppress("UNCHECKED_CAST")
-fun <T> TextRenderer<T>.renderText(item: T): String =
-    createComponent(item).element.text
+fun <T> renderText(renderer: TextRenderer<T>, item: T): String =
+    renderer.createComponent(item).element.text
 
 private val _BasicRenderer_valueProvider: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val javaField: Field = BasicRenderer::class.java.getDeclaredField("valueProvider")
@@ -115,6 +115,6 @@ private val _BasicRenderer_valueProvider: Field by lazy(LazyThreadSafetyMode.PUB
  * Returns the [ValueProvider] set to [BasicRenderer].
  */
 @Suppress("UNCHECKED_CAST", "ConflictingExtensionProperty")
-val <T, V> BasicRenderer<T, V>.valueProvider: ValueProvider<T, V>
-    get() = _BasicRenderer_valueProvider.get(this) as ValueProvider<T, V>
+private fun <T, V> getValueProvider(renderer: BasicRenderer<T, V>): ValueProvider<T, V> =
+    _BasicRenderer_valueProvider.get(renderer) as ValueProvider<T, V>
 
