@@ -17,16 +17,30 @@ package com.vaadin.browserless.internal;
 
 import java.io.Serializable;
 
-import kotlin.jvm.functions.Function0;
-
 import com.vaadin.flow.component.UI;
 
 /**
- * Produces {@link UI} instances. The factory must provide a new, fresh instance
- * of the UI on every invocation.
+ * Creates the {@link UI} of a Vaadin session.
  * <p>
- * For internal use only. May be renamed or removed in a future release.
+ * The factory <em>must</em> return a fresh instance every time. A UI already
+ * attached to a session carries that session's state into the next test, which
+ * is why {@code MockVaadin.createUI} refuses one.
+ * <p>
+ * Pass an implementation to
+ * {@code BrowserlessApplicationContext.Builder.withUIFactory(UIFactory)} to
+ * have tests run against a {@link UI} subclass of your own, or to
+ * {@code withServletFactory(…)} alongside the routes.
+ * <p>
+ * The single abstract method is named {@code invoke()} to match the bytecode
+ * shape of the Kotlin {@code () -> UI} interface it replaces, so that existing
+ * lambdas and method references such as {@code MockedUI::new} keep binding.
  */
 @FunctionalInterface
-public interface UIFactory extends Function0<UI>, Serializable {
+public interface UIFactory extends Serializable {
+    /**
+     * Creates a new UI instance.
+     *
+     * @return the new UI; must be a fresh instance every time
+     */
+    UI invoke();
 }

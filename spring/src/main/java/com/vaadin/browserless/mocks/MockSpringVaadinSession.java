@@ -15,12 +15,10 @@
  */
 package com.vaadin.browserless.mocks;
 
-import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 
@@ -45,23 +43,6 @@ public class MockSpringVaadinSession extends VaadinSession {
      */
     @NotNull
     private final UIFactory uiFactory;
-
-    /**
-     * Creates a new mocked Spring Vaadin session.
-     *
-     * @param service
-     *            the Vaadin service the session belongs to
-     * @param uiFactory
-     *            creates the UI for the new session that replaces this one when
-     *            it is closed
-     * @deprecated use the constructor taking a {@link UIFactory} instead
-     */
-    @Deprecated(forRemoval = true)
-    public MockSpringVaadinSession(@NotNull VaadinService service,
-            @NotNull Function0<UI> uiFactory) {
-        super(service);
-        this.uiFactory = uiFactory::invoke;
-    }
 
     /**
      * Creates a new mocked Spring Vaadin session.

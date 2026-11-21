@@ -35,6 +35,12 @@ public class MockInternalSeverError extends InternalServerError {
 
     private static final long serialVersionUID = -5950962994914319392L;
 
+    /**
+     * Creates the error view.
+     */
+    public MockInternalSeverError() {
+    }
+
     @Override
     public int setErrorParameter(BeforeEnterEvent event,
             ErrorParameter<Exception> parameter) {

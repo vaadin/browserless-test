@@ -39,6 +39,16 @@ public class MockRouteNotFoundError extends RouteNotFoundError {
 
     private static final long serialVersionUID = -4006857065753712996L;
 
+    /**
+     * Creates the error view.
+     */
+    public MockRouteNotFoundError() {
+    }
+
+    /**
+     * The exception the navigation failed with, recorded so the test can assert
+     * on it.
+     */
     private NotFoundException cause = null;
 
     /**
