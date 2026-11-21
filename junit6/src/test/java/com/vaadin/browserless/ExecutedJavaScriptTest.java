@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.flow.component.Component;
@@ -37,6 +38,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.DisabledUpdateMode;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.function.SerializableConsumer;
+import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.internal.nodefeature.ReturnChannelMap;
 import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
@@ -348,10 +350,15 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         calendar.getElement().executeJs("this.listen($0, $1)", "change",
                 channel);
 
-        executed.getAll().get(0).invokeReturnChannel("week", 7);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        execution.invokeReturnChannel("week", 7);
+        execution.invokeReturnChannel(
+                JacksonUtils.createObjectNode().put("a", 1));
+        execution.invokeReturnChannel((Object) null);
 
-        Assertions.assertEquals(List.of("[\"week\",7]"), received);
-        Assertions.assertEquals(List.of(List.of()),
+        Assertions.assertEquals(
+                List.of("[\"week\",7]", "[{\"a\":1}]", "[null]"), received);
+        Assertions.assertEquals(List.of(List.of(), List.of(), List.of()),
                 executed.getFunctionCalls(calendar, "render"),
                 "JavaScript the handler schedules should be sent right away");
     }
@@ -372,6 +379,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> execution.invokeReturnChannelAt(2, "x"),
                 "Parameter 2 is the element, not a channel");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(3, "x"));
+        calendar.getElement().executeJs("this.listen($0)", "change");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> executed.getAll().get(1).invokeReturnChannel("x"),
+                "Nothing to invoke without a channel");
         execution.invokeReturnChannelAt(1);
 
         Assertions.assertEquals(List.of("second"), received);
@@ -387,29 +400,37 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ExecutedJavaScript.Execution execution = executed.getAll().get(0);
 
         button.setEnabled(false);
-        Assertions.assertThrows(IllegalStateException.class,
+        assertRefused("is disabled",
                 () -> execution.invokeReturnChannel("disabled"));
         channel.setDisabledUpdateMode(DisabledUpdateMode.ALWAYS);
         execution.invokeReturnChannel("always");
 
         button.setVisible(false);
-        Assertions.assertThrows(IllegalStateException.class,
+        assertRefused("is not visible",
                 () -> execution.invokeReturnChannel("hidden"));
         button.setVisible(true);
 
         channel.remove();
-        Assertions.assertThrows(IllegalStateException.class,
+        assertRefused("has been removed",
                 () -> execution.invokeReturnChannel("removed"));
 
+        button.setEnabled(true);
         ReturnChannelRegistration other = registerChannel(button,
                 arguments -> received.add(arguments.toString()));
         button.getElement().executeJs("this.listen($0)", other);
         ExecutedJavaScript.Execution later = executed.getAll().get(1);
         button.getElement().removeFromParent();
-        Assertions.assertThrows(IllegalStateException.class,
+        assertRefused("is not attached",
                 () -> later.invokeReturnChannel("detached"));
 
         Assertions.assertEquals(List.of("[\"always\"]"), received);
+    }
+
+    private static void assertRefused(String reason, Executable invocation) {
+        String message = Assertions
+                .assertThrows(IllegalStateException.class, invocation)
+                .getMessage();
+        Assertions.assertTrue(message.endsWith(reason), message);
     }
 
     private static ReturnChannelRegistration registerChannel(

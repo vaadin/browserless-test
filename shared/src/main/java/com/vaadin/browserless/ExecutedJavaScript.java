@@ -368,8 +368,7 @@ public final class ExecutedJavaScript implements Serializable {
          */
         public void resolve(@Nullable Object value) {
             ensureCanAnswer();
-            invocation.complete(value instanceof JsonNode node ? node
-                    : JacksonUtils.getMapper().valueToTree(value));
+            invocation.complete(toJson(value));
         }
 
         /**
@@ -479,8 +478,7 @@ public final class ExecutedJavaScript implements Serializable {
             ArrayNode json = JacksonUtils.createArrayNode();
             for (Object argument : arguments == null ? new Object[] { null }
                     : arguments) {
-                json.add(argument instanceof JsonNode node ? node
-                        : JacksonUtils.getMapper().valueToTree(argument));
+                json.add(toJson(argument));
             }
             channel.invoke(json);
             BrowserlessDSL.roundTrip(getUI());
@@ -513,6 +511,11 @@ public final class ExecutedJavaScript implements Serializable {
                 throw new IllegalStateException("The element of the return "
                         + "channel passed to " + this + " is disabled");
             }
+        }
+
+        private static JsonNode toJson(@Nullable Object value) {
+            return value instanceof JsonNode node ? node
+                    : JacksonUtils.getMapper().valueToTree(value);
         }
 
         private void ensureCanAnswer() {
