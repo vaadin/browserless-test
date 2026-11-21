@@ -139,7 +139,9 @@ public final class ExecutedJavaScript implements Serializable {
 
     /**
      * Gets everything sent to the browser since the capture started, and until
-     * it was stopped, in the order the browser received it.
+     * it was stopped, in the order the browser received it, whichever element
+     * it was run on; {@link #getAll(Component)} and {@link #getAll(Element)}
+     * keep only what was run on one element.
      *
      * @return the sent JavaScript, not null
      */
@@ -148,6 +150,42 @@ public final class ExecutedJavaScript implements Serializable {
             JavaScriptDispatcher.dispatch(ui);
         }
         return List.copyOf(executions);
+    }
+
+    /**
+     * Gets what was sent to the browser for the given component's element since
+     * the capture started, and until it was stopped, in the order the browser
+     * received it. Unlike {@link #getAll()}, JavaScript run on other elements
+     * is left out. JavaScript run on the page belongs to the UI, so passing the
+     * UI gets it.
+     *
+     * @param component
+     *            the component whose element the JavaScript was run on, not
+     *            null
+     * @return the JavaScript sent for the component, not null
+     * @see Execution#getElement()
+     */
+    public List<Execution> getAll(Component component) {
+        Objects.requireNonNull(component, "component");
+        return getAll(component.getElement());
+    }
+
+    /**
+     * Gets what was sent to the browser for the given element since the capture
+     * started, and until it was stopped, in the order the browser received it.
+     * Unlike {@link #getAll()}, JavaScript run on other elements is left out.
+     * JavaScript run on the page belongs to the element of the UI.
+     *
+     * @param element
+     *            the element the JavaScript was run on, not null
+     * @return the JavaScript sent for the element, not null
+     * @see Execution#getElement()
+     */
+    public List<Execution> getAll(Element element) {
+        Objects.requireNonNull(element, "element");
+        return getAll().stream()
+                .filter(execution -> element.equals(execution.getElement()))
+                .toList();
     }
 
     /**
@@ -190,9 +228,7 @@ public final class ExecutedJavaScript implements Serializable {
             String functionName) {
         Objects.requireNonNull(component, "component");
         Objects.requireNonNull(functionName, "functionName");
-        Element element = component.getElement();
-        return getAll().stream()
-                .filter(execution -> element.equals(execution.getElement()))
+        return getAll(component).stream()
                 .flatMap(execution -> execution.getJsCall().stream())
                 .filter(call -> call
                         .definitionType() == Element.CallFunctionJs.class
