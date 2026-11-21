@@ -752,13 +752,13 @@ test(save).click();
 assertEquals(List.of(List.of("week", 7)),
         executed.getFunctionCalls(calendar, "setOptions"));
 assertEquals(1, executed.getCalls(Focusable.FocusJs.class,
-        Focusable.FocusJs::focus).size());
+        js -> js.focus(null)).size());
 ```
 
 `getCalls` names the method of the definition by calling it, so renaming the
 method updates the test and a typo does not compile. Arguments of a method
-with parameters are ignored, so any value will do:
-`getCalls(ScrollJs.class, js -> js.scrollTo(0, 0))`. A
+with parameters are ignored, so any value will do. A method without
+parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
 `getCalls(definitionType, methodName)` overload takes the name as a string.
 
 `getAll()` lists everything that was sent, in order, with the element it ran

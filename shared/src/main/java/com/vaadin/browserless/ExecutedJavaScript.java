@@ -194,6 +194,10 @@ public final class ExecutedJavaScript implements Serializable {
      * Gets the calls of one method of a JavaScript definition, the interface
      * that {@code Element.executeJs(Class)} is called with, that were sent to
      * the browser, in the order the browser received them.
+     * <p>
+     * The method is named as a string, so a misspelled or renamed name matches
+     * nothing rather than failing; {@link #getCalls(Class, Consumer)} names it
+     * by calling it, which the compiler checks.
      *
      * @param definitionType
      *            the JavaScript definition, not null
