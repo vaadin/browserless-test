@@ -37,6 +37,7 @@ import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.JsFunction;
 import com.vaadin.flow.dom.impl.ElementJsInitializerRegistration.InitializerJs;
 import com.vaadin.flow.internal.StateNode;
+import com.vaadin.flow.internal.StateTree;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.shared.Registration;
 
@@ -92,34 +93,26 @@ public final class ClientInitializers implements Serializable {
     }
 
     /**
-     * Creates the handler that keeps track of the element initializers sent to
-     * the client of the given UI.
-     *
-     * @param ui
-     *            the UI, not null
-     * @return the handler, not null
+     * Keeps track of the element initializers sent to the client of any UI.
      */
-    static JavaScriptDispatcher.Handler handlerFor(UI ui) {
-        return invocation -> {
-            JsCall call = invocation.getInvocation().getJsCall();
-            if (call == null || call.definitionType() != InitializerJs.class) {
-                return;
+    static final JavaScriptDispatcher.Handler HANDLER = invocation -> {
+        JsCall call = invocation.getInvocation().getJsCall();
+        if (call == null || call.definitionType() != InitializerJs.class) {
+            return;
+        }
+        StateNode node = invocation.getOwner();
+        ClientInitializers initializers = getOrCreate(
+                ((StateTree) node.getOwner()).getUI());
+        int id = (Integer) call.arguments().get(0);
+        if ("init".equals(call.methodName())) {
+            initializers.init(node, id, (JsFunction) call.arguments().get(1));
+        } else if ("dispose".equals(call.methodName())) {
+            Map<Integer, Installed> installed = initializers.byNode.get(node);
+            if (installed != null) {
+                installed.remove(id);
             }
-            ClientInitializers initializers = getOrCreate(ui);
-            StateNode node = invocation.getOwner();
-            int id = (Integer) call.arguments().get(0);
-            if ("init".equals(call.methodName())) {
-                initializers.init(node, id,
-                        (JsFunction) call.arguments().get(1));
-            } else if ("dispose".equals(call.methodName())) {
-                Map<Integer, Installed> installed = initializers.byNode
-                        .get(node);
-                if (installed != null) {
-                    installed.remove(id);
-                }
-            }
-        };
-    }
+        }
+    };
 
     private void init(StateNode node, int id, JsFunction initializer) {
         Installed installed = install(node, initializer);
