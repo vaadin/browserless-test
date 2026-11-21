@@ -21,8 +21,6 @@ import java.util.stream.StreamSupport;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.littemplate.LitTemplate;
 
 /**
@@ -75,25 +73,13 @@ public final class TestingLifecycleHooks {
     }
 
     /**
-     * Checks whether given component is a dialog and needs to be removed from
-     * the UI. See {@link #cleanupDialogs()} for more info.
-     */
-    private static boolean isDialogAndNeedsRemoval(Component component) {
-        if (component instanceof Dialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        if (component instanceof ConfirmDialog dialog && !dialog.isOpened()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Flow Server does not close the dialog when {@link Dialog#close()} is
+     * Flow Server does not close the dialog when {@code Dialog.close()} is
      * called; instead it tells client-side dialog to close, which then fires
      * event back to the server that the dialog was closed, and removes itself
      * from the DOM. Since there's no browser with browserless testing, we need
-     * to cleanup closed dialogs manually, hence this method.
+     * to cleanup closed dialogs manually, hence this method. Which components
+     * are closed dialogs comes from the registered {@link ComponentSupport}
+     * implementations.
      */
     public static void cleanupDialogs() {
         // Starting with Vaadin 23, nested dialogs are also nested within
@@ -103,7 +89,7 @@ public final class TestingLifecycleHooks {
         List<Component> dialogs = StreamSupport
                 .stream(DepthFirstTreeIterator.walk(UI.getCurrent())
                         .spliterator(), false)
-                .filter(TestingLifecycleHooks::isDialogAndNeedsRemoval)
+                .filter(ComponentUtils::isClosedDialog)
                 .collect(Collectors.toList());
         dialogs.forEach(it -> it.getElement().removeFromParent());
     }

@@ -27,16 +27,12 @@ import java.util.Set;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function2;
 
-import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.data.provider.DataProvider;
 
 /**
@@ -284,19 +280,14 @@ public final class PrettyPrintTree {
         if (href != null) {
             list.add("href='" + href + "'");
         }
-        if (component instanceof Button button
-                && button.getIcon() instanceof Icon icon) {
-            list.add("icon='" + icon.getElement().getAttribute("icon") + "'");
-        }
+        ComponentUtils.describe(component, list);
         if (component instanceof Html) {
             String outerHtml = Utils.trim(component.getElement().getOuterHTML())
                     .replaceAll("\\s+", " ");
             list.add(Utils.ellipsize(outerHtml, 100, "..."));
         }
-        if (component instanceof Grid<?> grid && grid.getBeanType() != null) {
-            list.add("<" + grid.getBeanType().getSimpleName() + ">");
-        }
-        DataProvider<?, ?> dataProvider = GridKt.getDataProvider(component);
+        DataProvider<?, ?> dataProvider = ComponentUtils
+                .getDataProvider(component);
         if (dataProvider != null) {
             list.add("dataprovider='" + dataProvider + "'");
         }
