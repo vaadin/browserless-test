@@ -32,7 +32,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.UploadManager.FileRejectionReason;
 import com.vaadin.flow.component.upload.UploadTester.FileStatus;
 import com.vaadin.flow.component.upload.UploadTester.UploadStatus;
@@ -137,7 +136,7 @@ class UploadButtonTesterTest extends BrowserlessTest {
                 "b".getBytes(StandardCharsets.UTF_8));
         // a round trip that sends the pending JavaScript to the client empties
         // the queue, which must not hide the next clearFileList() call
-        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+        roundTrip();
         view.manager.clearFileList();
         button_.upload("c.txt", "text/plain",
                 "c".getBytes(StandardCharsets.UTF_8));
