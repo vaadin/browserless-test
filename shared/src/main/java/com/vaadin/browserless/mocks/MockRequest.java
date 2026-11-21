@@ -126,7 +126,9 @@ public class MockRequest implements HttpServletRequest {
     }
 
     /**
-     * Sets the encoding {@link #getCharacterEncoding()} reports.
+     * Sets the encoding {@link #getCharacterEncodingInt()} reports.
+     * {@link #getCharacterEncoding()} does not read it and always returns
+     * {@code null}.
      *
      * @param characterEncodingInt
      *            the character encoding, or {@code null}

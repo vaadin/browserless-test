@@ -288,7 +288,8 @@ public final class MockVaadinHelper {
      * It extends Vaadin's own with the services a browserless test needs on top
      * of the ones {@code LookupServletContainerInitializer} declares in its
      * {@link HandlesTypes} annotation — the browserless geolocation client, for
-     * one. Subclass it and replace {@link #additionalServices} to add more.
+     * one. A test adds services of its own through the {@code lookupServices}
+     * passed to {@link MockVaadinHelper#createMockContext(java.util.Set)}.
      * <p>
      * For internal use only. May be renamed or removed in a future release.
      */
