@@ -18,6 +18,7 @@ package com.vaadin.flow.component.routerlink;
 import java.net.URI;
 import java.util.Optional;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
@@ -115,9 +116,17 @@ public class RouterLinkTester<T extends RouterLink> extends ComponentTester<T> {
      *
      * For cases where you need to access the navigated view, use
      * {@link #navigate()} instead as it returns the target view.
+     * <p>
+     * Before navigating, runs the client-side click listeners of the link, such
+     * as a copy to the clipboard, as the browser does.
      */
     @Override
     public void click() {
+        ensureComponentIsUsable();
+        // Client-side click listeners, such as a copy to the clipboard, run
+        // before the browser follows the link
+        ClientInitializers.fireDomEvent(getComponent().getUI().orElseThrow(),
+                getComponent(), "click").run();
         navigate();
     }
 }
