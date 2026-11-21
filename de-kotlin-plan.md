@@ -17,6 +17,17 @@ Working plan for removing Kotlin from `browserless-test`. The goal is that
 All of it is ported as of Phase 6; the table is the starting point the phases
 below work through.
 
+> **After merging `main`.** `main` ported the `internal` package to Java on its
+> own (#315), dropped the Kotlin extensions on Flow types (#343) and cut the
+> Grid helpers down to what the Grid testers use. Where this plan and the
+> merged code differ, the code follows `main`: the `internal` accessors keep
+> `main`'s names (`Utils.getCurrentUI()`, `BasicUtils.get_saneFetchLimit()`;
+> `id_` no longer exists), and `GridUtils` has no `_dump`, `_findAll`,
+> `expectRow` or data provider helpers. What this branch still adds on top of
+> `main` is the removal of the remaining Kotlin types (`Function0/1/2`,
+> `Unit`, `IntRange`) and Kotlin shapes (`Companion`, `INSTANCE`,
+> `DefaultImpls`, `componentN`) from those signatures.
+
 `spring`, `quarkus`, `junit6/src/main` and `locator-processor` are already pure
 Java, but about 48 Java files reference the Kotlin packages and 24 call sites go
 through Kotlin file facades (`LocatorKt`, `PrettyPrintTreeKt`, `GridKt`,
