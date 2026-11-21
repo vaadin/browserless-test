@@ -480,6 +480,7 @@ class LocatorTest {
                             nestedVerticalLayouts(UI.getCurrent()),
                             VerticalLayout.class, 3, spec -> {
                             }));
+            expectAfterLookupCalled();
         }
 
         @Test

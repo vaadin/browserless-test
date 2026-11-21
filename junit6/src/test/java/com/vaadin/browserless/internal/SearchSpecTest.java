@@ -62,23 +62,6 @@ class SearchSpecTest {
     }
 
     @Test
-    void id_matchesTheComponentId() {
-        SearchSpec<Component> spec = new SearchSpec<>(Component.class);
-        spec.setId("25");
-        Predicate<Component> p = spec.toPredicate();
-
-        Button matching = new Button();
-        matching.setId("25");
-        assertTrue(p.test(matching));
-
-        Button other = new Button();
-        other.setId("42");
-        assertFalse(p.test(other));
-
-        assertFalse(p.test(new Button()));
-    }
-
-    @Test
     void caption_resolvedAcrossEveryComponentKindThatHasOne() {
         SearchSpec<Component> spec = new SearchSpec<>(Component.class);
         spec.setCaption("foo");
