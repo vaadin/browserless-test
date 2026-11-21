@@ -33,6 +33,8 @@ import com.vaadin.flow.component.UI;
  * <p>
  * A lambda or a constructor reference such as {@code MockedUI::new} is a valid
  * implementation.
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
  */
 @FunctionalInterface
 public interface UIFactory extends Serializable {
