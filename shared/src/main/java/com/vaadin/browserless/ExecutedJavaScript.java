@@ -57,6 +57,11 @@ import com.vaadin.flow.shared.Registration;
  *         executed.getFunctionCalls(dialog, "open"));
  * </pre>
  * <p>
+ * Each UI created by Browserless Test also has a capture that was started with
+ * the UI, before its first view was navigated to, so it holds everything the UI
+ * was sent. The test classes and {@link BrowserlessUIContext} return it from
+ * {@code getExecutedJavaScript()}.
+ * <p>
  * A capture holds everything sent to the browser of its UI after it was
  * started; JavaScript still pending when it starts is sent first and is not
  * part of it. A capture runs until {@link #stop()} or for as long as the UI
@@ -114,7 +119,15 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        ExecutedJavaScript capture = new ExecutedJavaScript(ui);
+        return startCapture(dispatcher);
+    }
+
+    /**
+     * Starts capturing what the given dispatcher sends from now on, without
+     * sending what is pending first.
+     */
+    static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher) {
+        ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI());
         capture.registration = dispatcher
                 .addHandler(invocation -> capture.executions
                         .add(new Execution(dispatcher, invocation)));

@@ -414,6 +414,21 @@ public abstract class BaseBrowserlessTest {
     }
 
     /**
+     * Gets the JavaScript sent to the browser of the current UI since the UI
+     * was created, including what the first view sent while it was navigated
+     * to. Each UI has its own capture: after {@link #reload()}, or in a new
+     * window, this returns the capture of the new UI, which starts empty. Like
+     * any {@link ExecutedJavaScript}, querying it sends whatever is still
+     * pending first. To look at the JavaScript of a single step, start a
+     * separate capture with {@link ExecutedJavaScript#capture()} before it.
+     *
+     * @return the JavaScript sent to the browser of the UI, not null
+     */
+    public ExecutedJavaScript getExecutedJavaScript() {
+        return BrowserlessDSL.getExecutedJavaScript(verifyAndGetUI());
+    }
+
+    /**
      * Get the current view instance that is shown on the ui.
      *
      * @return current view

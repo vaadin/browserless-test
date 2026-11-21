@@ -24,6 +24,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
@@ -81,6 +83,8 @@ public final class JavaScriptDispatcher implements Serializable {
 
     private boolean simulatedClientSetUp;
 
+    private @Nullable ExecutedJavaScript uiCapture;
+
     /**
      * When the queue was last taken by this dispatcher. Flow updates the
      * timestamp each time the queue is taken, even when it is empty, so a
@@ -103,8 +107,9 @@ public final class JavaScriptDispatcher implements Serializable {
      * {@link JavaScriptHandler} configured for the environment with
      * {@link #setJavaScriptHandlers(VaadinService, Collection)}. Installing
      * them up front means a call sent before any tester interaction, while the
-     * initial view is built or by a lookup, is handled too. Setting up the same
-     * UI again does nothing.
+     * initial view is built or by a lookup, is handled too. Also starts the
+     * capture that {@link #getUICapture(UI)} returns, so that it holds
+     * everything the UI sends. Setting up the same UI again does nothing.
      *
      * @param ui
      *            the UI, not null
@@ -117,6 +122,7 @@ public final class JavaScriptDispatcher implements Serializable {
             return;
         }
         dispatcher.simulatedClientSetUp = true;
+        dispatcher.uiCapture = ExecutedJavaScript.startCapture(dispatcher);
         dispatcher.addHandler(FocusTracker.HANDLER);
         VaadinSession session = ui.getSession();
         ConfiguredHandlers configured = session == null ? null
@@ -210,6 +216,29 @@ public final class JavaScriptDispatcher implements Serializable {
 
     UI getUI() {
         return ui;
+    }
+
+    /**
+     * Gets the capture that was started when the mocked environment created the
+     * given UI, before the UI was initialized and navigated to its first view,
+     * so it holds everything sent to the browser of the UI.
+     *
+     * @param ui
+     *            the UI, not null
+     * @return the capture of the UI, not null
+     * @throws IllegalStateException
+     *             if the UI was not created by the mocked environment
+     */
+    static ExecutedJavaScript getUICapture(UI ui) {
+        ExecutedJavaScript capture = forUI(ui).uiCapture;
+        if (capture == null) {
+            throw new IllegalStateException("The UI was not created by "
+                    + "Browserless Test, so the JavaScript sent to it is not "
+                    + "captured from the start. Use "
+                    + "ExecutedJavaScript.capture(ui) to capture what is "
+                    + "sent from now on.");
+        }
+        return capture;
     }
 
     /**
