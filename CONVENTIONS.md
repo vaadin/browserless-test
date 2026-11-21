@@ -200,6 +200,13 @@ detail.
 Javadoc describes the code today, not what changed. Change history belongs in
 commit messages.
 
+In a tester, spell cross-package `@link` and `@throws` targets out in full:
+`locator-processor` copies the Javadoc into the generated `*Locator`, which has
+no imports. Every module builds clean under doclint, warnings included, so every
+published member needs a description, its `@param`s and its `@return` — a class
+that would otherwise get an undocumented default constructor declares an
+explicit one.
+
 See [`guidelines/documenting.md`](guidelines/documenting.md).
 
 ## Testing
