@@ -17,6 +17,7 @@ package com.vaadin.flow.component.radiobutton;
 
 import java.util.function.Consumer;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.ClickEvent;
@@ -66,9 +67,12 @@ public class RadioButtonTester<T extends RadioButton<V>, V>
     public void click() {
         ensureComponentIsUsable();
         T radioButton = getComponent();
+        Runnable settlePromises = ClientInitializers.fireDomEvent(
+                radioButton.getUI().orElseThrow(), radioButton, "click");
         ComponentUtil.fireEvent(radioButton, new ClickEvent<>(radioButton, true,
                 0, 0, 0, 0, 0, 0, false, false, false, false));
         radioButton.setChecked(true);
+        settlePromises.run();
     }
 
     protected boolean isDisabled() {

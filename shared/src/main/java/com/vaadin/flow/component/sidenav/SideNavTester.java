@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.ClientDomEvent;
@@ -260,9 +261,12 @@ public class SideNavTester<T extends SideNav> extends ComponentTester<T> {
         // the router link handler sees it, so whether a listener prevented
         // the default action is settled at click time, before any listener
         // runs on the server.
+        Runnable settlePromises = ClientInitializers.fireDomEvent(
+                getComponent().getUI().orElseThrow(), navItem, "click");
         ClientDomEvent click = ClientDomEvent.dispatch(navItem.getElement(),
                 "click", LEFT_CLICK);
         click.fire();
+        settlePromises.run();
         String path = navItem.getPath();
         if (path == null) {
             navItem.setExpanded(!navItem.isExpanded());

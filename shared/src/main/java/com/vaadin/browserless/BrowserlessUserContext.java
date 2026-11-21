@@ -246,6 +246,16 @@ public class BrowserlessUserContext implements AutoCloseable {
         return session;
     }
 
+    /**
+     * Returns the clipboard of this user's browser, shared by all of the user's
+     * windows.
+     *
+     * @return the clipboard, not {@code null}
+     */
+    public SimulatedClipboard getClipboard() {
+        return SimulatedClipboard.of(session);
+    }
+
     BrowserlessApplicationContext getApp() {
         return app;
     }

@@ -17,6 +17,7 @@ package com.vaadin.flow.component.contextmenu;
 
 import java.util.List;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -531,8 +532,12 @@ public class ContextMenuTester<T extends ContextMenu>
         if (menuItem.isCheckable()) {
             menuItem.setChecked(!menuItem.isChecked());
         }
+        Runnable settlePromises = ClientInitializers.fireDomEvent(
+                getComponent().getTarget().getUI().orElseThrow(), menuItem,
+                "click");
         ComponentUtil.fireEvent(menuItem, new ClickEvent<>(menuItem, true, 0, 0,
                 0, 0, 1, 0, false, false, false, false));
+        settlePromises.run();
     }
 
     private void attachMenuToUI() {
