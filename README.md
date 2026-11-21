@@ -821,8 +821,9 @@ accumulate like lookup services.
   `UIInternals.dumpPendingJavaScriptInvocations()` or
   `containsPendingJavascript(...)` after a navigation, a lookup or a tester
   interaction finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
-  queue in a test also hides the JavaScript from the simulation, for example a
-  server-side `focus()` call.
+  queue in a test would also hide the JavaScript from the simulation, for example a
+  server-side `focus()` call, so the next round trip, lookup or tester interaction
+  fails with an `IllegalStateException` that points to `ExecutedJavaScript`.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it

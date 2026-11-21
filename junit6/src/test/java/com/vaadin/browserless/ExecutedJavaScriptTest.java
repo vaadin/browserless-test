@@ -171,6 +171,24 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
+    void pendingJavaScriptTakenByTest_failsNextDispatchOnce() {
+        calendar.getElement().callJsFunction("render");
+        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+
+        IllegalStateException e = Assertions
+                .assertThrows(IllegalStateException.class, () -> roundTrip());
+        Assertions.assertTrue(
+                e.getMessage().contains("dumpPendingJavaScriptInvocations()"),
+                e.getMessage());
+
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().callJsFunction("render");
+        roundTrip();
+        Assertions.assertEquals(List.of(List.of()),
+                executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
     void resolve_runsTheApplicationsSuccessHandler() {
         AtomicReference<Integer> result = new AtomicReference<>();
         ExecutedJavaScript executed = ExecutedJavaScript.capture();

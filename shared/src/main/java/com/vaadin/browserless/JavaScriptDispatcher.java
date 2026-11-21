@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,8 +81,16 @@ public final class JavaScriptDispatcher implements Serializable {
 
     private boolean simulatedClientSetUp;
 
+    /**
+     * When the queue was last taken by this dispatcher. Flow updates the
+     * timestamp each time the queue is taken, so a different value means
+     * something else took it.
+     */
+    private Instant lastTaken;
+
     private JavaScriptDispatcher(UI ui) {
         this.ui = ui;
+        lastTaken = ui.getInternals().getLastUpdateSentTimestamp();
     }
 
     /**
@@ -184,6 +193,13 @@ public final class JavaScriptDispatcher implements Serializable {
      *
      * @param ui
      *            the UI whose pending JavaScript to send, or null to do nothing
+     * @throws IllegalStateException
+     *             if something else, such as a test calling
+     *             {@code UIInternals.dumpPendingJavaScriptInvocations()}, took
+     *             the pending JavaScript of the UI since the previous dispatch;
+     *             JavaScript taken that way reached neither the simulation nor
+     *             any capture, so the test would no longer check what a browser
+     *             gets
      */
     public static void dispatch(UI ui) {
         if (ui != null && ui.getSession() != null) {
@@ -212,10 +228,25 @@ public final class JavaScriptDispatcher implements Serializable {
         if (dispatching) {
             return;
         }
+        Instant taken = ui.getInternals().getLastUpdateSentTimestamp();
+        if (!taken.equals(lastTaken)) {
+            lastTaken = taken;
+            throw new IllegalStateException("The pending JavaScript of the UI "
+                    + "was taken outside Browserless Test, for example with "
+                    + "UIInternals.dumpPendingJavaScriptInvocations(). "
+                    + "Browserless Test sends the pending JavaScript to its "
+                    + "simulated client itself, and JavaScript taken "
+                    + "elsewhere is not simulated, such as a focus() call, "
+                    + "and reaches no JavaScript handler or capture. Use "
+                    + "ExecutedJavaScript.capture() to check which "
+                    + "JavaScript was sent.");
+        }
         dispatching = true;
         try {
-            for (PendingJavaScriptInvocation invocation : ui.getInternals()
-                    .dumpPendingJavaScriptInvocations()) {
+            List<PendingJavaScriptInvocation> invocations = ui.getInternals()
+                    .dumpPendingJavaScriptInvocations();
+            lastTaken = ui.getInternals().getLastUpdateSentTimestamp();
+            for (PendingJavaScriptInvocation invocation : invocations) {
                 for (Handler handler : List.copyOf(handlers)) {
                     handler.handle(invocation);
                 }
