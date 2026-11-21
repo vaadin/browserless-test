@@ -146,26 +146,19 @@ final class FocusTracker implements Serializable {
     }
 
     /**
-     * Creates the handler that reacts to the focus and blur calls sent to the
-     * client of the given UI.
-     *
-     * @param ui
-     *            the UI, not null
-     * @return the handler, not null
+     * Reacts to the focus and blur calls sent to the client of any UI. The
+     * focus state is kept per UI, in the UI of the component the call is run
+     * on, so one handler serves every UI.
      */
-    static JavaScriptDispatcher.Handler handlerFor(UI ui) {
-        return invocation -> {
-            JsCall call = invocation.getInvocation().getJsCall();
-            if (call == null
-                    || call.definitionType() != Focusable.FocusJs.class) {
-                return;
-            }
-            FocusTracker tracker = getOrCreate(ui);
-            Element.get(invocation.getOwner()).getComponent()
-                    .ifPresent(target -> call
-                            .invokeOn(tracker.new FocusSimulation(target)));
-        };
-    }
+    static final JavaScriptDispatcher.Handler HANDLER = invocation -> {
+        JsCall call = invocation.getInvocation().getJsCall();
+        if (call == null || call.definitionType() != Focusable.FocusJs.class) {
+            return;
+        }
+        Element.get(invocation.getOwner()).getComponent().ifPresent(
+                target -> target.getUI().ifPresent(ui -> call.invokeOn(
+                        getOrCreate(ui).new FocusSimulation(target))));
+    };
 
     /**
      * Does on the server what the client does for a {@link Focusable.FocusJs}
