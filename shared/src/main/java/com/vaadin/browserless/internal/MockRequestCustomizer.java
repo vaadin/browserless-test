@@ -18,22 +18,19 @@ package com.vaadin.browserless.internal;
 import com.vaadin.browserless.mocks.MockRequest;
 
 /**
- * Applies last-minute customisations to a freshly created {@link MockRequest},
- * before it is wrapped in a {@code VaadinRequest} and the session is created.
+ * Customizes the {@link MockRequest} created for every new mocked session.
+ * Looked up from the Vaadin {@link com.vaadin.flow.di.Lookup}.
  * <p>
- * The environment resolves an implementation through the Vaadin {@code Lookup},
- * so registering one as a lookup service is how a request gains details the
- * mock cannot know by itself. That is how the Spring and Quarkus integrations
- * inject the authenticated principal and its roles, and it is the extension
- * point to implement for a container the framework does not cover.
+ * For internal use only. May be renamed or removed in a future release.
  */
 @FunctionalInterface
 public interface MockRequestCustomizer {
+
     /**
-     * Customizes the request before it is handed to the test.
+     * Customizes given request.
      *
      * @param request
-     *            the request to customize
+     *            the mock request, not null.
      */
     void apply(MockRequest request);
 }
