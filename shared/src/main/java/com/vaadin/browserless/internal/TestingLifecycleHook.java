@@ -76,15 +76,13 @@ public interface TestingLifecycleHook {
     }
 
     /**
-     * Provides all children of given component. Provides workarounds for
-     * certain components:
-     * <ul>
-     * <li>For {@link Grid} the function will also return the header and footer
-     * cell components of all of its columns, plus the column editor
-     * components.</li>
-     * <li>For {@link MenuItemBase} the function returns all items of a
-     * sub-menu.</li>
-     * </ul>
+     * Provides all children of given component. The default implementation
+     * returns the children provided by the first registered
+     * {@link ComponentSupport} that knows the component (for example the
+     * header, footer and editor components of a {@code Grid}, or the items of a
+     * sub-menu). Otherwise it returns the component's own children together
+     * with its element-tree children, including virtual ones; for templates and
+     * {@code Composite} only the component's own children are returned.
      *
      * @param component
      *            the component whose children to return.

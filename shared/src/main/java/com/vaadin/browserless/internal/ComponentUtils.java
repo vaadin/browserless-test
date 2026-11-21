@@ -82,15 +82,12 @@ public final class ComponentUtils {
     }
 
     /**
-     * Determines the component's {@code label} (usually it's the HTML element's
-     * {@code label} property, but it's {@code Checkbox.getLabel()} for
-     * checkbox). Intended to be used for fields such as {@code TextField}.
-     * <p>
-     * <em>For {@code FormItem}:</em> Joins the (recursive) texts of all
-     * elements placed in the {@code label} slot with a space, collapsing runs
-     * of whitespace and trimming the result. This effectively returns whatever
-     * was provided in the String label via
-     * {@code FormLayout.addFormItem(Component, String)}.
+     * Determines the {@code label} of given component:
+     * {@link HasLabel#getLabel()} for components that have one, otherwise the
+     * first non-null label provided by a registered {@link ComponentSupport}
+     * (for example the text in the {@code label} slot of a {@code FormItem}),
+     * otherwise the {@code label} property of the element. Returns an empty
+     * string when there is no label.
      * <p>
      * {@link #getCaption(Component)} is displayed directly on the component
      * while label is displayed next to the component in a layout (e.g. a
@@ -102,6 +99,7 @@ public final class ComponentUtils {
      * @param component
      *            the component, not null.
      * @return the label, never null.
+     * @see ComponentSupport#getLabel(Component)
      */
     public static String getLabel(Component component) {
         String label = null;
@@ -120,8 +118,9 @@ public final class ComponentUtils {
     }
 
     /**
-     * The Component's caption: {@code Button.getText()} for {@code Button},
-     * {@link #getLabel(Component)} for fields such as {@code TextField}.
+     * Determines the caption of given component: the first non-null caption
+     * provided by a registered {@link ComponentSupport} (for example the text
+     * of a {@code Button}), otherwise {@link #getLabel(Component)}.
      * <p>
      * Caption is generally displayed directly on the component (e.g. the Button
      * text), while label is displayed next to the component in a layout (e.g. a
@@ -130,6 +129,7 @@ public final class ComponentUtils {
      * @param component
      *            the component, not null.
      * @return the caption.
+     * @see ComponentSupport#getCaption(Component)
      */
     public static String getCaption(Component component) {
         for (ComponentSupport support : SUPPORTS) {
