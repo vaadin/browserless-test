@@ -23,7 +23,6 @@ import com.github.mvysny.karibudsl.v10.button
 import com.github.mvysny.karibudsl.v10.onLeftClick
 import com.vaadin.flow.component.Key
 import com.vaadin.flow.component.KeyModifier
-import com.vaadin.flow.component.Shortcuts
 import com.vaadin.flow.server.Command
 import kotlin.test.expect
 
@@ -33,74 +32,74 @@ internal fun DynaNodeGroup.shortcutsTestBatch() {
     afterEach { MockVaadin.tearDown() }
 
     test("smoke") {
-        fireShortcut(Key.ENTER) // nothing should happen
+        Shortcuts.fireShortcut(Key.ENTER) // nothing should happen
     }
 
     group("Button.addClickShortcut()") {
         test("simple") {
             var clicked = false
-            currentUI.button {
+            Utils.getCurrentUI().button {
                 onLeftClick { clicked = true }
                 addClickShortcut(Key.ENTER)
             }
-            fireShortcut(Key.ENTER)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(true) { clicked }
         }
 
         test("button not triggered on different key press") {
             var clicked = false
-            currentUI.button {
+            Utils.getCurrentUI().button {
                 onLeftClick { clicked = true }
                 addClickShortcut(Key.KEY_A)
             }
-            fireShortcut(Key.ENTER)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(false) { clicked }
         }
 
         test("button not triggered on different modifiers") {
             var clicked = false
-            currentUI.button {
+            Utils.getCurrentUI().button {
                 onLeftClick { clicked = true }
                 addClickShortcut(Alt + Key.KEY_A)
             }
-            fireShortcut(Key.KEY_A)
+            Shortcuts.fireShortcut(Key.KEY_A)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.CONTROL)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.CONTROL)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.CONTROL, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.CONTROL, KeyModifier.ALT)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.ALT)
             expect(true) { clicked }
         }
 
         test("space") {
             // Key.SPACE has multiple key bindings, test that out.
             var clicked = false
-            currentUI.button {
+            Utils.getCurrentUI().button {
                 onLeftClick { clicked = true }
                 addClickShortcut(Key.SPACE)
             }
-            fireShortcut(Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(true) { clicked }
         }
 
         test("space not triggered on different modifiers") {
             var clicked = false
-            currentUI.button {
+            Utils.getCurrentUI().button {
                 onLeftClick { clicked = true }
                 addClickShortcut(Alt + Key.SPACE)
             }
-            fireShortcut(Key.ENTER)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.CONTROL)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.CONTROL)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.CONTROL, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.CONTROL, KeyModifier.ALT)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.ALT)
             expect(true) { clicked }
         }
     }
@@ -108,53 +107,53 @@ internal fun DynaNodeGroup.shortcutsTestBatch() {
     group("Shortcuts.addShortcutListener()") {
         test("simple") {
             var clicked = false
-            Shortcuts.addShortcutListener(currentUI, Command { clicked = true }, Key.ENTER)
-            fireShortcut(Key.ENTER)
+            com.vaadin.flow.component.Shortcuts.addShortcutListener(Utils.getCurrentUI(), Command { clicked = true }, Key.ENTER)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(true) { clicked }
         }
 
         test("button not triggered on different key press") {
             var clicked = false
-            Shortcuts.addShortcutListener(currentUI, Command { clicked = true }, Key.KEY_A)
-            fireShortcut(Key.ENTER)
+            com.vaadin.flow.component.Shortcuts.addShortcutListener(Utils.getCurrentUI(), Command { clicked = true }, Key.KEY_A)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(false) { clicked }
         }
 
         test("button not triggered on different modifiers") {
             var clicked = false
-            Shortcuts.addShortcutListener(currentUI, Command { clicked = true }, Key.KEY_A, KeyModifier.values()[2] /*ALT*/)
-            fireShortcut(Key.KEY_A)
+            com.vaadin.flow.component.Shortcuts.addShortcutListener(Utils.getCurrentUI(), Command { clicked = true }, Key.KEY_A, KeyModifier.values()[2] /*ALT*/)
+            Shortcuts.fireShortcut(Key.KEY_A)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.CONTROL)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.CONTROL)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.CONTROL, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.CONTROL, KeyModifier.ALT)
             expect(false) { clicked }
-            fireShortcut(Key.KEY_A, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.KEY_A, KeyModifier.ALT)
             expect(true) { clicked }
         }
 
         test("space") {
             // Key.SPACE has multiple key bindings, test that out.
             var clicked = false
-            Shortcuts.addShortcutListener(currentUI, Command { clicked = true }, Key.SPACE)
-            fireShortcut(Key.SPACE)
+            com.vaadin.flow.component.Shortcuts.addShortcutListener(Utils.getCurrentUI(), Command { clicked = true }, Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(true) { clicked }
         }
 
         test("space not triggered on different modifiers") {
             var clicked = false
-            Shortcuts.addShortcutListener(currentUI, Command { clicked = true }, Key.SPACE, KeyModifier.values()[2] /*ALT*/)
-            fireShortcut(Key.ENTER)
+            com.vaadin.flow.component.Shortcuts.addShortcutListener(Utils.getCurrentUI(), Command { clicked = true }, Key.SPACE, KeyModifier.values()[2] /*ALT*/)
+            Shortcuts.fireShortcut(Key.ENTER)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE)
+            Shortcuts.fireShortcut(Key.SPACE)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.CONTROL)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.CONTROL)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.CONTROL, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.CONTROL, KeyModifier.ALT)
             expect(false) { clicked }
-            fireShortcut(Key.SPACE, KeyModifier.ALT)
+            Shortcuts.fireShortcut(Key.SPACE, KeyModifier.ALT)
             expect(true) { clicked }
         }
     }
