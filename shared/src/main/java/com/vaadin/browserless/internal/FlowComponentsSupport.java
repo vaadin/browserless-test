@@ -26,8 +26,6 @@ import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.ContextMenuBase;
 import com.vaadin.flow.component.contextmenu.MenuItemBase;
@@ -35,16 +33,12 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.listbox.ListBoxBase;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.shared.SlotUtils;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
-import com.vaadin.flow.data.binder.HasDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.dom.Element;
 
@@ -142,23 +136,7 @@ public class FlowComponentsSupport implements ComponentSupport {
 
     @Override
     public DataProvider<?, ?> getDataProvider(Component component) {
-        // until https://github.com/vaadin/flow/issues/6296 is resolved
-        if (component instanceof HasDataProvider<?>) {
-            return GridKt.getDataProvider(component);
-        } else if (component instanceof Grid<?> grid) {
-            return grid.getDataProvider();
-        } else if (component instanceof Select<?> select) {
-            return select.getDataProvider();
-        } else if (component instanceof ListBoxBase<?, ?, ?> listBox) {
-            return listBox.getDataProvider();
-        } else if (component instanceof RadioButtonGroup<?> radioButtonGroup) {
-            return radioButtonGroup.getDataProvider();
-        } else if (component instanceof CheckboxGroup<?> checkboxGroup) {
-            return checkboxGroup.getDataProvider();
-        } else if (component instanceof ComboBox<?> comboBox) {
-            return comboBox.getDataProvider();
-        }
-        return null;
+        return GridKt.getDataProvider(component);
     }
 
     @Override
