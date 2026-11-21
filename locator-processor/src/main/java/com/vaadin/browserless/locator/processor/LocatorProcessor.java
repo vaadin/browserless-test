@@ -878,6 +878,9 @@ public class LocatorProcessor extends AbstractProcessor {
             String testerCtor, Map<String, String> subst) {
         StringBuilder sb = new StringBuilder();
         sb.append(renderJavadoc(m));
+        // Without the annotation, callers going through the locator would get
+        // the @deprecated text but no compiler warning.
+        sb.append(renderDeprecated(m));
         // Method type parameters
         if (!m.getTypeParameters().isEmpty()) {
             sb.append("    public <");
@@ -937,6 +940,25 @@ public class LocatorProcessor extends AbstractProcessor {
                 .append(");\n");
         sb.append("    }\n\n");
         return sb.toString();
+    }
+
+    private String renderDeprecated(ExecutableElement m) {
+        Deprecated deprecated = m.getAnnotation(Deprecated.class);
+        if (deprecated == null) {
+            return processingEnv.getElementUtils().isDeprecated(m)
+                    ? "    @Deprecated\n"
+                    : "";
+        }
+        List<String> args = new ArrayList<>();
+        if (!deprecated.since().isEmpty()) {
+            args.add("since = " + processingEnv.getElementUtils()
+                    .getConstantExpression(deprecated.since()));
+        }
+        if (deprecated.forRemoval()) {
+            args.add("forRemoval = true");
+        }
+        return args.isEmpty() ? "    @Deprecated\n"
+                : "    @Deprecated(" + String.join(", ", args) + ")\n";
     }
 
     private String renderClassJavadoc(TypeElement target, TypeElement tester) {
