@@ -21,9 +21,6 @@ import java.util.Objects;
 /**
  * An inclusive range of component counts a lookup will accept.
  * <p>
- * Replaces the {@code kotlin.ranges.IntRange} the Kotlin locator used, so that
- * nothing on the published API carries a Kotlin type.
- * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
 public final class CountRange implements Serializable {
@@ -120,8 +117,8 @@ public final class CountRange implements Serializable {
     }
 
     /**
-     * Formats the range the way the Kotlin one did, e.g. {@code 1..5}, since
-     * lookup failure messages quote it.
+     * Formats the range as {@code start..endInclusive}, e.g. {@code 1..5}, the
+     * form lookup failure messages quote it in.
      */
     @Override
     public String toString() {

@@ -31,9 +31,8 @@ import com.vaadin.flow.component.UI;
  * have tests run against a {@link UI} subclass of your own, or to
  * {@code withServletFactory(…)} alongside the routes.
  * <p>
- * The single abstract method is named {@code invoke()} to match the bytecode
- * shape of the Kotlin {@code () -> UI} interface it replaces, so that existing
- * lambdas and method references such as {@code MockedUI::new} keep binding.
+ * A lambda or a constructor reference such as {@code MockedUI::new} is a valid
+ * implementation.
  */
 @FunctionalInterface
 public interface UIFactory extends Serializable {
