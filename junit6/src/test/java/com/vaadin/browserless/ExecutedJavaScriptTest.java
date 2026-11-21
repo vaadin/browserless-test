@@ -318,25 +318,32 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void expressionAndParameters_ofElementAndPageJavaScript() {
+    void getAllForElement_keepsOnlyItsJavaScript_withExpressionAndParameters() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.render($0)", 5);
+        field.getElement().executeJs("this.select()");
         UI.getCurrent().getPage().executeJs("window.render($0)", "week");
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
 
-        ExecutedJavaScript.Execution onElement = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(calendar.getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onCalendar = executed
+                .getAll(calendar);
+        Assertions.assertEquals(2, onCalendar.size(), onCalendar.toString());
+        Assertions.assertEquals(OtherFocusJs.class,
+                onCalendar.get(1).getJsCall().orElseThrow().definitionType());
+        Assertions.assertEquals(onCalendar,
+                executed.getAll(calendar.getElement()));
+
+        ExecutedJavaScript.Execution onElement = onCalendar.get(0);
         Assertions.assertTrue(
                 onElement.getExpression().contains("this.render($0)"),
                 onElement.getExpression());
         Assertions.assertEquals(List.of(5, calendar.getElement()),
                 onElement.getParameters());
 
-        ExecutedJavaScript.Execution onPage = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(UI.getCurrent().getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onUI = executed
+                .getAll(UI.getCurrent());
+        Assertions.assertEquals(1, onUI.size(), onUI.toString());
+        ExecutedJavaScript.Execution onPage = onUI.get(0);
         Assertions.assertEquals("window.render($0)", onPage.getExpression());
         Assertions.assertEquals(List.of("week"), onPage.getParameters());
     }

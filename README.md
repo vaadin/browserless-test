@@ -760,6 +760,8 @@ which is what to check for such calls. The expression and parameters are in
 the form Flow sends them: a string run on an element with `executeJs` is
 wrapped so that it runs with the element as `this`, so check it with
 `contains(...)`, and the element is added as its last parameter.
+`getAll(component)` and `getAll(element)` keep only what was run on that
+element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
 
 A capture holds everything sent after it started or was last cleared; JavaScript still pending
 when it starts is sent first and is left out. Querying sends
