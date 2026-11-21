@@ -219,6 +219,17 @@ public final class ExecutedJavaScript implements Serializable {
         }
 
         /**
+         * Gets the UI whose browser the JavaScript was sent to. A handler can
+         * use it to tell windows apart or to look at the state of the
+         * application in that window.
+         *
+         * @return the UI, not null
+         */
+        public UI getUI() {
+            return dispatcher.getUI();
+        }
+
+        /**
          * Gets the element the JavaScript was run on, which is the element of
          * the UI for JavaScript run on the page.
          *

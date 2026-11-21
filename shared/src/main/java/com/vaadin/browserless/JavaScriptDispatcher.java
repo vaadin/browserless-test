@@ -208,6 +208,10 @@ public final class JavaScriptDispatcher implements Serializable {
         }
     }
 
+    UI getUI() {
+        return ui;
+    }
+
     /**
      * Registers a handler that is offered every invocation sent from now on.
      *

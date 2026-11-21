@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.server.VaadinServlet;
 
 /**
@@ -37,9 +40,13 @@ class JavaScriptHandlerContextTest {
 
     private BrowserlessApplicationContext app;
 
-    /** Answers with the number of the instance, counted from 1. */
+    /**
+     * Answers with the number of the instance, counted from 1, and records the
+     * UI it answered for.
+     */
     public static class NumberedBrowser implements JavaScriptHandler {
         private static final AtomicInteger instances = new AtomicInteger();
+        private static final List<UI> answeredFor = new ArrayList<>();
 
         private final int number = instances.incrementAndGet();
 
@@ -47,6 +54,7 @@ class JavaScriptHandlerContextTest {
         public void handle(ExecutedJavaScript.Execution execution) {
             if (execution.isWaitingForResult() && execution.getExpression()
                     .contains(ScheduleView.TIME_ZONE_EXPRESSION)) {
+                answeredFor.add(execution.getUI());
                 execution.resolve("Browser" + number);
             }
         }
@@ -64,6 +72,7 @@ class JavaScriptHandlerContextTest {
     @BeforeEach
     void resetInstanceNumbers() {
         NumberedBrowser.instances.set(0);
+        NumberedBrowser.answeredFor.clear();
     }
 
     @AfterEach
@@ -93,6 +102,9 @@ class JavaScriptHandlerContextTest {
                 "A new window should get a handler instance of its own");
         Assertions.assertEquals(2, NumberedBrowser.instances.get(),
                 "One handler instance should be created per window");
+        Assertions.assertEquals(List.of(first.getUI(), second.getUI()),
+                NumberedBrowser.answeredFor,
+                "Each execution should tell which window it was sent to");
     }
 
     @Test

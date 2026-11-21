@@ -49,11 +49,12 @@ import java.io.Serializable;
  * </pre>
  * <p>
  * A handler is offered every piece of JavaScript and ignores what it does not
- * simulate. Handlers run after the simulations Browserless Test ships with, in
- * the order they are registered. JavaScript that a handler makes the
- * application schedule, from a result handler for example, is sent at the next
- * client boundary, as with a browser. To check afterwards what was sent, use
- * {@link ExecutedJavaScript#capture()} instead.
+ * simulate. {@link ExecutedJavaScript.Execution#getUI()} tells which UI the
+ * JavaScript was sent to. Handlers run after the simulations Browserless Test
+ * ships with, in the order they are registered. JavaScript that a handler makes
+ * the application schedule, from a result handler for example, is sent at the
+ * next client boundary, as with a browser. To check afterwards what was sent,
+ * use {@link ExecutedJavaScript#capture()} instead.
  *
  * @see ExecutedJavaScript
  */
