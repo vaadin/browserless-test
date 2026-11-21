@@ -22,7 +22,7 @@ import java.lang.reflect.Constructor;
 import java.security.Principal;
 import java.util.function.UnaryOperator;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -45,39 +45,44 @@ import com.vaadin.flow.spring.SpringServlet;
  * {@link MockSpringServletService} is used instead of vanilla
  * {@link com.vaadin.flow.spring.SpringVaadinServletService}.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringServlet extends SpringServlet {
 
     /**
-     * The routes registered when the servlet is initialized.
+     * The routes registered when the service is created.
      */
-    @NotNull
+    @NonNull
     public final Routes routes;
+
     /**
-     * The Spring application context the servlet runs in.
+     * The Spring context the views are instantiated from.
      */
-    @NotNull
+    @NonNull
     public final ApplicationContext ctx;
+
     /**
-     * Creates the UI for every new session.
+     * Produces the UI instances the sessions of this servlet hand out.
      */
-    @NotNull
+    @NonNull
     public final UIFactory uiFactory;
 
     /**
-     * Creates a new mocked Spring servlet.
+     * Creates the servlet.
      *
      * @param routes
      *            the routes to register
      * @param ctx
-     *            the Spring application context
+     *            the Spring context the views are instantiated from
      * @param uiFactory
-     *            creates the UI for every new session
+     *            produces the UI instances the sessions hand out
      */
-    public MockSpringServlet(@NotNull Routes routes,
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+    public MockSpringServlet(@NonNull Routes routes,
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;
         this.routes = routes;

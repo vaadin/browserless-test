@@ -15,7 +15,7 @@
  */
 package com.vaadin.browserless.mocks;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.browserless.internal.UIFactory;
@@ -33,28 +33,29 @@ import com.vaadin.flow.server.VaadinSession;
  * {@link MockVaadin#afterSessionClose}.</li>
  * </ul>
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringVaadinSession extends VaadinSession {
     /**
-     * Creates the UI for the new session that replaces this one when it is
-     * closed.
+     * Produces the UI instances this session hands out.
      */
-    @NotNull
+    @NonNull
     private final UIFactory uiFactory;
 
     /**
-     * Creates a new mocked Spring Vaadin session.
+     * Creates the session.
      *
      * @param service
-     *            the Vaadin service the session belongs to
+     *            the service the session belongs to
      * @param uiFactory
-     *            creates the UI for the new session that replaces this one when
-     *            it is closed
+     *            produces the UI instances this session hands out
      */
-    public MockSpringVaadinSession(@NotNull VaadinService service,
-            @NotNull UIFactory uiFactory) {
+    public MockSpringVaadinSession(@NonNull VaadinService service,
+            @NonNull UIFactory uiFactory) {
         super(service);
         this.uiFactory = uiFactory;
     }
