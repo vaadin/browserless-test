@@ -761,12 +761,22 @@ the form Flow sends them: a string run on an element with `executeJs` is
 wrapped so that it runs with the element as `this`, so check it with
 `contains(...)`, and the element is added as its last parameter.
 
-A capture holds everything sent after it started; JavaScript still pending
+A capture holds everything sent after it started or was last cleared; JavaScript still pending
 when it starts is sent first and is left out. Querying sends
 whatever is still pending first and does not consume anything, so a capture can
 be queried any number of times, and several captures of the same UI each see
 every call sent while they are active. Use `capture(ui)` for a UI other than
 the current one.
+
+A test that plays the browser step by step can call `clear()` after reading a
+step, so that the next query only sees what is sent afterwards. JavaScript
+still pending is not sent by `clear()`, so nothing scheduled just before is
+lost:
+
+```java
+List<List<Object>> pages = executed.getFunctionCalls(viewer, "scrollToPage");
+executed.clear();
+```
 
 JavaScript whose result the application waits for, with `then(...)` or
 `toCompletableFuture(...)`, can be answered the way the browser would:

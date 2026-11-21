@@ -57,9 +57,9 @@ import com.vaadin.flow.shared.Registration;
  *         executed.getFunctionCalls(dialog, "open"));
  * </pre>
  * <p>
- * A capture holds everything sent to the browser of its UI after it was
- * started; JavaScript still pending when it starts is sent first and is not
- * part of it. A capture runs until {@link #stop()} or for as long as the UI
+ * A capture holds everything sent to the browser of its UI after it was started
+ * or last cleared; JavaScript still pending when it starts is sent first and is
+ * not part of it. A capture runs until {@link #stop()} or for as long as the UI
  * lives. Querying it does not consume anything, and several captures of the
  * same UI each see everything sent while they are active. A query sends
  * whatever is still pending first, so JavaScript scheduled just before is
