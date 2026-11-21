@@ -27,8 +27,11 @@ import com.vaadin.flow.data.provider.DataProvider;
  * <p>
  * The component tree walk, the pretty printer, the dialog clean-up and the
  * label, caption and data provider lookups ask every registered implementation
- * before falling back to what Flow alone can tell. An implementation is
- * registered with {@link java.util.ServiceLoader}, in
+ * before falling back to what Flow alone can tell. The label lookup is the
+ * exception: a component's own {@link com.vaadin.flow.component.HasLabel} label
+ * wins, so {@link #getLabel(Component)} is only asked for components that don't
+ * implement it. An implementation is registered with
+ * {@link java.util.ServiceLoader}, in
  * {@code META-INF/services/com.vaadin.browserless.internal.ComponentSupport}.
  * Every method has a default that handles nothing, so an implementation only
  * overrides what its components need.
