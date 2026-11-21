@@ -81,7 +81,7 @@ import java.util.stream.Collectors;
 public class LocatorProcessor extends AbstractProcessor {
 
     private static final Pattern SELF_METHOD_REF = Pattern
-            .compile("\\{@(link|linkplain) #(\\w+)\\(([^)]*)\\)");
+            .compile("(\\{@link |\\{@linkplain |@see )#(\\w+)\\(([^)]*)\\)");
 
     private static final String TESTS_FQN = "com.vaadin.browserless.Tests";
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
@@ -1040,11 +1040,12 @@ public class LocatorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Rewrites {@code {@link #member}} style references so they still resolve
-     * once the Javadoc has been copied into the generated locator, where
-     * {@code #member} would point at the locator instead of at the tester. The
-     * parameter types of a method reference are qualified too, so that
-     * {@code #setValue(LocalDate)} resolves without the tester's imports.
+     * Rewrites {@code {@link #member}} and {@code @see #member} references so
+     * they still resolve once the Javadoc has been copied into the generated
+     * locator, where {@code #member} would point at the locator instead of at
+     * the tester. The parameter types of a method reference are qualified too,
+     * so that {@code #setValue(LocalDate)} resolves without the tester's
+     * imports.
      * <p>
      * References to types are left alone, which is why a tester's Javadoc has
      * to spell cross-package {@code @link} and {@code @throws} targets out in
@@ -1059,13 +1060,14 @@ public class LocatorProcessor extends AbstractProcessor {
             String params = qualifyParams(tester, matcher.group(2),
                     matcher.group(3));
             matcher.appendReplacement(sb,
-                    Matcher.quoteReplacement("{@" + matcher.group(1) + " #"
+                    Matcher.quoteReplacement(matcher.group(1) + "#"
                             + matcher.group(2) + "(" + params + ")"));
         }
         matcher.appendTail(sb);
         return sb.toString().replace("{@link #", "{@link " + testerFqn + "#")
                 .replace("{@linkplain #", "{@linkplain " + testerFqn + "#")
-                .replace("{@value #", "{@value " + testerFqn + "#");
+                .replace("{@value #", "{@value " + testerFqn + "#")
+                .replace("@see #", "@see " + testerFqn + "#");
     }
 
     /**
