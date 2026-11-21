@@ -15,9 +15,12 @@
  */
 package com.vaadin.browserless;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.example.javascript.ScheduleView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -28,15 +31,17 @@ class JavaScriptHandlerContextTest {
 
     private BrowserlessApplicationContext app;
 
-    /** Answers with the number of calls this instance has seen so far. */
-    public static class CountingBrowser implements JavaScriptHandler {
-        private int answered;
+    /** Answers with the number of the instance, counted from 1. */
+    public static class NumberedBrowser implements JavaScriptHandler {
+        private static final AtomicInteger instances = new AtomicInteger();
+
+        private final int number = instances.incrementAndGet();
 
         @Override
         public void handle(ExecutedJavaScript.Execution execution) {
             if (execution.isWaitingForResult() && execution.getExpression()
                     .contains(ScheduleView.TIME_ZONE_EXPRESSION)) {
-                execution.resolve("Zone" + ++answered);
+                execution.resolve("Browser" + number);
             }
         }
     }
@@ -48,6 +53,11 @@ class JavaScriptHandlerContextTest {
         @Override
         public void handle(ExecutedJavaScript.Execution execution) {
         }
+    }
+
+    @BeforeEach
+    void resetInstanceNumbers() {
+        NumberedBrowser.instances.set(0);
     }
 
     @AfterEach
@@ -62,17 +72,21 @@ class JavaScriptHandlerContextTest {
         app = new BrowserlessApplicationContext.Builder()
                 .withViewPackages(ScheduleView.class)
                 .withConfiguration(BrowserlessConfiguration.builder()
-                        .withJavaScriptHandlers(CountingBrowser.class).build())
+                        .withJavaScriptHandlers(NumberedBrowser.class).build())
                 .build();
         var user = app.newUser();
         var first = user.newWindow();
         var second = user.newWindow();
 
-        Assertions.assertEquals("Times shown in Zone1",
+        // Each window's view is answered by the instance created for that
+        // window; one instance shared by both would answer Browser1 twice
+        Assertions.assertEquals("Times shown in Browser1",
                 first.navigate(ScheduleView.class).getTimeZone().getText());
-        Assertions.assertEquals("Times shown in Zone1",
+        Assertions.assertEquals("Times shown in Browser2",
                 second.navigate(ScheduleView.class).getTimeZone().getText(),
                 "A new window should get a handler instance of its own");
+        Assertions.assertEquals(2, NumberedBrowser.instances.get(),
+                "One handler instance should be created per window");
     }
 
     @Test
