@@ -65,7 +65,8 @@ class LocatorTest {
 
         @Test
         void get_noComponentMatches_fails() {
-            assertThrows(AssertionError.class,
+            expectThrows(AssertionError.class,
+                    Pattern.quote("No visible TextField"),
                     () -> Locator._get(new Button(), TextField.class, spec -> {
                     }));
             expectAfterLookupCalled();
@@ -160,6 +161,14 @@ class LocatorTest {
             Locator._expectNone(new Button(), TextField.class, spec -> {
             });
             expectAfterLookupCalled();
+        }
+
+        @Test
+        void expectNone_countChanged_throws() {
+            expectThrows(IllegalStateException.class,
+                    Pattern.quote("expects 0 component"),
+                    () -> Locator._expectNone(new Button(), Button.class,
+                            spec -> spec.setCount(CountRange.exactly(1))));
         }
 
         @Test
