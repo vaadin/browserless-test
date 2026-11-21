@@ -377,6 +377,10 @@
                     <configuration>
                         <quiet>true</quiet>
                         <failOnWarnings>true</failOnWarnings>
+                        <!-- The modules publish no hosted Javadoc site, so
+                             there is nothing for the javadoc of one module to
+                             link to in another. -->
+                        <detectOfflineLinks>false</detectOfflineLinks>
                         <!-- javadoc stops reporting after 100 errors and 100
                              warnings by default, which makes a large backlog
                              look far smaller than it is. Report all of it. -->
