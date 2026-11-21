@@ -167,8 +167,8 @@ public final class PrettyPrintTree {
      * <ul>
      * <li>{@code disabled} - dumped separately as "DISABLED" string.</li>
      * <li>{@code id} - dumped as Component.id</li>
-     * <li>{@code href} - there's special processing for {@link Anchor}'s
-     * href.</li>
+     * <li>{@code href} - dumped separately for any component that has an
+     * {@code href} member.</li>
      * </ul>
      */
     private static Set<String> dontDumpAttributes = new LinkedHashSet<>(
@@ -446,8 +446,8 @@ public final class PrettyPrintTree {
      * <ul>
      * <li>{@code disabled} - dumped separately as "DISABLED" string.</li>
      * <li>{@code id} - dumped as Component.id</li>
-     * <li>{@code href} - there's special processing for {@link Anchor}'s
-     * href.</li>
+     * <li>{@code href} - dumped separately for any component that has an
+     * {@code href} member.</li>
      * </ul>
      *
      * @return the mutable set of attribute names.

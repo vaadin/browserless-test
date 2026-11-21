@@ -62,3 +62,15 @@ private val _VaadinService_createVaadinSession: Method =
 internal fun _createVaadinSession(service: VaadinService, request: VaadinRequest): VaadinSession {
     return _VaadinService_createVaadinSession.invoke(service, request) as VaadinSession
 }
+
+// Protected in VaadinService, and the service may be a Spring or Quarkus one
+// that the mock does not subclass, so it is called the same way as
+// createVaadinSession above.
+private val _VaadinService_applySessionLockCheckStrategy: Method =
+    VaadinService::class.java.getDeclaredMethod("applySessionLockCheckStrategy", VaadinSession::class.java).apply {
+        isAccessible = true
+    }
+
+internal fun _applySessionLockCheckStrategy(service: VaadinService, session: VaadinSession) {
+    _VaadinService_applySessionLockCheckStrategy.invoke(service, session)
+}
