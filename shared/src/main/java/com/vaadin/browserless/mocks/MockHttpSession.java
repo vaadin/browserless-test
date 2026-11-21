@@ -32,10 +32,13 @@ import static com.vaadin.browserless.mocks.MockUtils.putOrRemove;
  * <p>
  * Attribute storage, invalidation and
  * {@link jakarta.servlet.http.HttpServletRequest#changeSessionId()} behave the
- * way a servlet container implements them, including the failure modes: every
- * accessor throws {@link IllegalStateException} once the session has been
- * invalidated. Ids come from a sequential counter rather than being random, so
- * test output stays readable.
+ * way a servlet container implements them, including the failure modes: the
+ * attribute accessors, the timestamps, {@link #isNew()} and
+ * {@link #invalidate()} throw {@link IllegalStateException} once the session
+ * has been invalidated. Unlike in a container, {@link #getId()},
+ * {@link #getServletContext()} and the max inactive interval stay readable. Ids
+ * come from a sequential counter rather than being random, so test output stays
+ * readable.
  * <p>
  * What is not modeled: the session is never expired on its own, so
  * {@link #getMaxInactiveInterval()} is stored and reported but never acted on,
