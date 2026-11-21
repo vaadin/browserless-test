@@ -18,6 +18,8 @@ package com.vaadin.flow.component.html;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for H2 components.
+ *
  * @since 1.0
  */
 @Tests(H2.class)

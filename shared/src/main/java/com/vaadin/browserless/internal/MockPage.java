@@ -37,11 +37,33 @@ public final class MockPage extends Page {
     private static final Set<String> SELF_NAMES = Set.of("_self", "_parent",
             "_top", "");
 
+    /**
+     * The UI this page belongs to.
+     */
     private final UI ui;
+    /**
+     * Creates the UI that replaces this page's UI on a reload.
+     */
     private final UIFactory uiFactory;
+    /**
+     * The session of the UI.
+     */
     private final VaadinSession session;
+    /**
+     * The URLs opened through this page, by window name.
+     */
     private final Map<String, List<String>> navigations = new LinkedHashMap<>();
 
+    /**
+     * Creates the page of the given UI.
+     *
+     * @param ui
+     *            the UI the page belongs to
+     * @param uiFactory
+     *            creates the UI that replaces this one on a reload
+     * @param session
+     *            the session of the UI
+     */
     public MockPage(UI ui, UIFactory uiFactory, VaadinSession session) {
         super(ui);
         this.ui = ui;
@@ -49,14 +71,32 @@ public final class MockPage extends Page {
         this.session = session;
     }
 
+    /**
+     * Returns the URL the page last navigated to in its own window.
+     *
+     * @return the URL, or null if the page has not navigated away
+     */
     public String getLastExternalNavigationURL() {
         return lastOrNull(navigations.get("_self"));
     }
 
+    /**
+     * Returns the URL last opened in the given window.
+     *
+     * @param windowName
+     *            the name of the window
+     * @return the URL, or null if nothing was opened in that window
+     */
     public String getExternalNavigationURL(String windowName) {
         return lastOrNull(navigations.get(normalizeWindowName(windowName)));
     }
 
+    /**
+     * Returns the URLs opened in windows other than the page's own, by window
+     * name.
+     *
+     * @return the opened URLs, by window name
+     */
     public Map<String, List<String>> getOpenedWindows() {
         Map<String, List<String>> result = new LinkedHashMap<>();
         navigations.forEach((name, urls) -> {

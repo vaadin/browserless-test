@@ -38,6 +38,8 @@ import com.vaadin.flow.server.streams.DownloadEvent;
 import com.vaadin.flow.server.streams.DownloadHandler;
 
 /**
+ * Tester for Anchor components.
+ *
  * @since 1.0
  */
 @Tests(Anchor.class)
@@ -76,8 +78,8 @@ public class AnchorTester extends HtmlContainerTester<Anchor> {
     /**
      * Gets the query parameters for the router-link.
      *
-     * @return a {@link QueryParameters} containing the navigation target's
-     *         query parameters
+     * @return a {@link com.vaadin.flow.router.QueryParameters QueryParameters}
+     *         containing the navigation target's query parameters
      */
     public QueryParameters getQueryParameters() {
         return QueryParameters.fromString(URI.create(getHref()).getQuery());

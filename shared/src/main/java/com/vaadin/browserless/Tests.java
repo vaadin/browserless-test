@@ -25,7 +25,7 @@ import com.vaadin.flow.component.Component;
 /**
  * Wrapper annotation for indicating which components a wrapper implementation
  * supports.
- * <p/>
+ * <p>
  * This is used for automatically selecting a wrapper implementation for a given
  * component.
  *
@@ -43,5 +43,11 @@ public @interface Tests {
      */
     Class<? extends Component>[] value() default {};
 
+    /**
+     * The fully qualified names of the tested component types, for components
+     * that are not on the compile classpath of this module.
+     *
+     * @return the tested component type names
+     */
     String[] fqn() default {};
 }

@@ -87,15 +87,15 @@ public class VirtualListTester<T extends VirtualList<Y>, Y>
 
     /**
      * Get the text that is shown on the client for the item at index.
-     * <p/>
+     * <p>
      * The index is zero-based.
-     * <p/>
+     * <p>
      * For the default renderer ColumnPathRenderer the result is the sent text
      * for defined object path.
-     * <p/>
+     * <p>
      * For a ComponentRenderer the result is the rendered component as
      * prettyString.
-     * <p/>
+     * <p>
      * More to be added as we find other renderers that need handling.
      *
      * @param index
@@ -171,14 +171,14 @@ public class VirtualListTester<T extends VirtualList<Y>, Y>
     /**
      * Get property value for item's LitRenderer.
      *
+     * @param <V>
+     *            the type of the LitRenderer property
      * @param index
      *            the zero-based index of the item
      * @param propertyName
      *            the name of the LitRenderer property
      * @param propertyClass
      *            the class of the value of the LitRenderer property
-     * @param <V>
-     *            the type of the LitRenderer property
      * @return value of the LitRenderer property
      * @throws IllegalArgumentException
      *             when the VirtualList is not using a LitRenderer or when the

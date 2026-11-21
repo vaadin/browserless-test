@@ -37,6 +37,9 @@ import com.vaadin.quarkus.QuarkusVaadinServletService;
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @since 1.0
  */
 public class MockQuarkusServletService extends QuarkusVaadinServletService {

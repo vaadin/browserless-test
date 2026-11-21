@@ -26,6 +26,8 @@ package com.vaadin.browserless;
  * Implementations must be thread-safe with respect to the thread-local security
  * state they manage.
  *
+ * @param <C>
+ *            the credentials type
  * @see BrowserlessApplicationContext.Builder#withSecurityContextHandler(SecurityContextHandler)
  * @since 1.1
  */
