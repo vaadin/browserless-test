@@ -35,6 +35,8 @@ import kotlin.jvm.functions.Function1;
 
 import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestSetupException;
+import com.vaadin.browserless.ExecutedJavaScript;
+import com.vaadin.browserless.JavaScriptDispatcher;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
@@ -48,7 +50,6 @@ import com.vaadin.flow.component.page.ExtendedClientDetails;
 import com.vaadin.flow.di.Lookup;
 import com.vaadin.flow.function.SerializableBiConsumer;
 import com.vaadin.flow.internal.CurrentInstance;
-import com.vaadin.flow.internal.StateTree;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.NavigationTrigger;
 import com.vaadin.flow.server.DefaultErrorHandler;
@@ -154,8 +155,8 @@ public final class MockVaadin {
      *            service classes to be provided to the lookup initializer
      * @param configuration
      *            custom Vaadin configuration, such as application properties,
-     *            feature flags and lookup services, to apply to the mocked
-     *            environment.
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment.
      */
     public static void setup(Routes routes, UIFactory uiFactory,
             Set<? extends Class<?>> lookupServices,
@@ -221,8 +222,8 @@ public final class MockVaadin {
      *            service classes to be provided to the lookup initializer
      * @param configuration
      *            custom Vaadin configuration, such as application properties,
-     *            feature flags and lookup services, to apply to the mocked
-     *            environment.
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment.
      */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices,
@@ -269,9 +270,11 @@ public final class MockVaadin {
      *
      * @param configuration
      *            custom Vaadin configuration, such as application properties,
-     *            feature flags and lookup services, to apply to the mocked
-     *            environment. Lookup services defined by the configuration are
-     *            used in addition to the ones given by {@code lookupServices}.
+     *            feature flags, lookup services and JavaScript handlers, to
+     *            apply to the mocked environment. Lookup services defined by
+     *            the configuration are used in addition to the ones given by
+     *            {@code lookupServices}. JavaScript handlers are applied even
+     *            to a servlet that is already initialized.
      * @return the initialized {@link VaadinServletService}
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
@@ -317,7 +320,9 @@ public final class MockVaadin {
             } catch (Exception e) {
                 throw Utils.sneakyThrow(e);
             }
-        } else if (!configuration.isEmpty()) {
+        } else if (!configuration.getApplicationProperties().isEmpty()
+                || !configuration.getFeatureFlags().isEmpty()
+                || !configuration.getLookupServices().isEmpty()) {
             // Application properties, feature flags and lookup services are
             // all read while the servlet is initialized, so there is no way
             // to apply them afterwards. Failing here beats silently running
@@ -331,14 +336,31 @@ public final class MockVaadin {
                             + "setup creating the servlet. Provide a servlet factory returning a new, "
                             + "uninitialized servlet instance, or move the configuration to the setup "
                             + "that initializes it. Discarded configuration: "
-                            + configuration);
+                            + withoutJavaScriptHandlers(configuration));
         }
         VaadinServletService service = checkNotNull(servlet.getService());
         if (service.getRouter() == null) {
             throw new IllegalStateException(servlet
                     + " failed to call VaadinServletService.init() in createServletService()");
         }
+        // Read when each UI is created rather than while the servlet
+        // initializes, so they are set, or replaced, even for a servlet that
+        // is reused
+        JavaScriptDispatcher.setJavaScriptHandlers(service,
+                configuration.getJavaScriptHandlers());
         return service;
+    }
+
+    private static BrowserlessConfiguration withoutJavaScriptHandlers(
+            BrowserlessConfiguration configuration) {
+        BrowserlessConfiguration.Builder builder = BrowserlessConfiguration
+                .builder()
+                .withApplicationProperties(
+                        configuration.getApplicationProperties())
+                .withLookupServices(configuration.getLookupServices()
+                        .toArray(new Class<?>[0]));
+        configuration.getFeatureFlags().forEach(builder::withFeatureFlag);
+        return builder.build();
     }
 
     /**
@@ -637,6 +659,7 @@ public final class MockVaadin {
                         null, null, null, null, windowName, null, null, null));
 
         UI.setCurrent(ui);
+        JavaScriptDispatcher.setUpSimulatedClient(ui);
         ui.doInit(request, session.getNextUIid(), "ROOT");
         strongRefUI.set(ui);
 
@@ -660,6 +683,10 @@ public final class MockVaadin {
         // make sure that UI.getCurrent().push() can be called.
         // https://github.com/mvysny/karibu-testing/issues/80
         ui.getPushConfiguration().setPushMode(PushMode.AUTOMATIC);
+
+        // The first response to the browser runs the JavaScript the initial
+        // view scheduled while it was built
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**
@@ -679,8 +706,9 @@ public final class MockVaadin {
      * Calls the following:
      * <ul>
      * <li>{@link #runUIQueue()}</li>
-     * <li>{@link StateTree#runExecutionsBeforeClientResponse()} which runs all
-     * blocks scheduled via {@link UI#beforeClientResponse}</li>
+     * <li>{@link JavaScriptDispatcher#dispatch(UI)} which runs all blocks
+     * scheduled via {@link UI#beforeClientResponse} and sends the pending
+     * JavaScript to the simulated client, see {@link ExecutedJavaScript}</li>
      * <li>{@code cleanupDialogs()}</li>
      * </ul>
      * If you'd like to test your {@link ErrorHandler} then take a look at
@@ -694,8 +722,7 @@ public final class MockVaadin {
             throw new IllegalStateException("No VaadinSession");
         }
         runUIQueue();
-        UI.getCurrent().getInternals().getStateTree()
-                .runExecutionsBeforeClientResponse();
+        JavaScriptDispatcher.dispatch(UI.getCurrent());
         TestingLifecycleHooks.cleanupDialogs();
     }
 

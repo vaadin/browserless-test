@@ -77,7 +77,9 @@ final class BrowserlessDSL {
     // is only reachable as the new current UI.
     static HasElement reload(UI ui) {
         ui.getPage().reload();
-        return getCurrentView(UI.getCurrent());
+        UI reloaded = UI.getCurrent();
+        JavaScriptDispatcher.dispatch(reloaded);
+        return getCurrentView(reloaded);
     }
 
     static <T extends Component> T reload(UI ui, Class<T> expectedTarget) {
@@ -87,6 +89,9 @@ final class BrowserlessDSL {
 
     static <T extends Component> T validateNavigationTarget(UI ui,
             Class<T> target) {
+        // A navigation ends with a response to the browser, which runs the
+        // JavaScript the new view scheduled while it was built
+        JavaScriptDispatcher.dispatch(ui);
         HasElement currentView = getCurrentView(ui);
         if (!target.isAssignableFrom(currentView.getClass())) {
             if (currentView instanceof MockInternalSeverError) {
@@ -173,7 +178,7 @@ final class BrowserlessDSL {
         MockVaadin.clientRoundtrip();
         ui.getInternals().getStateTree().collectChanges(nodeChange -> {
         });
-        FocusTracker.flush(ui);
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     static boolean runPendingSignalsTasks(
