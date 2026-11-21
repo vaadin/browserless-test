@@ -128,9 +128,12 @@ public final class ExecutedJavaScript implements Serializable {
      */
     public void stop() {
         if (registration != null) {
-            JavaScriptDispatcher.dispatch(ui);
-            registration.remove();
-            registration = null;
+            try {
+                JavaScriptDispatcher.dispatch(ui);
+            } finally {
+                registration.remove();
+                registration = null;
+            }
         }
     }
 

@@ -60,9 +60,17 @@ Test does it explicitly:
   `roundTrip()` on the test base class and `window.roundTrip()` are the
   test-level ones. All of them build on `MockVaadin.clientRoundtrip()`, so
   they run the `UI.access()` queue and remove closed dialogs too, and then
-  also collect the state tree changes and apply server-initiated focus
-  changes. Tester actions that end in `roundTrip()` do the same. They call
+  also collect the state tree changes and send the pending JavaScript through
+  `JavaScriptDispatcher`. Tester actions that end in `roundTrip()` do the same. They call
   `clientRoundtrip()` directly, not through the `TestingLifecycleHook`.
+- `JavaScriptDispatcher.dispatch(ui)` runs the `beforeClientResponse`
+  callbacks and then takes the UI's whole pending JavaScript queue, the way a
+  response would send it, and offers each invocation to the handlers: the
+  focus simulation, the configured `JavaScriptHandler`s, the upload testers
+  and every active `ExecutedJavaScript` capture. It is the only code that takes
+  the queue. Round trips, component lookups, the end of tester interactions,
+  UI creation and the end of `navigate()` and `reload()` call it. It fails if
+  something else, such as a test, took the queue since its previous run.
 - `TestingLifecycleHook.awaitBeforeLookup` calls the round trip before a
   component lookup by default, so a query already sees the state a real client
   response would have produced.

@@ -16,12 +16,18 @@
 package com.vaadin.browserless;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 import com.example.javascript.ScheduleView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.vaadin.browserless.internal.Routes;
+import com.vaadin.browserless.internal.UIFactory;
+import com.vaadin.browserless.mocks.MockVaadinServlet;
+import com.vaadin.flow.server.VaadinServlet;
 
 /**
  * {@link JavaScriptHandler}s configured for an application context with several
@@ -87,6 +93,34 @@ class JavaScriptHandlerContextTest {
                 "A new window should get a handler instance of its own");
         Assertions.assertEquals(2, NumberedBrowser.instances.get(),
                 "One handler instance should be created per window");
+    }
+
+    @Test
+    void reusedServlet_getsTheHandlersOfTheNewConfiguration() {
+        VaadinServlet[] shared = new VaadinServlet[1];
+        BiFunction<Routes, UIFactory, VaadinServlet> sharedServletFactory = (
+                routes, uiFactory) -> {
+            if (shared[0] == null) {
+                shared[0] = new MockVaadinServlet(routes, uiFactory);
+            }
+            return shared[0];
+        };
+        new BrowserlessApplicationContext.Builder()
+                .withViewPackages(ScheduleView.class)
+                .withServletFactory(sharedServletFactory).build().close();
+
+        // The servlet is already initialized, but handlers are read when each
+        // UI is created, so this configuration still applies
+        app = new BrowserlessApplicationContext.Builder()
+                .withViewPackages(ScheduleView.class)
+                .withServletFactory(sharedServletFactory)
+                .withConfiguration(BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(NumberedBrowser.class).build())
+                .build();
+
+        Assertions.assertEquals("Times shown in Browser1",
+                app.newUser().newWindow().navigate(ScheduleView.class)
+                        .getTimeZone().getText());
     }
 
     @Test

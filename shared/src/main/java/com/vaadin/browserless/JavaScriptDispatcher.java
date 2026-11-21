@@ -83,8 +83,9 @@ public final class JavaScriptDispatcher implements Serializable {
 
     /**
      * When the queue was last taken by this dispatcher. Flow updates the
-     * timestamp each time the queue is taken, so a different value means
-     * something else took it.
+     * timestamp each time the queue is taken, even when it is empty, so a
+     * different value means something else took it. A clock too coarse to tell
+     * two takes apart only means such a take goes unnoticed.
      */
     private Instant lastTaken;
 
@@ -196,10 +197,10 @@ public final class JavaScriptDispatcher implements Serializable {
      * @throws IllegalStateException
      *             if something else, such as a test calling
      *             {@code UIInternals.dumpPendingJavaScriptInvocations()}, took
-     *             the pending JavaScript of the UI since the previous dispatch;
-     *             JavaScript taken that way reached neither the simulation nor
-     *             any capture, so the test would no longer check what a browser
-     *             gets
+     *             the pending JavaScript queue of the UI since the previous
+     *             dispatch; any JavaScript taken that way reached neither the
+     *             simulation nor any capture, so the test would no longer check
+     *             what a browser gets
      */
     public static void dispatch(UI ui) {
         if (ui != null && ui.getSession() != null) {
@@ -231,11 +232,11 @@ public final class JavaScriptDispatcher implements Serializable {
         Instant taken = ui.getInternals().getLastUpdateSentTimestamp();
         if (!taken.equals(lastTaken)) {
             lastTaken = taken;
-            throw new IllegalStateException("The pending JavaScript of the UI "
-                    + "was taken outside Browserless Test, for example with "
-                    + "UIInternals.dumpPendingJavaScriptInvocations(). "
+            throw new IllegalStateException("The pending JavaScript queue of "
+                    + "the UI was taken outside Browserless Test, for example "
+                    + "with UIInternals.dumpPendingJavaScriptInvocations(). "
                     + "Browserless Test sends the pending JavaScript to its "
-                    + "simulated client itself, and JavaScript taken "
+                    + "simulated client itself. Any JavaScript taken "
                     + "elsewhere is not simulated, such as a focus() call, "
                     + "and reaches no JavaScript handler or capture. Use "
                     + "ExecutedJavaScript.capture() to check which "
