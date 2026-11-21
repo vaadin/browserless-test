@@ -539,6 +539,11 @@ public final class MockVaadin {
         // init Session.
         VaadinSession session = MockVaadinServletKt
                 ._createVaadinSession(service, request);
+        // Flow applies the lock check strategy only while handling a request,
+        // which the mock bypasses, so apply it here: a development-mode session
+        // then throws on access without its lock, also when assertions are
+        // disabled.
+        MockVaadinServletKt._applySessionLockCheckStrategy(service, session);
         ReentrantLock lock = new ReentrantLock();
         lock.lock();
         httpSession.setAttribute(service.getServiceName() + ".lock", lock);
@@ -694,6 +699,45 @@ public final class MockVaadin {
         TestingLifecycleHooks.cleanupDialogs();
     }
 
+    private static final ThreadLocal<VaadinSession> sessionRunningUIQueue = new ThreadLocal<>();
+
+    /**
+     * Internal function, do not call directly.
+     * <p>
+     * Returns whether {@link #runUIQueue} or
+     * {@link #unlockRunningUIQueue(VaadinSession)} is running the
+     * {@link UI#access} commands of {@code session} on the current thread, that
+     * is, whether the caller is such a command.
+     *
+     * @param session
+     *            the session, not null.
+     * @return true if the commands of the session are running on this thread.
+     */
+    public static boolean isRunningUIQueue(VaadinSession session) {
+        return sessionRunningUIQueue.get() == session;
+    }
+
+    /**
+     * Internal function, do not call directly.
+     * <p>
+     * Releases one hold of the {@code session} lock with
+     * {@link VaadinSession#unlock()}. When that is the last hold, Flow runs the
+     * {@link UI#access} commands queued for the session, and
+     * {@link #isRunningUIQueue(VaadinSession)} reports them as running.
+     *
+     * @param session
+     *            the session, not null.
+     */
+    public static void unlockRunningUIQueue(VaadinSession session) {
+        VaadinSession outerSession = sessionRunningUIQueue.get();
+        sessionRunningUIQueue.set(session);
+        try {
+            session.unlock();
+        } finally {
+            sessionRunningUIQueue.set(outerSession);
+        }
+    }
+
     /**
      * Runs all tasks scheduled by {@link UI#access}.
      * <p>
@@ -761,7 +805,7 @@ public final class MockVaadin {
             }
 
             // this will process all Runnables registered via ui.access()
-            session.unlock();
+            unlockRunningUIQueue(session);
             // lock the session back, so that the test can continue running
             // as-if in the UI thread.
             session.lock();
