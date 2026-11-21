@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -31,6 +32,7 @@ import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.js.JsDefinitionProxy;
 import com.vaadin.flow.shared.Registration;
 
 /**
@@ -198,6 +200,7 @@ public final class ExecutedJavaScript implements Serializable {
      * @param methodName
      *            the name of the called method, not null
      * @return the calls, not null
+     * @see #getCalls(Class, Consumer)
      */
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
@@ -208,6 +211,54 @@ public final class ExecutedJavaScript implements Serializable {
                                 && call.methodName().equals(methodName))
                         .stream())
                 .toList();
+    }
+
+    /**
+     * Gets the calls of one method of a JavaScript definition, the interface
+     * that {@code Element.executeJs(Class)} is called with, that were sent to
+     * the browser, in the order the browser received them. The method is named
+     * by calling it, the way the application calls it, so that renaming it
+     * updates the test and a method that the definition does not have fails to
+     * compile:
+     *
+     * <pre>
+     * executed.getCalls(WakeLockJs.class, WakeLockJs::request);
+     * executed.getCalls(ScrollJs.class, js -&gt; js.scrollTo(0, 0));
+     * </pre>
+     * <p>
+     * The call only names the method: it is not sent, and its arguments are
+     * ignored, so any value of the right type will do. Calls are matched by the
+     * name of the method, so overloads of one name are not told apart.
+     *
+     * @param <T>
+     *            the JavaScript definition type
+     * @param definitionType
+     *            the JavaScript definition, not null
+     * @param method
+     *            calls the method of the definition to get the calls of, once,
+     *            on the implementation it is given, not null
+     * @return the calls, not null
+     * @throws IllegalArgumentException
+     *             if the type is not a JavaScript definition, or if
+     *             {@code method} does not call exactly one method of it
+     * @see #getCalls(Class, String)
+     */
+    public <T> List<JsCall> getCalls(Class<T> definitionType,
+            Consumer<T> method) {
+        Objects.requireNonNull(definitionType, "definitionType");
+        Objects.requireNonNull(method, "method");
+        List<String> called = new ArrayList<>();
+        method.accept(JsDefinitionProxy.create(definitionType, call -> {
+            called.add(call.methodName());
+            return null;
+        }));
+        if (called.size() != 1) {
+            throw new IllegalArgumentException(
+                    "The method should call exactly one method of "
+                            + definitionType.getName() + " but called "
+                            + called);
+        }
+        return getCalls(definitionType, called.get(0));
     }
 
     /**
