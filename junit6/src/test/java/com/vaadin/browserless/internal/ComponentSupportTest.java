@@ -70,8 +70,9 @@ class ComponentSupportTest {
     @Test
     void label_ofHasLabelComponent_isNotAskedFromSupport() {
         LabelledPanel panel = new LabelledPanel();
-        panel.setLabel("own label");
+        Assertions.assertEquals("", ComponentUtils.getLabel(panel));
 
+        panel.setLabel("own label");
         Assertions.assertEquals("own label", ComponentUtils.getLabel(panel));
     }
 
