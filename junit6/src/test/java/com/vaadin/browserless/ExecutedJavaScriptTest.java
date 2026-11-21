@@ -174,17 +174,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
     @Test
     void pendingJavaScriptTakenByTest_failsNextDispatchOnce() {
-        UIInternals internals = UI.getCurrent().getInternals();
-        Instant lastSent = internals.getLastUpdateSentTimestamp();
-        // Make sure the test's take gets a timestamp of its own
-        while (!Instant.now().isAfter(lastSent)) {
-            Thread.onSpinWait();
-        }
-        calendar.getElement().callJsFunction("render");
-        internals.getStateTree().runExecutionsBeforeClientResponse();
-        Assertions.assertFalse(
-                internals.dumpPendingJavaScriptInvocations().isEmpty(),
-                "The test should take JavaScript that was pending");
+        takePendingJavaScriptLikeATest();
 
         IllegalStateException e = Assertions
                 .assertThrows(IllegalStateException.class, () -> roundTrip());
@@ -199,6 +189,34 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         roundTrip();
         Assertions.assertEquals(List.of(List.of()),
                 executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
+    void stop_whenFinalDispatchFails_stillStopsTheCapture() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        takePendingJavaScriptLikeATest();
+
+        Assertions.assertThrows(IllegalStateException.class, executed::stop);
+
+        calendar.getElement().callJsFunction("refresh");
+        roundTrip();
+        Assertions.assertEquals(List.of(),
+                executed.getFunctionCalls(calendar, "refresh"),
+                "A capture whose stop() failed should not keep collecting");
+    }
+
+    private void takePendingJavaScriptLikeATest() {
+        UIInternals internals = UI.getCurrent().getInternals();
+        Instant lastSent = internals.getLastUpdateSentTimestamp();
+        // Make sure the test's take gets a timestamp of its own
+        while (!Instant.now().isAfter(lastSent)) {
+            Thread.onSpinWait();
+        }
+        calendar.getElement().callJsFunction("render");
+        internals.getStateTree().runExecutionsBeforeClientResponse();
+        Assertions.assertFalse(
+                internals.dumpPendingJavaScriptInvocations().isEmpty(),
+                "The test should take JavaScript that was pending");
     }
 
     @Test
