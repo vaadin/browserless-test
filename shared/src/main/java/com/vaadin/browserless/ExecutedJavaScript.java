@@ -128,9 +128,12 @@ public final class ExecutedJavaScript implements Serializable {
      */
     public void stop() {
         if (registration != null) {
-            JavaScriptDispatcher.dispatch(ui);
-            registration.remove();
-            registration = null;
+            try {
+                JavaScriptDispatcher.dispatch(ui);
+            } finally {
+                registration.remove();
+                registration = null;
+            }
         }
     }
 
@@ -213,6 +216,17 @@ public final class ExecutedJavaScript implements Serializable {
                 PendingJavaScriptInvocation invocation) {
             this.dispatcher = dispatcher;
             this.invocation = invocation;
+        }
+
+        /**
+         * Gets the UI whose browser the JavaScript was sent to. A handler can
+         * use it to tell windows apart or to look at the state of the
+         * application in that window.
+         *
+         * @return the UI, not null
+         */
+        public UI getUI() {
+            return dispatcher.getUI();
         }
 
         /**

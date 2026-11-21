@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 
 import org.jsoup.Jsoup;
 
-import com.vaadin.browserless.internal.ComponentUtilsKt;
+import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasAriaLabel;
@@ -314,7 +314,7 @@ public final class ElementConditions {
                                 child.getElement().getAttribute("slot")))
                         .filter(ElementConditions::isFormItemField).findFirst()
                         .orElse(null) == component)
-                .map(ComponentUtilsKt::getLabel).filter(text -> !text.isEmpty())
+                .map(ComponentUtils::getLabel).filter(text -> !text.isEmpty())
                 .orElse(null);
     }
 

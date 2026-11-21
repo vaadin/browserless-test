@@ -654,6 +654,17 @@ Blocking on the operation before draining the queue —
 task can only run on the thread that is blocked waiting for it. A timeout there
 means the queue has not been drained, not that the write was lost.
 
+Tasks still queued when a test ends — or when a `BrowserlessApplicationContext`
+is closed — are run during teardown, so a write to a shared signal that outlives
+the test (for example one held by an application-scoped bean) is always
+confirmed before the next test uses it. The queue is run before the windows
+are closed, so pending effects still update open UIs, and once more after
+closing, so writes made by detach and session destroy listeners are confirmed
+too. A task that fails is logged and skipped. The tasks run
+one after another on the test thread, so a task must not block waiting for
+another one — an effect that calls `signal.update(...).result().join()` hangs
+teardown, outside the reach of `@Timeout`.
+
 ## Focus and blur
 
 Focus is tracked per UI while a test runs, so focus and blur listeners fire
@@ -810,8 +821,9 @@ accumulate like lookup services.
   `UIInternals.dumpPendingJavaScriptInvocations()` or
   `containsPendingJavascript(...)` after a navigation, a lookup or a tester
   interaction finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
-  queue in a test also hides the JavaScript from the simulation, for example a
-  server-side `focus()` call.
+  queue in a test would also hide the JavaScript from the simulation, for example a
+  server-side `focus()` call, so the next round trip, lookup or tester interaction
+  fails with an `IllegalStateException` that points to `ExecutedJavaScript`.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it
@@ -1060,6 +1072,56 @@ Map<String, List<String>> opened = w.getOpenedWindows();
 (`_self`, `_parent`, `_top`, empty, or `null`);
 `getExternalNavigationURL(name)` and `getOpenedWindows()` cover named windows
 and `_blank`.
+
+### Session locking
+
+A user's `VaadinSession` is locked only while one of that user's windows is
+active, the way a real request holds only its own session's lock. Application
+code running in one user's window that changes another user's UI without
+`UI.access()` therefore fails the test, as it fails with "Cannot access state
+in VaadinSession or UI without locking the session" in a running application:
+
+```java
+try (var app = BrowserlessApplicationContext.create(DispatchView.class)) {
+    var alice = app.newUser().newWindow();
+    var bob = app.newUser().newWindow();
+    alice.navigate(DispatchView.class);
+    bob.navigate(DispatchView.class);
+
+    // Fails if the click updates bob's UI without UI.access()
+    alice.test(alice.find(Button.class).withText("New Assignment").single())
+            .click();
+}
+```
+
+In more detail:
+
+- A `UI.access()` command for another user's UI runs at once, with that
+  user's session and UI current, because no other thread holds that lock. As
+  in a running application, an exception from such a command goes to that
+  session's `ErrorHandler`, which only logs it by default, so it does not fail
+  the test.
+- Switching to another user's window, or closing the active window, releases
+  the outgoing session's lock and runs the commands still queued for it.
+  Switching then takes the incoming session's lock. Switching between windows
+  of the same user keeps the lock. As with the commands run before a component
+  lookup, an exception from a queued command fails the test; a close still
+  completes before the exception is thrown.
+- Switching to another user's window, or closing a window, a user or the
+  application context, from inside a `UI.access()` command of the active user
+  fails with an `IllegalStateException` and changes nothing.
+- `session.hasLock()` is `true` only for the active user's session.
+- To change another user's component directly from the test, activate one of
+  that user's windows first, for example with `bob.activate()`, or use that
+  window's DSL methods, which activate it.
+- As in a development-mode server, the failure is an `IllegalStateException`,
+  also when assertions are disabled.
+
+If existing tests fail because of this, the deprecated
+`withSessionLockIsolation(false)` on the builder makes the test thread hold
+every user's session lock again, as in earlier versions. Use it only as a
+temporary measure: fix the test or the application code, or report an issue if
+the failure looks wrong.
 
 ### Notes
 

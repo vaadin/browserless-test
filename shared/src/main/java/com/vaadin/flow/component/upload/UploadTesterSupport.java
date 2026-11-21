@@ -39,9 +39,9 @@ import com.vaadin.browserless.JavaScriptDispatcher;
 import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.internal.UIInternals.JavaScriptInvocation;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.function.SerializablePredicate;
+import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.server.StreamResourceRegistry;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
@@ -368,7 +368,7 @@ final class UploadTesterSupport {
          *         the previous call
          */
         boolean hasNewInvocations(Component component,
-                SerializablePredicate<JavaScriptInvocation> condition) {
+                SerializablePredicate<JsCall> condition) {
             if (attachRegistration == null) {
                 attachRegistration = component.addAttachListener(
                         event -> watch(event.getUI(), component, condition));
@@ -386,7 +386,7 @@ final class UploadTesterSupport {
         }
 
         private void watch(UI ui, Component component,
-                SerializablePredicate<JavaScriptInvocation> condition) {
+                SerializablePredicate<JsCall> condition) {
             if (ui == watchedUI) {
                 return;
             }
@@ -396,9 +396,10 @@ final class UploadTesterSupport {
             watchedUI = ui;
             handlerRegistration = JavaScriptDispatcher.forUI(ui)
                     .addHandler(invocation -> {
+                        JsCall call = invocation.getInvocation().getJsCall();
                         if (invocation.getOwner() == component.getElement()
-                                .getNode()
-                                && condition.test(invocation.getInvocation())) {
+                                .getNode() && call != null
+                                && condition.test(call)) {
                             received = true;
                         }
                     });

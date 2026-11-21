@@ -16,6 +16,7 @@
 package com.vaadin.browserless;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -29,6 +30,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.internal.UIInternals;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.js.JsCall;
@@ -168,6 +170,53 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
         Assertions.assertEquals(List.of(List.of()),
                 executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
+    void pendingJavaScriptTakenByTest_failsNextDispatchOnce() {
+        takePendingJavaScriptLikeATest();
+
+        IllegalStateException e = Assertions
+                .assertThrows(IllegalStateException.class, () -> roundTrip());
+        Assertions.assertTrue(
+                e.getMessage().contains("dumpPendingJavaScriptInvocations()")
+                        && e.getMessage()
+                                .contains("ExecutedJavaScript.capture()"),
+                e.getMessage());
+
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().callJsFunction("render");
+        roundTrip();
+        Assertions.assertEquals(List.of(List.of()),
+                executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
+    void stop_whenFinalDispatchFails_stillStopsTheCapture() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        takePendingJavaScriptLikeATest();
+
+        Assertions.assertThrows(IllegalStateException.class, executed::stop);
+
+        calendar.getElement().callJsFunction("refresh");
+        roundTrip();
+        Assertions.assertEquals(List.of(),
+                executed.getFunctionCalls(calendar, "refresh"),
+                "A capture whose stop() failed should not keep collecting");
+    }
+
+    private void takePendingJavaScriptLikeATest() {
+        UIInternals internals = UI.getCurrent().getInternals();
+        Instant lastSent = internals.getLastUpdateSentTimestamp();
+        // Make sure the test's take gets a timestamp of its own
+        while (!Instant.now().isAfter(lastSent)) {
+            Thread.onSpinWait();
+        }
+        calendar.getElement().callJsFunction("render");
+        internals.getStateTree().runExecutionsBeforeClientResponse();
+        Assertions.assertFalse(
+                internals.dumpPendingJavaScriptInvocations().isEmpty(),
+                "The test should take JavaScript that was pending");
     }
 
     @Test

@@ -15,10 +15,22 @@
  */
 package com.vaadin.browserless;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+
 import com.example.javascript.ScheduleView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.vaadin.browserless.internal.Routes;
+import com.vaadin.browserless.internal.UIFactory;
+import com.vaadin.browserless.mocks.MockVaadinServlet;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.VaadinServlet;
 
 /**
  * {@link JavaScriptHandler}s configured for an application context with several
@@ -28,15 +40,22 @@ class JavaScriptHandlerContextTest {
 
     private BrowserlessApplicationContext app;
 
-    /** Answers with the number of calls this instance has seen so far. */
-    public static class CountingBrowser implements JavaScriptHandler {
-        private int answered;
+    /**
+     * Answers with the number of the instance, counted from 1, and records the
+     * UI it answered for.
+     */
+    public static class NumberedBrowser implements JavaScriptHandler {
+        private static final AtomicInteger instances = new AtomicInteger();
+        private static final List<UI> answeredFor = new ArrayList<>();
+
+        private final int number = instances.incrementAndGet();
 
         @Override
         public void handle(ExecutedJavaScript.Execution execution) {
             if (execution.isWaitingForResult() && execution.getExpression()
                     .contains(ScheduleView.TIME_ZONE_EXPRESSION)) {
-                execution.resolve("Zone" + ++answered);
+                answeredFor.add(execution.getUI());
+                execution.resolve("Browser" + number);
             }
         }
     }
@@ -48,6 +67,12 @@ class JavaScriptHandlerContextTest {
         @Override
         public void handle(ExecutedJavaScript.Execution execution) {
         }
+    }
+
+    @BeforeEach
+    void resetInstanceNumbers() {
+        NumberedBrowser.instances.set(0);
+        NumberedBrowser.answeredFor.clear();
     }
 
     @AfterEach
@@ -62,17 +87,52 @@ class JavaScriptHandlerContextTest {
         app = new BrowserlessApplicationContext.Builder()
                 .withViewPackages(ScheduleView.class)
                 .withConfiguration(BrowserlessConfiguration.builder()
-                        .withJavaScriptHandlers(CountingBrowser.class).build())
+                        .withJavaScriptHandlers(NumberedBrowser.class).build())
                 .build();
         var user = app.newUser();
         var first = user.newWindow();
         var second = user.newWindow();
 
-        Assertions.assertEquals("Times shown in Zone1",
+        // Each window's view is answered by the instance created for that
+        // window; one instance shared by both would answer Browser1 twice
+        Assertions.assertEquals("Times shown in Browser1",
                 first.navigate(ScheduleView.class).getTimeZone().getText());
-        Assertions.assertEquals("Times shown in Zone1",
+        Assertions.assertEquals("Times shown in Browser2",
                 second.navigate(ScheduleView.class).getTimeZone().getText(),
                 "A new window should get a handler instance of its own");
+        Assertions.assertEquals(2, NumberedBrowser.instances.get(),
+                "One handler instance should be created per window");
+        Assertions.assertEquals(List.of(first.getUI(), second.getUI()),
+                NumberedBrowser.answeredFor,
+                "Each execution should tell which window it was sent to");
+    }
+
+    @Test
+    void reusedServlet_getsTheHandlersOfTheNewConfiguration() {
+        VaadinServlet[] shared = new VaadinServlet[1];
+        BiFunction<Routes, UIFactory, VaadinServlet> sharedServletFactory = (
+                routes, uiFactory) -> {
+            if (shared[0] == null) {
+                shared[0] = new MockVaadinServlet(routes, uiFactory);
+            }
+            return shared[0];
+        };
+        new BrowserlessApplicationContext.Builder()
+                .withViewPackages(ScheduleView.class)
+                .withServletFactory(sharedServletFactory).build().close();
+
+        // The servlet is already initialized, but handlers are read when each
+        // UI is created, so this configuration still applies
+        app = new BrowserlessApplicationContext.Builder()
+                .withViewPackages(ScheduleView.class)
+                .withServletFactory(sharedServletFactory)
+                .withConfiguration(BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(NumberedBrowser.class).build())
+                .build();
+
+        Assertions.assertEquals("Times shown in Browser1",
+                app.newUser().newWindow().navigate(ScheduleView.class)
+                        .getTimeZone().getText());
     }
 
     @Test
