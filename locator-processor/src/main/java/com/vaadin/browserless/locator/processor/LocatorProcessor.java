@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -77,6 +79,9 @@ import java.util.stream.Collectors;
         "locator.commercial.entrypoint.fqn" })
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class LocatorProcessor extends AbstractProcessor {
+
+    private static final Pattern SELF_METHOD_REF = Pattern
+            .compile("\\{@(link|linkplain) #(\\w+)\\(([^)]*)\\)");
 
     private static final String TESTS_FQN = "com.vaadin.browserless.Tests";
     private static final String COMPONENT_TESTER_FQN = "com.vaadin.browserless.ComponentTester";
@@ -1037,7 +1042,9 @@ public class LocatorProcessor extends AbstractProcessor {
     /**
      * Rewrites {@code {@link #member}} style references so they still resolve
      * once the Javadoc has been copied into the generated locator, where
-     * {@code #member} would point at the locator instead of at the tester.
+     * {@code #member} would point at the locator instead of at the tester. The
+     * parameter types of a method reference are qualified too, so that
+     * {@code #setValue(LocalDate)} resolves without the tester's imports.
      * <p>
      * References to types are left alone, which is why a tester's Javadoc has
      * to spell cross-package {@code @link} and {@code @throws} targets out in
@@ -1046,9 +1053,57 @@ public class LocatorProcessor extends AbstractProcessor {
      */
     private String qualifySelfRefs(String line, TypeElement tester) {
         String testerFqn = tester.getQualifiedName().toString();
-        return line.replace("{@link #", "{@link " + testerFqn + "#")
+        Matcher matcher = SELF_METHOD_REF.matcher(line);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String params = qualifyParams(tester, matcher.group(2),
+                    matcher.group(3));
+            matcher.appendReplacement(sb,
+                    Matcher.quoteReplacement("{@" + matcher.group(1) + " #"
+                            + matcher.group(2) + "(" + params + ")"));
+        }
+        matcher.appendTail(sb);
+        return sb.toString().replace("{@link #", "{@link " + testerFqn + "#")
                 .replace("{@linkplain #", "{@linkplain " + testerFqn + "#")
                 .replace("{@value #", "{@value " + testerFqn + "#");
+    }
+
+    /**
+     * Returns the erased, fully qualified parameter types of the tester method
+     * that {@code #name(params)} refers to, or {@code params} unchanged if no
+     * single method matches.
+     */
+    private String qualifyParams(TypeElement tester, String name,
+            String params) {
+        List<String> simpleNames = params.isBlank() ? List.of()
+                : Arrays.stream(params.split(",")).map(String::trim).toList();
+        Types types = processingEnv.getTypeUtils();
+        List<String> candidates = processingEnv.getElementUtils()
+                .getAllMembers(tester).stream()
+                .filter(e -> e.getKind() == ElementKind.METHOD
+                        && e.getSimpleName().contentEquals(name))
+                .map(e -> ((ExecutableElement) e).getParameters().stream()
+                        .map(p -> types.erasure(p.asType()).toString())
+                        .toList())
+                .filter(qualified -> matchesSimpleNames(qualified, simpleNames))
+                .map(qualified -> String.join(",", qualified)).distinct()
+                .toList();
+        return candidates.size() == 1 ? candidates.getFirst() : params;
+    }
+
+    private static boolean matchesSimpleNames(List<String> qualified,
+            List<String> simpleNames) {
+        if (qualified.size() != simpleNames.size()) {
+            return false;
+        }
+        for (int i = 0; i < qualified.size(); i++) {
+            String q = qualified.get(i);
+            String n = simpleNames.get(i);
+            if (!q.equals(n) && !q.endsWith("." + n)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void appendDocLine(StringBuilder sb, String line) {
