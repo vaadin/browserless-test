@@ -48,7 +48,7 @@ fun DynaNodeGroup.depthFirstTreeIteratorTests() {
             })
             add(VerticalLayout().apply { expected.add(this) })
         }
-        expect(expected) { walk(root).toList() }
-        expect(root) { walk(root).toList()[0] }
+        expect(expected) { DepthFirstTreeIterator.walk(root).toList() }
+        expect(root) { DepthFirstTreeIterator.walk(root).toList()[0] }
     }
 }
