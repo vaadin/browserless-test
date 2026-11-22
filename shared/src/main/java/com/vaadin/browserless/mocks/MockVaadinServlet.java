@@ -155,8 +155,8 @@ public class MockVaadinServlet extends VaadinServlet {
     }
 
     /**
-     * Creates the browser details the session reports, describing a desktop
-     * Firefox.
+     * Creates the browser details the session reports. They are derived from
+     * the request's {@code User-Agent} header.
      *
      * @param request
      *            the request the browser details are taken from

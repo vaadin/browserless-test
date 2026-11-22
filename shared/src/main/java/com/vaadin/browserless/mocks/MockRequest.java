@@ -441,7 +441,10 @@ public class MockRequest implements HttpServletRequest {
      * @param checker
      *            decides whether a principal holds a role
      * @since 1.1
+     * @deprecated use {@link #setUserInRole(BiPredicate)}, which takes the same
+     *             argument
      */
+    @Deprecated(since = "25.4", forRemoval = true)
     public void roleChecker(BiPredicate<Principal, String> checker) {
         this.isUserInRole = checker;
     }
