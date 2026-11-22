@@ -63,19 +63,27 @@ import com.vaadin.flow.shared.Registration;
  * the UI, before its first view was navigated to, so it holds everything the UI
  * was sent. The test classes and {@link BrowserlessUIContext} return it from
  * {@code getExecutedJavaScript()}. Everyone who gets it shares the same
- * instance, so it is read-only: no one can stop it or take anything out of it,
- * and the lists its queries return, like those of any capture, cannot be
- * modified. Answering a call with {@link Execution#resolve(Object)} or
- * {@link Execution#reject(String)} is visible to everyone who looks at that
+ * instance, so it is read-only: no one can stop it, clear it or take anything
+ * out of it, and the lists its queries return, like those of any capture,
+ * cannot be modified. Answering a call with {@link Execution#resolve(Object)}
+ * or {@link Execution#reject(String)} is visible to everyone who looks at that
  * call, as it is the browser's answer to the application.
  * <p>
- * A capture holds everything sent to the browser of its UI after it was
- * started; JavaScript still pending when it starts is sent first and is not
- * part of it. A capture runs until {@link #stop()} or for as long as the UI
+ * A capture holds everything sent to the browser of its UI after it was started
+ * or last cleared; JavaScript still pending when it starts is sent first and is
+ * not part of it. A capture runs until {@link #stop()} or for as long as the UI
  * lives. Querying it does not consume anything, and several captures of the
  * same UI each see everything sent while they are active. A query sends
  * whatever is still pending first, so JavaScript scheduled just before is
  * included.
+ * <p>
+ * A test that plays the browser step by step can call {@link #clear()} after
+ * reading a step, so that the next query only sees what is sent afterwards:
+ *
+ * <pre>
+ * List&lt;List&lt;Object&gt;&gt; pages = executed.getFunctionCalls(viewer, "scrollToPage");
+ * executed.clear();
+ * </pre>
  * <p>
  * A call whose result the application waits for, with {@code then(...)} or
  * {@code toCompletableFuture(...)}, can be answered with
@@ -183,6 +191,23 @@ public final class ExecutedJavaScript implements Serializable {
     }
 
     /**
+     * Forgets everything captured so far, so that the queries only see what is
+     * sent to the browser afterwards. JavaScript that is still pending is not
+     * sent first, so JavaScript scheduled just before, for example by a handler
+     * that {@link Execution#resolve(Object)} ran, is seen by the next query.
+     * Executions that were already returned can still be answered. Clearing
+     * does not stop the capture.
+     *
+     * @throws IllegalStateException
+     *             if this is the capture that a UI got when it was created,
+     *             which is shared and cannot be cleared
+     */
+    public void clear() {
+        ensureNotReadOnly("cleared");
+        executions.clear();
+    }
+
+    /**
      * Refuses an operation that would leave the shared capture of a UI without
      * part of what the UI was sent.
      */
@@ -197,10 +222,10 @@ public final class ExecutedJavaScript implements Serializable {
     }
 
     /**
-     * Gets everything sent to the browser since the capture started, and until
-     * it was stopped, in the order the browser received it, whichever element
-     * it was run on; {@link #getAll(Component)} and {@link #getAll(Element)}
-     * keep only what was run on one element.
+     * Gets everything sent to the browser since the capture started or was last
+     * cleared, and until it was stopped, in the order the browser received it,
+     * whichever element it was run on; {@link #getAll(Component)} and
+     * {@link #getAll(Element)} keep only what was run on one element.
      *
      * @return the sent JavaScript, not null
      */
@@ -213,10 +238,10 @@ public final class ExecutedJavaScript implements Serializable {
 
     /**
      * Gets what was sent to the browser for the given component's element since
-     * the capture started, and until it was stopped, in the order the browser
-     * received it. Unlike {@link #getAll()}, JavaScript run on other elements
-     * is left out. JavaScript run on the page belongs to the UI, so passing the
-     * UI gets it.
+     * the capture started or was last cleared, and until it was stopped, in the
+     * order the browser received it. Unlike {@link #getAll()}, JavaScript run
+     * on other elements is left out. JavaScript run on the page belongs to the
+     * UI, so passing the UI gets it.
      *
      * @param component
      *            the component whose element the JavaScript was run on, not
@@ -231,9 +256,10 @@ public final class ExecutedJavaScript implements Serializable {
 
     /**
      * Gets what was sent to the browser for the given element since the capture
-     * started, and until it was stopped, in the order the browser received it.
-     * Unlike {@link #getAll()}, JavaScript run on other elements is left out.
-     * JavaScript run on the page belongs to the element of the UI.
+     * started or was last cleared, and until it was stopped, in the order the
+     * browser received it. Unlike {@link #getAll()}, JavaScript run on other
+     * elements is left out. JavaScript run on the page belongs to the element
+     * of the UI.
      *
      * @param element
      *            the element the JavaScript was run on, not null
