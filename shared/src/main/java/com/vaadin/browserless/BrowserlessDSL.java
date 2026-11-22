@@ -140,6 +140,10 @@ final class BrowserlessDSL {
                 + " package to @ViewPackages.";
     }
 
+    static ExecutedJavaScript getExecutedJavaScript(UI ui) {
+        return JavaScriptDispatcher.getUICapture(ui);
+    }
+
     static HasElement getCurrentView(UI ui) {
         return ui.getInternals().getActiveRouterTargetsChain().get(0);
     }

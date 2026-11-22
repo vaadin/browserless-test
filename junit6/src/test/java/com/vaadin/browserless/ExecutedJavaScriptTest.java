@@ -43,6 +43,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     public interface OtherFocusJs extends Serializable {
         @JsExpression("this.focus()")
         void focus();
+
+        @JsExpression("this.focus({preventScroll: $0})")
+        void focus(boolean preventScroll);
+
+        @JsExpression("this.scrollIntoView()")
+        void scrollIntoView();
     }
 
     private Div calendar;
@@ -300,25 +306,32 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void expressionAndParameters_ofElementAndPageJavaScript() {
+    void getAllForElement_keepsOnlyItsJavaScript_withExpressionAndParameters() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.render($0)", 5);
+        field.getElement().executeJs("this.select()");
         UI.getCurrent().getPage().executeJs("window.render($0)", "week");
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
 
-        ExecutedJavaScript.Execution onElement = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(calendar.getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onCalendar = executed
+                .getAll(calendar);
+        Assertions.assertEquals(2, onCalendar.size(), onCalendar.toString());
+        Assertions.assertEquals(OtherFocusJs.class,
+                onCalendar.get(1).getJsCall().orElseThrow().definitionType());
+        Assertions.assertEquals(onCalendar,
+                executed.getAll(calendar.getElement()));
+
+        ExecutedJavaScript.Execution onElement = onCalendar.get(0);
         Assertions.assertTrue(
                 onElement.getExpression().contains("this.render($0)"),
                 onElement.getExpression());
         Assertions.assertEquals(List.of(5, calendar.getElement()),
                 onElement.getParameters());
 
-        ExecutedJavaScript.Execution onPage = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(UI.getCurrent().getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onUI = executed
+                .getAll(UI.getCurrent());
+        Assertions.assertEquals(1, onUI.size(), onUI.toString());
+        ExecutedJavaScript.Execution onPage = onUI.get(0);
         Assertions.assertEquals("window.render($0)", onPage.getExpression());
         Assertions.assertEquals(List.of("week"), onPage.getParameters());
     }
@@ -326,5 +339,49 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     private static List<Object> functionNames(ExecutedJavaScript executed) {
         return executed.getAll().stream().map(execution -> execution.getJsCall()
                 .orElseThrow().arguments().get(0)).toList();
+    }
+
+    @Test
+    void getCallsByMethod_matchesTheCalledMethodByName_ignoringArguments() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
+        calendar.getElement().executeJs(OtherFocusJs.class).scrollIntoView();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus(true);
+
+        List<JsCall> focusCalls = List.of(
+                new JsCall(OtherFocusJs.class, "focus", List.of()),
+                new JsCall(OtherFocusJs.class, "focus", List.of(true)));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, OtherFocusJs::focus));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, js -> js.focus(false)));
+        Assertions.assertEquals(
+                List.of(new JsCall(OtherFocusJs.class, "scrollIntoView",
+                        List.of())),
+                executed.getCalls(OtherFocusJs.class,
+                        OtherFocusJs::scrollIntoView));
+    }
+
+    @Test
+    void getCallsByMethod_refusesAnythingButOneCallOfADefinition() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        IllegalArgumentException none = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                }));
+        Assertions.assertTrue(none.getMessage().contains("exactly one method")
+                && none.getMessage().endsWith("[]"), none.getMessage());
+        IllegalArgumentException two = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                    js.focus();
+                    js.scrollIntoView();
+                }));
+        Assertions.assertTrue(
+                two.getMessage().endsWith("[focus, scrollIntoView]"),
+                two.getMessage());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> executed.getCalls(Runnable.class, Runnable::run));
     }
 }
