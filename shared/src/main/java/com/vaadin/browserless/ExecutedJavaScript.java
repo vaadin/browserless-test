@@ -60,7 +60,10 @@ import com.vaadin.flow.shared.Registration;
  * Each UI created by Browserless Test also has a capture that was started with
  * the UI, before its first view was navigated to, so it holds everything the UI
  * was sent. The test classes and {@link BrowserlessUIContext} return it from
- * {@code getExecutedJavaScript()}.
+ * {@code getExecutedJavaScript()}. Everyone who gets it shares the same
+ * instance, so it cannot be changed by them: the lists its queries return are
+ * unmodifiable, and {@link #stop()}, the only operation that changes a capture,
+ * is refused.
  * <p>
  * A capture holds everything sent to the browser of its UI after it was
  * started; JavaScript still pending when it starts is sent first and is not
@@ -84,13 +87,18 @@ public final class ExecutedJavaScript implements Serializable {
 
     private final List<Execution> executions = new ArrayList<>();
 
-    private final boolean stoppable;
+    /**
+     * Whether this is the capture a UI got when it was created, which every
+     * caller of {@code getExecutedJavaScript()} shares, so no caller may stop
+     * it.
+     */
+    private final boolean ownedByUI;
 
     private @Nullable Registration registration;
 
-    private ExecutedJavaScript(UI ui, boolean stoppable) {
+    private ExecutedJavaScript(UI ui, boolean ownedByUI) {
         this.ui = ui;
-        this.stoppable = stoppable;
+        this.ownedByUI = ownedByUI;
     }
 
     /**
@@ -122,18 +130,18 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        return startCapture(dispatcher, true);
+        return startCapture(dispatcher, false);
     }
 
     /**
      * Starts capturing what the given dispatcher sends from now on, without
-     * sending what is pending first. The capture of a UI, which other code
-     * relies on to hold everything, is not stoppable.
+     * sending what is pending first. The capture a UI owns is shared by all
+     * callers, which rely on it to hold everything, so it cannot be stopped.
      */
     static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher,
-            boolean stoppable) {
+            boolean ownedByUI) {
         ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI(),
-                stoppable);
+                ownedByUI);
         capture.registration = dispatcher
                 .addHandler(invocation -> capture.executions
                         .add(new Execution(dispatcher, invocation)));
@@ -150,7 +158,7 @@ public final class ExecutedJavaScript implements Serializable {
      *             which runs for as long as the UI lives
      */
     public void stop() {
-        if (!stoppable) {
+        if (ownedByUI) {
             throw new IllegalStateException("The capture that the UI got "
                     + "when it was created cannot be stopped, as it holds "
                     + "everything sent to the UI. Use "

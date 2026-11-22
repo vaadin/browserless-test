@@ -51,12 +51,14 @@ class UIJavaScriptCaptureTest {
         }
 
         @Test
-        void stop_isRefused_andTheCaptureKeepsEverything() {
+        void stopOrClear_isRefused_andTheCaptureKeepsEverything() {
             ScheduleView view = navigate(ScheduleView.class);
             ExecutedJavaScript executed = getExecutedJavaScript();
 
             Assertions.assertThrows(IllegalStateException.class,
                     executed::stop);
+            Assertions.assertThrows(UnsupportedOperationException.class,
+                    () -> executed.getAll().clear());
             view.getElement().executeJs("this.print()");
 
             Assertions.assertEquals(List.of(view.getElement()),
