@@ -396,6 +396,10 @@ public final class ExecutedJavaScript implements Serializable {
          * response, and after it, so that JavaScript the channel's handler
          * schedules is sent.
          * <p>
+         * A {@link JavaScriptHandler} can call this method too, for a channel
+         * the browser calls as soon as the JavaScript runs. JavaScript the
+         * channel's handler schedules is then sent at the next client boundary.
+         * <p>
          * The JavaScript must have received exactly one
          * {@link ReturnChannelRegistration} among its
          * {@linkplain #getParameters() parameters}; use

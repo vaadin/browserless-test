@@ -364,6 +364,35 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
+    void invokeReturnChannel_fromAHandler_runsTheChannelHandlerLive() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration channel = registerChannel(calendar,
+                arguments -> {
+                    received.add(arguments.toString());
+                    calendar.getElement().callJsFunction("render");
+                });
+        JavaScriptDispatcher dispatcher = JavaScriptDispatcher
+                .forUI(UI.getCurrent());
+        dispatcher.addHandler(invocation -> {
+            ExecutedJavaScript.Execution execution = new ExecutedJavaScript.Execution(
+                    dispatcher, invocation);
+            if (execution.getExpression().contains("listen")) {
+                execution.invokeReturnChannel("week");
+            }
+        });
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        calendar.getElement().executeJs("this.listen($0)", channel);
+        roundTrip();
+
+        Assertions.assertEquals(List.of("[\"week\"]"), received);
+        Assertions.assertEquals(List.of(List.of()),
+                executed.getFunctionCalls(calendar, "render"),
+                "JavaScript the channel handler schedules should be sent at "
+                        + "the next client boundary");
+    }
+
+    @Test
     void invokeReturnChannel_withSeveralChannels_picksOneByParameterIndex() {
         List<String> received = new ArrayList<>();
         ReturnChannelRegistration first = registerChannel(calendar,
