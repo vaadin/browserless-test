@@ -33,6 +33,9 @@ end-to-end testing) by covering the fast-feedback layer of the testing pyramid.
 - **Focus and blur simulation** — clicks and value changes made through testers
   move focus like a real user would, firing focus and blur listeners in browser
   order; server-side `Focusable.focus()` and `blur()` calls are applied as well
+- **JavaScript assertions** — check which JavaScript the server sent to the
+  browser, such as `callJsFunction` calls and their arguments, and answer the
+  calls whose result the application waits for
 - **Component tree debugging** — print the UI tree on test failure with
   `TreeOnFailureExtension`
 - **Spring Boot integration** — `SpringBrowserlessTest` base class with full
@@ -690,8 +693,8 @@ assertFalse(test(amount).isFocused());
 Server-side `Focusable.focus()` and `Focusable.blur()` calls are simulated as
 well, for example a click listener that opens a dialog and focuses a field in
 it. Such a call only schedules client-side JavaScript, which is applied at the
-end of a focus-tracked interaction, on `roundTrip()`, and whenever focus is
-queried with `isFocused()`. The resulting focus or blur event reports
+end of a focus-tracked interaction, on `roundTrip()` and on component lookups,
+and whenever focus is queried with `isFocused()`. The resulting focus or blur event reports
 `isFromClient() == false`, just like with a browser:
 
 ```java
@@ -714,8 +717,8 @@ assertTrue(test(quickAdd).isFocused());
   clicks — so they neither take focus nor blur the previously focused
   component. The same holds for events fired by hand, for example with
   `ComponentUtil.fireEvent(...)`. A server-side `Focusable` call scheduled by
-  such an interaction stays queued until the next focus-tracked interaction, a
-  `roundTrip()`, or an `isFocused()` query.
+  such an interaction is applied at the next client boundary: a focus-tracked
+  interaction, a `roundTrip()`, a component lookup, or an `isFocused()` query.
 - Only `Focusable` components take focus. Interacting with anything else blurs
   the previously focused component and leaves nothing focused, as focus falls
   back to the document body in a browser.
@@ -725,13 +728,143 @@ assertTrue(test(quickAdd).isFocused());
   throws and reports `false` for a component that is not attached.
 - Only focus and blur calls made through `Focusable` are simulated. JavaScript
   the application schedules itself, such as
-  `getElement().executeJs("this.focus()")`, is not interpreted and stays
-  queued.
-- Reading the pending JavaScript queue consumes it: when a focus or blur call
-  is pending, other JavaScript queued at the same time is dropped. Everything the simulation takes off the queue is listed in a
-  debug log under `com.vaadin.browserless.FocusTracker`. Handling the queue
-  centrally is tracked in
-  [#221](https://github.com/vaadin/browserless-test/issues/221).
+  `getElement().executeJs("this.focus()")`, is not interpreted; it is only
+  sent, and a test can check it with a capture, see
+  [JavaScript sent to the browser](#javascript-sent-to-the-browser).
+
+## JavaScript sent to the browser
+
+There is no browser to run the JavaScript that the server schedules with
+`executeJs`, `callJsFunction` or a declared JavaScript definition. Instead,
+at every client boundary — a round trip, a component lookup, the end of a
+navigation or a tester interaction — the pending JavaScript of the UI is sent to a simulated
+client, the way a server response would send it. What the framework can
+simulate, such as server-side focus and blur calls, is simulated.
+
+To check what was sent, start a capture with `ExecutedJavaScript.capture()`,
+run the steps to check, however many round trips they take, and query the
+capture:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+test(save).click();
+
+assertEquals(List.of(List.of("week", 7)),
+        executed.getFunctionCalls(calendar, "setOptions"));
+assertEquals(1, executed.getCalls(Focusable.FocusJs.class,
+        js -> js.focus(null)).size());
+```
+
+`getCalls` names the method of the definition by calling it, so renaming the
+method updates the test and a typo does not compile. Arguments of a method
+with parameters are ignored, so any value will do. A method without
+parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
+`getCalls(definitionType, methodName)` overload takes the name as a string.
+
+`getAll()` lists everything that was sent, in order, with the element it ran
+on and, for a call of a JavaScript definition, the call itself (`getJsCall()`),
+which is what to check for such calls. The expression and parameters are in
+the form Flow sends them: a string run on an element with `executeJs` is
+wrapped so that it runs with the element as `this`, so check it with
+`contains(...)`, and the element is added as its last parameter.
+`getAll(component)` and `getAll(element)` keep only what was run on that
+element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
+
+Each UI also has a capture of its own, started when the UI is created, so
+it holds everything that UI was sent, including what the first view sent
+while it was navigated to. A capture started in the test would come too late
+for that. Get it with `getExecutedJavaScript()` from the test class or from a
+window context (`BrowserlessUIContext`):
+
+```java
+navigate(ReportView.class);
+
+assertEquals(List.of(), getExecutedJavaScript().getCalls(PrintJs.class, "print"));
+```
+
+After `reload()`, or in another window, `getExecutedJavaScript()` returns the
+capture of that UI, which starts empty, as a new page in a browser does. To
+check a single step, start a capture of your own just before it.
+
+A capture holds everything sent after it started or was last cleared;
+JavaScript still pending when it starts is sent first and is left out. Querying
+sends whatever is still pending first and does not consume anything, so a
+capture can be queried any number of times, and several captures of the same UI each see
+every call sent while they are active. Use `capture(ui)` for a UI other than
+the current one.
+
+A test that plays the browser step by step can call `clear()` on a capture of
+its own after reading a step, so that the next query only sees what is sent
+afterwards. The capture from `getExecutedJavaScript()` is shared and cannot be
+cleared. JavaScript still pending is not sent by `clear()`, so nothing
+scheduled just before is lost:
+
+```java
+List<List<Object>> pages = executed.getFunctionCalls(viewer, "scrollToPage");
+executed.clear();
+```
+
+JavaScript whose result the application waits for, with `then(...)` or
+`toCompletableFuture(...)`, can be answered the way the browser would:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.showTimeZone();                  // calls executeJs(...).then(...)
+
+ExecutedJavaScript.Execution execution = executed.getAll().getLast();
+execution.resolve(3);                 // runs the success handler
+// or execution.reject("Not allowed"); runs the error handler
+```
+
+### Answering JavaScript like the browser
+
+JavaScript that reads something only the browser knows, such as the user's
+time zone, can be answered for the whole test environment with a
+`JavaScriptHandler`. Every UI, also after a reload or in a new window, gets
+its own instance, which sees each call as it is sent, also while a view is
+being navigated to, so the application behaves as in a browser without the
+test doing anything:
+
+```java
+public class BrowserInHelsinki implements JavaScriptHandler {
+    @Override
+    public void handle(ExecutedJavaScript.Execution execution) {
+        if (execution.isWaitingForResult() && execution.getExpression()
+                .contains("resolvedOptions().timeZone")) {
+            execution.resolve("Europe/Helsinki");
+        }
+    }
+}
+
+@BrowserlessTestConfig(javaScriptHandlers = BrowserInHelsinki.class)
+class ScheduleViewTest extends BrowserlessTest {
+    @Test
+    void showsTimesInTheUsersTimeZone() {
+        ScheduleView view = navigate(ScheduleView.class);
+        assertEquals("Times shown in Europe/Helsinki",
+                view.getTimeZone().getText());
+    }
+}
+```
+
+Handlers can also be added with
+`BrowserlessConfiguration.builder().withJavaScriptHandlers(...)`. They
+accumulate like lookup services.
+
+### Notes and limitations
+
+- Once sent, JavaScript is no longer pending: a test that reads
+  `UIInternals.dumpPendingJavaScriptInvocations()` or
+  `containsPendingJavascript(...)` after a navigation, a lookup or a tester
+  interaction finds nothing there. Assert on `ExecutedJavaScript` instead. Taking the
+  queue in a test would also hide the JavaScript from the simulation, for example a
+  server-side `focus()` call, so the next round trip, lookup or tester interaction
+  fails with an `IllegalStateException` that points to `ExecutedJavaScript`.
+- JavaScript scheduled for an element that is not visible is not sent, as in a
+  browser, and appears once the element becomes visible.
+- A capture runs until `stop()` is called or its UI is gone, and keeps what it
+  holds until then, unless it is cleared. The capture of a UI keeps everything the UI was sent for
+  as long as the UI lives.
 
 ## Multi-user and multi-window testing
 
@@ -943,6 +1076,56 @@ Map<String, List<String>> opened = w.getOpenedWindows();
 (`_self`, `_parent`, `_top`, empty, or `null`);
 `getExternalNavigationURL(name)` and `getOpenedWindows()` cover named windows
 and `_blank`.
+
+### Session locking
+
+A user's `VaadinSession` is locked only while one of that user's windows is
+active, the way a real request holds only its own session's lock. Application
+code running in one user's window that changes another user's UI without
+`UI.access()` therefore fails the test, as it fails with "Cannot access state
+in VaadinSession or UI without locking the session" in a running application:
+
+```java
+try (var app = BrowserlessApplicationContext.create(DispatchView.class)) {
+    var alice = app.newUser().newWindow();
+    var bob = app.newUser().newWindow();
+    alice.navigate(DispatchView.class);
+    bob.navigate(DispatchView.class);
+
+    // Fails if the click updates bob's UI without UI.access()
+    alice.test(alice.find(Button.class).withText("New Assignment").single())
+            .click();
+}
+```
+
+In more detail:
+
+- A `UI.access()` command for another user's UI runs at once, with that
+  user's session and UI current, because no other thread holds that lock. As
+  in a running application, an exception from such a command goes to that
+  session's `ErrorHandler`, which only logs it by default, so it does not fail
+  the test.
+- Switching to another user's window, or closing the active window, releases
+  the outgoing session's lock and runs the commands still queued for it.
+  Switching then takes the incoming session's lock. Switching between windows
+  of the same user keeps the lock. As with the commands run before a component
+  lookup, an exception from a queued command fails the test; a close still
+  completes before the exception is thrown.
+- Switching to another user's window, or closing a window, a user or the
+  application context, from inside a `UI.access()` command of the active user
+  fails with an `IllegalStateException` and changes nothing.
+- `session.hasLock()` is `true` only for the active user's session.
+- To change another user's component directly from the test, activate one of
+  that user's windows first, for example with `bob.activate()`, or use that
+  window's DSL methods, which activate it.
+- As in a development-mode server, the failure is an `IllegalStateException`,
+  also when assertions are disabled.
+
+If existing tests fail because of this, the deprecated
+`withSessionLockIsolation(false)` on the builder makes the test thread hold
+every user's session lock again, as in earlier versions. Use it only as a
+temporary measure: fix the test or the application code, or report an issue if
+the failure looks wrong.
 
 ### Notes
 

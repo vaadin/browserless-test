@@ -31,7 +31,7 @@ internal fun DynaNodeGroup.compositeTests() {
         class MyComposite : Composite<VirtualChildComponent>()
 
         val comp = MyComposite()
-        _expectOne(comp, Span::class.java) { text = "virtual child" }
+        Locator._expectOne(comp, Span::class.java) { it.text = "virtual child" }
     }
 }
 

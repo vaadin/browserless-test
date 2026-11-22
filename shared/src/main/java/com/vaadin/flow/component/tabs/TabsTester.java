@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.tabs;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
@@ -124,6 +125,7 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      *
      * @param label
      *            the tab label
+     * @return the visible tab with the given label
      * @throws IllegalStateException
      *             if tab is not visible
      */
@@ -150,6 +152,7 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      * @param index
      *            the zero-based index of the selected tab, negative value to
      *            unselect
+     * @return the visible tab at given index
      * @throws IllegalStateException
      *             if tab at given index is not visible in the browser
      * @throws IllegalArgumentException
@@ -164,6 +167,49 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
                     + " cannot be selected because it is not usable");
         }
         return tab;
+    }
+
+    /**
+     * Gets the labels of the visible tabs, in the order the user sees them.
+     * <p>
+     * Hidden tabs are left out, so the position of a label in the returned list
+     * is the index that {@link #select(int)} and {@link #getTab(int)} accept.
+     * <p>
+     * Each entry is the tab's {@link Tab#getLabel() label}, the same text that
+     * {@link #select(String)} and {@link #getTab(String)} match. A tab whose
+     * caption is made of components, such as an icon and a {@code Span}, has no
+     * label of its own and is listed as an empty string.
+     * <p>
+     * This only reads the tabs, so it also works when the component is
+     * disabled.
+     *
+     * @return the labels of the visible tabs, never {@code null}
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public List<String> getTabLabels() {
+        ensureVisible();
+        return getComponent().getChildren().filter(Tab.class::isInstance)
+                .map(Tab.class::cast).filter(Component::isVisible)
+                .map(Tab::getLabel).toList();
+    }
+
+    /**
+     * Gets the label of the selected tab.
+     * <p>
+     * This only reads the selection, so it also works when the component is
+     * disabled. A selected tab that is hidden is still reported, the same way
+     * {@link #isSelected(String)} reports it.
+     *
+     * @return the label of the selected tab, or {@code null} if no tab is
+     *         selected
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public String getSelectedTabLabel() {
+        ensureVisible();
+        Tab selected = getComponent().getSelectedTab();
+        return selected == null ? null : selected.getLabel();
     }
 
     private Tab findTab(String label) {

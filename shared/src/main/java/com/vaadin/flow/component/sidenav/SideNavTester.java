@@ -25,6 +25,10 @@ import com.vaadin.browserless.internal.ClientDomEvent;
 import com.vaadin.flow.component.UI;
 
 /**
+ * Tester for SideNav components.
+ *
+ * @param <T>
+ *            component type
  * @since 1.0
  */
 @Tests(SideNav.class)

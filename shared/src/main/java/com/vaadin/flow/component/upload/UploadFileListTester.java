@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.upload;
 
 import java.io.File;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -175,7 +174,7 @@ public class UploadFileListTester<T extends UploadFileList>
      *
      * @param fileName
      *            name of the file to start, as given when it was added
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no such file waits in the file list
@@ -196,7 +195,7 @@ public class UploadFileListTester<T extends UploadFileList>
      *
      * @param file
      *            the file to start
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no such file waits in the file list
@@ -217,7 +216,7 @@ public class UploadFileListTester<T extends UploadFileList>
      *            the position of the file in the list, in the order
      *            {@link #getFiles()} returns them: the most recently added file
      *            first
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if there is no file at the position, or it does not wait to

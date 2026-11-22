@@ -19,6 +19,8 @@ import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for Input components.
+ *
  * @since 1.0
  */
 @Tests(Input.class)
@@ -68,7 +70,7 @@ public class InputTester extends ComponentTester<Input> {
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
-     * <p/>
+     * <p>
      * Emptying is something the user can always do, so it needs no clear
      * button: a field may legitimately end up invalid — a required field, for
      * instance — once emptied.

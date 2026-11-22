@@ -24,6 +24,8 @@ import com.vaadin.flow.dom.DomEvent
 import com.vaadin.flow.dom.Element
 import com.vaadin.flow.internal.JacksonUtils
 import kotlin.test.expect
+import com.vaadin.browserless.internal.ElementUtils._fireDomEvent
+import com.vaadin.browserless.internal.ElementUtils.getTextIncludingInnerHtml
 
 fun DynaNodeGroup.elementUtilsTests() {
     beforeEach { MockVaadin.setup() }

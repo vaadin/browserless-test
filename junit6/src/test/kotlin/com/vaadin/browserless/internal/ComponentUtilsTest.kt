@@ -25,6 +25,9 @@ import com.vaadin.flow.component.shared.SlotUtils
 import com.vaadin.flow.component.textfield.TextArea
 import com.vaadin.flow.component.textfield.TextField
 import kotlin.test.expect
+import com.vaadin.browserless.internal.ComponentUtils.getCaption
+import com.vaadin.browserless.internal.ComponentUtils.getLabel
+import com.vaadin.browserless.internal.ComponentUtils.getPlaceholder
 
 fun DynaNodeGroup.componentUtilsTests() {
     beforeEach { MockVaadin.setup() }

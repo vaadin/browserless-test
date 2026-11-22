@@ -16,7 +16,6 @@
 package com.vaadin.flow.component.upload;
 
 import java.io.File;
-import java.io.UncheckedIOException;
 import java.net.URLConnection;
 import java.util.Collection;
 import java.util.List;
@@ -73,7 +72,7 @@ public class UploadDropZoneTester<T extends UploadDropZone>
      *
      * @param files
      *            the files to drop
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no file is given
@@ -91,7 +90,7 @@ public class UploadDropZoneTester<T extends UploadDropZone>
      *
      * @param files
      *            the files to drop
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no file is given
@@ -114,7 +113,7 @@ public class UploadDropZoneTester<T extends UploadDropZone>
      *            content type of the file to drop
      * @param contents
      *            file contents as an array of bytes
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalStateException
      *             if the component is not usable

@@ -38,8 +38,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.AssertingTransferProgressListener.UploadedData;
+import com.vaadin.flow.router.PreserveOnRefresh;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.streams.UploadHandler;
 
@@ -769,6 +770,34 @@ class UploadTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void clearFileList_afterReloadOfPreservedView_slotsFreed() {
+        RouteConfiguration.forApplicationScope()
+                .setAnnotatedRoute(PreservedUploadView.class);
+        UploadView preserved = navigate(PreservedUploadView.class);
+        AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
+        preserved.uploadSingle.setUploadHandler(
+                UploadHandler.inMemory(listener::fileUploaded, listener));
+        preserved.uploadSingle.setMaxFiles(1);
+        preserved.uploadSingle.addFileRejectedListener(ev -> rejected
+                .add(ev.getFileName() + ":" + ev.getErrorMessage()));
+        test(preserved.uploadSingle).upload(file1);
+
+        Assertions.assertSame(preserved, reload(PreservedUploadView.class));
+        // the clearFileList() call goes to the new UI of the preserved view
+        preserved.uploadSingle.clearFileList();
+        test(preserved.uploadSingle).upload(file2);
+
+        Assertions.assertTrue(rejected.isEmpty(),
+                "No file should have been rejected, but got " + rejected);
+        listener.assertFilesReceived(2);
+    }
+
+    @Route(value = "preserved-upload", registerAtStartup = false)
+    @PreserveOnRefresh
+    public static class PreservedUploadView extends UploadView {
+    }
+
+    @Test
     void clearFileList_afterPendingJavaScriptSent_slotsFreed() {
         AssertingTransferProgressListener listener = new AssertingTransferProgressListener();
         view.uploadSingle.setUploadHandler(
@@ -780,7 +809,7 @@ class UploadTesterTest extends BrowserlessTest {
         single_.upload(file2);
         // a round trip that sends the pending JavaScript to the client empties
         // the queue, which must not hide the next clearFileList() call
-        UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+        roundTrip();
         view.uploadSingle.clearFileList();
         single_.upload(file3);
 
