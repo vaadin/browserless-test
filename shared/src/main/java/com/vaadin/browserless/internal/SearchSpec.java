@@ -129,102 +129,257 @@ public final class SearchSpec<T extends Component> {
         this.withoutThemes = withoutThemes;
     }
 
+    /**
+     * The class of the component we are searching for.
+     *
+     * @return the current value
+     */
     public Class<T> getClazz() {
         return clazz;
     }
 
+    /**
+     * The required {@link Component#getId()}; if null, no particular id is
+     * matched.
+     *
+     * @return the current value
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * The required {@link Component#getId()}; if null, no particular id is
+     * matched.
+     *
+     * @param id
+     *            the new value
+     */
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * The required test id, i.e. the {@code data-testid} attribute; if null, no
+     * particular test id is matched.
+     *
+     * @return the current value
+     */
     public String getTestId() {
         return testId;
     }
 
+    /**
+     * The required test id, i.e. the {@code data-testid} attribute; if null, no
+     * particular test id is matched.
+     *
+     * @param testId
+     *            the new value
+     */
     public void setTestId(String testId) {
         this.testId = testId;
     }
 
+    /**
+     * The required {@code caption}; if null, no particular caption is matched.
+     *
+     * @return the current value
+     */
     public String getCaption() {
         return caption;
     }
 
+    /**
+     * The required {@code caption}; if null, no particular caption is matched.
+     *
+     * @param caption
+     *            the new value
+     */
     public void setCaption(String caption) {
         this.caption = caption;
     }
 
+    /**
+     * The required {@code placeholder}; if null, no particular placeholder is
+     * matched.
+     *
+     * @return the current value
+     */
     public String getPlaceholder() {
         return placeholder;
     }
 
+    /**
+     * The required {@code placeholder}; if null, no particular placeholder is
+     * matched.
+     *
+     * @param placeholder
+     *            the new value
+     */
     public void setPlaceholder(String placeholder) {
         this.placeholder = placeholder;
     }
 
+    /**
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
+     *
+     * @return the current value
+     */
     public String getText() {
         return text;
     }
 
+    /**
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
+     *
+     * @param text
+     *            the new value
+     */
     public void setText(String text) {
         this.text = text;
     }
 
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @return the current value, not null
+     */
     public IntRange getCount() {
         return count;
     }
 
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @param count
+     *            the new value, not null
+     */
     public void setCount(IntRange count) {
         this.count = Objects.requireNonNull(count, "count");
     }
 
+    /**
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
+     *
+     * @return the current value
+     */
     public Object getValue() {
         return value;
     }
 
+    /**
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
+     *
+     * @param value
+     *            the new value
+     */
     public void setValue(Object value) {
         this.value = value;
     }
 
+    /**
+     * If not null, the component must match all of these class names.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getClasses() {
         return classes;
     }
 
+    /**
+     * If not null, the component must match all of these class names.
+     * Space-separated.
+     *
+     * @param classes
+     *            the new value
+     */
     public void setClasses(String classes) {
         this.classes = classes;
     }
 
+    /**
+     * If not null, the component must NOT match any of these class names.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getWithoutClasses() {
         return withoutClasses;
     }
 
+    /**
+     * If not null, the component must NOT match any of these class names.
+     * Space-separated.
+     *
+     * @param withoutClasses
+     *            the new value
+     */
     public void setWithoutClasses(String withoutClasses) {
         this.withoutClasses = withoutClasses;
     }
 
+    /**
+     * Extra predicates the component must satisfy, on top of the other rules.
+     *
+     * @return the current value
+     */
     public List<Predicate<T>> getPredicates() {
         return predicates;
     }
 
+    /**
+     * Extra predicates the component must satisfy, on top of the other rules.
+     *
+     * @param predicates
+     *            the new value
+     */
     public void setPredicates(List<Predicate<T>> predicates) {
         this.predicates = Objects.requireNonNull(predicates, "predicates");
     }
 
+    /**
+     * If not null, the component must have all theme names defined.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getThemes() {
         return themes;
     }
 
+    /**
+     * If not null, the component must have all theme names defined.
+     * Space-separated.
+     *
+     * @param themes
+     *            the new value
+     */
     public void setThemes(String themes) {
         this.themes = themes;
     }
 
+    /**
+     * If not null, the component must NOT have any of the theme names defined.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getWithoutThemes() {
         return withoutThemes;
     }
 
+    /**
+     * If not null, the component must NOT have any of the theme names defined.
+     * Space-separated.
+     *
+     * @param withoutThemes
+     *            the new value
+     */
     public void setWithoutThemes(String withoutThemes) {
         this.withoutThemes = withoutThemes;
     }
