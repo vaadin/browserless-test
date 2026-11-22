@@ -20,8 +20,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
-
-import kotlin.jvm.functions.Function1;
+import java.util.function.Function;
 
 import com.vaadin.flow.component.Component;
 
@@ -36,7 +35,7 @@ import com.vaadin.flow.component.Component;
  */
 public final class DepthFirstTreeIterator<T> implements Iterator<T> {
 
-    private final Function1<? super T, ? extends List<? extends T>> children;
+    private final Function<? super T, ? extends List<? extends T>> children;
     private final Deque<T> queue = new LinkedList<>();
 
     /**
@@ -48,7 +47,7 @@ public final class DepthFirstTreeIterator<T> implements Iterator<T> {
      *            fetches children of given node.
      */
     public DepthFirstTreeIterator(T root,
-            Function1<? super T, ? extends List<? extends T>> children) {
+            Function<? super T, ? extends List<? extends T>> children) {
         this.children = children;
         queue.push(root);
     }
@@ -64,7 +63,7 @@ public final class DepthFirstTreeIterator<T> implements Iterator<T> {
             throw new NoSuchElementException();
         }
         T result = queue.pop();
-        List<? extends T> resultChildren = children.invoke(result);
+        List<? extends T> resultChildren = children.apply(result);
         for (int i = resultChildren.size() - 1; i >= 0; i--) {
             queue.push(resultChildren.get(i));
         }

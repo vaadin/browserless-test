@@ -30,8 +30,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-
-import kotlin.jvm.functions.Function1;
+import java.util.function.Function;
 
 import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestSetupException;
@@ -79,11 +78,6 @@ import com.vaadin.flow.shared.communication.PushMode;
  */
 public final class MockVaadin {
 
-    /**
-     * The instance to call the user-agent and request-factory accessors on.
-     */
-    public static final MockVaadin INSTANCE = new MockVaadin();
-
     // prevent GC on Vaadin Session and Vaadin UI as they are only
     // soft-referenced from the Vaadin itself.
     // use ThreadLocals so that multiple threads may initialize fresh Vaadin
@@ -118,7 +112,7 @@ public final class MockVaadin {
 
     private static String userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0";
 
-    private static Function1<? super MockHttpSession, ? extends MockRequest> mockRequestFactory = MockRequest::new;
+    private static Function<MockHttpSession, MockRequest> mockRequestFactory = MockRequest::new;
 
     private MockVaadin() {
     }
@@ -555,46 +549,44 @@ public final class MockVaadin {
     }
 
     /**
-     * Change &amp; call {@link #setup()} to set a different browser.
-     * <p>
-     * The default is Firefox 94 on Ubuntu Linux.
+     * Returns the {@code User-Agent} every mocked request reports. Defaults to
+     * Firefox 94 on Ubuntu Linux.
      *
-     * @return the user agent every mocked request reports
+     * @return the user agent string
      */
-    public String getUserAgent() {
+    public static String getUserAgent() {
         return userAgent;
     }
 
     /**
-     * Change &amp; call {@link #setup()} to set a different browser.
+     * Sets the {@code User-Agent} every mocked request reports. Call before
+     * {@link #setup()}, since the value is read while the session is created.
      *
      * @param userAgent
-     *            the user agent every mocked request reports
+     *            the user agent string
      */
-    public void setUserAgent(String userAgent) {
+    public static void setUserAgent(String userAgent) {
         MockVaadin.userAgent = userAgent;
     }
 
     /**
-     * Returns the factory that creates the {@link MockRequest} of each session.
-     * Use {@link #setMockRequestFactory} to return a subclass of
-     * {@link MockRequest} that changes its behavior.
+     * Returns the factory creating the {@link MockRequest} of each session.
      *
-     * @return the factory creating the request of each session
+     * @return the request factory
      */
-    @SuppressWarnings("unchecked")
-    public Function1<MockHttpSession, MockRequest> getMockRequestFactory() {
-        return (Function1<MockHttpSession, MockRequest>) mockRequestFactory;
+    public static Function<MockHttpSession, MockRequest> getMockRequestFactory() {
+        return mockRequestFactory;
     }
 
     /**
-     * Sets the factory creating {@link MockRequest}.
+     * Sets the factory creating the {@link MockRequest} of each session.
+     * Override when a test needs a subclass of {@link MockRequest}.
      *
      * @param mockRequestFactory
-     *            the factory creating the request of each session
+     *            the request factory
      */
-    public void setMockRequestFactory(
-            Function1<? super MockHttpSession, ? extends MockRequest> mockRequestFactory) {
+    public static void setMockRequestFactory(
+            Function<MockHttpSession, MockRequest> mockRequestFactory) {
         MockVaadin.mockRequestFactory = mockRequestFactory;
     }
 
@@ -617,7 +609,7 @@ public final class MockVaadin {
                 .create(service.getServlet().getServletContext());
 
         // init Vaadin Request
-        MockRequest mockRequest = mockRequestFactory.invoke(httpSession);
+        MockRequest mockRequest = mockRequestFactory.apply(httpSession);
         mockRequest.getHeaders().put("User-Agent",
                 Collections.singletonList(userAgent));
         MockRequestCustomizer customizer = service.getContext()

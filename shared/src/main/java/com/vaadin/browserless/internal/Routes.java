@@ -65,11 +65,6 @@ public final class Routes implements Serializable {
 
     private static final long serialVersionUID = 6806760595260168641L;
 
-    /**
-     * Kept for binary compatibility.
-     */
-    public static final Companion Companion = new Companion();
-
     private static final Logger log = LoggerFactory.getLogger(Routes.class);
 
     /**
@@ -313,42 +308,6 @@ public final class Routes implements Serializable {
     }
 
     /**
-     * Returns the {@link #getRoutes() routes}.
-     *
-     * @return the routes.
-     */
-    public Set<Class<? extends Component>> component1() {
-        return routes;
-    }
-
-    /**
-     * Returns the {@link #getErrorRoutes() errorRoutes}.
-     *
-     * @return the error routes.
-     */
-    public Set<Class<? extends HasErrorParameter<?>>> component2() {
-        return errorRoutes;
-    }
-
-    /**
-     * Returns the {@link #getLayouts() layouts}.
-     *
-     * @return the layouts.
-     */
-    public Set<Class<? extends RouterLayout>> component3() {
-        return layouts;
-    }
-
-    /**
-     * Returns the {@link #getSkipPwaInit() skipPwaInit} flag.
-     *
-     * @return the skipPwaInit flag.
-     */
-    public boolean component4() {
-        return skipPwaInit;
-    }
-
-    /**
      * Creates a new configuration with the given values; the sets are not
      * copied.
      *
@@ -389,14 +348,6 @@ public final class Routes implements Serializable {
                 && errorRoutes.equals(that.errorRoutes)
                 && layouts.equals(that.layouts)
                 && skipPwaInit == that.skipPwaInit;
-    }
-
-    /**
-     * Kept for binary compatibility; has no members.
-     */
-    public static final class Companion {
-        private Companion() {
-        }
     }
 
     /**

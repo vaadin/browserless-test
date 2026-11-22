@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import kotlin.jvm.functions.Function1;
-import kotlin.ranges.IntRange;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasValue;
 
@@ -46,7 +43,7 @@ public final class SearchSpec<T extends Component> {
     private String caption;
     private String placeholder;
     private String text;
-    private IntRange count;
+    private CountRange count;
     private Object value;
     private String classes;
     private String withoutClasses;
@@ -62,9 +59,8 @@ public final class SearchSpec<T extends Component> {
      *            the class of the component we are searching for.
      */
     public SearchSpec(Class<T> clazz) {
-        this(clazz, null, null, null, null, null,
-                new IntRange(0, Integer.MAX_VALUE), null, null, null,
-                new ArrayList<>(), null, null);
+        this(clazz, null, null, null, null, null, CountRange.ANY, null, null,
+                null, new ArrayList<>(), null, null);
     }
 
     /**
@@ -89,7 +85,7 @@ public final class SearchSpec<T extends Component> {
      *            the {@link com.vaadin.flow.dom.Element#getText()}
      * @param count
      *            expected count of matching components, defaults to
-     *            {@code 0..Int.MAX_VALUE}
+     *            {@link CountRange#ANY}
      * @param value
      *            expected {@link HasValue#getValue()}; if {@code null}, no
      *            particular value is matched.
@@ -110,7 +106,7 @@ public final class SearchSpec<T extends Component> {
      *            names defined. Space-separated
      */
     public SearchSpec(Class<T> clazz, String id, String testId, String caption,
-            String placeholder, String text, IntRange count, Object value,
+            String placeholder, String text, CountRange count, Object value,
             String classes, String withoutClasses,
             List<Predicate<T>> predicates, String themes,
             String withoutThemes) {
@@ -246,7 +242,7 @@ public final class SearchSpec<T extends Component> {
      *
      * @return the current value, not null
      */
-    public IntRange getCount() {
+    public CountRange getCount() {
         return count;
     }
 
@@ -256,7 +252,7 @@ public final class SearchSpec<T extends Component> {
      * @param count
      *            the new value, not null
      */
-    public void setCount(IntRange count) {
+    public void setCount(CountRange count) {
         this.count = Objects.requireNonNull(count, "count");
     }
 
@@ -419,8 +415,7 @@ public final class SearchSpec<T extends Component> {
         if (value != null) {
             list.add("value=" + value);
         }
-        if (!count.equals(new IntRange(0, Integer.MAX_VALUE))
-                && !count.equals(new IntRange(1, 1))) {
+        if (!count.equals(CountRange.ANY) && !count.equals(CountRange.ONE)) {
             list.add("count=" + count);
         }
         for (Predicate<T> predicate : predicates) {
@@ -447,8 +442,8 @@ public final class SearchSpec<T extends Component> {
      * @return the predicate, not null.
      */
     @SuppressWarnings({ "unchecked", "deprecation" })
-    public Function1<Component, Boolean> toPredicate() {
-        List<Function1<Component, Boolean>> p = new ArrayList<>();
+    public Predicate<Component> toPredicate() {
+        List<Predicate<Component>> p = new ArrayList<>();
         p.add(component -> clazz.isInstance(component));
         if (id != null) {
             p.add(component -> Objects.equals(component.getId().orElse(null),
@@ -494,8 +489,8 @@ public final class SearchSpec<T extends Component> {
                     && predicate.test((T) component));
         }
         return component -> {
-            for (Function1<Component, Boolean> f : p) {
-                if (!f.invoke(component)) {
+            for (Predicate<Component> f : p) {
+                if (!f.test(component)) {
                     return false;
                 }
             }
