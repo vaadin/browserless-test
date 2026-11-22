@@ -33,7 +33,7 @@ class RenderersTest {
                 .addHierarchyColumn(item -> item.toUpperCase()).getRenderer();
 
         assertEquals("ROOT A",
-                RenderersKt._getPresentationValue(renderer, "Root A"));
+                Renderers._getPresentationValue(renderer, "Root A"));
     }
 
     @Test
@@ -43,6 +43,6 @@ class RenderersTest {
                 .withProperty("name", item -> item);
 
         assertEquals("Name: Root A",
-                RenderersKt._getPresentationValue(renderer, "Root A"));
+                Renderers._getPresentationValue(renderer, "Root A"));
     }
 }

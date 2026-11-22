@@ -44,12 +44,12 @@ import com.vaadin.flow.function.SerializablePredicate
 import com.vaadin.flow.function.ValueProvider
 import com.vaadin.browserless.internal.DepthFirstTreeIterator
 import com.vaadin.browserless.internal.PrettyPrintTree
-import com.vaadin.browserless.internal._getPresentationValue
-import com.vaadin.browserless.internal._saneFetchLimit
-import com.vaadin.browserless.internal.checkEditableByUser
-import com.vaadin.browserless.internal.filterNotBlank
-import com.vaadin.browserless.internal.findClassOrThrow
-import com.vaadin.browserless.internal.size
+import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
+import com.vaadin.browserless.internal.BasicUtils.get_saneFetchLimit
+import com.vaadin.browserless.internal.Locator.filterNotBlank
+import com.vaadin.browserless.internal.Renderers._getPresentationValue
+import com.vaadin.browserless.internal.Utils.findClassOrThrow
+import com.vaadin.browserless.internal.Utils.getSize
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.stream.Stream
@@ -102,7 +102,7 @@ private val _DataCommunicator_fetchFromProvider: Method =
     }
 
 private fun <T> fetch(dataCommunicator: DataCommunicator<T>, offset: Int, limit: Int): List<T> {
-    require(limit <= _saneFetchLimit) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is $_saneFetchLimit but you asked for $limit" }
+    require(limit <= get_saneFetchLimit()) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is ${get_saneFetchLimit()} but you asked for $limit" }
     // make sure the DataCommunicator is not in paged mode: https://github.com/mvysny/karibu-testing/issues/99
     dataCommunicator.isPagingEnabled = false
     @Suppress("UNCHECKED_CAST")
@@ -119,7 +119,7 @@ public fun _size(grid: Grid<*>): Int {
         return rowSequence(grid).count()
     }
     if (!isDefinedSize(grid)) {
-        return fetch(grid, 0, _saneFetchLimit).size
+        return fetch(grid, 0, get_saneFetchLimit()).size
     }
     return grid.dataCommunicator.dataProviderSize
 }
@@ -157,13 +157,13 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
     val displayIndices: Set<Int>
     if (grid is TreeGrid<T>) {
         val tree: PrettyPrintTree = dataSourceToPrettyTree(grid)
-        val lines = tree.print().split('\n').filterNotBlank().drop(1)
+        val lines = filterNotBlank(tree.print().split('\n')).drop(1)
         dsIndices = lines.indices
         displayIndices = rows.intersect(dsIndices)
         for (i in displayIndices) {
             append("$i: ${lines[i]}\n")
         }
-        val andMore = dsIndices.size - displayIndices.size
+        val andMore = getSize(dsIndices) - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
@@ -173,7 +173,7 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
         for (i in displayIndices) {
             getFormattedRow(grid, _get(grid, i)).joinTo(this, prefix = "$i: ", postfix = "\n")
         }
-        val andMore = dsIndices.size - displayIndices.size
+        val andMore = getSize(dsIndices) - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
@@ -184,7 +184,7 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
             getFormattedRow(grid, rowObject).joinTo(this, prefix = "$i: ", postfix = "\n")
             rowsOutputted++
         }
-        if (rowsOutputted == rows.size) {
+        if (rowsOutputted == getSize(rows)) {
             append("--and possibly more\n")
         } else {
             append("--\n")

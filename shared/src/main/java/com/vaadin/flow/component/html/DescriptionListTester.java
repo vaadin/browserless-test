@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for DescriptionList components.
+ *
  * @since 1.0
  */
 @Tests(DescriptionList.class)

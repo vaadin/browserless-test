@@ -24,12 +24,18 @@ import java.util.stream.Stream;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.browserless.internal.BasicUtilsKt;
+import com.vaadin.browserless.internal.BasicUtils;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
 import com.vaadin.flow.function.SerializableConsumer;
 
 /**
+ * Tester for ComboBox components.
+ *
+ * @param <T>
+ *            component type
+ * @param <Y>
+ *            item type
  * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.combobox.ComboBox")
@@ -49,7 +55,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * Simulate writing a filter to the combobox. As typing does in the browser,
      * the filter is applied to the data provider and to the component's
      * {@code filter} property.
-     * <p/>
+     * <p>
      * Use {@link #getSuggestions()} to get the string values show in the
      * dropdown or {@link #getSuggestionItems()} to get the actual items in the
      * suggestion.
@@ -200,7 +206,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
 
     /**
      * Clears the selection by clicking the clear button, as the user would.
-     * <p/>
+     * <p>
      * Requires the clear button to be visible — a hidden clear button is not
      * something the user can click. {@link #selectItem(String)} with
      * {@code null} clears the selection without that requirement.
@@ -259,7 +265,7 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
             final Method fetchFromProvider = getMethod(DataCommunicator.class,
                     "fetchFromProvider", int.class, int.class);
             List<Y> result = ((Stream<Y>) fetchFromProvider.invoke(
-                    dataCommunicator, 0, BasicUtilsKt.get_saneFetchLimit()))
+                    dataCommunicator, 0, BasicUtils.get_saneFetchLimit()))
                     .collect(Collectors.toList());
             return result;
         } catch (IllegalAccessException | InvocationTargetException e) {

@@ -15,7 +15,9 @@
  */
 package com.vaadin.browserless;
 
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.example.multiuser.SharedCounterView;
 import com.example.multiuser.SimpleView;
@@ -24,8 +26,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.textfield.TextField;
 
 /**
  * Tests multi-window scenarios: one user with multiple windows sharing a
@@ -78,6 +82,56 @@ class MultiWindowTest {
         Assertions.assertNull(uiBeforeReload.getSession());
         Assertions.assertEquals(Set.of(window1.getUI(), window3.getUI()),
                 Set.copyOf(user.getSession().getUIs()));
+    }
+
+    @Test
+    void closedUI_captureKeepsWhatItsBrowserReceived() {
+        var user = app.newUser();
+        var window = user.newWindow();
+        user.newWindow();
+        window.activate();
+        UI ui = window.getUI();
+        ExecutedJavaScript executed = ExecutedJavaScript.capture(ui);
+        ui.getElement().callJsFunction("render");
+        Assertions.assertEquals(1, executed.getAll().size());
+        ui.getElement().callJsFunction("late");
+
+        // Closing the window removes its UI from the session
+        window.close();
+        Assertions.assertNull(ui.getSession());
+
+        Assertions.assertEquals(List.of("render"),
+                executed.getAll().stream()
+                        .map(execution -> execution.getJsCall().orElseThrow()
+                                .arguments().get(0))
+                        .toList(),
+                "A closed UI's capture should keep what was sent, and nothing more should be sent");
+        Assertions.assertDoesNotThrow(executed::stop);
+    }
+
+    @Test
+    void serverSideFocus_movesFocusOnlyInTheWindowOfTheField() {
+        var user = app.newUser();
+        var windowA = user.newWindow();
+        var windowB = user.newWindow();
+        TextField fieldA = new TextField();
+        TextField fieldB = new TextField();
+        AtomicInteger blursOfA = new AtomicInteger();
+        fieldA.addBlurListener(event -> blursOfA.incrementAndGet());
+        windowA.activate();
+        windowA.getUI().add(fieldA);
+        windowB.activate();
+        windowB.getUI().add(fieldB);
+        windowA.test(fieldA).focus();
+
+        windowB.activate();
+        fieldB.focus();
+        windowB.roundTrip();
+
+        Assertions.assertTrue(windowB.test(fieldB).isFocused());
+        Assertions.assertTrue(windowA.test(fieldA).isFocused(),
+                "Focus in another window should not move focus in this one");
+        Assertions.assertEquals(0, blursOfA.get());
     }
 
     @Test

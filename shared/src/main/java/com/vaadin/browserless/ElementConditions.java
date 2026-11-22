@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 
 import org.jsoup.Jsoup;
 
-import com.vaadin.browserless.internal.ComponentUtilsKt;
+import com.vaadin.browserless.internal.ComponentUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.HasAriaLabel;
@@ -77,6 +77,8 @@ public final class ElementConditions {
      *
      * the text that will be checked will be {@literal  Hello there now!}.
      *
+     * @param <T>
+     *            the item type
      * @param text
      *            the text the component is expected to have as its content. Not
      *            {@literal null}.
@@ -113,6 +115,8 @@ public final class ElementConditions {
      *
      * the text that will be checked will be {@literal  Hello there now!}.
      *
+     * @param <T>
+     *            the item type
      * @param text
      *            the text the component is expected to have as its content. Not
      *            {@literal null}.
@@ -139,6 +143,8 @@ public final class ElementConditions {
      * Attribute names are considered case-insensitive and all names will be
      * converted to lower case automatically.
      *
+     * @param <T>
+     *            the item type
      * @param attribute
      *            the name of the attribute, not {@literal null}
      * @return {@literal true} if the attribute has been set, {@literal false}
@@ -157,6 +163,8 @@ public final class ElementConditions {
      * Attribute names are considered case-insensitive and all names will be
      * converted to lower case automatically.
      *
+     * @param <T>
+     *            the item type
      * @param attribute
      *            the name of the attribute, not {@literal null}
      * @param value
@@ -180,6 +188,8 @@ public final class ElementConditions {
      * Attribute names are considered case-insensitive and all names will be
      * converted to lower case automatically.
      *
+     * @param <T>
+     *            the item type
      * @param attribute
      *            the name of the attribute, not {@literal null}
      * @return {@literal true} if the attribute has not been set,
@@ -198,6 +208,8 @@ public final class ElementConditions {
      * Attribute names are considered case-insensitive and all names will be
      * converted to lower case automatically.
      *
+     * @param <T>
+     *            the item type
      * @param attribute
      *            the name of the attribute, not {@literal null}
      * @param value
@@ -244,9 +256,13 @@ public final class ElementConditions {
      * layout wrapping it, are not labelled. Wrap several fields in a
      * {@code CustomField} to label them together.
      *
+     * @param <T>
+     *            the item type
      * @param label
      *            the expected label, not {@literal null}
      *
+     * @return {@code true} if the component is labelled by exactly the given
+     *         text
      * @since 1.1
      */
     public static <T extends Component> Predicate<T> hasLabel(String label) {
@@ -264,9 +280,12 @@ public final class ElementConditions {
      * the label of an enclosing {@link FormLayout.FormItem}). Comparison is
      * case-sensitive.
      *
+     * @param <T>
+     *            the item type
      * @param text
      *            substring to find in the label, not {@literal null}
      *
+     * @return {@code true} if the component's label contains the given text
      * @since 1.1
      */
     public static <T extends Component> Predicate<T> labelContains(
@@ -314,7 +333,7 @@ public final class ElementConditions {
                                 child.getElement().getAttribute("slot")))
                         .filter(ElementConditions::isFormItemField).findFirst()
                         .orElse(null) == component)
-                .map(ComponentUtilsKt::getLabel).filter(text -> !text.isEmpty())
+                .map(ComponentUtils::getLabel).filter(text -> !text.isEmpty())
                 .orElse(null);
     }
 
@@ -350,8 +369,12 @@ public final class ElementConditions {
      * that don't implement {@code HasPlaceholder} are never matched (they have
      * no placeholder to test against). Comparison is case-sensitive.
      *
+     * @param <T>
+     *            the item type
      * @param text
      *            substring to find in the placeholder, not {@literal null}
+     * @return {@code true} if the component's {@code placeholder} contains the
+     *         given text
      * @since 1.1
      */
     public static <T extends Component> Predicate<T> placeholderContains(
@@ -390,9 +413,13 @@ public final class ElementConditions {
      * {@code aria-label} on the client). Otherwise falls back to reading the
      * server-side element's {@code aria-label} attribute.
      *
+     * @param <T>
+     *            the item type
      * @param ariaLabel
      *            the expected aria-label, not {@literal null}
      *
+     * @return {@code true} if the component identifies itself to assistive
+     *         technology via the given {@code aria-label}
      * @since 1.1
      */
     public static <T extends Component> Predicate<T> hasAriaLabel(
@@ -411,9 +438,13 @@ public final class ElementConditions {
      * {@link HasAriaLabel#getAriaLabel()} over the raw element attribute so
      * that field components are matched.
      *
+     * @param <T>
+     *            the item type
      * @param text
      *            substring to find in the aria-label, not {@literal null}
      *
+     * @return {@code true} if the component's aria-label contains the given
+     *         text
      * @since 1.1
      */
     public static <T extends Component> Predicate<T> ariaLabelContains(

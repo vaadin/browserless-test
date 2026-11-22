@@ -15,6 +15,7 @@
  */
 package com.vaadin.flow.component.tabs;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.vaadin.browserless.ComponentTester;
@@ -125,6 +126,7 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
      *
      * @param label
      *            the tab label
+     * @return the visible tab with the given label
      * @throws IllegalStateException
      *             if tab is not visible
      */
@@ -171,6 +173,8 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
     /**
      * Gets the content of the visible tab with the given label.
      *
+     * @param <E>
+     *            the event type
      * @param label
      *            the tab label
      * @return the content of the tab with the given label
@@ -198,6 +202,8 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
      * is hidden, then to get the content of tab 'C', the call must be
      * {@code getTabContent(1)} and not {@code getTabContent(2)}.
      *
+     * @param <E>
+     *            the event type
      * @param index
      *            the zero-based index of the selected tab, negative value to
      *            unselect
@@ -219,6 +225,49 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
         return (E) getComponent().getComponent(tab);
     }
 
+    /**
+     * Gets the labels of the visible tabs, in the order the user sees them.
+     * <p>
+     * Hidden tabs are left out, so the position of a label in the returned list
+     * is the index that {@link #select(int)} and {@link #getTab(int)} accept.
+     * <p>
+     * Each entry is the tab's {@link Tab#getLabel() label}, the same text that
+     * {@link #select(String)} and {@link #getTab(String)} match. A tab whose
+     * caption is made of components, such as an icon and a {@code Span}, has no
+     * label of its own and is listed as an empty string.
+     * <p>
+     * This only reads the tabs, so it also works when the component is
+     * disabled.
+     *
+     * @return the labels of the visible tabs, never {@code null}
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public List<String> getTabLabels() {
+        ensureVisible();
+        return getTabs().getChildren().filter(Tab.class::isInstance)
+                .map(Tab.class::cast).filter(Component::isVisible)
+                .map(Tab::getLabel).toList();
+    }
+
+    /**
+     * Gets the label of the selected tab.
+     * <p>
+     * This only reads the selection, so it also works when the component is
+     * disabled. A selected tab that is hidden is still reported, the same way
+     * {@link #isSelected(String)} reports it.
+     *
+     * @return the label of the selected tab, or {@code null} if no tab is
+     *         selected
+     * @throws IllegalStateException
+     *             if the component is not visible
+     */
+    public String getSelectedTabLabel() {
+        ensureVisible();
+        Tab selected = getComponent().getSelectedTab();
+        return selected == null ? null : selected.getLabel();
+    }
+
     private Tab findTab(String label) {
         return getComponent().getChildren().filter(Tabs.class::isInstance)
                 .flatMap(tabs -> tabs.getChildren()
@@ -234,13 +283,16 @@ public class TabSheetTester<T extends TabSheet> extends ComponentTester<T> {
                     "The 'index' argument should be greater than or equal to 0. It was: "
                             + index);
         }
-        Tabs tabs = getComponent().getChildren().filter(Tabs.class::isInstance)
-                .map(Tabs.class::cast).findFirst().orElseThrow();
-        return (Tab) tabs.getChildren().sequential()
+        return (Tab) getTabs().getChildren().sequential()
                 .filter(Component::isVisible).skip(index).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
                         "The 'index' argument should not be greater than or equals to the number of visible children tabs. It was: "
                                 + index));
+    }
+
+    private Tabs getTabs() {
+        return getComponent().getChildren().filter(Tabs.class::isInstance)
+                .map(Tabs.class::cast).findFirst().orElseThrow();
     }
 
     private void doSelectTab(Tab tab, String errorMessage) {

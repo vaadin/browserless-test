@@ -113,17 +113,17 @@ fun DynaNodeGroup.routesTestBatch() {
             throw (view as MockRouteNotFoundError).cause!!
         }
         expect(true) {
-            val errorMessage = getTextIncludingInnerHtml(view.element)
+            val errorMessage = ElementUtils.getTextIncludingInnerHtml(view.element)
             errorMessage.contains("Could not navigate to 'A_VIEW_THAT_DOESNT_EXIST'")
         }
     }
 
     test("merge routes") {
-        val routes1 = Routes(mutableSetOf(HelloWorldView::class.java, WelcomeView::class.java,
+        val routes1 = Routes(mutableSetOf<Class<out Component>>(HelloWorldView::class.java, WelcomeView::class.java,
                 ViewPackagesTestView::class.java, SignalsView::class.java, packagePrivateViewClass),
-                mutableSetOf(ErrorView::class.java))
-        val routes2 = Routes(mutableSetOf(ParametrizedView::class.java, ChildView::class.java, NavigationPostponeView::class.java),
-                mutableSetOf(MockRouteNotFoundError::class.java, MockInternalSeverError::class.java))
+                mutableSetOf<Class<out HasErrorParameter<*>>>(ErrorView::class.java), mutableSetOf(), true)
+        val routes2 = Routes(mutableSetOf<Class<out Component>>(ParametrizedView::class.java, ChildView::class.java, NavigationPostponeView::class.java),
+                mutableSetOf<Class<out HasErrorParameter<*>>>(MockRouteNotFoundError::class.java, MockInternalSeverError::class.java), mutableSetOf(), true)
         val merged = routes1.merge(routes2);
         expect(allViews) { merged.routes.toSet() }
         expect(allErrorRoutes) { merged.errorRoutes.toSet() }
