@@ -44,14 +44,14 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
 
     /**
      * Set the given value for the component, as the user would type it.
-     * <p/>
+     * <p>
      * A value that only breaks a validation constraint — shorter than
      * {@literal minLength}, not matching {@literal pattern}, or the empty value
      * on a required field — is committed all the same, because the browser
      * commits it too and simply leaves the field invalid. Assert that outcome
      * with {@link com.vaadin.flow.component.HasValidation#isInvalid()} instead
      * of expecting this method to throw.
-     * <p/>
+     * <p>
      * A value the user physically cannot type is refused: the browser truncates
      * what is over {@literal maxLength} and filters out the keystrokes
      * {@literal allowedCharPattern} does not match, so a longer value or a
@@ -80,7 +80,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
     /**
      * Empties the field, as when the user deletes its contents (or clicks the
      * clear button, where one is shown).
-     * <p/>
+     * <p>
      * Emptying is something the user can always do, so it needs no clear
      * button: a field may legitimately end up invalid — a required field, for
      * instance — once emptied.
@@ -94,7 +94,7 @@ public class TextFieldTester<T extends TextFieldBase<T, V>, V>
 
     /**
      * Empties the field by clicking its clear button, as the user would.
-     * <p/>
+     * <p>
      * Unlike {@link #clear()}, which models selecting the contents and deleting
      * them and is therefore always available, this requires the clear button to
      * be visible — a hidden clear button is not something the user can click.

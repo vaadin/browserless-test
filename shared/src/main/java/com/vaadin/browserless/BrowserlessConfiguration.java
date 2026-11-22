@@ -55,9 +55,21 @@ public final class BrowserlessConfiguration implements Serializable {
     private static final BrowserlessConfiguration EMPTY = new BrowserlessConfiguration(
             Map.of(), Map.of(), Set.of(), Set.of());
 
+    /**
+     * The application properties fed to the deployment configuration.
+     */
     private final Map<String, String> applicationProperties;
+    /**
+     * The feature flags to turn on or off, by feature id.
+     */
     private final Map<String, Boolean> featureFlags;
+    /**
+     * The extra service classes handed to the lookup initializer.
+     */
     private final Set<Class<?>> lookupServices;
+    /**
+     * The handlers that answer the JavaScript the server sends to the client.
+     */
     private final Set<Class<? extends JavaScriptHandler>> javaScriptHandlers;
 
     private BrowserlessConfiguration(Map<String, String> applicationProperties,

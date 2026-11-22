@@ -72,15 +72,30 @@ public final class JavaScriptDispatcher implements Serializable {
         void handle(PendingJavaScriptInvocation invocation);
     }
 
+    /**
+     * The UI whose pending JavaScript is dispatched.
+     */
     private final UI ui;
 
+    /**
+     * The handlers the pending JavaScript is passed to, in registration order.
+     */
     private final List<Handler> handlers = new ArrayList<>();
 
+    /**
+     * The invocations already answered, so that none is answered twice.
+     */
     private final Set<PendingJavaScriptInvocation> answered = Collections
             .newSetFromMap(new IdentityHashMap<>());
 
+    /**
+     * Whether a dispatch is running, so that a nested one is skipped.
+     */
     private boolean dispatching;
 
+    /**
+     * Whether the simulated client has been set up for the UI.
+     */
     private boolean simulatedClientSetUp;
 
     private @Nullable ExecutedJavaScript uiCapture;

@@ -38,6 +38,10 @@ public interface HasPlaceholderFilter<C extends Component & HasPlaceholder, SELF
      * given value. Useful for toolbar / search fields that intentionally omit a
      * stacked label and identify themselves to the user via placeholder text
      * instead.
+     *
+     * @param placeholder
+     *            the expected placeholder
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withPlaceholder(String placeholder) {
@@ -48,6 +52,10 @@ public interface HasPlaceholderFilter<C extends Component & HasPlaceholder, SELF
     /**
      * Requires the matched component's {@code placeholder} to contain the given
      * text.
+     *
+     * @param text
+     *            the expected text
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withPlaceholderContaining(String text) {

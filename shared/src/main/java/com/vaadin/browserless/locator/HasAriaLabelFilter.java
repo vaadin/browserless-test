@@ -36,6 +36,10 @@ public interface HasAriaLabelFilter<C extends Component & HasAriaLabel, SELF ext
     /**
      * Requires the matched component's {@code aria-label} attribute to be
      * exactly the given value.
+     *
+     * @param ariaLabel
+     *            the expected ARIA label
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withAriaLabel(String ariaLabel) {
@@ -46,6 +50,10 @@ public interface HasAriaLabelFilter<C extends Component & HasAriaLabel, SELF ext
     /**
      * Requires the matched component's {@code aria-label} attribute to contain
      * the given text.
+     *
+     * @param text
+     *            the expected text
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withAriaLabelContaining(String text) {
