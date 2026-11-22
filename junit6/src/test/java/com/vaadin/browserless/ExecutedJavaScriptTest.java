@@ -352,21 +352,25 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ExecutedJavaScript.Execution execution = executed.getAll().get(0);
         // Records what the client gets without sending anything itself, as
         // querying the capture would
-        List<String> sent = new ArrayList<>();
+        List<List<Object>> sent = new ArrayList<>();
         JavaScriptDispatcher.forUI(UI.getCurrent())
                 .addHandler(invocation -> sent
-                        .add(invocation.getInvocation().getExpression()));
+                        .add(invocation.getInvocation().getParameters()));
 
         execution.invokeReturnChannel("week", 7);
         Assertions.assertEquals(1, sent.size(),
                 "JavaScript the handler schedules should be sent right away");
+        Assertions.assertTrue(sent.get(0).contains("render"), sent.toString());
         execution.invokeReturnChannel(
                 JacksonUtils.createObjectNode().put("a", 1));
         execution.invokeReturnChannel((Object) null);
+        execution.invokeReturnChannel((Object[]) null);
 
         Assertions.assertEquals(
-                List.of("[\"week\",7]", "[{\"a\":1}]", "[null]"), received);
-        Assertions.assertEquals(List.of(List.of(), List.of(), List.of()),
+                List.of("[\"week\",7]", "[{\"a\":1}]", "[null]", "[null]"),
+                received);
+        Assertions.assertEquals(
+                List.of(List.of(), List.of(), List.of(), List.of()),
                 executed.getFunctionCalls(calendar, "render"));
     }
 
