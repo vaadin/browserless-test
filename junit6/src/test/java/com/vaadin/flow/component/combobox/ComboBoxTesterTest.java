@@ -149,13 +149,16 @@ public class ComboBoxTesterTest extends BrowserlessTest
 
     @Test
     void selectItemContaining_prefersExactLabelMatch() {
-        ComboBox<String> cities = new ComboBox<>();
-        cities.setItems("Berlin", "Bern", "Bernau");
-        view.add(cities);
+        // Labels ("test-bern") differ from toString(), so the exact match has
+        // to be checked against the item label generator.
+        List<ComboBoxView.Name> cities = List.of(
+                new ComboBoxView.Name("berlin"), new ComboBoxView.Name("bern"),
+                new ComboBoxView.Name("bernau"));
+        view.combo.setItems(cities);
 
-        test(cities).selectItemContaining("BERN");
+        test(view.combo).selectItemContaining("TEST-BERN");
 
-        Assertions.assertEquals("Bern", test(cities).getSelected());
+        Assertions.assertSame(cities.get(1), test(view.combo).getSelected());
     }
 
     @Test
