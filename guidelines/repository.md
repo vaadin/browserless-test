@@ -8,7 +8,7 @@
 - **Kotlin** for the older mocks and the Grid helpers in `shared/src/main/kotlin`.
   New code is Java; the Kotlin is being ported over time.
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
-  own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
+  own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
 - **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
