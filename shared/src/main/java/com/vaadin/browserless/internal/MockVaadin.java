@@ -576,8 +576,9 @@ public final class MockVaadin {
     }
 
     /**
-     * Creates {@link MockRequest}; override if you need to return a class that
-     * extends {@link MockRequest} and modifies its behavior.
+     * Returns the factory that creates the {@link MockRequest} of each session.
+     * Use {@link #setMockRequestFactory} to return a subclass of
+     * {@link MockRequest} that changes its behavior.
      *
      * @return the factory creating the request of each session
      */
