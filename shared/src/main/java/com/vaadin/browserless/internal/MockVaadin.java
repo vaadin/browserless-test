@@ -79,6 +79,9 @@ import com.vaadin.flow.shared.communication.PushMode;
  */
 public final class MockVaadin {
 
+    /**
+     * The instance to call the user-agent and request-factory accessors on.
+     */
     public static final MockVaadin INSTANCE = new MockVaadin();
 
     // prevent GC on Vaadin Session and Vaadin UI as they are only
@@ -555,6 +558,8 @@ public final class MockVaadin {
      * Change &amp; call {@link #setup()} to set a different browser.
      * <p>
      * The default is Firefox 94 on Ubuntu Linux.
+     *
+     * @return the user agent every mocked request reports
      */
     public String getUserAgent() {
         return userAgent;
@@ -562,6 +567,9 @@ public final class MockVaadin {
 
     /**
      * Change &amp; call {@link #setup()} to set a different browser.
+     *
+     * @param userAgent
+     *            the user agent every mocked request reports
      */
     public void setUserAgent(String userAgent) {
         MockVaadin.userAgent = userAgent;
@@ -570,6 +578,8 @@ public final class MockVaadin {
     /**
      * Creates {@link MockRequest}; override if you need to return a class that
      * extends {@link MockRequest} and modifies its behavior.
+     *
+     * @return the factory creating the request of each session
      */
     @SuppressWarnings("unchecked")
     public Function1<MockHttpSession, MockRequest> getMockRequestFactory() {
@@ -578,6 +588,9 @@ public final class MockVaadin {
 
     /**
      * Sets the factory creating {@link MockRequest}.
+     *
+     * @param mockRequestFactory
+     *            the factory creating the request of each session
      */
     public void setMockRequestFactory(
             Function1<? super MockHttpSession, ? extends MockRequest> mockRequestFactory) {

@@ -108,18 +108,38 @@ public final class SessionObjects {
         return httpSession;
     }
 
+    /**
+     * Returns the session; same as {@link #getSession()}.
+     *
+     * @return the session
+     */
     public VaadinSession component1() {
         return session;
     }
 
+    /**
+     * Returns the request; same as {@link #getRequest()}.
+     *
+     * @return the request
+     */
     public VaadinRequest component2() {
         return request;
     }
 
+    /**
+     * Returns the response; same as {@link #getResponse()}.
+     *
+     * @return the response
+     */
     public VaadinResponse component3() {
         return response;
     }
 
+    /**
+     * Returns the HTTP session; same as {@link #getHttpSession()}.
+     *
+     * @return the HTTP session
+     */
     public MockHttpSession component4() {
         return httpSession;
     }
