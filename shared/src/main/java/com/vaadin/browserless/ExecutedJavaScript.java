@@ -180,8 +180,8 @@ public final class ExecutedJavaScript implements Serializable {
             throw new IllegalStateException("The capture that the UI got "
                     + "when it was created is read-only and cannot be "
                     + refused + ", as it holds everything sent to the UI. "
-                    + "Use ExecutedJavaScript.capture() for a capture of "
-                    + "your own.");
+                    + "Use ExecutedJavaScript.capture() for a capture that "
+                    + "can be " + refused + ".");
         }
     }
 
