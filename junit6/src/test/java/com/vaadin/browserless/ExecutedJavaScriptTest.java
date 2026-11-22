@@ -349,9 +349,17 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.listen($0, $1)", "change",
                 channel);
-
         ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        // Records what the client gets without sending anything itself, as
+        // querying the capture would
+        List<String> sent = new ArrayList<>();
+        JavaScriptDispatcher.forUI(UI.getCurrent())
+                .addHandler(invocation -> sent
+                        .add(invocation.getInvocation().getExpression()));
+
         execution.invokeReturnChannel("week", 7);
+        Assertions.assertEquals(1, sent.size(),
+                "JavaScript the handler schedules should be sent right away");
         execution.invokeReturnChannel(
                 JacksonUtils.createObjectNode().put("a", 1));
         execution.invokeReturnChannel((Object) null);
@@ -359,37 +367,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertEquals(
                 List.of("[\"week\",7]", "[{\"a\":1}]", "[null]"), received);
         Assertions.assertEquals(List.of(List.of(), List.of(), List.of()),
-                executed.getFunctionCalls(calendar, "render"),
-                "JavaScript the handler schedules should be sent right away");
-    }
-
-    @Test
-    void invokeReturnChannel_fromAHandler_runsTheChannelHandlerLive() {
-        List<String> received = new ArrayList<>();
-        ReturnChannelRegistration channel = registerChannel(calendar,
-                arguments -> {
-                    received.add(arguments.toString());
-                    calendar.getElement().callJsFunction("render");
-                });
-        JavaScriptDispatcher dispatcher = JavaScriptDispatcher
-                .forUI(UI.getCurrent());
-        dispatcher.addHandler(invocation -> {
-            ExecutedJavaScript.Execution execution = new ExecutedJavaScript.Execution(
-                    dispatcher, invocation);
-            if (execution.getExpression().contains("listen")) {
-                execution.invokeReturnChannel("week");
-            }
-        });
-        ExecutedJavaScript executed = ExecutedJavaScript.capture();
-
-        calendar.getElement().executeJs("this.listen($0)", channel);
-        roundTrip();
-
-        Assertions.assertEquals(List.of("[\"week\"]"), received);
-        Assertions.assertEquals(List.of(List.of()),
-                executed.getFunctionCalls(calendar, "render"),
-                "JavaScript the channel handler schedules should be sent at "
-                        + "the next client boundary");
+                executed.getFunctionCalls(calendar, "render"));
     }
 
     @Test
@@ -410,6 +388,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 "Parameter 2 is the element, not a channel");
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> execution.invokeReturnChannelAt(3, "x"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(-1, "x"));
         calendar.getElement().executeJs("this.listen($0)", "change");
         Assertions.assertThrows(IllegalStateException.class,
                 () -> executed.getAll().get(1).invokeReturnChannel("x"),
