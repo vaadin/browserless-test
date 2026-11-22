@@ -763,6 +763,22 @@ wrapped so that it runs with the element as `this`, so check it with
 `getAll(component)` and `getAll(element)` keep only what was run on that
 element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
 
+Each UI also has a capture of its own, started when the UI is created, so
+it holds everything that UI was sent, including what the first view sent
+while it was navigated to. A capture started in the test would come too late
+for that. Get it with `getExecutedJavaScript()` from the test class or from a
+window context (`BrowserlessUIContext`):
+
+```java
+navigate(ReportView.class);
+
+assertEquals(List.of(), getExecutedJavaScript().getCalls(PrintJs.class, "print"));
+```
+
+After `reload()`, or in another window, `getExecutedJavaScript()` returns the
+capture of that UI, which starts empty, as a new page in a browser does. To
+check a single step, start a capture of your own just before it.
+
 A capture holds everything sent after it started; JavaScript still pending
 when it starts is sent first and is left out. Querying sends
 whatever is still pending first and does not consume anything, so a capture can
@@ -829,7 +845,8 @@ accumulate like lookup services.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it
-  holds until then. JavaScript sent while no capture is active is not kept.
+  holds until then. The capture of a UI keeps everything the UI was sent for
+  as long as the UI lives.
 
 ## Multi-user and multi-window testing
 

@@ -57,6 +57,16 @@ import com.vaadin.flow.shared.Registration;
  *         executed.getFunctionCalls(dialog, "open"));
  * </pre>
  * <p>
+ * Each UI created by Browserless Test also has a capture that was started with
+ * the UI, before its first view was navigated to, so it holds everything the UI
+ * was sent. The test classes and {@link BrowserlessUIContext} return it from
+ * {@code getExecutedJavaScript()}. Everyone who gets it shares the same
+ * instance, so it is read-only: no one can stop it or take anything out of it,
+ * and the lists its queries return, like those of any capture, cannot be
+ * modified. Answering a call with {@link Execution#resolve(Object)} or
+ * {@link Execution#reject(String)} is visible to everyone who looks at that
+ * call, as it is the browser's answer to the application.
+ * <p>
  * A capture holds everything sent to the browser of its UI after it was
  * started; JavaScript still pending when it starts is sent first and is not
  * part of it. A capture runs until {@link #stop()} or for as long as the UI
@@ -79,10 +89,18 @@ public final class ExecutedJavaScript implements Serializable {
 
     private final List<Execution> executions = new ArrayList<>();
 
+    /**
+     * Whether this is the capture a UI got when it was created, which every
+     * caller of {@code getExecutedJavaScript()} shares and relies on to hold
+     * everything, so no caller may stop it or take anything out of it.
+     */
+    private final boolean readOnly;
+
     private @Nullable Registration registration;
 
-    private ExecutedJavaScript(UI ui) {
+    private ExecutedJavaScript(UI ui, boolean readOnly) {
         this.ui = ui;
+        this.readOnly = readOnly;
     }
 
     /**
@@ -114,7 +132,18 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        ExecutedJavaScript capture = new ExecutedJavaScript(ui);
+        return startCapture(dispatcher, false);
+    }
+
+    /**
+     * Starts capturing what the given dispatcher sends from now on, without
+     * sending what is pending first. The capture a UI owns is shared by all
+     * callers, which rely on it to hold everything, so it is read-only.
+     */
+    static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher,
+            boolean readOnly) {
+        ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI(),
+                readOnly);
         capture.registration = dispatcher
                 .addHandler(invocation -> capture.executions
                         .add(new Execution(dispatcher, invocation)));
@@ -125,8 +154,13 @@ public final class ExecutedJavaScript implements Serializable {
      * Stops capturing, after first sending whatever is still pending. What was
      * captured so far can still be queried. Stopping a capture that is already
      * stopped does nothing.
+     *
+     * @throws IllegalStateException
+     *             if this is the read-only capture that a UI got when it was
+     *             created, which runs for as long as the UI lives
      */
     public void stop() {
+        ensureNotReadOnly("stopped");
         if (registration != null) {
             try {
                 JavaScriptDispatcher.dispatch(ui);
@@ -134,6 +168,20 @@ public final class ExecutedJavaScript implements Serializable {
                 registration.remove();
                 registration = null;
             }
+        }
+    }
+
+    /**
+     * Refuses an operation that would leave the shared capture of a UI without
+     * part of what the UI was sent.
+     */
+    private void ensureNotReadOnly(String refused) {
+        if (readOnly) {
+            throw new IllegalStateException("The capture that the UI got "
+                    + "when it was created is read-only and cannot be "
+                    + refused + ", as it holds everything sent to the UI. "
+                    + "Use ExecutedJavaScript.capture() for a capture that "
+                    + "can be " + refused + ".");
         }
     }
 
