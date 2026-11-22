@@ -121,6 +121,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * {@link #notUsableReasons(Consumer)} to provide additional details to the
      * potential exception thrown by {@link #ensureComponentIsUsable()}.
      *
+     * @param component
+     *            the component to inspect
      * @return {@code true} if component can be interacted with by the user
      * @see #notUsableReasons(Consumer)
      * @see #ensureComponentIsUsable()
@@ -166,9 +168,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * context menu, and {@code GridTester.contextMenu(row).open()} for a grid
      * context menu.
      *
-     * @param componentType
-     *            type of the component to search.
      * @param <R>
+     *            type of the component to search.
+     * @param componentType
      *            type of the component to search.
      * @return a {@link ComponentQuery} instance, searching for wrapped
      *         component children.
@@ -249,6 +251,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * method to provide additional details to the potential exception throw by
      * {@link #ensureComponentIsUsable()}.
      *
+     * @param collector
+     *            receives the components the tester walks over
      * @see #isUsable()
      * @see #ensureComponentIsUsable()
      */
@@ -267,6 +271,10 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * method to provide additional details to the potential exception throw by
      * {@link #ensureComponentIsUsable()}.
      *
+     * @param component
+     *            the component to check
+     * @param collector
+     *            receives the components the tester walks over
      * @see #isUsable()
      * @see #ensureComponentIsUsable()
      */
@@ -299,6 +307,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     /**
      * Check that the given component is visible for the user. Else throw an
      * {@link IllegalStateException}
+     *
+     * @param component
+     *            the component to check
      */
     protected static void ensureVisible(Component component) {
         if (!component.isVisible() || !component.isAttached()) {
@@ -531,12 +542,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Usually the {@link ComponentQuery} consumer should only define
      * conditions, not invoke any terminal operator.
      *
+     * @param <R>
+     *            the type of the component to search for
      * @param componentType
      *            the type of the component to search for
      * @param queryBuilder
      *            the function that sets query condition
-     * @param <R>
-     *            the type of the component to search for
      * @return the component found by query execution, wrapped into an
      *         {@link Optional}, or empty if the query does not produce results.
      */
@@ -564,12 +575,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Usually the {@link ComponentQuery} consumer should only define
      * conditions, not invoke any terminal operator.
      *
+     * @param <R>
+     *            the type of the component to search for
      * @param componentType
      *            the type of the component to search for
      * @param queryBuilder
      *            the function that sets query condition
-     * @param <R>
-     *            the type of the component to search for
      * @return the components found by query execution, or an empty list.
      */
     protected <R extends Component> List<R> findAllByQuery(
@@ -671,6 +682,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * instance of AbstractField. This method is purposed for internal use and
      * when creating custom testers extending ComponentTesters.
      *
+     * @param <V>
+     *            the value type
      * @param value
      *            the new value, may be null.
      */
@@ -694,6 +707,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * extending ComponentTesters, for fields other than the wrapped component,
      * such as an editor field owned by the wrapped component.
      *
+     * @param <V>
+     *            the value type
      * @param field
      *            the field to set the value to, not {@literal null}.
      * @param value

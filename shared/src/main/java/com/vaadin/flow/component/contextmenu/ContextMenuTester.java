@@ -283,6 +283,8 @@ public class ContextMenuTester<T extends ContextMenu>
      * @param nestedItemsPositions
      *            the zero-based position of the nested items, relative to the
      *            parent menu
+     * @return {@code true} if the checkable menu item at given position is
+     *         checked
      * @throws IllegalArgumentException
      *             if the provided position does not identify a menu item or if
      *             the menu item is not checkable.
@@ -492,7 +494,7 @@ public class ContextMenuTester<T extends ContextMenu>
      * are in a detached state unless {@link #open()} has been called
      * previously. Example usage:
      *
-     * <pre>
+     * <pre>{@code
      * // view:
      * ContextMenu menu = new ContextMenu();
      * menu.addItem(new VerticalLayout(new Div("Component Item")),
@@ -507,7 +509,7 @@ public class ContextMenuTester<T extends ContextMenu>
      * menuTester.close();
      * div = menuTester.find(Div.class).withText("Component Item").single();
      * Assertions.assertFalse(div.isAttached());
-     * </pre>
+     * }</pre>
      */
     @Override
     public <R extends Component> ComponentQuery<R> find(

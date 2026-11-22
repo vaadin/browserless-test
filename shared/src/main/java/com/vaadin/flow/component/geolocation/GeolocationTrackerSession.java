@@ -27,13 +27,25 @@ import com.vaadin.flow.component.Component;
  */
 public interface GeolocationTrackerSession {
 
-    /** The component that owns this tracker session. */
+    /**
+     * The component that owns this tracker session.
+     *
+     * @return the component that started tracking
+     */
     Component owner();
 
-    /** Options the tracker was started with, or {@code null}. */
+    /**
+     * Options the tracker was started with, or {@code null}.
+     *
+     * @return the options tracking was started with
+     */
     @Nullable
     GeolocationOptions options();
 
-    /** Whether the tracker is currently receiving updates. */
+    /**
+     * Whether the tracker is currently receiving updates.
+     *
+     * @return {@code true} while the session is still tracking
+     */
     boolean isActive();
 }

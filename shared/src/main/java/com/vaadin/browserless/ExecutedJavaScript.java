@@ -87,8 +87,14 @@ import com.vaadin.flow.shared.Registration;
  */
 public final class ExecutedJavaScript implements Serializable {
 
+    /**
+     * The UI whose JavaScript is captured.
+     */
     private final UI ui;
 
+    /**
+     * The JavaScript captured so far, in the order it was sent.
+     */
     private final List<Execution> executions = new ArrayList<>();
 
     /**
@@ -98,6 +104,9 @@ public final class ExecutedJavaScript implements Serializable {
      */
     private final boolean readOnly;
 
+    /**
+     * Removes the capture from the dispatcher; null once it was removed.
+     */
     private @Nullable Registration registration;
 
     private ExecutedJavaScript(UI ui, boolean readOnly) {
@@ -347,8 +356,14 @@ public final class ExecutedJavaScript implements Serializable {
      */
     public static final class Execution implements Serializable {
 
+        /**
+         * The dispatcher that sent the JavaScript to the client.
+         */
         private final JavaScriptDispatcher dispatcher;
 
+        /**
+         * The invocation the client received.
+         */
         private final PendingJavaScriptInvocation invocation;
 
         Execution(JavaScriptDispatcher dispatcher,

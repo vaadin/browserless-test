@@ -59,7 +59,8 @@ public class MessageListTester<T extends MessageList>
      *            item index
      * @return message in index
      * @throws IndexOutOfBoundsException
-     *             – if the index is out of range (index < 0 || index >= size())
+     *             – if the index is out of range
+     *             ({@code index < 0 || index >= size()})
      */
     public MessageListItem getMessage(int index) {
         ensureComponentIsUsable();
@@ -132,7 +133,8 @@ public class MessageListTester<T extends MessageList>
      * @return attachments of the message in index, empty list if the message
      *         has no attachments
      * @throws IndexOutOfBoundsException
-     *             – if the index is out of range (index < 0 || index >= size())
+     *             – if the index is out of range
+     *             ({@code index < 0 || index >= size()})
      * @since 1.1
      */
     public List<MessageListItem.Attachment> getAttachments(int index) {
@@ -151,7 +153,8 @@ public class MessageListTester<T extends MessageList>
      * @return attachment with the given name, or {@code null} if the message
      *         has no attachment with the given name
      * @throws IndexOutOfBoundsException
-     *             – if the index is out of range (index < 0 || index >= size())
+     *             – if the index is out of range
+     *             ({@code index < 0 || index >= size()})
      * @since 1.1
      */
     public MessageListItem.Attachment getAttachmentByName(int index,
