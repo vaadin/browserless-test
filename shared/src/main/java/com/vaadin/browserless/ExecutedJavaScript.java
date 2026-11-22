@@ -61,9 +61,11 @@ import com.vaadin.flow.shared.Registration;
  * the UI, before its first view was navigated to, so it holds everything the UI
  * was sent. The test classes and {@link BrowserlessUIContext} return it from
  * {@code getExecutedJavaScript()}. Everyone who gets it shares the same
- * instance, so it cannot be changed by them: the lists its queries return are
- * unmodifiable, and {@link #stop()}, the only operation that changes a capture,
- * is refused.
+ * instance, so no one can take anything away from it: it cannot be stopped, and
+ * the lists its queries return, like those of any capture, cannot be modified.
+ * Answering a call with {@link Execution#resolve(Object)} or
+ * {@link Execution#reject(String)} is visible to everyone who looks at that
+ * call, as it is the browser's answer to the application.
  * <p>
  * A capture holds everything sent to the browser of its UI after it was
  * started; JavaScript still pending when it starts is sent first and is not
