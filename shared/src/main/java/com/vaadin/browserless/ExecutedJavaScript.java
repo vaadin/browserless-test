@@ -400,6 +400,10 @@ public final class ExecutedJavaScript implements Serializable {
          * the browser calls as soon as the JavaScript runs. JavaScript the
          * channel's handler schedules is then sent at the next client boundary.
          * <p>
+         * The UI the JavaScript was sent to must be the current UI, as the
+         * channel's handler runs in it: with several windows, activate its
+         * window first.
+         * <p>
          * The JavaScript must have received exactly one
          * {@link ReturnChannelRegistration} among its
          * {@linkplain #getParameters() parameters}; use
@@ -419,7 +423,8 @@ public final class ExecutedJavaScript implements Serializable {
          *            {@link JsonNode} is used as is
          * @throws IllegalStateException
          *             if the JavaScript received no return channel or more than
-         *             one, or if Flow would ignore the message
+         *             one, if the UI the JavaScript was sent to is not the
+         *             current UI, or if Flow would ignore the message
          * @see #invokeReturnChannelAt(int, Object...)
          */
         public void invokeReturnChannel(@Nullable Object... arguments) {
@@ -457,7 +462,8 @@ public final class ExecutedJavaScript implements Serializable {
          *             if there is no parameter with the given index, or it is
          *             not a {@link ReturnChannelRegistration}
          * @throws IllegalStateException
-         *             if Flow would ignore the message
+         *             if the UI the JavaScript was sent to is not the current
+         *             UI, or if Flow would ignore the message
          * @see #invokeReturnChannel(Object...)
          */
         public void invokeReturnChannelAt(int parameterIndex,
@@ -474,6 +480,14 @@ public final class ExecutedJavaScript implements Serializable {
 
         private void invoke(ReturnChannelRegistration channel,
                 @Nullable Object[] arguments) {
+            // The round trips and the channel's handler work on the Vaadin
+            // thread-locals, so another window's would take this one's place
+            if (getUI() != UI.getCurrent()) {
+                throw new IllegalStateException("The UI that " + this
+                        + " was sent to is not the current UI. Activate its "
+                        + "window first, for example with "
+                        + "BrowserlessUIContext.activate().");
+            }
             // The browser sends the message in reply to the latest response,
             // and Flow updates whether an element is visible only when it
             // sends a response
