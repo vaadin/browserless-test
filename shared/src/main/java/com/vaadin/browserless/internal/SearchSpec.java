@@ -217,7 +217,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * The {@code com.vaadin.flow.dom.Element.getText}
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
      *
      * @return the current value
      */
@@ -226,7 +227,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * The {@code com.vaadin.flow.dom.Element.getText}
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
      *
      * @param text
      *            the new value
@@ -236,27 +238,27 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * The number of components the lookup accepts.
+     * The expected number of matching components. Defaults to any number.
      *
-     * @return the current value
+     * @return the current value, not null
      */
     public CountRange getCount() {
         return count;
     }
 
     /**
-     * The number of components the lookup accepts.
+     * The expected number of matching components. Defaults to any number.
      *
      * @param count
-     *            the new value
+     *            the new value, not null
      */
     public void setCount(CountRange count) {
         this.count = Objects.requireNonNull(count, "count");
     }
 
     /**
-     * Expected {@code com.vaadin.flow.component.HasValue.getValue}; if
-     * {@code null}, no particular value is matched.
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
      *
      * @return the current value
      */
@@ -265,8 +267,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * Expected {@code com.vaadin.flow.component.HasValue.getValue}; if
-     * {@code null}, no particular value is matched.
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
      *
      * @param value
      *            the new value
