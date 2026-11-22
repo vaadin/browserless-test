@@ -113,8 +113,7 @@ public class SplitLayoutTester<T extends SplitLayout>
      * @throws IllegalStateException
      *             if the layout is not visible to the user
      */
-    @Nullable
-    public Double getSplitterPosition() {
+    public @Nullable Double getSplitterPosition() {
         ensureVisible();
         return getComponent().getSplitterPosition();
     }
@@ -127,8 +126,7 @@ public class SplitLayoutTester<T extends SplitLayout>
      * @throws IllegalStateException
      *             if the layout is not visible to the user
      */
-    @Nullable
-    public Component getPrimaryComponent() {
+    public @Nullable Component getPrimaryComponent() {
         ensureVisible();
         return getComponent().getPrimaryComponent();
     }
@@ -141,8 +139,7 @@ public class SplitLayoutTester<T extends SplitLayout>
      * @throws IllegalStateException
      *             if the layout is not visible to the user
      */
-    @Nullable
-    public Component getSecondaryComponent() {
+    public @Nullable Component getSecondaryComponent() {
         ensureVisible();
         return getComponent().getSecondaryComponent();
     }

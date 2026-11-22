@@ -152,8 +152,8 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
         return getComponent().getValue();
     }
 
-    @NonNull
-    private Stream<Checkbox> getCheckboxes(Predicate<Checkbox> filter) {
+    private @NonNull Stream<Checkbox> getCheckboxes(
+            Predicate<Checkbox> filter) {
         return getComponent().getChildren().filter(Checkbox.class::isInstance)
                 .map(Checkbox.class::cast).filter(filter);
     }

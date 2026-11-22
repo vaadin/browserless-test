@@ -76,8 +76,8 @@ public class RadioButtonGroupTester<T extends RadioButtonGroup<V>, V>
         return getComponent().getValue();
     }
 
-    @NonNull
-    private Stream<RadioButton> getRadioButtons(Predicate<RadioButton> filter) {
+    private @NonNull Stream<RadioButton> getRadioButtons(
+            Predicate<RadioButton> filter) {
         return getComponent().getChildren()
                 .filter(RadioButton.class::isInstance)
                 .map(RadioButton.class::cast).filter(filter);

@@ -46,8 +46,7 @@ public class MockSpringServletService extends SpringVaadinServletService {
     /**
      * Produces the UI instances the sessions of this service hand out.
      */
-    @NonNull
-    private final UIFactory uiFactory;
+    private final @NonNull UIFactory uiFactory;
 
     /**
      * Creates the service.
