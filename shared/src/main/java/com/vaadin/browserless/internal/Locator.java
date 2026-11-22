@@ -98,6 +98,8 @@ public final class Locator {
      * Finds a VISIBLE component of given {@code clazz} which matches given
      * {@code block}. This component and all of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -129,6 +131,8 @@ public final class Locator {
      * matches given {@code block}. The current UI and all of its descendants
      * are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component must be of this class.
      * @param block
@@ -147,6 +151,8 @@ public final class Locator {
      * Finds a list of VISIBLE components of given {@code clazz} which matches
      * {@code block}. This component and all of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -224,6 +230,8 @@ public final class Locator {
      * {@code block}. The {@link UI#getCurrent()} and all of its descendants are
      * searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component must be of this class.
      * @param block
@@ -298,6 +306,8 @@ public final class Locator {
      * matches {@code block}. This component and all of its descendants are
      * searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -352,6 +362,8 @@ public final class Locator {
      * {@code clazz} which matches {@code block}. The current UI and all of its
      * descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param block
@@ -369,6 +381,8 @@ public final class Locator {
      * {@code clazz} which matches {@code block}. This component and all of its
      * descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -393,6 +407,8 @@ public final class Locator {
      * given {@code clazz} which matches {@code block}. The current UI and all
      * of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param block
@@ -413,6 +429,8 @@ public final class Locator {
      * Special cases: for asserting one component use {@code _expectOne}. For
      * asserting no components use {@code _expectNone}.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -449,6 +467,8 @@ public final class Locator {
      * error message in case of a failure, and also communicate your intent as a
      * test writer better in the test code.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param count

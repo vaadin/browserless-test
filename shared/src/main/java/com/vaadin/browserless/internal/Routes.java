@@ -72,9 +72,24 @@ public final class Routes implements Serializable {
 
     private static final Logger log = LoggerFactory.getLogger(Routes.class);
 
+    /**
+     * The route views.
+     */
     private final Set<Class<? extends Component>> routes;
+
+    /**
+     * The error views.
+     */
     private final Set<Class<? extends HasErrorParameter<?>>> errorRoutes;
+
+    /**
+     * The {@link Layout}-annotated router layouts.
+     */
     private final Set<Class<? extends RouterLayout>> layouts;
+
+    /**
+     * Whether to skip the PWA initialization.
+     */
     private boolean skipPwaInit;
 
     /**

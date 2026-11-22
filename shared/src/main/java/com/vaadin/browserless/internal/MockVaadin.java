@@ -168,6 +168,13 @@ public final class MockVaadin {
 
     /**
      * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
      */
     public static void setup(Routes routes, UIFactory uiFactory,
             Set<? extends Class<?>> lookupServices) {
@@ -177,6 +184,11 @@ public final class MockVaadin {
 
     /**
      * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
+     * @param uiFactory
+     *            creates the UI of each session
      */
     public static void setup(Routes routes, UIFactory uiFactory) {
         setup(routes, uiFactory, Collections.emptySet());
@@ -184,6 +196,9 @@ public final class MockVaadin {
 
     /**
      * See {@link #setup(Routes, UIFactory, Set, BrowserlessConfiguration)}.
+     *
+     * @param routes
+     *            the routes to register
      */
     public static void setup(Routes routes) {
         setup(routes, defaultUIFactory());
@@ -239,6 +254,13 @@ public final class MockVaadin {
     /**
      * See
      * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
      */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices) {
@@ -249,6 +271,11 @@ public final class MockVaadin {
     /**
      * See
      * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param servlet
+     *            the servlet to initialize
      */
     public static void setup(UIFactory uiFactory, VaadinServlet servlet) {
         setup(uiFactory, servlet, Collections.emptySet());
@@ -257,6 +284,9 @@ public final class MockVaadin {
     /**
      * See
      * {@link #setup(UIFactory, VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
      */
     public static void setup(VaadinServlet servlet) {
         setup(defaultUIFactory(), servlet);
@@ -276,6 +306,10 @@ public final class MockVaadin {
      *            {@code lookupServices}. JavaScript handlers are applied even
      *            to a servlet that is already initialized.
      * @return the initialized {@link VaadinServletService}
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices,
@@ -365,6 +399,12 @@ public final class MockVaadin {
 
     /**
      * See {@link #setupServlet(VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
+     * @return the initialized {@link VaadinServletService}
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices) {
@@ -374,6 +414,10 @@ public final class MockVaadin {
 
     /**
      * See {@link #setupServlet(VaadinServlet, Set, BrowserlessConfiguration)}.
+     *
+     * @param servlet
+     *            the servlet to initialize
+     * @return the initialized {@link VaadinServletService}
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet) {
         return setupServlet(servlet, Collections.emptySet());
@@ -383,6 +427,11 @@ public final class MockVaadin {
      * Records that {@code detached} was replaced by {@code created} during a
      * page reload, so that {@link #liveUI(UI)} can map the old UI to the new
      * one.
+     *
+     * @param detached
+     *            the UI the reload tore down
+     * @param created
+     *            the UI the reload created
      */
     public static void recordReloadReplacement(UI detached, UI created) {
         reloadReplacements.put(detached, created);
@@ -393,6 +442,10 @@ public final class MockVaadin {
      * is live now: a reload detaches a UI and creates a fresh one for the same
      * window, so a caller holding the detached UI must be redirected to its
      * replacement. Returns {@code ui} itself if it was never replaced.
+     *
+     * @param ui
+     *            the UI to look up
+     * @return the UI that currently shows the window of {@code ui}
      */
     public static UI liveUI(UI ui) {
         UI live = ui;
@@ -480,6 +533,9 @@ public final class MockVaadin {
      * {@code afterSessionClose} recreation hook (used by single-user
      * {@code setup}) is suppressed — multi-user callers manage their own
      * session lifecycle.
+     *
+     * @param session
+     *            the session
      */
     public static void fireSessionDestroyAndDrain(VaadinSession session) {
         VaadinService service = session.getService();
@@ -496,24 +552,30 @@ public final class MockVaadin {
     }
 
     /**
-     * Change &amp; call {@link #setup()} to set a different browser.
-     * <p>
-     * The default is Firefox 94 on Ubuntu Linux.
+     * Returns the {@code User-Agent} every mocked request reports. Defaults to
+     * Firefox 94 on Ubuntu Linux.
+     *
+     * @return the user agent string
      */
     public String getUserAgent() {
         return userAgent;
     }
 
     /**
-     * Change &amp; call {@link #setup()} to set a different browser.
+     * Sets the {@code User-Agent} every mocked request reports. Call before
+     * {@link #setup()}, since the value is read while the session is created.
+     *
+     * @param userAgent
+     *            the user agent string
      */
     public void setUserAgent(String userAgent) {
         MockVaadin.userAgent = userAgent;
     }
 
     /**
-     * Creates {@link MockRequest}; override if you need to return a class that
-     * extends {@link MockRequest} and modifies its behavior.
+     * Returns the factory creating the {@link MockRequest} of each session.
+     *
+     * @return the request factory
      */
     @SuppressWarnings("unchecked")
     public Function1<MockHttpSession, MockRequest> getMockRequestFactory() {
@@ -521,7 +583,11 @@ public final class MockVaadin {
     }
 
     /**
-     * Sets the factory creating {@link MockRequest}.
+     * Sets the factory creating the {@link MockRequest} of each session.
+     * Override when a test needs a subclass of {@link MockRequest}.
+     *
+     * @param mockRequestFactory
+     *            the request factory
      */
     public void setMockRequestFactory(
             Function1<? super MockHttpSession, ? extends MockRequest> mockRequestFactory) {
@@ -616,6 +682,15 @@ public final class MockVaadin {
         createUI(uiFactory, objs.getSession());
     }
 
+    /**
+     * Creates a UI with the given factory and attaches it to the given session,
+     * which must be the current one.
+     *
+     * @param uiFactory
+     *            creates the UI of each session
+     * @param session
+     *            the session
+     */
     public static void createUI(UIFactory uiFactory, VaadinSession session) {
         VaadinRequest request = checkNotNull(VaadinRequest.getCurrent());
         UI ui = uiFactory.invoke();
@@ -850,6 +925,10 @@ public final class MockVaadin {
 
     /**
      * See {@link #runUIQueue(boolean, VaadinSession)}.
+     *
+     * @param propagateExceptionToHandler
+     *            whether an exception thrown by a task is passed to the
+     *            session's error handler instead of being rethrown
      */
     public static void runUIQueue(boolean propagateExceptionToHandler) {
         runUIQueue(propagateExceptionToHandler, VaadinSession.getCurrent());
@@ -868,6 +947,11 @@ public final class MockVaadin {
      * Only usable when you are providing your own implementation of
      * {@link VaadinSession}. See {@code MockVaadinSession} on how to call this
      * properly.
+     *
+     * @param session
+     *            the session
+     * @param uiFactory
+     *            creates the UI of each session
      */
     public static void afterSessionClose(VaadinSession session,
             UIFactory uiFactory) {
@@ -907,6 +991,13 @@ public final class MockVaadin {
     /**
      * Fires session init listeners on the given service. Java-friendly static
      * wrapper for the internal extension function.
+     *
+     * @param service
+     *            the service
+     * @param session
+     *            the session
+     * @param request
+     *            the request the session was created for
      */
     public static void fireSessionInit(VaadinService service,
             VaadinSession session, VaadinRequest request) {
@@ -917,6 +1008,9 @@ public final class MockVaadin {
     /**
      * Fires service destroy listeners on the given service. Java-friendly
      * static wrapper for the internal extension function.
+     *
+     * @param service
+     *            the service
      */
     public static void fireServiceDestroy(VaadinService service) {
         MockVaadin.fireServiceDestroyListeners(service,
@@ -975,11 +1069,29 @@ public final class MockVaadin {
         throw Utils.sneakyThrow(error);
     };
 
+    /**
+     * Fires the given session init event to the listeners registered on the
+     * given service, rethrowing any exception a listener throws.
+     *
+     * @param service
+     *            the service
+     * @param event
+     *            the event to fire
+     */
     public static void fireSessionInitListeners(VaadinService service,
             SessionInitEvent event) {
         service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
     }
 
+    /**
+     * Fires the given service destroy event to the listeners registered on the
+     * given service, rethrowing any exception a listener throws.
+     *
+     * @param service
+     *            the service
+     * @param event
+     *            the event to fire
+     */
     public static void fireServiceDestroyListeners(VaadinService service,
             ServiceDestroyEvent event) {
         service.getEventBus().fireEvent(event, RETHROW_LISTENER_FAILURE);
