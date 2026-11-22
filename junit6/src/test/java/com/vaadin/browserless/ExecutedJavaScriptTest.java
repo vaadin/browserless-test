@@ -43,6 +43,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     public interface OtherFocusJs extends Serializable {
         @JsExpression("this.focus()")
         void focus();
+
+        @JsExpression("this.focus({preventScroll: $0})")
+        void focus(boolean preventScroll);
+
+        @JsExpression("this.scrollIntoView()")
+        void scrollIntoView();
     }
 
     private Div calendar;
@@ -351,5 +357,49 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     private static List<Object> functionNames(ExecutedJavaScript executed) {
         return executed.getAll().stream().map(execution -> execution.getJsCall()
                 .orElseThrow().arguments().get(0)).toList();
+    }
+
+    @Test
+    void getCallsByMethod_matchesTheCalledMethodByName_ignoringArguments() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
+        calendar.getElement().executeJs(OtherFocusJs.class).scrollIntoView();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus(true);
+
+        List<JsCall> focusCalls = List.of(
+                new JsCall(OtherFocusJs.class, "focus", List.of()),
+                new JsCall(OtherFocusJs.class, "focus", List.of(true)));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, OtherFocusJs::focus));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, js -> js.focus(false)));
+        Assertions.assertEquals(
+                List.of(new JsCall(OtherFocusJs.class, "scrollIntoView",
+                        List.of())),
+                executed.getCalls(OtherFocusJs.class,
+                        OtherFocusJs::scrollIntoView));
+    }
+
+    @Test
+    void getCallsByMethod_refusesAnythingButOneCallOfADefinition() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        IllegalArgumentException none = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                }));
+        Assertions.assertTrue(none.getMessage().contains("exactly one method")
+                && none.getMessage().endsWith("[]"), none.getMessage());
+        IllegalArgumentException two = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                    js.focus();
+                    js.scrollIntoView();
+                }));
+        Assertions.assertTrue(
+                two.getMessage().endsWith("[focus, scrollIntoView]"),
+                two.getMessage());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> executed.getCalls(Runnable.class, Runnable::run));
     }
 }

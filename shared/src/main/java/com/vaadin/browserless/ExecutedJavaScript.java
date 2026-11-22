@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -31,6 +32,7 @@ import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.js.JsDefinitionProxy;
 import com.vaadin.flow.shared.Registration;
 
 /**
@@ -56,6 +58,16 @@ import com.vaadin.flow.shared.Registration;
  * assertEquals(List.of(List.of("Saved")),
  *         executed.getFunctionCalls(dialog, "open"));
  * </pre>
+ * <p>
+ * Each UI created by Browserless Test also has a capture that was started with
+ * the UI, before its first view was navigated to, so it holds everything the UI
+ * was sent. The test classes and {@link BrowserlessUIContext} return it from
+ * {@code getExecutedJavaScript()}. Everyone who gets it shares the same
+ * instance, so it is read-only: no one can stop it, clear it or take anything
+ * out of it, and the lists its queries return, like those of any capture,
+ * cannot be modified. Answering a call with {@link Execution#resolve(Object)}
+ * or {@link Execution#reject(String)} is visible to everyone who looks at that
+ * call, as it is the browser's answer to the application.
  * <p>
  * A capture holds everything sent to the browser of its UI after it was started
  * or last cleared; JavaScript still pending when it starts is sent first and is
@@ -87,10 +99,18 @@ public final class ExecutedJavaScript implements Serializable {
 
     private final List<Execution> executions = new ArrayList<>();
 
+    /**
+     * Whether this is the capture a UI got when it was created, which every
+     * caller of {@code getExecutedJavaScript()} shares and relies on to hold
+     * everything, so no caller may stop it or take anything out of it.
+     */
+    private final boolean readOnly;
+
     private @Nullable Registration registration;
 
-    private ExecutedJavaScript(UI ui) {
+    private ExecutedJavaScript(UI ui, boolean readOnly) {
         this.ui = ui;
+        this.readOnly = readOnly;
     }
 
     /**
@@ -122,7 +142,18 @@ public final class ExecutedJavaScript implements Serializable {
         Objects.requireNonNull(ui, "ui");
         JavaScriptDispatcher dispatcher = JavaScriptDispatcher.forUI(ui);
         JavaScriptDispatcher.dispatch(ui);
-        ExecutedJavaScript capture = new ExecutedJavaScript(ui);
+        return startCapture(dispatcher, false);
+    }
+
+    /**
+     * Starts capturing what the given dispatcher sends from now on, without
+     * sending what is pending first. The capture a UI owns is shared by all
+     * callers, which rely on it to hold everything, so it is read-only.
+     */
+    static ExecutedJavaScript startCapture(JavaScriptDispatcher dispatcher,
+            boolean readOnly) {
+        ExecutedJavaScript capture = new ExecutedJavaScript(dispatcher.getUI(),
+                readOnly);
         capture.registration = dispatcher
                 .addHandler(invocation -> capture.executions
                         .add(new Execution(dispatcher, invocation)));
@@ -133,8 +164,13 @@ public final class ExecutedJavaScript implements Serializable {
      * Stops capturing, after first sending whatever is still pending. What was
      * captured so far can still be queried. Stopping a capture that is already
      * stopped does nothing.
+     *
+     * @throws IllegalStateException
+     *             if this is the read-only capture that a UI got when it was
+     *             created, which runs for as long as the UI lives
      */
     public void stop() {
+        ensureNotReadOnly("stopped");
         if (registration != null) {
             try {
                 JavaScriptDispatcher.dispatch(ui);
@@ -152,9 +188,28 @@ public final class ExecutedJavaScript implements Serializable {
      * that {@link Execution#resolve(Object)} ran, is seen by the next query.
      * Executions that were already returned can still be answered. Clearing
      * does not stop the capture.
+     *
+     * @throws IllegalStateException
+     *             if this is the capture that a UI got when it was created,
+     *             which is shared and cannot be cleared
      */
     public void clear() {
+        ensureNotReadOnly("cleared");
         executions.clear();
+    }
+
+    /**
+     * Refuses an operation that would leave the shared capture of a UI without
+     * part of what the UI was sent.
+     */
+    private void ensureNotReadOnly(String refused) {
+        if (readOnly) {
+            throw new IllegalStateException("The capture that the UI got "
+                    + "when it was created is read-only and cannot be "
+                    + refused + ", as it holds everything sent to the UI. "
+                    + "Use ExecutedJavaScript.capture() for a capture that "
+                    + "can be " + refused + ".");
+        }
     }
 
     /**
@@ -213,12 +268,17 @@ public final class ExecutedJavaScript implements Serializable {
      * Gets the calls of one method of a JavaScript definition, the interface
      * that {@code Element.executeJs(Class)} is called with, that were sent to
      * the browser, in the order the browser received them.
+     * <p>
+     * The method is named as a string, so a misspelled or renamed name matches
+     * nothing rather than failing; {@link #getCalls(Class, Consumer)} names it
+     * by calling it, which the compiler checks.
      *
      * @param definitionType
      *            the JavaScript definition, not null
      * @param methodName
      *            the name of the called method, not null
      * @return the calls, not null
+     * @see #getCalls(Class, Consumer)
      */
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
@@ -229,6 +289,54 @@ public final class ExecutedJavaScript implements Serializable {
                                 && call.methodName().equals(methodName))
                         .stream())
                 .toList();
+    }
+
+    /**
+     * Gets the calls of one method of a JavaScript definition, the interface
+     * that {@code Element.executeJs(Class)} is called with, that were sent to
+     * the browser, in the order the browser received them. The method is named
+     * by calling it, the way the application calls it, so that renaming it
+     * updates the test and a method that the definition does not have fails to
+     * compile:
+     *
+     * <pre>
+     * executed.getCalls(WakeLockJs.class, WakeLockJs::request);
+     * executed.getCalls(ScrollJs.class, js -&gt; js.scrollTo(0, 0));
+     * </pre>
+     * <p>
+     * The call only names the method: it is not sent, and its arguments are
+     * ignored, so any value of the right type will do. Calls are matched by the
+     * name of the method, so overloads of one name are not told apart.
+     *
+     * @param <T>
+     *            the JavaScript definition type
+     * @param definitionType
+     *            the JavaScript definition, not null
+     * @param method
+     *            calls the method of the definition to get the calls of, once,
+     *            on the implementation it is given, not null
+     * @return the calls, not null
+     * @throws IllegalArgumentException
+     *             if the type is not a JavaScript definition, or if
+     *             {@code method} does not call exactly one method of it
+     * @see #getCalls(Class, String)
+     */
+    public <T> List<JsCall> getCalls(Class<T> definitionType,
+            Consumer<T> method) {
+        Objects.requireNonNull(definitionType, "definitionType");
+        Objects.requireNonNull(method, "method");
+        List<String> called = new ArrayList<>();
+        method.accept(JsDefinitionProxy.create(definitionType, call -> {
+            called.add(call.methodName());
+            return null;
+        }));
+        if (called.size() != 1) {
+            throw new IllegalArgumentException(
+                    "The method should call exactly one method of "
+                            + definitionType.getName() + " but called "
+                            + called);
+        }
+        return getCalls(definitionType, called.get(0));
     }
 
     /**
