@@ -85,7 +85,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
     /**
      * Select items by client string representation.
-     * <p/>
+     * <p>
      * Replaces the whole selection with the items whose labels match, and
      * empties it when {@code selection} is {@code null}. Labels that match no
      * item are ignored as long as at least one label matches.
@@ -127,7 +127,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     /**
      * Selects items by client string representation, as ticking them in the
      * overlay does.
-     * <p/>
+     * <p>
      * The items are added to the current selection; items that are already
      * selected stay selected. Labels are matched against the current
      * suggestions, so a filter set with {@link #setFilter(String)} is taken
@@ -151,7 +151,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     /**
      * Deselects items by client string representation, as unticking them in the
      * overlay does.
-     * <p/>
+     * <p>
      * Other selected items stay selected. Labels are matched against the
      * current selection, so an item hidden by the filter can still be
      * deselected, as removing its chip does.
@@ -174,7 +174,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     /**
      * Deselects all items, as unticking every selected item in the overlay
      * does.
-     * <p/>
+     * <p>
      * Unlike {@link #clickClearButton()}, this does not require the clear
      * button to be visible.
      *
