@@ -298,6 +298,10 @@ public final class MockVaadin {
      * to share a single service across multiple independent sessions
      * (multi-user testing).
      *
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
      * @param configuration
      *            custom Vaadin configuration, such as application properties,
      *            feature flags, lookup services and JavaScript handlers, to
@@ -306,10 +310,6 @@ public final class MockVaadin {
      *            {@code lookupServices}. JavaScript handlers are applied even
      *            to a servlet that is already initialized.
      * @return the initialized {@link VaadinServletService}
-     * @param servlet
-     *            the servlet to initialize
-     * @param lookupServices
-     *            service classes to be provided to the lookup initializer
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices,
@@ -552,30 +552,24 @@ public final class MockVaadin {
     }
 
     /**
-     * Returns the {@code User-Agent} every mocked request reports. Defaults to
-     * Firefox 94 on Ubuntu Linux.
-     *
-     * @return the user agent string
+     * Change &amp; call {@link #setup()} to set a different browser.
+     * <p>
+     * The default is Firefox 94 on Ubuntu Linux.
      */
     public String getUserAgent() {
         return userAgent;
     }
 
     /**
-     * Sets the {@code User-Agent} every mocked request reports. Call before
-     * {@link #setup()}, since the value is read while the session is created.
-     *
-     * @param userAgent
-     *            the user agent string
+     * Change &amp; call {@link #setup()} to set a different browser.
      */
     public void setUserAgent(String userAgent) {
         MockVaadin.userAgent = userAgent;
     }
 
     /**
-     * Returns the factory creating the {@link MockRequest} of each session.
-     *
-     * @return the request factory
+     * Creates {@link MockRequest}; override if you need to return a class that
+     * extends {@link MockRequest} and modifies its behavior.
      */
     @SuppressWarnings("unchecked")
     public Function1<MockHttpSession, MockRequest> getMockRequestFactory() {
@@ -583,11 +577,7 @@ public final class MockVaadin {
     }
 
     /**
-     * Sets the factory creating the {@link MockRequest} of each session.
-     * Override when a test needs a subclass of {@link MockRequest}.
-     *
-     * @param mockRequestFactory
-     *            the request factory
+     * Sets the factory creating {@link MockRequest}.
      */
     public void setMockRequestFactory(
             Function1<? super MockHttpSession, ? extends MockRequest> mockRequestFactory) {

@@ -221,7 +221,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * The {@code com.vaadin.flow.dom.Element.getText}
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
      *
      * @return the current value
      */
@@ -230,7 +231,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * The {@code com.vaadin.flow.dom.Element.getText}
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
      *
      * @param text
      *            the new value
@@ -239,17 +241,28 @@ public final class SearchSpec<T extends Component> {
         this.text = text;
     }
 
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @return the current value, not null
+     */
     public IntRange getCount() {
         return count;
     }
 
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @param count
+     *            the new value, not null
+     */
     public void setCount(IntRange count) {
         this.count = Objects.requireNonNull(count, "count");
     }
 
     /**
-     * Expected {@code com.vaadin.flow.component.HasValue.getValue}; if
-     * {@code null}, no particular value is matched.
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
      *
      * @return the current value
      */
@@ -258,8 +271,8 @@ public final class SearchSpec<T extends Component> {
     }
 
     /**
-     * Expected {@code com.vaadin.flow.component.HasValue.getValue}; if
-     * {@code null}, no particular value is matched.
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
      *
      * @param value
      *            the new value

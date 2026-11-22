@@ -984,6 +984,8 @@ public class ComponentQuery<T extends Component> {
      * Runs the query and returns the single match.
      *
      * @return the only component the query matches
+     * @throws java.util.NoSuchElementException
+     *             if the query does not match exactly one component
      */
     protected T find() {
         // Snapshot and restore so resolution's "expect exactly one"
