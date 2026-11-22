@@ -412,6 +412,14 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         button.getElement().executeJs("this.listen($0)", channel);
         ExecutedJavaScript.Execution execution = executed.getAll().get(0);
 
+        // As in Flow, a registered channel reaches an element behind a modal
+        Div dialog = new Div();
+        UI.getCurrent().add(dialog);
+        test(dialog).setModal(true);
+        Assertions.assertTrue(button.getElement().getNode().isInert());
+        execution.invokeReturnChannel("inert");
+        UI.getCurrent().remove(dialog);
+
         button.setEnabled(false);
         assertRefused("is disabled",
                 () -> execution.invokeReturnChannel("disabled"));
@@ -436,7 +444,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         assertRefused("is not attached",
                 () -> later.invokeReturnChannel("detached"));
 
-        Assertions.assertEquals(List.of("[\"always\"]"), received);
+        Assertions.assertEquals(List.of("[\"inert\"]", "[\"always\"]"),
+                received);
     }
 
     private static void assertRefused(String reason, Executable invocation) {
