@@ -294,6 +294,10 @@ public final class MockVaadin {
      * to share a single service across multiple independent sessions
      * (multi-user testing).
      *
+     * @param servlet
+     *            the servlet to initialize
+     * @param lookupServices
+     *            service classes to be provided to the lookup initializer
      * @param configuration
      *            custom Vaadin configuration, such as application properties,
      *            feature flags, lookup services and JavaScript handlers, to
@@ -302,10 +306,6 @@ public final class MockVaadin {
      *            {@code lookupServices}. JavaScript handlers are applied even
      *            to a servlet that is already initialized.
      * @return the initialized {@link VaadinServletService}
-     * @param servlet
-     *            the servlet to initialize
-     * @param lookupServices
-     *            service classes to be provided to the lookup initializer
      */
     public static VaadinServletService setupServlet(VaadinServlet servlet,
             Set<? extends Class<?>> lookupServices,
