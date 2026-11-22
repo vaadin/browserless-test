@@ -786,19 +786,18 @@ After `reload()`, or in another window, `getExecutedJavaScript()` returns the
 capture of that UI, which starts empty, as a new page in a browser does. To
 check a single step, start a capture of your own just before it.
 
-A capture holds everything sent after it started or was last cleared; JavaScript still pending
-when it starts is sent first and is left out. Querying sends
-whatever is still pending first and does not consume anything, so a capture can
-be queried any number of times, and several captures of the same UI each see
+A capture holds everything sent after it started or was last cleared;
+JavaScript still pending when it starts is sent first and is left out. Querying
+sends whatever is still pending first and does not consume anything, so a
+capture can be queried any number of times, and several captures of the same UI each see
 every call sent while they are active. Use `capture(ui)` for a UI other than
 the current one.
 
 A test that plays the browser step by step can call `clear()` on a capture of
 its own after reading a step, so that the next query only sees what is sent
 afterwards. The capture from `getExecutedJavaScript()` is shared and cannot be
-cleared. JavaScript
-still pending is not sent by `clear()`, so nothing scheduled just before is
-lost:
+cleared. JavaScript still pending is not sent by `clear()`, so nothing
+scheduled just before is lost:
 
 ```java
 List<List<Object>> pages = executed.getFunctionCalls(viewer, "scrollToPage");
@@ -864,7 +863,7 @@ accumulate like lookup services.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it
-  holds until then. The capture of a UI keeps everything the UI was sent for
+  holds until then, unless it is cleared. The capture of a UI keeps everything the UI was sent for
   as long as the UI lives.
 
 ## Multi-user and multi-window testing
