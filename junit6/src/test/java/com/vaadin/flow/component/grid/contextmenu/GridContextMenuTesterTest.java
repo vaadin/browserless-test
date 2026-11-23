@@ -28,6 +28,7 @@ import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -290,6 +291,32 @@ class GridContextMenuTesterTest extends BrowserlessTest {
 
         Assertions.assertTrue(view.menu.isAttached(),
                 "menu should open on a row its dynamic content handler accepts");
+    }
+
+    @Test
+    void openOnRow_dynamicContentProvider_receivesRowAndColumn() {
+        List<String> items = new ArrayList<>();
+        List<Grid.Column<String>> columns = new ArrayList<>();
+        view.menu.setDynamicContentProvider(context -> {
+            items.add(context.item());
+            columns.add(context.column());
+            return true;
+        });
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+
+        menu_.open(1, GridContextMenuView.LENGTH_COLUMN);
+        menu_.close();
+        menu_.open(0);
+
+        Assertions.assertIterableEquals(
+                List.of(GridContextMenuView.BOB, GridContextMenuView.ALICE),
+                items);
+        Assertions.assertSame(
+                view.grid.getColumnByKey(GridContextMenuView.LENGTH_COLUMN),
+                columns.get(0));
+        Assertions.assertNull(columns.get(1),
+                "no column should be reported when none was named");
     }
 
     @Test
