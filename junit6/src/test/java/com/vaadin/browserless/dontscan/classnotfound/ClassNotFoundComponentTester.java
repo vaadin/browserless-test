@@ -17,10 +17,9 @@ package com.vaadin.browserless.dontscan.classnotfound;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
-import com.vaadin.flow.component.Component;
 
-@Tests(fqn = "com.vaadin.browserless.dontscan.classnotfound.MissingComponent")
-public class ClassNotFoundComponentTester<T extends Component>
+@Tests(value = ClassNotFoundComponent.class, fqn = "com.vaadin.browserless.dontscan.classnotfound.MissingComponent")
+public class ClassNotFoundComponentTester<T extends ClassNotFoundComponent>
         extends ComponentTester<T> {
 
     public ClassNotFoundComponentTester(T component) {

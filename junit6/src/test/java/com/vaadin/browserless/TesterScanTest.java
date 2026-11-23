@@ -22,36 +22,50 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponent;
+import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester;
+import com.vaadin.browserless.dontscan.failedinit.FailedInitComponent;
+
 // Ensure that scanning testers does not fail when a tester references
 // a component class that is not present on the classpath.
 public class TesterScanTest {
 
     @Test
-    public void scanForTesters_testerForClassNotInClasspath_logsSkippedTesterAtTrace() {
-        // Loads a dummy tester annotated with @Tests using an FQN to a
-        // non-existing component class. Skipping it is expected, e.g. for the
-        // Pro component testers when only vaadin-core is on the classpath, so
-        // it is not a warning. This test runs with the registry at trace level
-        // (see the junit6 pom), which also attaches the cause.
-        PrintStream originalErr = System.err;
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
-        try {
-            Assertions.assertDoesNotThrow(() -> TesterRegistry.registerPackages(
-                    "com.vaadin.browserless.dontscan.classnotfound"));
-        } finally {
-            System.setErr(originalErr);
-        }
-        String log = err.toString(StandardCharsets.UTF_8);
-        Assertions.assertTrue(log.contains(
-                "TRACE com.vaadin.browserless.TesterRegistry - Skipping tester "
-                        + "'com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester'"
-                        + " because a class it needs is not available: "
-                        + "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"
-                        + System.lineSeparator()
-                        + "java.lang.ClassNotFoundException: "
-                        + "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"),
+    public void scanForTesters_testerForClassNotInClasspath_skipsClassWithoutWarning() {
+        // Loads a dummy tester annotated with @Tests for an existing component
+        // and, using an FQN, for a non-existing one. Skipping the missing one
+        // is expected, e.g. for the Pro component testers when only
+        // vaadin-core is on the classpath, so it is not a warning.
+        String log = captureStandardError(() -> Assertions
+                .assertDoesNotThrow(() -> TesterRegistry.registerPackages(
+                        "com.vaadin.browserless.dontscan.classnotfound")));
+
+        Assertions.assertEquals("", log);
+        Assertions.assertEquals(ClassNotFoundComponentTester.class,
+                TesterRegistry.resolve(ClassNotFoundComponent.class));
+    }
+
+    @Test
+    public void scanForTesters_testerNeedsClassWithFailedInitialization_warns() {
+        // A class whose static initializer has already failed is on the
+        // classpath but broken, so a tester that needs it is a real problem.
+        Assertions.assertThrows(ExceptionInInitializerError.class,
+                () -> Class.forName(
+                        "com.vaadin.browserless.dontscan.failedinit.BrokenInit"));
+
+        String log = captureStandardError(() -> Assertions
+                .assertDoesNotThrow(() -> TesterRegistry.registerPackages(
+                        "com.vaadin.browserless.dontscan.failedinit")));
+
+        Assertions.assertTrue(log
+                .contains("WARN com.vaadin.browserless.TesterRegistry - Tester "
+                        + "'com.vaadin.browserless.dontscan.failedinit.FailedInitComponentTester'"
+                        + " cannot be loaded" + System.lineSeparator()
+                        + "java.lang.NoClassDefFoundError: Could not initialize class "
+                        + "com.vaadin.browserless.dontscan.failedinit.BrokenInit"),
                 log);
+        Assertions.assertEquals(ComponentTester.class,
+                TesterRegistry.resolve(FailedInitComponent.class));
     }
 
     @Test
@@ -72,4 +86,15 @@ public class TesterScanTest {
                 "com.vaadin.browserless.dontscan.typenotpresent"));
     }
 
+    private static String captureStandardError(Runnable action) {
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
+        try {
+            action.run();
+        } finally {
+            System.setErr(originalErr);
+        }
+        return err.toString(StandardCharsets.UTF_8);
+    }
 }

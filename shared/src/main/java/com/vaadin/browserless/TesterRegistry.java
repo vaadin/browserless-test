@@ -143,10 +143,20 @@ final class TesterRegistry {
                         } catch (TypeNotPresentException e) {
                             logSkippedTester(e, classInfo.getName(),
                                     e.typeName());
-                        } catch (ClassNotFoundException
-                                | NoClassDefFoundError e) {
+                        } catch (ClassNotFoundException e) {
                             logSkippedTester(e, classInfo.getName(),
                                     e.getMessage());
+                        } catch (NoClassDefFoundError e) {
+                            // A class whose static initializer already failed
+                            // is on the classpath but broken, which is a real
+                            // problem rather than a missing optional component.
+                            if (e.getCause() instanceof ExceptionInInitializerError) {
+                                LOGGER.warn("Tester '{}' cannot be loaded",
+                                        classInfo.getName(), e);
+                            } else {
+                                logSkippedTester(e, classInfo.getName(),
+                                        e.getMessage());
+                            }
                         }
                     });
             return Collections.unmodifiableMap(testerMap);
