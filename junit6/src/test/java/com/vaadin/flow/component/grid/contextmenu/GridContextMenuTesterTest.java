@@ -22,6 +22,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
@@ -275,15 +277,22 @@ class GridContextMenuTesterTest extends BrowserlessTest {
                 exception.getMessage().contains("does not target a row"));
     }
 
-    @Test
-    void openOnRow_dynamicContentHandlerRefuses_throws() {
-        view.menu.setDynamicContentHandler(
-                item -> GridContextMenuView.BOB.equals(item));
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void openOnRow_dynamicContentHandlerOrProviderRefuses_throws(
+            boolean provider) {
+        if (provider) {
+            view.menu.setDynamicContentProvider(
+                    context -> GridContextMenuView.BOB.equals(context.item()));
+        } else {
+            view.menu.setDynamicContentHandler(
+                    item -> GridContextMenuView.BOB.equals(item));
+        }
 
         IllegalStateException exception = Assertions.assertThrows(
                 IllegalStateException.class, () -> test(view.menu).open(0));
-        Assertions.assertTrue(
-                exception.getMessage().contains("dynamic content handler"));
+        Assertions.assertTrue(exception.getMessage()
+                .contains(provider ? "provider" : "dynamic content handler"));
         Assertions.assertFalse(view.menu.isAttached(),
                 "menu should stay closed when its dynamic content handler refuses");
 
