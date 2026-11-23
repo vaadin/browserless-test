@@ -31,8 +31,8 @@ public class TesterScanTest {
         // Loads a dummy tester annotated with @Tests using an FQN to a
         // non-existing component class. Skipping it is expected, e.g. for the
         // Pro component testers when only vaadin-core is on the classpath, so
-        // it is not a warning. The registry logs at trace in this module (see
-        // simplelogger.properties), which also attaches the cause.
+        // it is not a warning. This test runs with the registry at trace level
+        // (see the junit6 pom), which also attaches the cause.
         PrintStream originalErr = System.err;
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
@@ -43,8 +43,8 @@ public class TesterScanTest {
             System.setErr(originalErr);
         }
         String log = err.toString(StandardCharsets.UTF_8);
-        Assertions.assertTrue(log.startsWith(
-                "[main] TRACE com.vaadin.browserless.TesterRegistry - Skipping tester "
+        Assertions.assertTrue(log.contains(
+                "TRACE com.vaadin.browserless.TesterRegistry - Skipping tester "
                         + "'com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester'"
                         + " because a class it needs is not available: "
                         + "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"

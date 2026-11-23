@@ -145,6 +145,31 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/TesterScanTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <!-- TesterScanTest asserts the line logged for a skipped
+                         tester, which needs TesterRegistry at trace level.
+                         Its own JVM keeps that level out of the other tests. -->
+                    <execution>
+                        <id>tester-scan-trace</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <excludes combine.self="override" />
+                            <includes>
+                                <include>**/TesterScanTest.java</include>
+                            </includes>
+                            <systemPropertyVariables>
+                                <org.slf4j.simpleLogger.log.com.vaadin.browserless.TesterRegistry>trace</org.slf4j.simpleLogger.log.com.vaadin.browserless.TesterRegistry>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
