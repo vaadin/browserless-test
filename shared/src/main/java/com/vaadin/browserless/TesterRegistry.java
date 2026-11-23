@@ -133,36 +133,33 @@ final class TesterRegistry {
                                 try {
                                     return Utils.findClassOrThrow(clazz);
                                 } catch (ClassNotFoundException e) {
-                                    logTypeLoadingIssue(e,
-                                            "Tester '{}' cannot be loaded because of missing component class '{}' on classpath",
-                                            classInfo.getName(), clazz);
+                                    logSkippedTester(classInfo.getName(),
+                                            clazz);
                                     return null;
                                 }
                             }).filter(Objects::nonNull)
                                     .forEach(clazz -> testerMap.put(clazz,
                                             (Class<? extends ComponentTester>) tester));
                         } catch (TypeNotPresentException e) {
-                            logTypeLoadingIssue(e,
-                                    "Tester '{}' cannot be loaded because of missing class '{}' on classpath",
-                                    classInfo.getName(), e.typeName());
+                            logSkippedTester(classInfo.getName(), e.typeName());
                         } catch (ClassNotFoundException
                                 | NoClassDefFoundError e) {
-                            logTypeLoadingIssue(e,
-                                    "Tester '{}' cannot be loaded because of missing class on classpath: {}",
-                                    classInfo.getName(), e.getMessage());
+                            logSkippedTester(classInfo.getName(),
+                                    e.getMessage());
                         }
                     });
             return Collections.unmodifiableMap(testerMap);
         }
     }
 
-    private static void logTypeLoadingIssue(Throwable ex, String message,
-            Object... args) {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(message, args, ex);
-        } else {
-            LOGGER.warn(message, args);
-        }
+    // A tester whose component is not on the classpath is expected, e.g. the
+    // Pro component testers in an application that only uses vaadin-core, so
+    // it is skipped quietly instead of reported as a problem.
+    private static void logSkippedTester(String testerName,
+            String missingClassName) {
+        LOGGER.debug(
+                "Skipping tester '{}' because class '{}' is not on the classpath",
+                testerName, missingClassName);
     }
 
     /**
