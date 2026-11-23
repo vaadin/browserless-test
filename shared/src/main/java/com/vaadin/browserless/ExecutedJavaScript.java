@@ -33,6 +33,7 @@ import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinitionProxy;
+import com.vaadin.flow.js.JsInvokers;
 import com.vaadin.flow.shared.Registration;
 
 /**
@@ -330,7 +331,7 @@ public final class ExecutedJavaScript implements Serializable {
      *             {@code method} does not call exactly one method of it
      * @see #getCalls(Class, String)
      */
-    public <T> List<JsCall> getCalls(Class<T> definitionType,
+    public <T extends JsInvokers> List<JsCall> getCalls(Class<T> definitionType,
             Consumer<T> method) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(method, "method");
