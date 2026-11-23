@@ -183,19 +183,16 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected());
 
-        test(view.combo).deselectItems("test-foo", "test-bar");
+        test(view.combo).deselectItems(List.of("test-foo", "test-bar"));
 
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
-    }
 
-    @Test
-    void selectItemsAndDeselectItems_collection_actOnEveryItem() {
         test(view.combo).selectItems(List.of("test-foo", "test-bar"));
 
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected());
 
-        test(view.combo).deselectItems(List.of("test-foo", "test-bar"));
+        test(view.combo).deselectItems("test-foo", "test-bar");
 
         Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
     }
