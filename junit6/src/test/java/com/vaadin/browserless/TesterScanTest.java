@@ -27,11 +27,12 @@ import org.junit.jupiter.api.Test;
 public class TesterScanTest {
 
     @Test
-    public void scanForTesters_testerForClassNotInClasspath_skipsTesterWithoutLogging() {
+    public void scanForTesters_testerForClassNotInClasspath_logsSkippedTesterAtTrace() {
         // Loads a dummy tester annotated with @Tests using an FQN to a
         // non-existing component class. Skipping it is expected, e.g. for the
         // Pro component testers when only vaadin-core is on the classpath, so
-        // nothing is logged at the default level.
+        // it is not a warning. The registry logs at trace in this module (see
+        // simplelogger.properties), which also attaches the cause.
         PrintStream originalErr = System.err;
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
@@ -41,7 +42,16 @@ public class TesterScanTest {
         } finally {
             System.setErr(originalErr);
         }
-        Assertions.assertEquals("", err.toString(StandardCharsets.UTF_8));
+        String log = err.toString(StandardCharsets.UTF_8);
+        Assertions.assertTrue(log.startsWith(
+                "[main] TRACE com.vaadin.browserless.TesterRegistry - Skipping tester "
+                        + "'com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester'"
+                        + " because a class it needs is not available: "
+                        + "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"
+                        + System.lineSeparator()
+                        + "java.lang.ClassNotFoundException: "
+                        + "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"),
+                log);
     }
 
     @Test
