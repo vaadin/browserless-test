@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 public class TesterScanTest {
 
     @Test
-    public void scanForTesters_testerForClassNotInClasspath_doNotThrowOnClassNotFoundException() {
+    public void scanForTesters_testerForClassNotInClasspath_skipsTesterWithoutLogging() {
         // Loads a dummy tester annotated with @Tests using an FQN to a
         // non-existing component class. Skipping it is expected, e.g. for the
         // Pro component testers when only vaadin-core is on the classpath, so

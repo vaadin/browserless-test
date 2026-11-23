@@ -133,7 +133,7 @@ final class TesterRegistry {
                                 try {
                                     return Utils.findClassOrThrow(clazz);
                                 } catch (ClassNotFoundException e) {
-                                    logSkippedTester(classInfo.getName(),
+                                    logSkippedTester(e, classInfo.getName(),
                                             clazz);
                                     return null;
                                 }
@@ -141,10 +141,11 @@ final class TesterRegistry {
                                     .forEach(clazz -> testerMap.put(clazz,
                                             (Class<? extends ComponentTester>) tester));
                         } catch (TypeNotPresentException e) {
-                            logSkippedTester(classInfo.getName(), e.typeName());
+                            logSkippedTester(e, classInfo.getName(),
+                                    e.typeName());
                         } catch (ClassNotFoundException
                                 | NoClassDefFoundError e) {
-                            logSkippedTester(classInfo.getName(),
+                            logSkippedTester(e, classInfo.getName(),
                                     e.getMessage());
                         }
                     });
@@ -154,12 +155,16 @@ final class TesterRegistry {
 
     // A tester whose component is not on the classpath is expected, e.g. the
     // Pro component testers in an application that only uses vaadin-core, so
-    // it is skipped quietly instead of reported as a problem.
-    private static void logSkippedTester(String testerName,
-            String missingClassName) {
-        LOGGER.debug(
-                "Skipping tester '{}' because class '{}' is not on the classpath",
-                testerName, missingClassName);
+    // it is skipped quietly instead of reported as a problem. The cause is
+    // kept at trace level for when a tester that should load goes missing.
+    private static void logSkippedTester(Throwable cause, String testerName,
+            String missingClass) {
+        String message = "Skipping tester '{}' because a class it needs is not available: {}";
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(message, testerName, missingClass, cause);
+        } else {
+            LOGGER.debug(message, testerName, missingClass);
+        }
     }
 
     /**
