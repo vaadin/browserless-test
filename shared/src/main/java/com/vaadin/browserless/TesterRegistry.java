@@ -145,8 +145,19 @@ final class TesterRegistry {
                             logTypeLoadingIssue(e,
                                     "Tester '{}' cannot be loaded because of missing class '{}' on classpath",
                                     classInfo.getName(), e.typeName());
-                        } catch (ClassNotFoundException
-                                | NoClassDefFoundError e) {
+                        } catch (NoClassDefFoundError e) {
+                            if (e.getCause() instanceof ExceptionInInitializerError) {
+                                // The class exists but failed to initialize,
+                                // which is a real problem, not a missing
+                                // optional component.
+                                LOGGER.warn("Tester '{}' cannot be loaded",
+                                        classInfo.getName(), e);
+                            } else {
+                                logTypeLoadingIssue(e,
+                                        "Tester '{}' cannot be loaded because of missing class on classpath: {}",
+                                        classInfo.getName(), e.getMessage());
+                            }
+                        } catch (ClassNotFoundException e) {
                             logTypeLoadingIssue(e,
                                     "Tester '{}' cannot be loaded because of missing class on classpath: {}",
                                     classInfo.getName(), e.getMessage());
@@ -156,9 +167,10 @@ final class TesterRegistry {
         }
     }
 
-    // Testers for components that are not on the classpath are expected, e.g.
-    // the commercial component testers in an application that only depends on
-    // vaadin-core, so skipping them must not produce warnings or stack traces.
+    // A tester that references a class missing from the classpath is expected,
+    // e.g. the commercial component testers in an application that only
+    // depends on vaadin-core, so skipping it must not produce warnings or
+    // stack traces.
     private static void logTypeLoadingIssue(Throwable ex, String message,
             Object... args) {
         LOGGER.debug(message, args);
