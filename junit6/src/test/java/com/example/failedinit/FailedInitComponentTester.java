@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.failedinit;
+package com.example.failedinit;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;

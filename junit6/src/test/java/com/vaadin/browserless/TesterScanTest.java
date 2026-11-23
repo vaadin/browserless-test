@@ -19,12 +19,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+import com.example.failedinit.FailedInitComponent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponent;
 import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester;
-import com.vaadin.browserless.dontscan.failedinit.FailedInitComponent;
 
 // Ensure that scanning testers does not fail when a tester references
 // a component class that is not present on the classpath.
@@ -49,20 +49,21 @@ public class TesterScanTest {
     public void scanForTesters_testerNeedsClassWithFailedInitialization_warns() {
         // A class whose static initializer has already failed is on the
         // classpath but broken, so a tester that needs it is a real problem.
-        Assertions.assertThrows(ExceptionInInitializerError.class,
-                () -> Class.forName(
-                        "com.vaadin.browserless.dontscan.failedinit.BrokenInit"));
+        // The fixture lives outside com.vaadin.browserless so that no other
+        // test scans it and runs the failing initializer from a scan.
+        Assertions.assertThrows(LinkageError.class,
+                () -> Class.forName("com.example.failedinit.BrokenInit"));
 
-        String log = captureStandardError(() -> Assertions
-                .assertDoesNotThrow(() -> TesterRegistry.registerPackages(
-                        "com.vaadin.browserless.dontscan.failedinit")));
+        String log = captureStandardError(
+                () -> Assertions.assertDoesNotThrow(() -> TesterRegistry
+                        .registerPackages("com.example.failedinit")));
 
         Assertions.assertTrue(log
                 .contains("WARN com.vaadin.browserless.TesterRegistry - Tester "
-                        + "'com.vaadin.browserless.dontscan.failedinit.FailedInitComponentTester'"
+                        + "'com.example.failedinit.FailedInitComponentTester'"
                         + " cannot be loaded" + System.lineSeparator()
                         + "java.lang.NoClassDefFoundError: Could not initialize class "
-                        + "com.vaadin.browserless.dontscan.failedinit.BrokenInit"),
+                        + "com.example.failedinit.BrokenInit"),
                 log);
         Assertions.assertEquals(ComponentTester.class,
                 TesterRegistry.resolve(FailedInitComponent.class));

@@ -13,11 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.failedinit;
+package com.example.failedinit;
 
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Tag;
+public class BrokenInit {
 
-@Tag("span")
-public class FailedInitComponent extends Component {
+    public static final Object VALUE = failInitialization();
+
+    private static Object failInitialization() {
+        throw new IllegalStateException("BrokenInit cannot be initialized");
+    }
 }
