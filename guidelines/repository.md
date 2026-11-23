@@ -9,10 +9,9 @@
   own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
-- **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
-  elsewhere. Both fail the build on any warning they report: a link that does
-  not resolve, for example, or a missing comment in the pure-Java modules.
-  Dokka does not report missing comments.
+- **maven-javadoc-plugin** for Javadoc in every module. It fails the build on
+  any warning it reports: a link that does not resolve or a missing comment,
+  for example.
 
 ## Module structure
 
