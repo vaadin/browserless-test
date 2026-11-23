@@ -982,8 +982,13 @@ public class LocatorProcessor extends AbstractProcessor {
         if (deprecated.forRemoval()) {
             args.add("forRemoval = true");
         }
-        return args.isEmpty() ? "    @Deprecated\n"
+        String annotation = args.isEmpty() ? "    @Deprecated\n"
                 : "    @Deprecated(" + String.join(", ", args) + ")\n";
+        // Being deprecated itself does not silence the removal warning for the
+        // delegating call, so every build of the locator would report it.
+        return deprecated.forRemoval()
+                ? annotation + "    @SuppressWarnings(\"removal\")\n"
+                : annotation;
     }
 
     private String renderClassJavadoc(TypeElement target, TypeElement tester,

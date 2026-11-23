@@ -133,6 +133,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * suggestions, so a filter set with {@link #setFilter(String)} is taken
      * into account.
      *
+     * <p>
+     * Passing no labels leaves the selection unchanged.
+     *
      * @param selection
      *            item representations as strings, not {@code null}
      * @throws IllegalStateException
@@ -142,6 +145,29 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *             matches no item
      */
     public void selectItems(String... selection) {
+        selectItems(selection == null ? null : Arrays.asList(selection));
+    }
+
+    /**
+     * Selects items by client string representation, as ticking them in the
+     * overlay does.
+     * <p>
+     * The items are added to the current selection; items that are already
+     * selected stay selected. Labels are matched against the current
+     * suggestions, so a filter set with {@link #setFilter(String)} is taken
+     * into account.
+     * <p>
+     * Passing an empty collection leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no item
+     */
+    public void selectItems(Collection<String> selection) {
         ensureComponentIsUsable();
         Set<Y> value = new LinkedHashSet<>(getSelected());
         value.addAll(getItemsForLabels(getSuggestionItems(), selection));
@@ -156,6 +182,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * current selection, so an item hidden by the filter can still be
      * deselected, as removing its chip does.
      *
+     * <p>
+     * Passing no labels leaves the selection unchanged.
+     *
      * @param selection
      *            item representations as strings, not {@code null}
      * @throws IllegalStateException
@@ -165,6 +194,28 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      *             matches no selected item
      */
     public void deselectItems(String... selection) {
+        deselectItems(selection == null ? null : Arrays.asList(selection));
+    }
+
+    /**
+     * Deselects items by client string representation, as unticking them in the
+     * overlay does.
+     * <p>
+     * Other selected items stay selected. Labels are matched against the
+     * current selection, so an item hidden by the filter can still be
+     * deselected, as removing its chip does.
+     * <p>
+     * Passing an empty collection leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no selected item
+     */
+    public void deselectItems(Collection<String> selection) {
         ensureComponentIsUsable();
         Set<Y> value = new LinkedHashSet<>(getSelected());
         value.removeAll(getItemsForLabels(value, selection));
@@ -187,7 +238,7 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     private Set<Y> getItemsForLabels(Collection<Y> candidates,
-            String[] labels) {
+            Collection<String> labels) {
         if (labels == null) {
             throw new IllegalArgumentException("Selection must not be null");
         }

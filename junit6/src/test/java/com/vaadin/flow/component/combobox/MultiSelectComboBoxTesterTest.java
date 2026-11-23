@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -188,6 +189,34 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
+    void selectItemsAndDeselectItems_collection_actOnEveryItem() {
+        test(view.combo).selectItems(List.of("test-foo", "test-bar"));
+
+        Assertions.assertEquals(Set.copyOf(view.items),
+                test(view.combo).getSelected());
+
+        test(view.combo).deselectItems(List.of("test-foo", "test-bar"));
+
+        Assertions.assertTrue(test(view.combo).getSelected().isEmpty());
+    }
+
+    @Test
+    void selectItemsAndDeselectItems_noLabels_leaveSelectionUnchanged() {
+        view.combo.setValue(Set.of(view.items.get(0)));
+        AtomicInteger events = new AtomicInteger();
+        view.combo.addValueChangeListener(e -> events.incrementAndGet());
+
+        test(view.combo).selectItems();
+        test(view.combo).deselectItems();
+        test(view.combo).selectItems(List.of());
+        test(view.combo).deselectItems(List.of());
+
+        Assertions.assertEquals(Set.of(view.items.get(0)),
+                test(view.combo).getSelected());
+        Assertions.assertEquals(0, events.get());
+    }
+
+    @Test
     void deselectAll_emptiesSelectionWithoutClearButton() {
         view.combo.setValue(Set.copyOf(view.items));
         view.combo.setClearButtonVisible(false);
@@ -209,6 +238,10 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 () -> test(view.combo).selectItems((String[]) null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).deselectItems((String[]) null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).selectItems((List<String>) null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> test(view.combo).deselectItems((List<String>) null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> test(view.combo).deselectItems("test-bar"),
                 "An item that is not selected cannot be deselected");
