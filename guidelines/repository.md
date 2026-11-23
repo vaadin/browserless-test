@@ -5,8 +5,6 @@
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
 - **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
   fixed version per branch — see [Flow Version](flow-version.md).
-- **Kotlin** for the Grid helpers in `shared/src/main/kotlin`.
-  New code is Java; the Kotlin is being ported over time.
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
   own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
