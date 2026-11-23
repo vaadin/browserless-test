@@ -15,7 +15,6 @@
  */
 package com.vaadin.browserless;
 
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,11 +35,13 @@ import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinition;
 import com.vaadin.flow.js.JsExpression;
+import com.vaadin.flow.js.JsInvokers;
+import com.vaadin.flow.js.JsSnippets;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
 
     @JsDefinition
-    public interface OtherFocusJs extends Serializable {
+    public interface OtherFocusJs extends JsInvokers {
         @JsExpression("this.focus()")
         void focus();
 
@@ -400,6 +401,13 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 two.getMessage().endsWith("[focus, scrollIntoView]"),
                 two.getMessage());
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> executed.getCalls(Runnable.class, Runnable::run));
+                () -> executed.getCalls(AmbiguousJs.class, AmbiguousJs::focus));
+    }
+
+    // Not a valid definition: it is both invokers and snippets
+    @JsDefinition
+    public interface AmbiguousJs extends JsInvokers, JsSnippets {
+        @JsExpression("this.focus()")
+        void focus();
     }
 }
