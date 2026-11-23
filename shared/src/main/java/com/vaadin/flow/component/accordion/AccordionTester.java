@@ -188,8 +188,7 @@ public class AccordionTester<T extends Accordion> extends ComponentTester<T> {
         return false;
     }
 
-    @Nullable
-    private AccordionPanel getPanelBySummary(String summary) {
+    private @Nullable AccordionPanel getPanelBySummary(String summary) {
         final AccordionPanel childPanel = getComponent().getChildren()
                 .filter(child -> child instanceof AccordionPanel)
                 .map(AccordionPanel.class::cast)

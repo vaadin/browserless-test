@@ -43,8 +43,7 @@ public class MockSpringVaadinSession extends VaadinSession {
     /**
      * Produces the UI instances this session hands out.
      */
-    @NonNull
-    private final UIFactory uiFactory;
+    private final @NonNull UIFactory uiFactory;
 
     /**
      * Creates the session.

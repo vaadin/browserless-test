@@ -441,7 +441,10 @@ public class MockRequest implements HttpServletRequest {
      * @param checker
      *            decides whether a principal holds a role
      * @since 1.1
+     * @deprecated use {@link #setUserInRole(BiPredicate)}, which takes the same
+     *             argument
      */
+    @Deprecated(since = "25.4", forRemoval = true)
     public void roleChecker(BiPredicate<Principal, String> checker) {
         this.isUserInRole = checker;
     }
@@ -569,8 +572,9 @@ public class MockRequest implements HttpServletRequest {
     private Principal userPrincipalInt = null;
 
     /**
-     * Returns the principal reported unless
-     * {@link #principalProvider(java.util.function.Supplier)} has been set.
+     * Returns the principal {@link #getUserPrincipal()} reports when no
+     * {@link #principalProvider(java.util.function.Supplier) principal
+     * provider} is set, or when the provider returns {@code null}.
      *
      * @return the principal, or {@code null}
      */
@@ -579,8 +583,9 @@ public class MockRequest implements HttpServletRequest {
     }
 
     /**
-     * Sets the principal to report, unless
-     * {@link #principalProvider(java.util.function.Supplier)} has been set.
+     * Sets the principal {@link #getUserPrincipal()} reports when no
+     * {@link #principalProvider(java.util.function.Supplier) principal
+     * provider} is set, or when the provider returns {@code null}.
      *
      * @param userPrincipalInt
      *            the principal, or {@code null} for an anonymous request
@@ -590,11 +595,11 @@ public class MockRequest implements HttpServletRequest {
     }
 
     /**
-     * Optional provider for {@link #getUserPrincipal()}. When set, takes
-     * precedence over {@link #userPrincipalInt}, allowing the principal to be
-     * resolved lazily at call time (e.g. from a security context that is
-     * populated after setup). Set via
-     * {@link #principalProvider(java.util.function.Supplier)}.
+     * Optional provider for {@link #getUserPrincipal()}. When set and it
+     * returns a principal, that takes precedence over
+     * {@link #userPrincipalInt}, allowing the principal to be resolved lazily
+     * at call time (e.g. from a security context that is populated after
+     * setup). Set via {@link #principalProvider(java.util.function.Supplier)}.
      *
      * @since 1.1
      */
@@ -603,8 +608,7 @@ public class MockRequest implements HttpServletRequest {
     /**
      * Returns the principal provider, if one has been set.
      *
-     * @return the provider, or {@code null} if the principal comes from
-     *         {@link #userPrincipalInt}
+     * @return the provider, or {@code null} if none has been set
      * @since 1.1
      */
     public Supplier<Principal> getUserPrincipalProvider() {
@@ -615,6 +619,11 @@ public class MockRequest implements HttpServletRequest {
      * Sets the user principal provider. Accepts a
      * {@link java.util.function.Supplier} so Java callers can pass a lambda
      * directly; Kotlin callers can do the same via SAM conversion.
+     *
+     * <p>
+     * The provider takes precedence over
+     * {@link #setUserPrincipalInt(Principal)}. When it returns {@code null},
+     * {@link #getUserPrincipal()} falls back to that principal.
      *
      * @param supplier
      *            resolves the principal at call time

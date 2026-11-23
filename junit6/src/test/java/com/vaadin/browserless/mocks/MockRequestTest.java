@@ -161,6 +161,24 @@ class MockRequestTest {
     }
 
     @Test
+    void isUserInRole_principalProviderSet_checksTheProvidedPrincipal() {
+        request.setUserPrincipalInt(new MockPrincipal("foo"));
+        request.principalProvider(
+                () -> new MockPrincipal("bar", List.of("admin")));
+        request.setUserInRole((p, r) -> ((MockPrincipal) p).isUserInRole(r));
+        assertTrue(request.isUserInRole("admin"));
+    }
+
+    @Test
+    @SuppressWarnings("removal")
+    void isUserInRole_deprecatedRoleChecker_isUsed() {
+        request.setUserPrincipalInt(new MockPrincipal("foo"));
+        request.roleChecker((p, r) -> r.equals("bar"));
+        assertTrue(request.isUserInRole("bar"));
+        assertFalse(request.isUserInRole("foo"));
+    }
+
+    @Test
     void isUserInRole_withoutRoleChecker_grantsNothing() {
         assertFalse(request.isUserInRole("foo"));
         request.setUserPrincipalInt(new MockPrincipal("foo"));

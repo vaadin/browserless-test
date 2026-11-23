@@ -56,20 +56,17 @@ public class MockSpringServlet extends SpringServlet {
     /**
      * The routes registered when the service is created.
      */
-    @NonNull
-    public final Routes routes;
+    public final @NonNull Routes routes;
 
     /**
      * The Spring context the views are instantiated from.
      */
-    @NonNull
-    public final ApplicationContext ctx;
+    public final @NonNull ApplicationContext ctx;
 
     /**
      * Produces the UI instances the sessions of this servlet hand out.
      */
-    @NonNull
-    public final UIFactory uiFactory;
+    public final @NonNull UIFactory uiFactory;
 
     /**
      * Creates the servlet.
