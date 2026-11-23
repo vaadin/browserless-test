@@ -156,13 +156,13 @@ final class TesterRegistry {
         }
     }
 
+    // Testers for components that are not on the classpath are expected, e.g.
+    // the commercial component testers in an application that only depends on
+    // vaadin-core, so skipping them must not produce warnings or stack traces.
     private static void logTypeLoadingIssue(Throwable ex, String message,
             Object... args) {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(message, args, ex);
-        } else {
-            LOGGER.warn(message, args);
-        }
+        LOGGER.debug(message, args);
+        LOGGER.trace("Cause of the skipped tester", ex);
     }
 
     /**

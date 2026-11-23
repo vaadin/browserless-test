@@ -15,6 +15,10 @@
  */
 package com.vaadin.browserless;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -23,11 +27,23 @@ import org.junit.jupiter.api.Test;
 public class TesterScanTest {
 
     @Test
-    public void scanForTesters_testerForClassNotInClasspath_doNotThrowOnClassNotFoundException() {
+    public void scanForTesters_testerForClassNotInClasspath_doNotThrowOrLogOnClassNotFoundException() {
         // Loads a dummy tester annotated with @Tests using an FQN to a
-        // non-existing component class.
-        Assertions.assertDoesNotThrow(() -> TesterRegistry.registerPackages(
-                "com.vaadin.browserless.dontscan.classnotfound"));
+        // non-existing component class, as the commercial component testers
+        // do in an application without those components. Skipping it is
+        // expected, so nothing is logged at the default level. The registry
+        // is loaded first so that only the scan of that package is captured.
+        TesterRegistry.registerPackages();
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        PrintStream originalErr = System.err;
+        System.setErr(new PrintStream(captured, true, StandardCharsets.UTF_8));
+        try {
+            Assertions.assertDoesNotThrow(() -> TesterRegistry.registerPackages(
+                    "com.vaadin.browserless.dontscan.classnotfound"));
+        } finally {
+            System.setErr(originalErr);
+        }
+        Assertions.assertEquals("", captured.toString(StandardCharsets.UTF_8));
     }
 
     @Test
