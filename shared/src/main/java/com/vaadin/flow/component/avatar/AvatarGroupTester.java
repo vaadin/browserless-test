@@ -110,8 +110,7 @@ public class AvatarGroupTester<T extends AvatarGroup>
      * @throws IllegalStateException
      *             if the group is not visible to the user
      */
-    @Nullable
-    public String getOverflowAbbreviation() {
+    public @Nullable String getOverflowAbbreviation() {
         ensureVisible();
         List<AvatarGroupItem> items = getComponent().getItems();
         int overflowing = items.size() - visibleItemCount(items);
@@ -131,8 +130,7 @@ public class AvatarGroupTester<T extends AvatarGroup>
      * @throws IllegalStateException
      *             if the group is not visible to the user
      */
-    @Nullable
-    public String getActiveUsersLabel() {
+    public @Nullable String getActiveUsersLabel() {
         ensureVisible();
         AvatarGroupI18n i18n = getComponent().getI18n();
         if (i18n == null) {

@@ -54,8 +54,7 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
      * @throws IllegalStateException
      *             if the layout is not visible to the user
      */
-    @Nullable
-    public Component getMaster() {
+    public @Nullable Component getMaster() {
         ensureVisible();
         return getComponent().getMaster();
     }
@@ -68,8 +67,7 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
      * @throws IllegalStateException
      *             if the layout is not visible to the user
      */
-    @Nullable
-    public Component getDetail() {
+    public @Nullable Component getDetail() {
         ensureVisible();
         return getComponent().getDetail();
     }
@@ -84,8 +82,7 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
      *             if the layout is not visible to the user, or if detail
      *             content is set so the placeholder is not shown
      */
-    @Nullable
-    public Component getDetailPlaceholder() {
+    public @Nullable Component getDetailPlaceholder() {
         ensureVisible();
         if (getComponent().getDetail() != null) {
             throw new IllegalStateException(
