@@ -156,10 +156,15 @@ class MockRequestTest {
         request.principalProvider(() -> null);
         assertEquals(new MockPrincipal("foo"), request.getUserPrincipal());
 
+        request.principalProvider(() -> new MockPrincipal("bar"));
+        assertEquals(new MockPrincipal("bar"), request.getUserPrincipal());
+    }
+
+    @Test
+    void isUserInRole_principalProviderSet_checksTheProvidedPrincipal() {
+        request.setUserPrincipalInt(new MockPrincipal("foo"));
         request.principalProvider(
                 () -> new MockPrincipal("bar", List.of("admin")));
-        assertEquals(new MockPrincipal("bar", List.of("admin")),
-                request.getUserPrincipal());
         request.setUserInRole((p, r) -> ((MockPrincipal) p).isUserInRole(r));
         assertTrue(request.isUserInRole("admin"));
     }
