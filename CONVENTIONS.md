@@ -70,8 +70,8 @@ See [`guidelines/testers.md`](guidelines/testers.md).
 Every method name contains a verb that says what the method does. A name that
 is only a noun or a category — `header(…)`, `names(…)`, `report(…)` — leaves
 the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
-`warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
-internal helpers and the Kotlin layer as much as for tester API.
+`warnAboutMissingFiles(…)` say what happens. This holds for the mocks and the
+internal helpers as much as for tester API.
 
 Three families take their names from elsewhere and keep them:
 

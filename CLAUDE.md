@@ -83,7 +83,7 @@ mvn test -pl junit6 -Dtest=BasicGridTesterTest#basicGrid_selectionOnClick
 # Run the tests matching a pattern
 mvn test -pl junit6 -Dtest="*ComboBox*Test"
 
-# Generate the Javadoc/Dokka artifacts the way CI does
+# Generate the Javadoc artifacts the way CI does
 mvn clean install -DskipTests -Djavadocs
 ```
 
