@@ -17,7 +17,7 @@ package com.vaadin.browserless;
 
 /**
  * Enums for mouse button values in click events.
- * <p/>
+ * <p>
  * Default button values are as follows:
  * <dl>
  * <dt>-1: No button</dt>
@@ -33,7 +33,18 @@ package com.vaadin.browserless;
  */
 public enum MouseButton {
 
-    NO_BUTTON(-1), LEFT(0), MIDDLE(1), RIGHT(2), BACK(3), FORWARD(4);
+    /** No button, or a button the browser does not name. */
+    NO_BUTTON(-1),
+    /** The primary button, usually the left one. */
+    LEFT(0),
+    /** The auxiliary button, usually the wheel. */
+    MIDDLE(1),
+    /** The secondary button, usually the right one. */
+    RIGHT(2),
+    /** The first additional button, typically the back button. */
+    BACK(3),
+    /** The second additional button, typically the forward button. */
+    FORWARD(4);
 
     private int button;
 

@@ -73,8 +73,8 @@ public class RouterLinkTester<T extends RouterLink> extends ComponentTester<T> {
     /**
      * Gets the query parameters for the router-link.
      *
-     * @return a {@link QueryParameters} containing the navigation target's
-     *         query parameters
+     * @return a {@link com.vaadin.flow.router.QueryParameters QueryParameters}
+     *         containing the navigation target's query parameters
      */
     public QueryParameters getQueryParameters() {
         return QueryParameters.fromString(URI.create(getHref()).getQuery());
@@ -84,8 +84,8 @@ public class RouterLinkTester<T extends RouterLink> extends ComponentTester<T> {
      * Gets the registered route class for the router-link. Returns an empty
      * optional if there is no corresponding navigation target.
      *
-     * @return an {@link Optional} containing the navigation target class or
-     *         empty if not found
+     * @return an {@link java.util.Optional Optional} containing the navigation
+     *         target class or empty if not found
      */
     public Optional<Class<? extends Component>> getRoute() {
         return RouteConfiguration.forSessionScope().getRoute(getPath());

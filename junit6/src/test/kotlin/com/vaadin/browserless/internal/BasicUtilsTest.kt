@@ -33,7 +33,7 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
     group("checkEditableByUser") {
         test("disabled textfield fails") {
             expectThrows(java.lang.IllegalStateException::class, "The AttachedTextField\\[DISABLED,.*] is not enabled".toRegex()) {
-                checkEditableByUser(AttachedTextField().apply { isEnabled = false })
+                BasicUtils.checkEditableByUser(AttachedTextField().apply { isEnabled = false })
             }
         }
         test("invisible textfield fails") {
@@ -41,7 +41,7 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
                 java.lang.IllegalStateException::class,
                 "The AttachedTextField\\[INVIS,.*] is not effectively visible".toRegex()
             ) {
-                checkEditableByUser(AttachedTextField().apply { isVisible = false })
+                BasicUtils.checkEditableByUser(AttachedTextField().apply { isVisible = false })
             }
         }
         test("non attached textfield fails") {
@@ -49,58 +49,58 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
                 java.lang.IllegalStateException::class,
                 "The TextField\\[.*] is not attached".toRegex()
             ) {
-                checkEditableByUser(TextField())
+                BasicUtils.checkEditableByUser(TextField())
             }
         }
         test("textfield in invisible layout fails") {
             expectThrows(java.lang.IllegalStateException::class, "The TextField\\[.*] is not effectively visible".toRegex()) {
                 VerticalLayout().apply {
                     isVisible = false
-                    textField().also { checkEditableByUser(it) }
+                    textField().also { BasicUtils.checkEditableByUser(it) }
                 }
             }
         }
         test("textfield succeeds") {
-            checkEditableByUser(AttachedTextField())
+            BasicUtils.checkEditableByUser(AttachedTextField())
         }
     }
 
     group("expectNotEditableByUser") {
         test("disabled textfield fails") {
-            expectNotEditableByUser(AttachedTextField().apply { isEnabled = false })
+            BasicUtils.expectNotEditableByUser(AttachedTextField().apply { isEnabled = false })
         }
         test("invisible textfield fails") {
-            expectNotEditableByUser(AttachedTextField().apply { isVisible = false })
+            BasicUtils.expectNotEditableByUser(AttachedTextField().apply { isVisible = false })
         }
         test("textfield in invisible layout fails") {
             VerticalLayout().apply {
                 isVisible = false
-                textField().also { expectNotEditableByUser(it) }
+                textField().also { BasicUtils.expectNotEditableByUser(it) }
             }
         }
         test("textfield succeeds") {
             expectThrows(AssertionError::class, "The AttachedTextField\\[.*] is editable".toRegex()) {
-                expectNotEditableByUser(AttachedTextField())
+                BasicUtils.expectNotEditableByUser(AttachedTextField())
             }
         }
     }
 
     group("fireDomEvent()") {
         test("smoke") {
-            _fireDomEvent(Div(), "click")
+            BasicUtils._fireDomEvent(Div(), "click")
         }
         test("listeners are called") {
             val div = Div()
             lateinit var event: DomEvent
             div.element.addEventListener("click") { e -> event = e }
-            _fireDomEvent(div, "click")
+            BasicUtils._fireDomEvent(div, "click")
             expect("click") { event.type }
         }
         test("higher-level listeners are called") {
             val div = Div()
             lateinit var event: ClickEvent<Div>
             div.addClickListener { e -> event = e }
-            _fireDomEvent(div, "click", JacksonUtils.createObjectNode().apply { put("event.screenX", 20.0) })
+            BasicUtils._fireDomEvent(div, "click", JacksonUtils.createObjectNode().apply { put("event.screenX", 20.0) })
             expect(20) { event.screenX }
             expect(true) { event.isFromClient }
         }
@@ -110,7 +110,7 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
         val f = AttachedTextField()
         var called = false
         f.addFocusListener { called = true }
-        _focus(f)
+        BasicUtils._focus(f)
         expect(true) { called }
     }
 
@@ -118,7 +118,7 @@ internal fun DynaNodeGroup.basicUtilsTestbatch() {
         val f = AttachedTextField()
         var called = false
         f.addBlurListener { called = true }
-        _blur(f)
+        BasicUtils._blur(f)
         expect(true) { called }
     }
 }

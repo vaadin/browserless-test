@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
+import com.vaadin.browserless.internal.MockVaadin;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.signals.SignalEnvironment;
 
@@ -83,6 +84,9 @@ public class TestSignalEnvironment extends SignalEnvironment {
     private final LinkedBlockingQueue<Runnable> tasks = new LinkedBlockingQueue<>();
     private Runnable cleanup;
 
+    /**
+     * Creates the environment; use {@link #register()} instead.
+     */
     protected TestSignalEnvironment() {
     }
 
@@ -185,7 +189,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
                 if (hasLock) {
                     // Unlocking runs the UI.access() tasks that the task
                     // queued, as it does between tasks in runPendingTasks()
-                    session.unlock();
+                    MockVaadin.unlockRunningUIQueue(session);
                     session.lock();
                 }
             }
@@ -244,7 +248,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
         boolean hadLock = false;
         if (session != null && session.hasLock()) {
             hadLock = true;
-            session.unlock();
+            MockVaadin.unlockRunningUIQueue(session);
         }
         try {
             boolean processedAny = false;
@@ -280,7 +284,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
                     task.run();
                 } finally {
                     if (hadLock) {
-                        session.unlock();
+                        MockVaadin.unlockRunningUIQueue(session);
                     }
                 }
                 processedAny = true;

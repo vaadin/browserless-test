@@ -58,6 +58,11 @@ import com.vaadin.flow.server.VaadinSession;
  * logged out in every other window — to authenticate again, create a fresh user
  * context with {@link BrowserlessApplicationContext#newUser()} rather than
  * reusing this one.
+ * <p>
+ * This user's session lock is held only while one of this user's windows is
+ * active, so unsynchronized access to this user's UI from another user's window
+ * fails as it does in a running application. See
+ * {@link BrowserlessApplicationContext} for details.
  *
  * @see BrowserlessApplicationContext#newUser()
  * @see BrowserlessUIContext
@@ -111,6 +116,14 @@ public class BrowserlessUserContext implements AutoCloseable {
             this.session = objs.getSession();
             this.request = objs.getRequest();
             this.response = objs.getResponse();
+            if (app.isSessionLockIsolation()) {
+                // The session is created locked by this thread. Release it and
+                // take it back through the application so that this user's
+                // session is the only one locked while it initialises, as in
+                // the request that creates it.
+                session.unlock();
+                app.holdSessionLock(this);
+            }
 
             // Install thread-locals temporarily for session init listeners.
             // applySessionThreadLocals() ends with restoreSecurityContext()
@@ -149,6 +162,13 @@ public class BrowserlessUserContext implements AutoCloseable {
             CurrentInstance.set(VaadinRequest.class, previousRequest);
             CurrentInstance.set(VaadinResponse.class, previousResponse);
             UI.setCurrent(previousUI);
+            // The active window may belong to another application context,
+            // whose session lock is not this context's to take.
+            BrowserlessUIContext active = BrowserlessUIContext.getActive();
+            app.holdSessionLock(
+                    active != null && active.getUser().getApp() == app
+                            ? active.getUser()
+                            : null);
             // Restore previous security context — handler contract specifies
             // null → clearContext, so the snapshot is forwarded as-is.
             if (handler != null) {
@@ -193,9 +213,14 @@ public class BrowserlessUserContext implements AutoCloseable {
      */
     @Override
     public void close() {
+        app.runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }
+        app.checkNotRunningQueuedCommand();
         closed = true;
         for (var window : windows) {
             window.close();
@@ -217,23 +242,42 @@ public class BrowserlessUserContext implements AutoCloseable {
         // session-destroy listeners run under session.access semantics that
         // null them out — keeping the prep symmetric protects against
         // future Vaadin changes.
+        app.holdSessionLock(this);
         applySessionThreadLocals();
 
-        // Destroy session: fire destroy listeners and drain the queue,
-        // mirroring MockVaadin.closeCurrentSession (which gates the
-        // session-recreation hook via a thread-local flag).
-        MockVaadin.fireSessionDestroyAndDrain(session);
+        Throwable destroyFailure = null;
+        try {
+            // Destroy session: fire destroy listeners and drain the queue,
+            // mirroring MockVaadin.closeCurrentSession (which gates the
+            // session-recreation hook via a thread-local flag).
+            MockVaadin.fireSessionDestroyAndDrain(session);
+        } catch (Throwable t) {
+            destroyFailure = t;
+            throw t;
+        } finally {
+            // Done also when the destroy fails, so the closed session is not
+            // left locked. A failure here does not hide the destroy failure.
+            try {
+                // Drop this user's thread-local state — including the
+                // security snapshot — so it does not leak into subsequent
+                // activations or tests sharing the thread.
+                clearThreadLocals();
 
-        // Drop this user's thread-local state — including the security
-        // snapshot — so it does not leak into subsequent activations or
-        // tests sharing the thread.
-        clearThreadLocals();
-
-        // If a different user's window is still active, re-establish its
-        // thread-locals (UI/Session/Request/Response/security) so any
-        // subsequent operation on it observes a coherent state.
-        if (activeIsAnotherUser && !active.isClosed()) {
-            BrowserlessUIContext.reactivateSurviving(active);
+                // If a different user's window is still active,
+                // re-establish its thread-locals (UI/Session/Request/
+                // Response/security) so any subsequent operation on it
+                // observes a coherent state.
+                if (activeIsAnotherUser && !active.isClosed()) {
+                    BrowserlessUIContext.reactivateSurviving(active, app);
+                } else {
+                    app.holdSessionLock(null);
+                }
+            } catch (Throwable t) {
+                if (destroyFailure == null) {
+                    throw t;
+                }
+                destroyFailure.addSuppressed(t);
+            }
         }
     }
 
