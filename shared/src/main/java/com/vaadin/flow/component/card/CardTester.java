@@ -17,7 +17,7 @@ package com.vaadin.flow.component.card;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentQuery;
 import com.vaadin.browserless.ComponentTester;
@@ -89,8 +89,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      *             if the card is not visible to the user, or if a header
      *             component is set so the title is not shown
      */
-    @Nullable
-    public Component getTitle() {
+    public @Nullable Component getTitle() {
         ensureVisible();
         ensureHeaderNotShown("title");
         return getComponent().getTitle();
@@ -104,8 +103,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      *             if the card is not visible to the user, or if a header
      *             component is set so the subtitle is not shown
      */
-    @Nullable
-    public Component getSubtitle() {
+    public @Nullable Component getSubtitle() {
         ensureVisible();
         ensureHeaderNotShown("subtitle");
         return getComponent().getSubtitle();
@@ -132,8 +130,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      *             if the card is not visible to the user, or if a header
      *             component is set so the subtitle is not shown
      */
-    @Nullable
-    public String getSubtitleAsText() {
+    public @Nullable String getSubtitleAsText() {
         ensureVisible();
         ensureHeaderNotShown("subtitle");
         return getComponent().getSubtitle() instanceof Span span
@@ -149,8 +146,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the card is not visible to the user
      */
-    @Nullable
-    public Component getHeader() {
+    public @Nullable Component getHeader() {
         ensureVisible();
         return getComponent().getHeader();
     }
@@ -162,8 +158,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the card is not visible to the user
      */
-    @Nullable
-    public Component getHeaderPrefix() {
+    public @Nullable Component getHeaderPrefix() {
         ensureVisible();
         return getComponent().getHeaderPrefix();
     }
@@ -175,8 +170,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the card is not visible to the user
      */
-    @Nullable
-    public Component getHeaderSuffix() {
+    public @Nullable Component getHeaderSuffix() {
         ensureVisible();
         return getComponent().getHeaderSuffix();
     }
@@ -188,8 +182,7 @@ public class CardTester<T extends Card> extends ComponentTester<T> {
      * @throws IllegalStateException
      *             if the card is not visible to the user
      */
-    @Nullable
-    public Component getMedia() {
+    public @Nullable Component getMedia() {
         ensureVisible();
         return getComponent().getMedia();
     }

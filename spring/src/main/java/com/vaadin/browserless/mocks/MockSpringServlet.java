@@ -22,8 +22,7 @@ import java.lang.reflect.Constructor;
 import java.security.Principal;
 import java.util.function.UnaryOperator;
 
-import kotlin.jvm.functions.Function0;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -35,7 +34,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
 import com.vaadin.browserless.internal.Utils;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.ServiceException;
 import com.vaadin.flow.server.VaadinServletRequest;
@@ -55,38 +53,15 @@ public class MockSpringServlet extends SpringServlet {
     /**
      * The routes registered when the servlet is initialized.
      */
-    @NotNull
-    public final Routes routes;
+    public final @NonNull Routes routes;
     /**
      * The Spring application context the servlet runs in.
      */
-    @NotNull
-    public final ApplicationContext ctx;
+    public final @NonNull ApplicationContext ctx;
     /**
      * Creates the UI for every new session.
      */
-    @NotNull
-    public final UIFactory uiFactory;
-
-    /**
-     * Creates a new mocked Spring servlet.
-     *
-     * @param routes
-     *            the routes to register
-     * @param ctx
-     *            the Spring application context
-     * @param uiFactory
-     *            creates the UI for every new session
-     * @deprecated use the constructor taking a {@link UIFactory} instead
-     */
-    @Deprecated(forRemoval = true)
-    public MockSpringServlet(@NotNull Routes routes,
-            @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
-        super(ctx, false);
-        this.ctx = ctx;
-        this.routes = routes;
-        this.uiFactory = uiFactory::invoke;
-    }
+    public final @NonNull UIFactory uiFactory;
 
     /**
      * Creates a new mocked Spring servlet.
@@ -98,8 +73,8 @@ public class MockSpringServlet extends SpringServlet {
      * @param uiFactory
      *            creates the UI for every new session
      */
-    public MockSpringServlet(@NotNull Routes routes,
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+    public MockSpringServlet(@NonNull Routes routes,
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;
         this.routes = routes;

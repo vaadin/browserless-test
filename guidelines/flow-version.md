@@ -12,7 +12,8 @@ need — and no wish — to keep working against older releases of either.
 | `1.0`  | `1.0.x`        | 25.1          |
 | `1.1`  | `1.1.x`        | 25.2          |
 | `25.3` | `25.3.x`       | 25.3          |
-| `main` | `25.4-SNAPSHOT`| 25.4          |
+| `25.4` | `25.4.x`       | 25.4          |
+| `main` | `25.5-SNAPSHOT`| 25.5          |
 
 From 25.3 on the version *is* the Vaadin version it targets: the separate
 `1.x` numbering is gone, so the branch developing against Vaadin `x.y` carries

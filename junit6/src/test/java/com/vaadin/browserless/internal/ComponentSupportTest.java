@@ -53,8 +53,8 @@ class ComponentSupportTest {
         Span hidden = new Span("hidden");
         UI.getCurrent().add(new PanelWithHiddenContent(hidden));
 
-        Assertions.assertSame(hidden,
-                Locator._get(Span.class, spec -> kotlin.Unit.INSTANCE));
+        Assertions.assertSame(hidden, Locator._get(Span.class, spec -> {
+        }));
     }
 
     @Test
@@ -86,7 +86,6 @@ class ComponentSupportTest {
         Assertions.assertSame(panel,
                 Locator._get(CaptionedPanel.class, spec -> {
                     spec.setCaption("caption");
-                    return kotlin.Unit.INSTANCE;
                 }));
     }
 
