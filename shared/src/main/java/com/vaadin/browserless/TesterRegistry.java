@@ -169,11 +169,11 @@ final class TesterRegistry {
         }
     }
 
-    // Unlike a missing class, a tester that exists but fails to initialize is
-    // a bug in the tester, so it is reported with its stack trace.
+    // Unlike a missing class, a class that exists but fails to initialize is
+    // a bug, so it is reported with its stack trace.
     private static void logInitializationFailure(String tester, Throwable ex) {
-        LOGGER.warn("Tester '{}' cannot be loaded because it failed to "
-                + "initialize", tester, ex);
+        LOGGER.warn("Tester '{}' cannot be loaded because it or a class it "
+                + "references failed to initialize", tester, ex);
     }
 
     // A tester that references a class missing from the classpath is expected,

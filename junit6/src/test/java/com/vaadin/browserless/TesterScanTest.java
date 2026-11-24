@@ -54,10 +54,12 @@ public class TesterScanTest {
     public void scanForTesters_testerForClassNotInClasspath_doNotThrowOrLogOnNoClassDefFoundError()
             throws IOException {
         // Like GridProTester, the tester's type parameter is bound to the
-        // component class, so loading the tester needs the missing class
+        // component class, so loading the tester needs the missing class.
+        // The tester claims Span, so if it were loaded, replacing the Span
+        // tester would log a warning.
         URLClassLoader fixture = compileWithMissingComponent("noclassdeffound",
                 """
-                        @Tests(fqn = "com.vaadin.browserless.dontscan.noclassdeffound.MissingComponent")
+                        @Tests(fqn = "com.vaadin.flow.component.html.Span")
                         public class MissingComponentTester<T extends MissingComponent>
                                 extends ComponentTester<T> {
                             public MissingComponentTester(T component) {
@@ -96,13 +98,14 @@ public class TesterScanTest {
                 "com.vaadin.browserless.dontscan.initfailure"));
         Assertions.assertTrue(log.contains("WARN"), log);
         Assertions.assertTrue(log.contains(
-                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureTester' cannot be loaded because it failed to initialize"),
+                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureTester' cannot be loaded because it or a class it references failed to initialize"),
                 log);
         Assertions.assertTrue(log.contains(
-                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureSubclassTester' cannot be loaded because it failed to initialize"),
+                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureSubclassTester' cannot be loaded because it or a class it references failed to initialize"),
                 log);
-        Assertions.assertTrue(log.contains("Tester initialization failed"),
-                log);
+        // Both warnings carry the original failure
+        Assertions.assertTrue(
+                log.split("Tester initialization failed", -1).length > 2, log);
     }
 
     private String captureStdErr(Executable scan) {
