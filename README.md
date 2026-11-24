@@ -769,6 +769,14 @@ wrapped so that it runs with the element as `this`, so check it with
 `contains(...)`, and the element is added as its last parameter.
 `getAll(component)` and `getAll(element)` keep only what was run on that
 element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
+`getExecutions(definitionType, methodName)` keeps only the calls of one method
+of a definition. A test can check a call's arguments and, for a call whose
+result the application waits for, answer it as the browser would:
+
+```java
+executed.getExecutions(WakeLockJs.class, "request")
+        .getFirst().resolve(null);
+```
 
 Each UI also has a capture of its own, started when the UI is created, so
 it holds everything that UI was sent, including what the first view sent

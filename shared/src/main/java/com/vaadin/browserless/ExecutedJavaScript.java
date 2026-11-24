@@ -282,9 +282,42 @@ public final class ExecutedJavaScript implements Serializable {
     }
 
     /**
+     * Gets what was sent to the browser for the calls of one method of a
+     * JavaScript definition, the interface that
+     * {@code Element.executeJs(Class)} is called with, in the order the browser
+     * received it. Each execution has the call itself
+     * ({@link Execution#getJsCall()}) and can be answered the way the browser
+     * would, with {@link Execution#resolve(Object)} or
+     * {@link Execution#reject(String)}, for a call whose result the application
+     * waits for.
+     * <p>
+     * The method is named as a string, so a misspelled or renamed name matches
+     * nothing rather than failing.
+     *
+     * @param definitionType
+     *            the JavaScript definition, not null
+     * @param methodName
+     *            the name of the called method, not null
+     * @return the executions of the calls, not null
+     * @see #getCalls(Class, String)
+     */
+    public List<Execution> getExecutions(Class<?> definitionType,
+            String methodName) {
+        Objects.requireNonNull(definitionType, "definitionType");
+        Objects.requireNonNull(methodName, "methodName");
+        return getAll().stream()
+                .filter(execution -> execution.getJsCall()
+                        .filter(call -> call.definitionType() == definitionType
+                                && call.methodName().equals(methodName))
+                        .isPresent())
+                .toList();
+    }
+
+    /**
      * Gets the calls of one method of a JavaScript definition, the interface
      * that {@code Element.executeJs(Class)} is called with, that were sent to
-     * the browser, in the order the browser received them.
+     * the browser, in the order the browser received them. To answer a call,
+     * use {@link #getExecutions(Class, String)} instead.
      * <p>
      * The method is named as a string, so a misspelled or renamed name matches
      * nothing rather than failing; {@link #getCalls(Class, Consumer)} names it
@@ -298,14 +331,8 @@ public final class ExecutedJavaScript implements Serializable {
      * @see #getCalls(Class, Consumer)
      */
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
-        Objects.requireNonNull(definitionType, "definitionType");
-        Objects.requireNonNull(methodName, "methodName");
-        return getAll().stream()
-                .flatMap(execution -> execution.getJsCall()
-                        .filter(call -> call.definitionType() == definitionType
-                                && call.methodName().equals(methodName))
-                        .stream())
-                .toList();
+        return getExecutions(definitionType, methodName).stream()
+                .map(execution -> execution.getJsCall().orElseThrow()).toList();
     }
 
     /**
