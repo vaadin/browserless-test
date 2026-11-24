@@ -103,9 +103,17 @@ public class TesterScanTest {
         Assertions.assertTrue(log.contains(
                 "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureSubclassTester' cannot be loaded because it or a class it references failed to initialize"),
                 log);
-        // Both warnings carry the original failure
+        Assertions.assertTrue(log.contains("Tester initialization failed"),
+                log);
+        // Each warning carries the initialization failure. A class whose
+        // initialization already failed in an earlier scan does not repeat
+        // the original message, so only the error type is checked.
+        String[] warnings = log.split("cannot be loaded because", -1);
+        Assertions.assertEquals(3, warnings.length, log);
         Assertions.assertTrue(
-                log.split("Tester initialization failed", -1).length > 2, log);
+                warnings[1].contains("ExceptionInInitializerError"), log);
+        Assertions.assertTrue(
+                warnings[2].contains("ExceptionInInitializerError"), log);
     }
 
     private String captureStdErr(Executable scan) {
