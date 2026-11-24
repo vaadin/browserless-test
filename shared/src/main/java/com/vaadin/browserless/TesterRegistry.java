@@ -145,13 +145,15 @@ final class TesterRegistry {
                             logTypeLoadingIssue(e,
                                     "Tester '{}' cannot be loaded because of missing class '{}' on classpath",
                                     classInfo.getName(), e.typeName());
+                        } catch (ExceptionInInitializerError e) {
+                            logInitializationFailure(classInfo.getName(), e);
                         } catch (NoClassDefFoundError e) {
+                            // A class whose initialization already failed
+                            // once, e.g. the superclass of this tester, is
+                            // reported with the original failure as the cause
                             if (e.getCause() instanceof ExceptionInInitializerError) {
-                                // The class exists but failed to initialize,
-                                // which is a real problem, not a missing
-                                // optional component.
-                                LOGGER.warn("Tester '{}' cannot be loaded",
-                                        classInfo.getName(), e);
+                                logInitializationFailure(classInfo.getName(),
+                                        e);
                             } else {
                                 logTypeLoadingIssue(e,
                                         "Tester '{}' cannot be loaded because of missing class on classpath: {}",
@@ -165,6 +167,13 @@ final class TesterRegistry {
                     });
             return Collections.unmodifiableMap(testerMap);
         }
+    }
+
+    // Unlike a missing class, a tester that exists but fails to initialize is
+    // a bug in the tester, so it is reported with its stack trace.
+    private static void logInitializationFailure(String tester, Throwable ex) {
+        LOGGER.warn("Tester '{}' cannot be loaded because it failed to "
+                + "initialize", tester, ex);
     }
 
     // A tester that references a class missing from the classpath is expected,

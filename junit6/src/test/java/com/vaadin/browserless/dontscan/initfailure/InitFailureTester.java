@@ -13,21 +13,22 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.noclassdeffound;
+package com.vaadin.browserless.dontscan.initfailure;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 
-/**
- * Dummy tester referencing a class from a third-party JAR that might not be
- * available at runtime. This is used to verify that scanning for testers does
- * not fail when the referenced component class is not on the classpath.
- */
-@Tests(NoClassDefFoundComponent.class)
-public class NoClassDefFoundComponentTester<T extends NoClassDefFoundComponent>
-        extends ComponentTester<T> {
+@Tests(fqn = "com.vaadin.flow.component.html.Span")
+public class InitFailureTester extends ComponentTester<Component> {
 
-    public NoClassDefFoundComponentTester(T component) {
+    static {
+        if (Boolean.TRUE) {
+            throw new IllegalStateException("Tester initialization failed");
+        }
+    }
+
+    public InitFailureTester(Component component) {
         super(component);
     }
 }

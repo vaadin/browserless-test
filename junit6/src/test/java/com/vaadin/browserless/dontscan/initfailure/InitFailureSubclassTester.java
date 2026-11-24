@@ -13,22 +13,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.typenotpresent;
+package com.vaadin.browserless.dontscan.initfailure;
 
-import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 
-/**
- * Dummy tester whose annotation references a class from a third-party JAR that
- * might not be available at runtime. This is used to verify that scanning for
- * testers does not fail when the referenced component class is not on the
- * classpath.
- */
-@Tests(TypeNotPresentComponent.class)
-public class TypeNotPresentComponentTester extends ComponentTester<Component> {
+@Tests(fqn = "com.vaadin.flow.component.html.Div")
+public class InitFailureSubclassTester extends InitFailureTester {
 
-    public TypeNotPresentComponentTester(Component component) {
+    public InitFailureSubclassTester(Component component) {
         super(component);
     }
 }
