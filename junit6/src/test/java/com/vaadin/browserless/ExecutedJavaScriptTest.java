@@ -522,6 +522,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 .then(String.class, locked::set);
         calendar.getElement().executeJs(OrientationJs.class).unlock()
                 .then(String.class, value -> Assertions.fail("Not answered"));
+        calendar.getElement().executeJs("return screen.orientation.lock($0)",
+                "portrait");
         calendar.getElement().executeJs(OrientationJs.class).lock("portrait")
                 .then(value -> Assertions.fail("Should not succeed"),
                         error::set);
@@ -543,6 +545,10 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                         .isWaitingForResult());
         Assertions.assertEquals(List.of(),
                 executed.getExecutions(OtherFocusJs.class, "lock"));
+        Assertions.assertEquals(List.of(
+                new JsCall(OrientationJs.class, "lock", List.of("landscape")),
+                new JsCall(OrientationJs.class, "lock", List.of("portrait"))),
+                executed.getCalls(OrientationJs.class, "lock"));
     }
 
     @JsDefinition
