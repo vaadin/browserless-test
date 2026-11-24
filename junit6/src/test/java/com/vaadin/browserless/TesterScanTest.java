@@ -57,6 +57,7 @@ public class TesterScanTest {
         // component class, so loading the tester needs the missing class
         URLClassLoader fixture = compileWithMissingComponent("noclassdeffound",
                 """
+                        @Tests(fqn = "com.vaadin.browserless.dontscan.noclassdeffound.MissingComponent")
                         public class MissingComponentTester<T extends MissingComponent>
                                 extends ComponentTester<T> {
                             public MissingComponentTester(T component) {
