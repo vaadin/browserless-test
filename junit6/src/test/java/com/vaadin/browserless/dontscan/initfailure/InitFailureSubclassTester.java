@@ -18,7 +18,7 @@ package com.vaadin.browserless.dontscan.initfailure;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 
-@Tests(fqn = "com.vaadin.flow.component.html.Div")
+@Tests(fqn = "com.vaadin.browserless.dontscan.initfailure.MissingComponent")
 public class InitFailureSubclassTester extends InitFailureTester {
 
     public InitFailureSubclassTester(Component component) {
