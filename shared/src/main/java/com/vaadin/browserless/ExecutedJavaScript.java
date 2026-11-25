@@ -292,13 +292,15 @@ public final class ExecutedJavaScript implements Serializable {
      * waits for.
      * <p>
      * The method is named as a string, so a misspelled or renamed name matches
-     * nothing rather than failing.
+     * nothing rather than failing; {@link #getExecutions(Class, Consumer)}
+     * names it by calling it, which the compiler checks.
      *
      * @param definitionType
      *            the JavaScript definition, not null
      * @param methodName
      *            the name of the called method, not null
      * @return the executions of the calls, not null
+     * @see #getExecutions(Class, Consumer)
      * @see #getCalls(Class, String)
      */
     public List<Execution> getExecutions(Class<?> definitionType,
@@ -311,6 +313,47 @@ public final class ExecutedJavaScript implements Serializable {
                                 && call.methodName().equals(methodName))
                         .isPresent())
                 .toList();
+    }
+
+    /**
+     * Gets what was sent to the browser for the calls of one method of a
+     * JavaScript definition, the interface that
+     * {@code Element.executeJs(Class)} is called with, in the order the browser
+     * received it. Each execution has the call itself
+     * ({@link Execution#getJsCall()}) and can be answered the way the browser
+     * would, with {@link Execution#resolve(Object)} or
+     * {@link Execution#reject(String)}, for a call whose result the application
+     * waits for. The method is named by calling it, the way the application
+     * calls it, so that renaming it updates the test and a method that the
+     * definition does not have fails to compile:
+     *
+     * <pre>
+     * executed.getExecutions(WakeLockJs.class, WakeLockJs::request).get(0)
+     *         .resolve(null);
+     * </pre>
+     * <p>
+     * The call only names the method: it is not sent, and its arguments are
+     * ignored, so any value of the right type will do. Calls are matched by the
+     * name of the method, so overloads of one name are not told apart.
+     *
+     * @param <T>
+     *            the JavaScript definition type
+     * @param definitionType
+     *            the JavaScript definition, not null
+     * @param method
+     *            calls the method of the definition to get the executions of,
+     *            once, on the implementation it is given, not null
+     * @return the executions of the calls, not null
+     * @throws IllegalArgumentException
+     *             if the type is not a JavaScript definition, or if
+     *             {@code method} does not call exactly one method of it
+     * @see #getExecutions(Class, String)
+     * @see #getCalls(Class, Consumer)
+     */
+    public <T extends JsInvokers> List<Execution> getExecutions(
+            Class<T> definitionType, Consumer<T> method) {
+        return getExecutions(definitionType,
+                getCalledMethodName(definitionType, method));
     }
 
     /**
@@ -364,9 +407,16 @@ public final class ExecutedJavaScript implements Serializable {
      *             if the type is not a JavaScript definition, or if
      *             {@code method} does not call exactly one method of it
      * @see #getCalls(Class, String)
+     * @see #getExecutions(Class, Consumer)
      */
     public <T extends JsInvokers> List<JsCall> getCalls(Class<T> definitionType,
             Consumer<T> method) {
+        return getCalls(definitionType,
+                getCalledMethodName(definitionType, method));
+    }
+
+    private static <T extends JsInvokers> String getCalledMethodName(
+            Class<T> definitionType, Consumer<T> method) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(method, "method");
         List<String> called = new ArrayList<>();
@@ -380,7 +430,7 @@ public final class ExecutedJavaScript implements Serializable {
                             + definitionType.getName() + " but called "
                             + called);
         }
-        return getCalls(definitionType, called.get(0));
+        return called.get(0);
     }
 
     /**

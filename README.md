@@ -769,12 +769,12 @@ wrapped so that it runs with the element as `this`, so check it with
 `contains(...)`, and the element is added as its last parameter.
 `getAll(component)` and `getAll(element)` keep only what was run on that
 element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
-`getExecutions(definitionType, methodName)` keeps only the calls of one method
-of a definition. A test can check a call's arguments and, for a call whose
-result the application waits for, answer it as the browser would:
+`getExecutions` keeps only the calls of one method of a definition, named the
+same way as for `getCalls`. A test can check a call's arguments and, for a call
+whose result the application waits for, answer it as the browser would:
 
 ```java
-executed.getExecutions(WakeLockJs.class, "request")
+executed.getExecutions(WakeLockJs.class, WakeLockJs::request)
         .getFirst().resolve(null);
 ```
 

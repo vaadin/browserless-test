@@ -529,7 +529,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                         error::set);
 
         List<ExecutedJavaScript.Execution> locks = executed
-                .getExecutions(OrientationJs.class, "lock");
+                .getExecutions(OrientationJs.class, js -> js.lock(null));
         List<List<Object>> arguments = locks.stream().map(
                 execution -> execution.getJsCall().orElseThrow().arguments())
                 .toList();
@@ -540,9 +540,9 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
 
         Assertions.assertEquals("landscape-primary", locked.get());
         Assertions.assertEquals("lock is not supported", error.get());
-        Assertions.assertTrue(
-                executed.getExecutions(OrientationJs.class, "unlock").get(0)
-                        .isWaitingForResult());
+        Assertions.assertTrue(executed
+                .getExecutions(OrientationJs.class, OrientationJs::unlock)
+                .get(0).isWaitingForResult());
         Assertions.assertEquals(List.of(),
                 executed.getExecutions(OtherFocusJs.class, "lock"));
         Assertions.assertEquals(List.of(
