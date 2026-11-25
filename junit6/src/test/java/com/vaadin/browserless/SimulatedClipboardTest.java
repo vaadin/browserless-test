@@ -151,6 +151,22 @@ class SimulatedClipboardTest extends BrowserlessTest {
         Assertions.assertEquals(List.of(true), clicks);
     }
 
+    @Test
+    void readOnClick_isIgnoredAndClickStillReachesServer() {
+        List<Boolean> clicks = new ArrayList<>();
+        List<String> read = new ArrayList<>();
+        Button paste = new Button("Paste",
+                event -> clicks.add(event.isFromClient()));
+        Clipboard.onClick(paste).readText(read::add,
+                error -> Assertions.fail("Unexpected error " + error));
+        add(paste);
+
+        test(paste).click();
+
+        Assertions.assertEquals(List.of(true), clicks);
+        Assertions.assertEquals(List.of(), read);
+    }
+
     private static void add(Component... components) {
         UI.getCurrent().add(components);
     }

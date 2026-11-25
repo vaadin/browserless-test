@@ -119,14 +119,12 @@ public class AnchorTester extends HtmlContainerTester<Anchor> {
 
     /**
      * Click the anchor for navigation if target is a registered route in the
-     * application. This is equivalent to calling {@link #navigate()}.
+     * application. Navigates like {@link #navigate()}, but first runs the
+     * client-side click listeners of the anchor, such as a copy to the
+     * clipboard, as the browser does.
      *
      * For cases where you need to access the navigated view, use
      * {@link #navigate()} instead as it returns the target view.
-     *
-     * <p>
-     * Before navigating, runs the client-side click listeners of the anchor,
-     * such as a copy to the clipboard, as the browser does.
      *
      * @throws IllegalStateException
      *             if anchor href is not a String or not a route

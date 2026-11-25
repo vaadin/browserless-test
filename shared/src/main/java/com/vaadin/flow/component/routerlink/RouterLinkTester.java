@@ -111,14 +111,15 @@ public class RouterLinkTester<T extends RouterLink> extends ComponentTester<T> {
     }
 
     /**
-     * Click the router-link for navigation. This is equivalent to calling
-     * {@link #navigate()}.
+     * Click the router-link for navigation. Navigates like {@link #navigate()},
+     * but first runs the client-side click listeners of the link, such as a
+     * copy to the clipboard, as the browser does.
      *
      * For cases where you need to access the navigated view, use
      * {@link #navigate()} instead as it returns the target view.
-     * <p>
-     * Before navigating, runs the client-side click listeners of the link, such
-     * as a copy to the clipboard, as the browser does.
+     *
+     * @throws IllegalStateException
+     *             if the router-link is not usable or its path is not a route
      */
     @Override
     public void click() {
