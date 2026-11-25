@@ -49,7 +49,6 @@ import com.vaadin.browserless.internal.BasicUtils.get_saneFetchLimit
 import com.vaadin.browserless.internal.Locator.filterNotBlank
 import com.vaadin.browserless.internal.Renderers._getPresentationValue
 import com.vaadin.browserless.internal.Utils.findClassOrThrow
-import com.vaadin.browserless.internal.Utils.getSize
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.stream.Stream
@@ -163,7 +162,7 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
         for (i in displayIndices) {
             append("$i: ${lines[i]}\n")
         }
-        val andMore = getSize(dsIndices) - displayIndices.size
+        val andMore = dsIndices.count() - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
@@ -173,7 +172,7 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
         for (i in displayIndices) {
             getFormattedRow(grid, _get(grid, i)).joinTo(this, prefix = "$i: ", postfix = "\n")
         }
-        val andMore = getSize(dsIndices) - displayIndices.size
+        val andMore = dsIndices.count() - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
@@ -184,7 +183,7 @@ private fun <T : Any> dump(grid: Grid<T>): String = buildString {
             getFormattedRow(grid, rowObject).joinTo(this, prefix = "$i: ", postfix = "\n")
             rowsOutputted++
         }
-        if (rowsOutputted == getSize(rows)) {
+        if (rowsOutputted == rows.count()) {
             append("--and possibly more\n")
         } else {
             append("--\n")

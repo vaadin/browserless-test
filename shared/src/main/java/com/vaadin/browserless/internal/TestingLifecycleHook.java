@@ -51,9 +51,10 @@ import com.vaadin.flow.component.UI;
 public interface TestingLifecycleHook {
 
     /**
-     * Provides the default lifecycle hook.
+     * A hook that does nothing beyond the default implementations below.
      */
-    Companion Companion = new Companion();
+    TestingLifecycleHook DEFAULT = new TestingLifecycleHook() {
+    };
 
     /**
      * Invoked before every component lookup. You can e.g. wait for any async
@@ -143,71 +144,5 @@ public interface TestingLifecycleHook {
     private static List<Component> distinct(
             Stream<? extends Component> stream) {
         return toList(stream.distinct());
-    }
-
-    /**
-     * Provides the default lifecycle hook.
-     */
-    final class Companion {
-
-        private Companion() {
-        }
-
-        /**
-         * A default lifecycle hook that simply runs default implementations of
-         * the hook functions.
-         *
-         * @return a new default lifecycle hook.
-         */
-        public TestingLifecycleHook getDefault() {
-            return new TestingLifecycleHook() {
-            };
-        }
-    }
-
-    /**
-     * Static entry points to the default implementations, kept for binary
-     * compatibility with implementations compiled from Kotlin.
-     */
-    final class DefaultImpls {
-
-        private DefaultImpls() {
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#awaitBeforeLookup()}.
-         *
-         * @param hook
-         *            the hook.
-         */
-        public static void awaitBeforeLookup(TestingLifecycleHook hook) {
-            defaultAwaitBeforeLookup();
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#awaitAfterLookup()}.
-         *
-         * @param hook
-         *            the hook.
-         */
-        public static void awaitAfterLookup(TestingLifecycleHook hook) {
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#getAllChildren(Component)}.
-         *
-         * @param hook
-         *            the hook.
-         * @param component
-         *            the component whose children to return.
-         * @return the children of the component.
-         */
-        public static List<Component> getAllChildren(TestingLifecycleHook hook,
-                Component component) {
-            return defaultGetAllChildren(component);
-        }
     }
 }

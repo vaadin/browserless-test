@@ -30,8 +30,7 @@ import com.vaadin.flow.component.littemplate.LitTemplate;
  */
 public final class TestingLifecycleHooks {
 
-    private static TestingLifecycleHook testingLifecycleHook = TestingLifecycleHook.Companion
-            .getDefault();
+    private static TestingLifecycleHook testingLifecycleHook = TestingLifecycleHook.DEFAULT;
 
     private TestingLifecycleHooks() {
     }

@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import kotlin.jvm.functions.Function1;
-import kotlin.ranges.IntRange;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasValue;
 
@@ -46,7 +43,7 @@ public final class SearchSpec<T extends Component> {
     private String caption;
     private String placeholder;
     private String text;
-    private IntRange count;
+    private CountRange count;
     private Object value;
     private String classes;
     private String withoutClasses;
@@ -62,9 +59,8 @@ public final class SearchSpec<T extends Component> {
      *            the class of the component we are searching for.
      */
     public SearchSpec(Class<T> clazz) {
-        this(clazz, null, null, null, null, null,
-                new IntRange(0, Integer.MAX_VALUE), null, null, null,
-                new ArrayList<>(), null, null);
+        this(clazz, null, null, null, null, null, CountRange.ANY, null, null,
+                null, new ArrayList<>(), null, null);
     }
 
     /**
@@ -89,7 +85,7 @@ public final class SearchSpec<T extends Component> {
      *            the {@link com.vaadin.flow.dom.Element#getText()}
      * @param count
      *            expected count of matching components, defaults to
-     *            {@code 0..Int.MAX_VALUE}
+     *            {@link CountRange#ANY}
      * @param value
      *            expected {@link HasValue#getValue()}; if {@code null}, no
      *            particular value is matched.
@@ -110,7 +106,7 @@ public final class SearchSpec<T extends Component> {
      *            names defined. Space-separated
      */
     public SearchSpec(Class<T> clazz, String id, String testId, String caption,
-            String placeholder, String text, IntRange count, Object value,
+            String placeholder, String text, CountRange count, Object value,
             String classes, String withoutClasses,
             List<Predicate<T>> predicates, String themes,
             String withoutThemes) {
@@ -129,102 +125,257 @@ public final class SearchSpec<T extends Component> {
         this.withoutThemes = withoutThemes;
     }
 
+    /**
+     * The class of the component we are searching for.
+     *
+     * @return the current value
+     */
     public Class<T> getClazz() {
         return clazz;
     }
 
+    /**
+     * The required {@link Component#getId()}; if null, no particular id is
+     * matched.
+     *
+     * @return the current value
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * The required {@link Component#getId()}; if null, no particular id is
+     * matched.
+     *
+     * @param id
+     *            the new value
+     */
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * The required test id, i.e. the {@code data-testid} attribute; if null, no
+     * particular test id is matched.
+     *
+     * @return the current value
+     */
     public String getTestId() {
         return testId;
     }
 
+    /**
+     * The required test id, i.e. the {@code data-testid} attribute; if null, no
+     * particular test id is matched.
+     *
+     * @param testId
+     *            the new value
+     */
     public void setTestId(String testId) {
         this.testId = testId;
     }
 
+    /**
+     * The required {@code caption}; if null, no particular caption is matched.
+     *
+     * @return the current value
+     */
     public String getCaption() {
         return caption;
     }
 
+    /**
+     * The required {@code caption}; if null, no particular caption is matched.
+     *
+     * @param caption
+     *            the new value
+     */
     public void setCaption(String caption) {
         this.caption = caption;
     }
 
+    /**
+     * The required {@code placeholder}; if null, no particular placeholder is
+     * matched.
+     *
+     * @return the current value
+     */
     public String getPlaceholder() {
         return placeholder;
     }
 
+    /**
+     * The required {@code placeholder}; if null, no particular placeholder is
+     * matched.
+     *
+     * @param placeholder
+     *            the new value
+     */
     public void setPlaceholder(String placeholder) {
         this.placeholder = placeholder;
     }
 
+    /**
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
+     *
+     * @return the current value
+     */
     public String getText() {
         return text;
     }
 
+    /**
+     * The required {@link com.vaadin.flow.dom.Element#getText()}; if null, no
+     * particular text is matched.
+     *
+     * @param text
+     *            the new value
+     */
     public void setText(String text) {
         this.text = text;
     }
 
-    public IntRange getCount() {
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @return the current value, not null
+     */
+    public CountRange getCount() {
         return count;
     }
 
-    public void setCount(IntRange count) {
+    /**
+     * The expected number of matching components. Defaults to any number.
+     *
+     * @param count
+     *            the new value, not null
+     */
+    public void setCount(CountRange count) {
         this.count = Objects.requireNonNull(count, "count");
     }
 
+    /**
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
+     *
+     * @return the current value
+     */
     public Object getValue() {
         return value;
     }
 
+    /**
+     * Expected {@link HasValue#getValue()}; if {@code null}, no particular
+     * value is matched.
+     *
+     * @param value
+     *            the new value
+     */
     public void setValue(Object value) {
         this.value = value;
     }
 
+    /**
+     * If not null, the component must match all of these class names.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getClasses() {
         return classes;
     }
 
+    /**
+     * If not null, the component must match all of these class names.
+     * Space-separated.
+     *
+     * @param classes
+     *            the new value
+     */
     public void setClasses(String classes) {
         this.classes = classes;
     }
 
+    /**
+     * If not null, the component must NOT match any of these class names.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getWithoutClasses() {
         return withoutClasses;
     }
 
+    /**
+     * If not null, the component must NOT match any of these class names.
+     * Space-separated.
+     *
+     * @param withoutClasses
+     *            the new value
+     */
     public void setWithoutClasses(String withoutClasses) {
         this.withoutClasses = withoutClasses;
     }
 
+    /**
+     * Extra predicates the component must satisfy, on top of the other rules.
+     *
+     * @return the current value
+     */
     public List<Predicate<T>> getPredicates() {
         return predicates;
     }
 
+    /**
+     * Extra predicates the component must satisfy, on top of the other rules.
+     *
+     * @param predicates
+     *            the new value
+     */
     public void setPredicates(List<Predicate<T>> predicates) {
         this.predicates = Objects.requireNonNull(predicates, "predicates");
     }
 
+    /**
+     * If not null, the component must have all theme names defined.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getThemes() {
         return themes;
     }
 
+    /**
+     * If not null, the component must have all theme names defined.
+     * Space-separated.
+     *
+     * @param themes
+     *            the new value
+     */
     public void setThemes(String themes) {
         this.themes = themes;
     }
 
+    /**
+     * If not null, the component must NOT have any of the theme names defined.
+     * Space-separated.
+     *
+     * @return the current value
+     */
     public String getWithoutThemes() {
         return withoutThemes;
     }
 
+    /**
+     * If not null, the component must NOT have any of the theme names defined.
+     * Space-separated.
+     *
+     * @param withoutThemes
+     *            the new value
+     */
     public void setWithoutThemes(String withoutThemes) {
         this.withoutThemes = withoutThemes;
     }
@@ -264,8 +415,7 @@ public final class SearchSpec<T extends Component> {
         if (value != null) {
             list.add("value=" + value);
         }
-        if (!count.equals(new IntRange(0, Integer.MAX_VALUE))
-                && !count.equals(new IntRange(1, 1))) {
+        if (!count.equals(CountRange.ANY) && !count.equals(CountRange.ONE)) {
             list.add("count=" + count);
         }
         for (Predicate<T> predicate : predicates) {
@@ -292,8 +442,8 @@ public final class SearchSpec<T extends Component> {
      * @return the predicate, not null.
      */
     @SuppressWarnings({ "unchecked", "deprecation" })
-    public Function1<Component, Boolean> toPredicate() {
-        List<Function1<Component, Boolean>> p = new ArrayList<>();
+    public Predicate<Component> toPredicate() {
+        List<Predicate<Component>> p = new ArrayList<>();
         p.add(component -> clazz.isInstance(component));
         if (id != null) {
             p.add(component -> Objects.equals(component.getId().orElse(null),
@@ -339,8 +489,8 @@ public final class SearchSpec<T extends Component> {
                     && predicate.test((T) component));
         }
         return component -> {
-            for (Function1<Component, Boolean> f : p) {
-                if (!f.invoke(component)) {
+            for (Predicate<Component> f : p) {
+                if (!f.test(component)) {
                     return false;
                 }
             }

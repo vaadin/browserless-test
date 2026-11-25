@@ -15,11 +15,8 @@
  */
 package com.vaadin.browserless.internal;
 
-import java.util.ArrayList;
+import java.util.function.Consumer;
 
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
-import kotlin.ranges.IntRange;
 import tools.jackson.databind.node.ObjectNode;
 
 import com.vaadin.flow.component.BlurNotifier;
@@ -206,13 +203,10 @@ public final class BasicUtils {
      * @return true if the component matches the spec.
      */
     public static boolean matches(Component component,
-            Function1<? super SearchSpec<Component>, Unit> spec) {
-        SearchSpec<Component> searchSpec = new SearchSpec<>(Component.class,
-                null, null, null, null, null,
-                new IntRange(0, Integer.MAX_VALUE), null, null, null,
-                new ArrayList<>(), null, null);
-        spec.invoke(searchSpec);
-        return searchSpec.toPredicate().invoke(component);
+            Consumer<SearchSpec<Component>> spec) {
+        SearchSpec<Component> searchSpec = new SearchSpec<>(Component.class);
+        spec.accept(searchSpec);
+        return searchSpec.toPredicate().test(component);
     }
 
     /**

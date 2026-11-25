@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -150,8 +150,8 @@ public class CheckboxGroupTester<T extends CheckboxGroup<V>, V>
         return getComponent().getValue();
     }
 
-    @NotNull
-    private Stream<Checkbox> getCheckboxes(Predicate<Checkbox> filter) {
+    private @NonNull Stream<Checkbox> getCheckboxes(
+            Predicate<Checkbox> filter) {
         return getComponent().getChildren().filter(Checkbox.class::isInstance)
                 .map(Checkbox.class::cast).filter(filter);
     }
