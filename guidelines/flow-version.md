@@ -12,16 +12,19 @@ need — and no wish — to keep working against older releases of either.
 | `1.0`  | `1.0.x`        | 25.1          |
 | `1.1`  | `1.1.x`        | 25.2          |
 | `25.3` | `25.3.x`       | 25.3          |
-| `main` | `25.4-SNAPSHOT`| 25.4          |
+| `25.4` | `25.4.x`       | 25.4          |
+| `main` | `25.5-SNAPSHOT`| 25.5          |
 
 From 25.3 on the version *is* the Vaadin version it targets: the separate
 `1.x` numbering is gone, so the branch developing against Vaadin `x.y` carries
 `x.y-SNAPSHOT` and releases `x.y.z`. The older `1.0` and `1.1` branches keep
 their own numbers.
 
-`flow.version` and `vaadin.version` in the root `pom.xml` hold the target, and
-Flow is a `provided` dependency resolved from
-`maven.vaadin.com/vaadin-prereleases`. A branch tracks the matching Vaadin
+`flow.version` and `flow-components.version` in the root `pom.xml` hold the
+target. Flow and the components are `provided` dependencies resolved from
+`maven.vaadin.com/vaadin-prereleases`, and the build depends on nothing else
+from the Vaadin platform: not the `vaadin` / `vaadin-core` artifacts and not a
+`vaadin.version`. A branch tracks the matching Vaadin
 snapshot for its whole development cycle, so `main` always builds against the
 in-development Flow, not against a released one.
 

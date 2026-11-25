@@ -22,8 +22,7 @@ import java.lang.reflect.Constructor;
 import java.security.Principal;
 import java.util.function.UnaryOperator;
 
-import kotlin.jvm.functions.Function0;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -34,8 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vaadin.browserless.internal.Routes;
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.browserless.internal.UtilsKt;
-import com.vaadin.flow.component.UI;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.ServiceException;
 import com.vaadin.flow.server.VaadinServletRequest;
@@ -52,25 +50,31 @@ import com.vaadin.flow.spring.SpringServlet;
  */
 public class MockSpringServlet extends SpringServlet {
 
-    @NotNull
-    public final Routes routes;
-    @NotNull
-    public final ApplicationContext ctx;
-    @NotNull
-    public final UIFactory uiFactory;
+    /**
+     * The routes registered when the servlet is initialized.
+     */
+    public final @NonNull Routes routes;
+    /**
+     * The Spring application context the servlet runs in.
+     */
+    public final @NonNull ApplicationContext ctx;
+    /**
+     * Creates the UI for every new session.
+     */
+    public final @NonNull UIFactory uiFactory;
 
-    @Deprecated(forRemoval = true)
-    public MockSpringServlet(@NotNull Routes routes,
-            @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
-        super(ctx, false);
-        this.ctx = ctx;
-        this.routes = routes;
-        this.uiFactory = uiFactory::invoke;
-    }
-
-    public MockSpringServlet(@NotNull Routes routes,
-
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+    /**
+     * Creates a new mocked Spring servlet.
+     *
+     * @param routes
+     *            the routes to register
+     * @param ctx
+     *            the Spring application context
+     * @param uiFactory
+     *            creates the UI for every new session
+     */
+    public MockSpringServlet(@NonNull Routes routes,
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(ctx, false);
         this.ctx = ctx;
         this.routes = routes;
@@ -166,13 +170,13 @@ public class MockSpringServlet extends SpringServlet {
         }
 
         private static boolean hasSpringSecurity() {
-            return UtilsKt.findClass(
+            return Utils.findClass(
                     "org.springframework.security.core.context.SecurityContextHolder") != null;
         }
 
         private static UnaryOperator<HttpServletRequest> springSecurityRequestWrapper() {
             try {
-                Constructor<?> constructor = UtilsKt.findClassOrThrow(
+                Constructor<?> constructor = Utils.findClassOrThrow(
                         "org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper")
                         .getConstructor(HttpServletRequest.class, String.class);
                 return req -> {

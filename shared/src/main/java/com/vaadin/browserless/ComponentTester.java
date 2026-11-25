@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.ObjectNode;
 
-import com.vaadin.browserless.internal.PrettyPrintTreeKt;
+import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.flow.component.AbstractCompositeField;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Component;
@@ -121,6 +121,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * {@link #notUsableReasons(Consumer)} to provide additional details to the
      * potential exception thrown by {@link #ensureComponentIsUsable()}.
      *
+     * @param component
+     *            the component to inspect
      * @return {@code true} if component can be interacted with by the user
      * @see #notUsableReasons(Consumer)
      * @see #ensureComponentIsUsable()
@@ -166,9 +168,9 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * context menu, and {@code GridTester.contextMenu(row).open()} for a grid
      * context menu.
      *
-     * @param componentType
-     *            type of the component to search.
      * @param <R>
+     *            type of the component to search.
+     * @param componentType
      *            type of the component to search.
      * @return a {@link ComponentQuery} instance, searching for wrapped
      *         component children.
@@ -232,7 +234,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
             Consumer<Consumer<String>> reasonsProvider) {
         if (!usableTest.test(component)) {
             StringBuilder message = new StringBuilder(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not usable");
             Stream.Builder<String> reasons = Stream.builder();
             reasonsProvider.accept(reasons::add);
@@ -249,6 +251,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * method to provide additional details to the potential exception throw by
      * {@link #ensureComponentIsUsable()}.
      *
+     * @param collector
+     *            receives the components the tester walks over
      * @see #isUsable()
      * @see #ensureComponentIsUsable()
      */
@@ -267,6 +271,10 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * method to provide additional details to the potential exception throw by
      * {@link #ensureComponentIsUsable()}.
      *
+     * @param component
+     *            the component to check
+     * @param collector
+     *            receives the components the tester walks over
      * @see #isUsable()
      * @see #ensureComponentIsUsable()
      */
@@ -299,11 +307,14 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     /**
      * Check that the given component is visible for the user. Else throw an
      * {@link IllegalStateException}
+     *
+     * @param component
+     *            the component to check
      */
     protected static void ensureVisible(Component component) {
         if (!component.isVisible() || !component.isAttached()) {
             throw new IllegalStateException(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not visible!");
         }
     }
@@ -326,7 +337,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void focus() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.moveFocusTo(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.moveFocusTo(component));
     }
 
     /**
@@ -382,13 +393,13 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      */
     public void blur() {
         ensureComponentCanBeFocused();
-        FocusTracker.flush(FocusTracker.blur(component));
+        JavaScriptDispatcher.dispatch(FocusTracker.blur(component));
     }
 
     private void ensureComponentCanBeFocused() {
         if (!(component instanceof Focusable)) {
             throw new IllegalArgumentException(
-                    PrettyPrintTreeKt.toPrettyString(component)
+                    PrettyPrintTree.toPrettyString(component)
                             + " is not Focusable");
         }
         // Unlike other interactions, focus does not care about read-only: a
@@ -397,7 +408,16 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     }
 
     /**
-     * Simulates a server round-trip, flushing pending component changes.
+     * Simulates a server round-trip: runs the tasks queued with
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
+     * pending component changes, as a real client response would. Dialogs that
+     * are no longer opened are removed from the UI, as after a lookup.
+     * <p>
+     * Only tasks that are already queued are run, so a test of a background
+     * thread must first wait for that thread to call {@code access()}. If a
+     * queued task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}.
      */
     protected void roundTrip() {
         BaseBrowserlessTest.roundTrip();
@@ -543,12 +563,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Usually the {@link ComponentQuery} consumer should only define
      * conditions, not invoke any terminal operator.
      *
+     * @param <R>
+     *            the type of the component to search for
      * @param componentType
      *            the type of the component to search for
      * @param queryBuilder
      *            the function that sets query condition
-     * @param <R>
-     *            the type of the component to search for
      * @return the component found by query execution, wrapped into an
      *         {@link Optional}, or empty if the query does not produce results.
      */
@@ -562,9 +582,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
             StringBuilder message = new StringBuilder(
                     "Expecting the query to produce at most one result, but got ")
                     .append(result.size()).append(": ");
-            message.append(
-                    result.stream().map(PrettyPrintTreeKt::toPrettyString)
-                            .collect(Collectors.joining(", ")));
+            message.append(result.stream().map(PrettyPrintTree::toPrettyString)
+                    .collect(Collectors.joining(", ")));
             throw new IllegalArgumentException(message.toString());
         }
         return Optional.of(result.get(0));
@@ -577,12 +596,12 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * Usually the {@link ComponentQuery} consumer should only define
      * conditions, not invoke any terminal operator.
      *
+     * @param <R>
+     *            the type of the component to search for
      * @param componentType
      *            the type of the component to search for
      * @param queryBuilder
      *            the function that sets query condition
-     * @param <R>
-     *            the type of the component to search for
      * @return the components found by query execution, or an empty list.
      */
     protected <R extends Component> List<R> findAllByQuery(
@@ -684,6 +703,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * instance of AbstractField. This method is purposed for internal use and
      * when creating custom testers extending ComponentTesters.
      *
+     * @param <V>
+     *            the value type
      * @param value
      *            the new value, may be null.
      */
@@ -692,7 +713,7 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
         UI ui = FocusTracker.moveFocusTo(component);
         setValueAsUser(field, value);
         // Value change listeners may have called Focusable.focus()
-        FocusTracker.flush(ui);
+        JavaScriptDispatcher.dispatch(ui);
     }
 
     /**
@@ -707,6 +728,8 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
      * extending ComponentTesters, for fields other than the wrapped component,
      * such as an editor field owned by the wrapped component.
      *
+     * @param <V>
+     *            the value type
      * @param field
      *            the field to set the value to, not {@literal null}.
      * @param value

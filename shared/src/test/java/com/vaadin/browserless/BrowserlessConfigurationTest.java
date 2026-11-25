@@ -25,6 +25,7 @@ import com.vaadin.flow.server.InitParameters;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +36,9 @@ class BrowserlessConfigurationTest {
             "second=two=three" }, featureFlags = { "enabledFeature",
                     "disabledFeature=FALSE",
                     "explicitlyEnabled=true" }, lookupServices = {
-                            ServiceA.class, ServiceB.class })
+                            ServiceA.class,
+                            ServiceB.class }, javaScriptHandlers = {
+                                    HandlerA.class, HandlerB.class })
     private static class AnnotatedClass {
     }
 
@@ -46,6 +49,15 @@ class BrowserlessConfigurationTest {
     }
 
     private static class ServiceC {
+    }
+
+    public static class HandlerA implements JavaScriptHandler {
+        @Override
+        public void handle(ExecutedJavaScript.Execution execution) {
+        }
+    }
+
+    public static class HandlerB extends HandlerA {
     }
 
     private static class NotAnnotatedClass {
@@ -74,24 +86,40 @@ class BrowserlessConfigurationTest {
         assertEquals(List.of(ServiceA.class, ServiceB.class),
                 List.copyOf(configuration.getLookupServices()),
                 "Lookup services should be parsed preserving declaration order");
+        assertEquals(List.of(HandlerA.class, HandlerB.class),
+                List.copyOf(configuration.getJavaScriptHandlers()),
+                "JavaScript handlers should be parsed preserving declaration order");
     }
 
     @Test
-    void merge_lookupServicesAccumulate() {
+    void merge_lookupServicesAndJavaScriptHandlersAccumulate() {
         BrowserlessConfiguration base = BrowserlessConfiguration.builder()
-                .withLookupServices(ServiceA.class, ServiceB.class).build();
+                .withLookupServices(ServiceA.class, ServiceB.class)
+                .withJavaScriptHandlers(HandlerA.class).build();
         BrowserlessConfiguration overrides = BrowserlessConfiguration.builder()
-                .withLookupServices(ServiceB.class, ServiceC.class).build();
+                .withLookupServices(ServiceB.class, ServiceC.class)
+                .withJavaScriptHandlers(HandlerB.class, HandlerA.class).build();
 
+        BrowserlessConfiguration merged = base.merge(overrides);
         assertEquals(List.of(ServiceA.class, ServiceB.class, ServiceC.class),
-                List.copyOf(base.merge(overrides).getLookupServices()),
+                List.copyOf(merged.getLookupServices()),
                 "Lookup services must accumulate rather than being replaced");
+        assertEquals(List.of(HandlerA.class, HandlerB.class),
+                List.copyOf(merged.getJavaScriptHandlers()),
+                "JavaScript handlers must accumulate rather than being replaced");
     }
 
     @Test
-    void lookupServices_makeConfigurationNotEmpty() {
+    void lookupServicesAndJavaScriptHandlers_makeConfigurationNotEmpty() {
         assertFalse(BrowserlessConfiguration.builder()
                 .withLookupServices(ServiceA.class).build().isEmpty());
+        assertFalse(BrowserlessConfiguration.builder()
+                .withJavaScriptHandlers(HandlerA.class).build().isEmpty());
+        assertNotEquals(
+                BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(HandlerA.class).build(),
+                BrowserlessConfiguration.builder()
+                        .withJavaScriptHandlers(HandlerB.class).build());
         assertTrue(BrowserlessConfiguration.builder().withLookupServices()
                 .build().isEmpty(), "No arguments should be a no-op");
     }

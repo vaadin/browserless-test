@@ -45,9 +45,9 @@ type, and a pull request description uses the sections this repository already
 uses. The full rules are in the Commit & PR Hygiene section of
 [`CONVENTIONS.md`](CONVENTIONS.md#commit--pr-hygiene).
 
-One practical note: run `mvn spotless:apply` before committing, and if the
-`Format Check` job fails anyway, comment `/format` on the pull request and the
-formatting is applied and pushed for you.
+One practical note: run `mvn spotless:apply` before committing. If the
+`Format Check` job fails anyway, the formatting changes are posted as review
+suggestions you can commit from the pull request page.
 
 Pull requests against `main` are reviewed automatically by Claude when someone
 with write access to the repository opens them or marks them ready for review;

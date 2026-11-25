@@ -35,13 +35,25 @@ import com.vaadin.flow.component.HasText;
  */
 public interface HasTextFilter<C extends Component & HasText, SELF extends Locator<C, SELF>> {
 
-    /** Requires the text content of the component to equal the given text. */
+    /**
+     * Requires the text content of the component to equal the given text.
+     *
+     * @param text
+     *            the text the component must have
+     * @return this locator, for chaining
+     */
     @SuppressWarnings("unchecked")
     default SELF withText(String text) {
         return ((Locator<C, SELF>) this).applyFilter(q -> q.withText(text));
     }
 
-    /** Requires the text content of the component to contain the given text. */
+    /**
+     * Requires the text content of the component to contain the given text.
+     *
+     * @param text
+     *            the text the component's text must contain
+     * @return this locator, for chaining
+     */
     @SuppressWarnings("unchecked")
     default SELF withTextContaining(String text) {
         return ((Locator<C, SELF>) this)

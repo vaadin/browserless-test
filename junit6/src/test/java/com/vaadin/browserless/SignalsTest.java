@@ -18,14 +18,19 @@ package com.vaadin.browserless;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.base.signals.SignalsView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
+import com.vaadin.flow.signals.shared.SharedNumberSignal;
+import com.vaadin.flow.signals.shared.SharedValueSignal;
 
 @ViewPackages(packages = "com.example.base.signals")
 @Timeout(10)
@@ -138,6 +143,90 @@ public class SignalsTest extends BrowserlessTest {
                         + "Signals tasks");
         Assertions.assertTrue(operation.result().join().successful(),
                 "Insert operation should have succeeded");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_runsPendingTasksOnTestThread() {
+        // Outlives the test, like a signal in an application-scoped bean
+        var signal = new SharedValueSignal<>("initial");
+        SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
+            throw new IllegalStateException("failing pending task");
+        });
+        signal.set("changed");
+        Assertions.assertNull(signal.peekConfirmed(),
+                "Nothing should be confirmed before the queue is drained");
+        var nestedTaskThread = new AtomicReference<Thread>();
+        SignalEnvironment.getDefaultEffectDispatcher().execute(
+                () -> SignalEnvironment.getDefaultEffectDispatcher().execute(
+                        () -> nestedTaskThread.set(Thread.currentThread())));
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals("changed", signal.peekConfirmed(),
+                "A write left pending at teardown must still be confirmed");
+        Assertions.assertSame(Thread.currentThread(), nestedTaskThread.get(),
+                "A task submitted by a pending task must run on the test "
+                        + "thread during teardown");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_runsPendingEffectWhileUIIsOpen() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
+    void cleanVaadinEnvironment_runsTasksQueuedByDetachListenerOnTestThread() {
+        var view = navigate(SignalsView.class);
+        // Outlives the test, like an application-scoped "users online"
+        // counter
+        var signal = new SharedNumberSignal();
+        view.addDetachListener(event -> signal.incrementBy(-1));
+        var effectThread = new AtomicReference<Thread>();
+        var effect = Signal.unboundEffect(() -> {
+            if (signal.get() == -1) {
+                effectThread.set(Thread.currentThread());
+            }
+        });
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+        effect.remove();
+
+        Assertions.assertSame(Thread.currentThread(), effectThread.get(),
+                "Tasks queued while the UI closes must run on the test thread");
+        Assertions.assertEquals(-1.0, signal.peekConfirmed(),
+                "A write made while the UI closes must be confirmed");
+    }
+
+    @Test
+    void cleanVaadinEnvironment_selfResubmittingTask_stopsAtLimit() {
+        var runs = new AtomicInteger();
+        SignalEnvironment.getDefaultEffectDispatcher().execute(new Runnable() {
+            @Override
+            public void run() {
+                // Stops on its own one run past the limit, so that a missing
+                // limit fails the test instead of hanging it
+                if (runs.incrementAndGet() <= TestSignalEnvironment.MAX_TEARDOWN_TASKS) {
+                    SignalEnvironment.getDefaultEffectDispatcher()
+                            .execute(this);
+                }
+            }
+        });
+
+        cleanVaadinEnvironment();
+        initVaadinEnvironment();
+
+        Assertions.assertEquals(TestSignalEnvironment.MAX_TEARDOWN_TASKS,
+                runs.get());
     }
 
 }

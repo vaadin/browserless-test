@@ -272,7 +272,7 @@ public final class MenuItemNavigation {
         if (!menuItem.isEnabled() || !menuItem.isVisible()) {
             throw new IllegalStateException(
                     "Menu item " + fullPath + " is not usable. "
-                            + PrettyPrintTreeKt.toPrettyTree(menuItem));
+                            + PrettyPrintTree.toPrettyTree(menuItem));
         }
     }
 }

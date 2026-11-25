@@ -167,13 +167,12 @@ public class BlurSimulationTest extends BrowserlessTest {
     }
 
     @Test
-    public void serverSideFocusWithOptions_generatesDifferentJs_alsoDetected() {
+    public void serverSideFocusWithOptions_movesFocus() {
         TextField other = new TextField("Other");
         AtomicReference<FocusEvent<TextField>> otherFocus = new AtomicReference<>();
         other.addFocusListener(otherFocus::set);
         container.add(other);
-        // focus(FocusOption...) generates "this.focus($0)" instead of
-        // "this.focus()" in the scheduled JavaScript
+        // focus(FocusOption...) passes the options on to the client
         textField.addValueChangeListener(
                 e -> other.focus(FocusOption.PreventScroll.ENABLED));
 
@@ -185,6 +184,28 @@ public class BlurSimulationTest extends BrowserlessTest {
                 "Focus listener should fire for server-side focus(FocusOption...)");
         Assertions.assertFalse(otherFocus.get().isFromClient(),
                 "Focusable.focus() marks the resulting focus event as not from the client");
+    }
+
+    @Test
+    public void applicationJsMentioningFocus_notSimulatedButRecorded() {
+        // Only calls made through Focusable are simulated; JavaScript the
+        // application schedules itself stays visible to the test, even when
+        // its text looks like a focus call
+        TextField other = new TextField("Other");
+        container.add(other);
+        textField.addValueChangeListener(
+                e -> other.getElement().executeJs("this.focus()"));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        test(textField).setValue("100");
+
+        Assertions.assertFalse(test(other).isFocused(),
+                "Application JavaScript should not be simulated as a focus call");
+        Assertions.assertTrue(
+                executed.getAll().stream()
+                        .anyMatch(execution -> execution.getExpression()
+                                .contains("this.focus()")),
+                "Application JavaScript should be captured as sent");
     }
 
     @Test
@@ -219,6 +240,21 @@ public class BlurSimulationTest extends BrowserlessTest {
 
         Assertions.assertNotNull(receivedFocus.get(),
                 "A round-trip should apply the scheduled focus, like the browser would");
+    }
+
+    @Test
+    public void serverSideFocusOutsideInteraction_appliedOnLookup() {
+        AtomicReference<FocusEvent<TextField>> receivedFocus = new AtomicReference<>();
+        textField.addFocusListener(receivedFocus::set);
+        textField.focus();
+
+        Assertions.assertNull(receivedFocus.get(),
+                "Focusable.focus() should not fire anything before the scheduled JS is processed");
+
+        find(TextField.class).single();
+
+        Assertions.assertNotNull(receivedFocus.get(),
+                "A component lookup should apply the scheduled focus, like a round-trip");
     }
 
     @Test

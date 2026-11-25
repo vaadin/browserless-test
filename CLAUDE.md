@@ -17,7 +17,7 @@ each Vaadin component in a *tester* that drives it the way a browser would.
 
 - Java 21+, Maven (multi-module)
 - Vaadin 25 / Flow — a `provided` dependency, one fixed version per branch
-- Kotlin for the older mock and internal layer in `shared/src/main/kotlin`
+- Kotlin for the older mock layer and Grid helpers in `shared/src/main/kotlin`
 - JUnit 6 (Jupiter) for the test API and for this repository's own tests
 - An annotation processor (`locator-processor`) that generates the typed
   locator API at build time
@@ -50,7 +50,7 @@ mapped in `guidelines/overview.md` selectively for the topics your work
 touches. Two of them apply to almost every change:
 
 - `guidelines/flow-version.md` — one Browserless Test version targets exactly
-  one Vaadin version: the branch's `flow.version` / `vaadin.version`, meaning
+  one Vaadin version: the branch's `flow.version` / `flow-components.version`, meaning
   one Flow version and the components that ship with it. **There is no
   backwards compatibility with older releases**, so a missing hook can be added
   upstream first — to `vaadin/flow-components` or to `vaadin/flow` — and used
@@ -113,13 +113,13 @@ build it locally and this repository picks the snapshot up:
 
 ```bash
 # in a vaadin/flow or vaadin/flow-components checkout, on the branch that
-# matches flow.version / vaadin.version here
+# matches flow.version / flow-components.version here
 mvn clean install -DskipTests -pl <the-module-you-changed> -am
 
 # back here — the local snapshot is resolved instead of the remote one
 mvn clean install
 ```
 
-Bumping `flow.version` / `vaadin.version` in the root `pom.xml` is a release
+Bumping `flow.version` / `flow-components.version` in the root `pom.xml` is a release
 activity, not something an individual change does. See
 `guidelines/flow-version.md`.

@@ -16,6 +16,7 @@
 package com.vaadin.browserless.internal
 
 import kotlin.test.expect
+import com.vaadin.browserless.internal.TestingLifecycleHooks.isTemplate
 import com.vaadin.flow.component.Tag
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.littemplate.LitTemplate
@@ -33,9 +34,9 @@ class AllTests : DynaTest({
 
 
     test("Component.isTemplate") {
-        expect(false) { Button("foo").isTemplate }
-        expect(true) { MyLitTemplate().isTemplate }
-        expect(true) { MyPolymerTemplate().isTemplate }
+        expect(false) { isTemplate(Button("foo")) }
+        expect(true) { isTemplate(MyLitTemplate()) }
+        expect(true) { isTemplate(MyPolymerTemplate()) }
     }
 
 })

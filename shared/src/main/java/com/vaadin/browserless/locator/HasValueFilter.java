@@ -47,6 +47,10 @@ public interface HasValueFilter<C extends Component & HasValue<?, V>, V, SELF ex
      * Requires the matched component to implement {@code HasValue} and to have
      * the given value. Has no effect when {@code expectedValue} is
      * {@code null}.
+     *
+     * @param expectedValue
+     *            the value the component must have
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withValue(V expectedValue) {

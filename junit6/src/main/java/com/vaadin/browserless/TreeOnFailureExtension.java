@@ -32,12 +32,18 @@ import com.vaadin.flow.component.UI;
  */
 public class TreeOnFailureExtension implements AfterTestExecutionCallback {
 
+    /**
+     * Creates a new extension. Instantiated by JUnit.
+     */
+    public TreeOnFailureExtension() {
+    }
+
     @Override
     public void afterTestExecution(ExtensionContext extensionContext) {
         boolean testFailed = extensionContext.getExecutionException()
                 .isPresent();
         if (testFailed) {
-            final String prettyPrintTree = PrettyPrintTree.Companion
+            final String prettyPrintTree = PrettyPrintTree
                     .ofVaadin(UI.getCurrent()).print();
             extensionContext.publishReportEntry("Test "
                     + extensionContext.getTestClass().get().getSimpleName()

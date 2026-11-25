@@ -24,12 +24,12 @@ import java.util.concurrent.atomic.AtomicReference
 import com.vaadin.flow.router.NavigationTrigger
 import com.vaadin.flow.router.QueryParameters
 import com.vaadin.flow.router.Location
-import com.vaadin.browserless.internal.simulateClosedEvent
+import com.vaadin.browserless.internal.ComponentUtils.simulateClosedEvent
 import java.lang.reflect.InvocationTargetException
 
 
 /**
- * A simple no-op UI used by default by [com.vaadin.browserless.MockVaadin.setup].
+ * A simple no-op UI used by default by [com.vaadin.browserless.internal.MockVaadin.setup].
  * The class is open, in order to be extensible in user's library
  */
 open class MockedUI : UI() {
@@ -48,7 +48,9 @@ open class MockedUI : UI() {
 
     override fun addToModalComponent(component: Component?) {
         super.addToModalComponent(component)
-        component?.simulateClosedEvent()
+        if (component != null) {
+            simulateClosedEvent(component)
+        }
     }
 
     /**

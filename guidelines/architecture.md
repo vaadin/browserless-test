@@ -58,7 +58,19 @@ Test does it explicitly:
   it.
 - `ComponentTester#roundTrip()` (protected) is the tester-level entry point;
   `roundTrip()` on the test base class and `window.roundTrip()` are the
-  test-level ones.
+  test-level ones. All of them build on `MockVaadin.clientRoundtrip()`, so
+  they run the `UI.access()` queue and remove closed dialogs too, and then
+  also collect the state tree changes and send the pending JavaScript through
+  `JavaScriptDispatcher`. Tester actions that end in `roundTrip()` do the same. They call
+  `clientRoundtrip()` directly, not through the `TestingLifecycleHook`.
+- `JavaScriptDispatcher.dispatch(ui)` runs the `beforeClientResponse`
+  callbacks and then takes the UI's whole pending JavaScript queue, the way a
+  response would send it, and offers each invocation to the handlers: the
+  focus simulation, the configured `JavaScriptHandler`s, the upload testers
+  and every active `ExecutedJavaScript` capture. It is the only code that takes
+  the queue. Round trips, component lookups, the end of tester interactions,
+  UI creation and the end of `navigate()` and `reload()` call it. It fails if
+  something else, such as a test, took the queue since its previous run.
 - `TestingLifecycleHook.awaitBeforeLookup` calls the round trip before a
   component lookup by default, so a query already sees the state a real client
   response would have produced.
@@ -76,7 +88,7 @@ found too — a Dialog's content, a Grid's header, footer and editor components,
 a Card's slots.
 
 `ElementConditions` holds the element-level predicates the query builds on.
-`Locator` (the internal Kotlin one, not the public locator API) and
+`Locator` (the internal one, not the public locator API) and
 `DepthFirstTreeIterator` do the walking; `PrettyPrintTree` renders the tree for
 `TreeOnFailureExtension`.
 
@@ -109,6 +121,15 @@ switches the Vaadin thread-locals to that window and, on a user switch, saves
 the outgoing user's security context and restores the incoming user's
 snapshot. That is why tests can interleave `w1.…` and `w2.…` freely.
 
+The application context hands the session lock over on every user switch
+(`BrowserlessApplicationContext.holdSessionLock`): only the active window's
+session is locked, so cross-session access without `UI.access()` fails as in a
+running application, and releasing the outgoing lock runs its queued
+`UI.access()` commands. The deprecated `withSessionLockIsolation(false)` opts
+out, keeping every session locked by the test thread for its whole lifetime.
+Anything that creates, closes or destroys a user's UI or session has to take
+that user's lock through the same method first.
+
 Two properties to preserve when touching this code: the contexts are
 **thread-affine** (created, used and closed on one thread, with the active
 context in a `ThreadLocal`), and closing the application context closes users
@@ -132,6 +153,14 @@ a shared signal is applied optimistically and visible through `peek()` at once,
 but the `SignalOperation` it returns completes only when the queued
 confirmation runs. Blocking on the operation without draining the queue always
 times out, because the confirmation task needs the thread that is blocked.
+
+Unregistering the environment at teardown runs whatever is still queued. A
+shared signal can outlive the test, and a confirmation dropped with the queue
+would leave its write unconfirmed for good, so that every later conditional
+update of that signal is rejected and retried forever. Teardown runs the queue
+before closing the UIs and again, through `unregister()`, after closing them,
+so that tasks queued by detach and destroy listeners stay on the test thread
+instead of reaching the next `SignalEnvironment`.
 
 ## Client-side behavior that has no client
 

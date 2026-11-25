@@ -17,152 +17,82 @@
 
 package com.vaadin.browserless.component
 
-import com.vaadin.flow.component.ClickNotifier
 import com.vaadin.flow.component.Component
-import com.vaadin.flow.component.button.Button
+import com.vaadin.flow.component.ComponentUtil
 import com.vaadin.flow.component.checkbox.CheckboxGroup
 import com.vaadin.flow.component.combobox.ComboBox
 import com.vaadin.flow.component.grid.AbstractGridMultiSelectionModel
 import com.vaadin.flow.component.grid.ColumnPathRenderer
-import com.vaadin.flow.component.grid.FooterRow
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.grid.GridMultiSelectionModel
 import com.vaadin.flow.component.grid.GridNoneSelectionModel
 import com.vaadin.flow.component.grid.GridSingleSelectionModel
 import com.vaadin.flow.component.grid.GridSortOrder
-import com.vaadin.flow.component.grid.HeaderRow
 import com.vaadin.flow.component.grid.ItemClickEvent
 import com.vaadin.flow.component.grid.ItemDoubleClickEvent
-import com.vaadin.flow.component.grid.editor.Editor
 import com.vaadin.flow.component.listbox.ListBoxBase
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup
 import com.vaadin.flow.component.select.Select
 import com.vaadin.flow.component.treegrid.TreeGrid
-import com.vaadin.flow.data.binder.HasItems
 import com.vaadin.flow.data.provider.DataCommunicator
 import com.vaadin.flow.data.provider.DataProvider
-import com.vaadin.flow.data.provider.Query
-import com.vaadin.flow.data.provider.QuerySortOrder
 import com.vaadin.flow.data.provider.SortDirection
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalDataProvider
 import com.vaadin.flow.data.provider.hierarchy.HierarchicalQuery
-import com.vaadin.flow.data.renderer.ComponentRenderer
-import com.vaadin.flow.data.renderer.NativeButtonRenderer
 import com.vaadin.flow.data.renderer.Renderer
 import com.vaadin.flow.function.SerializablePredicate
 import com.vaadin.flow.function.ValueProvider
 import com.vaadin.browserless.internal.DepthFirstTreeIterator
-import com.vaadin.browserless.internal.MockVaadin
 import com.vaadin.browserless.internal.PrettyPrintTree
-import com.vaadin.browserless.internal._fireEvent
-import com.vaadin.browserless.internal._getPresentationValue
-import com.vaadin.browserless.internal._saneFetchLimit
-import com.vaadin.browserless.internal.checkEditableByUser
-import com.vaadin.browserless.internal.filterNotBlank
-import com.vaadin.browserless.internal.size
-import com.vaadin.browserless.internal.toPrettyString
-import java.lang.reflect.Method
+import com.vaadin.browserless.internal.BasicUtils.checkEditableByUser
+import com.vaadin.browserless.internal.BasicUtils.get_saneFetchLimit
+import com.vaadin.browserless.internal.Locator.filterNotBlank
+import com.vaadin.browserless.internal.Renderers._getPresentationValue
+import com.vaadin.browserless.internal.Utils.findClassOrThrow
 import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.util.stream.Stream
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 import kotlin.streams.toList
-import com.vaadin.browserless.internal.findClassOrThrow
 
 /**
- * Returns the item on given row. Fails if the row index is invalid. The data provider is
- * sorted according to given [sortOrders] (empty by default) and filtered according
- * to given [filter] (null by default) first.
+ * Returns the item on given row of given [grid]. Fails if the row index is invalid. The data provider is
+ * sorted according to given [Grid.getSortOrder] and filtered according to the current filter.
+ *
+ * For [TreeGrid] this returns the x-th displayed row; skips children of collapsed nodes.
+ *
  * @param rowIndex the row, 0..size - 1
  * @return the item at given row.
  * @throws AssertionError if the row index is out of bounds.
  */
-public fun <T, F> DataProvider<T, F>._get(rowIndex: Int, sortOrders: List<QuerySortOrder> = listOf(), inMemorySorting: Comparator<T>? = null, filter: F? = null): T {
+public fun <T : Any> _get(grid: Grid<T>, rowIndex: Int): T {
     require(rowIndex >= 0) { "rowIndex must be 0 or greater: $rowIndex" }
-    val fetched: Stream<T> = fetch(Query(rowIndex, 1, sortOrders, inMemorySorting, filter))
-    return fetched.toList().firstOrNull()
-            ?: throw AssertionError("Requested to get row $rowIndex but the data provider only has ${_size(filter)} rows matching filter $filter")
-}
-
-/**
- * Returns all items in given data provider, sorted according to given [sortOrders] (empty by default) and filtered according
- * to given [filter] (null by default).
- * @return the list of items.
- */
-public fun <T, F> DataProvider<T, F>._findAll(sortOrders: List<QuerySortOrder> = listOf(), inMemorySorting: Comparator<T>? = null, filter: F? = null): List<T> {
-    val fetched: Stream<T> = fetch(Query(0, Int.MAX_VALUE, sortOrders, inMemorySorting, filter))
-    return fetched.toList()
-}
-
-/**
- * Returns the item on given row. Fails if the row index is invalid. Uses current Grid sorting.
- *
- * For [TreeGrid] this returns the x-th displayed row; skips children of collapsed nodes.
- * Uses [_rowSequence].
- *
- * WARNING: Very slow operation for [TreeGrid].
- * @param rowIndex the row, 0..size - 1
- * @return the item at given row, not null.
- */
-public fun <T : Any> Grid<T>._get(rowIndex: Int): T {
-    require(rowIndex >= 0) { "rowIndex must be 0 or greater: $rowIndex" }
-    if (this !is TreeGrid && _dataProviderSupportsSizeOp) {
+    if (grid !is TreeGrid && isDefinedSize(grid)) {
         // only perform this check for regular Grid. TreeGrid._fetch()'s Sequence consults size() internally.
-        val size: Int = _size()
+        val size: Int = _size(grid)
         if (rowIndex >= size) {
-            throw AssertionError("Requested to get row $rowIndex but the data provider only has ${_size()} rows\n${_dump()}")
+            throw AssertionError("Requested to get row $rowIndex but the data provider only has $size rows\n${dump(grid)}")
         }
     }
-    return _getOrNull(rowIndex)
-        ?: throw AssertionError("Requested to get row $rowIndex but the data provider returned 0 rows\n${_dump()}")
+    return getOrNull(grid, rowIndex)
+        ?: throw AssertionError("Requested to get row $rowIndex but the data provider returned 0 rows\n${dump(grid)}")
 }
 
-/**
- * Returns the item on given row, or null if the [rowIndex] is larger than the number
- * of items the data provider can provide. Uses current Grid sorting.
- *
- * For [TreeGrid] this returns the x-th displayed row; skips children of collapsed nodes.
- * Uses [_rowSequence].
- *
- * WARNING: Very slow operation for [TreeGrid].
- * @param rowIndex the row, 0 or larger.
- * @return the item at given row or null if the data provider provides less rows.
- */
-public fun <T : Any> Grid<T>._getOrNull(rowIndex: Int): T? {
+private fun <T : Any> getOrNull(grid: Grid<T>, rowIndex: Int): T? {
     require(rowIndex >= 0) { "rowIndex must be 0 or greater: $rowIndex" }
-    if (this !is TreeGrid && _dataProviderSupportsSizeOp) {
-        // only perform this check for regular Grid. TreeGrid._fetch()'s Sequence consults size() internally.
-        val size: Int = _size()
-        if (rowIndex >= size) {
+    if (grid !is TreeGrid && isDefinedSize(grid)) {
+        // only perform this check for regular Grid. TreeGrid.fetch()'s Sequence consults size() internally.
+        if (rowIndex >= _size(grid)) {
             return null
         }
     }
-    val fetched: List<T> = _fetch(rowIndex, 1)
-    return fetched.firstOrNull()
+    return fetch(grid, rowIndex, 1).firstOrNull()
 }
 
-/**
- * Vaadin 19+ Grids support setting data providers which do not support retrieving
- * the number of available rows. See `FetchCallback` for more details.
- * @return true if the current data provider supports [_size] retrieval, false
- * if not.
- */
-public val Grid<*>._dataProviderSupportsSizeOp: Boolean
-    get() = dataCommunicator.isDefinedSize
+private fun isDefinedSize(grid: Grid<*>): Boolean = grid.dataCommunicator.isDefinedSize
 
-/**
- * Returns items in given range from Grid's data provider. Uses current Grid sorting.
- *
- * For [TreeGrid] this walks the [_rowSequence].
- *
- * The Grid never sets any filters into the data provider, however any
- * ConfigurableFilterDataProvider will automatically apply its filters.
- *
- * WARNING: Very slow operation for [TreeGrid].
- */
-public fun <T> Grid<T>._fetch(offset: Int, limit: Int): List<T> = when(this) {
-    is TreeGrid<T> -> this._rowSequence().drop(offset).take(limit).toList()
-    else -> dataCommunicator.fetch(offset, limit)
+private fun <T> fetch(grid: Grid<T>, offset: Int, limit: Int): List<T> = when (grid) {
+    is TreeGrid<T> -> rowSequence(grid).drop(offset).take(limit).toList()
+    else -> fetch(grid.dataCommunicator, offset, limit)
 }
 
 private val _DataCommunicator_fetchFromProvider: Method =
@@ -170,228 +100,44 @@ private val _DataCommunicator_fetchFromProvider: Method =
         isAccessible = true
     }
 
-
-/**
- * Returns items in given range from this data communicator. Uses current Grid sorting.
- * Any ConfigurableFilterDataProvider will automatically apply its filters.
- *
- * This is an internal stuff, most probably you wish to call [_fetch].
- */
-public fun <T> DataCommunicator<T>.fetch(offset: Int, limit: Int): List<T> {
-    require(limit <= _saneFetchLimit) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is $_saneFetchLimit but you asked for $limit" }
-
+private fun <T> fetch(dataCommunicator: DataCommunicator<T>, offset: Int, limit: Int): List<T> {
+    require(limit <= get_saneFetchLimit()) { "Vaadin doesn't handle fetching of many items very well unfortunately. The sane limit is ${get_saneFetchLimit()} but you asked for $limit" }
     // make sure the DataCommunicator is not in paged mode: https://github.com/mvysny/karibu-testing/issues/99
-    isPagingEnabled = false
-
+    dataCommunicator.isPagingEnabled = false
     @Suppress("UNCHECKED_CAST")
-    val fetched: Stream<T> = _DataCommunicator_fetchFromProvider.invoke(this, offset, limit) as Stream<T>
+    val fetched: Stream<T> = _DataCommunicator_fetchFromProvider.invoke(dataCommunicator, offset, limit) as Stream<T>
     return fetched.toList()
 }
 
 /**
- * Returns all items from this data communicator. Uses current Grid sorting.
- * Any ConfigurableFilterDataProvider will automatically apply its filters.
- *
- * This is an internal stuff, most probably you wish to call [_fetch].
+ * Returns the number of items in given [grid]. For [TreeGrid] this returns the
+ * number of displayed rows; children of collapsed nodes are not counted.
  */
-public fun <T> DataCommunicator<T>.fetchAll(): List<T> = fetch(0, _saneFetchLimit)
-
-/**
- * Returns all items in given data provider. Uses current Grid sorting.
- *
- * For [TreeGrid] this returns all displayed rows; skips children of collapsed nodes.
- *
- * The Grid never sets any filters into the data provider, however any
- * ConfigurableFilterDataProvider will automatically apply its filters.
- *
- * @return the list of items.
- */
-public fun <T> Grid<T>._findAll(): List<T> = _fetch(0, _saneFetchLimit)
-
-/**
- * Returns the number of items in this data provider.
- *
- * In case of [HierarchicalDataProvider]
- * this returns the number of ALL items including all leafs.
- */
-public fun <T, F> DataProvider<T, F>._size(filter: F? = null): Int {
-    if (this is HierarchicalDataProvider<T, F>) {
-        return this._size(null, filter)
+public fun _size(grid: Grid<*>): Int {
+    if (grid is TreeGrid<*>) {
+        return rowSequence(grid).count()
     }
-    return size(Query(filter))
+    if (!isDefinedSize(grid)) {
+        return fetch(grid, 0, get_saneFetchLimit()).size
+    }
+    return grid.dataCommunicator.dataProviderSize
 }
 
-/**
- * Returns the number of items in this data provider, including child items.
- * The function traverses recursively until all children are found; then a total size
- * is returned. The function uses [HierarchicalDataProvider.size] mostly, but
- * also uses [HierarchicalDataProvider.fetchChildren] to discover children.
- * Only children matching [filter] are considered for recursive computation of
- * the size.
- *
- * Note that this can differ to `Grid._size()` since `Grid._size()` ignores children
- * of collapsed tree nodes.
- * @param root start with this item; defaults to null to iterate all items
- * @param filter filter to pass to [HierarchicalQuery]
- */
-@JvmOverloads
-public fun <T, F> HierarchicalDataProvider<T, F>._size(root: T? = null, filter: F? = null): Int =
-    _rowSequence(root, filter = filter).count()
-
-/**
- * Returns the number of items in this Grid.
- *
- * For [TreeGrid] this computes the number of items the [TreeGrid] is actually showing on-screen,
- * ignoring children of collapsed nodes.
- *
- * A very slow operation for [TreeGrid] since it walks through all items returned by [_rowSequence].
- *
- * If [_dataProviderSupportsSizeOp] is false, this function will fetch all the data
- * and count the result returned, which is also very slow.
- */
-public fun Grid<*>._size(): Int {
-    if (this is TreeGrid<*>) {
-        return this._size()
-    }
-    if (!_dataProviderSupportsSizeOp) {
-        return _findAll().size
-    }
-    return dataCommunicator.dataProviderSize
-}
-
-/**
- * Gets a [Grid.Column] of this grid by its [columnKey].
- * @throws AssertionError if no such column exists.
- */
-public fun <T> Grid<T>._getColumnByKey(columnKey: String): Grid.Column<T> = getColumnByKey(columnKey)
-        ?: throw AssertionError("${toPrettyString()}: No such column with key '$columnKey'; available columns: ${columns.mapNotNull { it.key }}")
-
-/**
- * Performs a click on a [ClickableRenderer] in given [Grid] cell. Only supports the following scenarios:
- * * [ClickableRenderer]
- * * [ComponentRenderer] which renders a [Button] or a [ClickNotifier].
- *
- * The `click` closure is no longer supported - please see https://github.com/mvysny/karibu-testing/issues/67 for more details.
- * @param rowIndex the row index, 0 or higher.
- * @param columnKey the column key [Grid.Column.getKey]
- * @throws AssertionError if the renderer is not [ClickableRenderer] nor [ComponentRenderer].
- */
-//public fun <T : Any> Grid<T>._clickRenderer(rowIndex: Int, columnKey: String) {
-//    checkEditableByUser()
-//    val column: Grid.Column<T> = _getColumnByKey(columnKey)
-//    val renderer: Renderer<T>? = column.renderer
-//    val item: T = _get(rowIndex)
-//    if (renderer is ClickableRenderer<*>) {
-//        @Suppress("UNCHECKED_CAST")
-//        (renderer as ClickableRenderer<T>).onClick(item)
-//    } else if (renderer is ComponentRenderer<*, *>) {
-//        val component: Component = (renderer as ComponentRenderer<*, T>).createComponent(item)
-//        if (component is Button) {
-//            component._click()
-//        } else if (component is ClickNotifier<*>) {
-//            component._click()
-//        } else {
-//            // don't try to do anything smart here since things will break silently for the customer as they upgrade Vaadin version
-//            // https://github.com/mvysny/karibu-testing/issues/67
-//            fail("${this.toPrettyString()} column $columnKey: ComponentRenderer produced ${component.toPrettyString()} which is not a button nor a ClickNotifier - please use _getCellComponent() instead")
-//        }
-//    } else {
-//        fail("${this.toPrettyString()} column $columnKey has renderer $renderer which is not supported by this method")
-//    }
-//}
-
-/**
- * Retrieves a component produced by [ComponentRenderer] in given [Grid] cell. Fails if the
- * renderer is not a [ComponentRenderer].
- * @param rowIndex the row index, 0 or higher.
- * @param columnKey the column key [Grid.Column.getKey]
- * @throws IllegalStateException if the renderer is not [ComponentRenderer].
- */
-public fun <T : Any> Grid<T>._getCellComponent(
-    rowIndex: Int,
-    columnKey: String
-): Component {
-    val column: Grid.Column<T> = _getColumnByKey(columnKey)
-    val renderer: Renderer<T>? = column.renderer
-    if (renderer !is ComponentRenderer<*, *>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses renderer $renderer but we expect a ComponentRenderer here")
-    }
-    if (renderer is NativeButtonRenderer<*>) {
-        throw java.lang.IllegalArgumentException("${this.toPrettyString()} column $columnKey uses NativeButtonRenderer which is not supported by this function")
-    }
-    val item: T = _get(rowIndex)
-    val component: Component = (renderer as ComponentRenderer<*, T>).createComponent(item)
-    return component
-}
-
-/**
- * Returns the formatted value of given column as a String. Uses [getPresentationValue]
- * and converts the result to string (even if the result is a [Component]).
- * @param rowIndex the row index, 0 or higher.
- * @param columnKey the column ID.
- */
 @Suppress("UNCHECKED_CAST")
-public fun <T : Any> Grid<T>._getFormatted(rowIndex: Int, columnKey: String): String {
-    val rowObject: T = _get(rowIndex)
-    val column: Grid.Column<T> = _getColumnByKey(columnKey)
-    return column._getFormatted(rowObject)
-}
-
-/**
- * Returns the formatted value as a String. Uses [getPresentationValue]
- * and converts the result to string (even if the result is a [Component]).
- * @param rowObject the bean
- */
-@Suppress("UNCHECKED_CAST")
-public fun <T : Any> Grid.Column<T>._getFormatted(rowObject: T): String =
-        getPresentationValue(rowObject).toString()
-
-/**
- * Returns the formatted row as a list of Strings, one for every visible column.
- * Uses [_getFormatted].
- * @param rowObject the bean
- */
-public fun <T : Any> Grid<T>._getFormattedRow(rowObject: T): List<String> =
-        columns.filter { it.isVisible }.map { it._getFormatted(rowObject) }
-
-/**
- * Returns the formatted row as a list of Strings, one for every visible column.
- * Uses [_getFormatted]. Fails if the [rowIndex] is not within the limits.
- * @param rowIndex the index of the row, 0..size-1.
- */
-public fun <T : Any> Grid<T>._getFormattedRow(rowIndex: Int): List<String> {
-    val rowObject: T = _get(rowIndex)
-    return _getFormattedRow(rowObject)
-}
-
-/**
- * Returns the formatted row as a list of Strings, one for every visible column.
- * Uses [_getFormatted]. Returns null if the [rowIndex] is not within the limits.
- * @param rowIndex the index of the row, 0-based.
- */
-public fun <T : Any> Grid<T>._getFormattedRowOrNull(rowIndex: Int): List<String>? {
-    val rowObject: T = _getOrNull(rowIndex) ?: return null
-    return _getFormattedRow(rowObject)
-}
-
-/**
- * Returns the output of renderer set for this column for given [rowObject] formatted as close as possible
- * to the client-side output, using [Grid.Column.renderer].
- */
-@Suppress("UNCHECKED_CAST")
-public fun <T : Any> Grid.Column<T>.getPresentationValue(rowObject: T): Any? {
-    val renderer: Renderer<T> = this.renderer
+private fun <T : Any> getPresentationValue(column: Grid.Column<T>, rowObject: T): Any? {
+    val renderer: Renderer<T> = column.renderer
     if (renderer is ColumnPathRenderer) {
-        val valueProvider: ValueProvider<T, *> = renderer.provider
-                ?: return null
-        val value: Any? = valueProvider.apply(rowObject)
+        val value: Any? = getValueProvider(renderer).apply(rowObject)
         return value.toString()
     }
-    return renderer._getPresentationValue(rowObject)
+    return _getPresentationValue(renderer, rowObject)
 }
 
-private fun <T> Grid<T>.getSortIndicator(column: Grid.Column<T>): String {
-    val so: GridSortOrder<T>? = sortOrder.firstOrNull { it.sorted == column }
+private fun <T : Any> getFormattedRow(grid: Grid<T>, rowObject: T): List<String> =
+    grid.columns.filter { it.isVisible }.map { getPresentationValue(it, rowObject).toString() }
+
+private fun <T> getSortIndicator(grid: Grid<T>, column: Grid.Column<T>): String {
+    val so: GridSortOrder<T>? = grid.sortOrder.firstOrNull { it.sorted == column }
     return when {
         so == null -> ""
         so.direction == SortDirection.ASCENDING -> "v"
@@ -400,50 +146,44 @@ private fun <T> Grid<T>.getSortIndicator(column: Grid.Column<T>): String {
 }
 
 /**
- * Dumps given range of [rows] of the Grid, formatting the values using the [_getFormatted] function. Does not consider header groups. The output example:
- * ```
- * --[Name]--[Age]--[Occupation]--
- * 0: John, 25, Service Worker
- * 1: Fred, 40, Supervisor
- * --and 198 more
- * ```
+ * Dumps the first 10 rows of given [grid] as text, for error messages.
  */
-@JvmOverloads
-public fun <T : Any> Grid<T>._dump(rows: IntRange = 0..9): String = buildString {
-    val visibleColumns: List<Grid.Column<T>> = columns.filter { it.isVisible }
-    visibleColumns.map { "[${it.headerText}]${getSortIndicator(it)}" }.joinTo(this, prefix = "--", separator = "-", postfix = "--\n")
+private fun <T : Any> dump(grid: Grid<T>): String = buildString {
+    val rows: IntRange = 0..9
+    val visibleColumns: List<Grid.Column<T>> = grid.columns.filter { it.isVisible }
+    visibleColumns.map { "[${it.headerText}]${getSortIndicator(grid, it)}" }.joinTo(this, prefix = "--", separator = "-", postfix = "--\n")
     val dsIndices: IntRange
     val displayIndices: Set<Int>
-    if (this@_dump is TreeGrid<T>) {
-        val tree: PrettyPrintTree = this@_dump._dataSourceToPrettyTree()
-        val lines = tree.print().split('\n').filterNotBlank().drop(1)
+    if (grid is TreeGrid<T>) {
+        val tree: PrettyPrintTree = dataSourceToPrettyTree(grid)
+        val lines = filterNotBlank(tree.print().split('\n')).drop(1)
         dsIndices = lines.indices
         displayIndices = rows.intersect(dsIndices)
         for (i in displayIndices) {
             append("$i: ${lines[i]}\n")
         }
-        val andMore = dsIndices.size - displayIndices.size
+        val andMore = dsIndices.count() - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
-    } else if (_dataProviderSupportsSizeOp) {
-        dsIndices = 0 until _size()
+    } else if (isDefinedSize(grid)) {
+        dsIndices = 0 until _size(grid)
         displayIndices = rows.intersect(dsIndices)
         for (i in displayIndices) {
-            _getFormattedRow(i).joinTo(this, prefix = "$i: ", postfix = "\n")
+            getFormattedRow(grid, _get(grid, i)).joinTo(this, prefix = "$i: ", postfix = "\n")
         }
-        val andMore = dsIndices.size - displayIndices.size
+        val andMore = dsIndices.count() - displayIndices.size
         if (andMore > 0) {
             append("--and $andMore more\n")
         }
     } else {
         var rowsOutputted = 0
         for (i in rows) {
-            val row = _getFormattedRowOrNull(i) ?: break
-            row.joinTo(this, prefix = "$i: ", postfix = "\n")
+            val rowObject: T = getOrNull(grid, i) ?: break
+            getFormattedRow(grid, rowObject).joinTo(this, prefix = "$i: ", postfix = "\n")
             rowsOutputted++
         }
-        if (rowsOutputted == rows.size) {
+        if (rowsOutputted == rows.count()) {
             append("--and possibly more\n")
         } else {
             append("--\n")
@@ -451,237 +191,70 @@ public fun <T : Any> Grid<T>._dump(rows: IntRange = 0..9): String = buildString 
     }
 }
 
-/**
- * Asserts that this grid's provider returns given [count] of items. If not,
- * an [AssertionError] is thrown with the Grid [_dump].
- */
-public fun Grid<*>.expectRows(count: Int) {
-    val actual = _size()
-    if (actual != count) {
-        throw AssertionError("${this.toPrettyString()}: expected $count rows but got $actual\n${_dump()}")
-    }
-}
-
-/**
- * Asserts that this grid's [rowIndex] row is formatted as expected.
- * @param row the expected row formatting.
- */
-public fun Grid<*>.expectRow(rowIndex: Int, vararg row: String) {
-    val expected: List<String> = row.toList()
-    val actual: List<String> = _getFormattedRow(rowIndex)
-    if (expected != actual) {
-        throw AssertionError("${this.toPrettyString()} at $rowIndex: expected $expected but got $actual\n${_dump()}")
-    }
-}
-
-/**
- * Returns `com.vaadin.flow.component.grid.AbstractColumn`
- */
-@Suppress("ConflictingExtensionProperty")  // conflicting property is "protected"
-internal val HeaderRow.HeaderCell.column: Any
-    get() = _AbstractCell_getColumn.invoke(this)
-
-private val abstractCellClass: Class<*> = findClassOrThrow("com.vaadin.flow.component.grid.AbstractRow\$AbstractCell")
-private val abstractColumnClass: Class<*> = findClassOrThrow("com.vaadin.flow.component.grid.AbstractColumn")
-private val _AbstractCell_getColumn: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
-    val m: Method = abstractCellClass.getDeclaredMethod("getColumn")
-    m.isAccessible = true
-    m
-}
-
-internal val <T> ColumnPathRenderer<T>.provider: ValueProvider<T, *>
-    get() = _ColumnPathRenderer_provider.get(this) as (ValueProvider<T,*>)
-
 private val _ColumnPathRenderer_provider: Field by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val f: Field = findClassOrThrow("com.vaadin.flow.component.grid.ColumnPathRenderer").getDeclaredField("provider")
     f.isAccessible = true
     f
 }
 
-/**
- * Returns `com.vaadin.flow.component.grid.AbstractColumn`
- */
-@Suppress("ConflictingExtensionProperty")  // conflicting property is "protected"
-private val FooterRow.FooterCell.column: Any
-    get() = _AbstractCell_getColumn.invoke(this)
+@Suppress("UNCHECKED_CAST")
+private fun <T> getValueProvider(renderer: ColumnPathRenderer<T>): ValueProvider<T, *> =
+    _ColumnPathRenderer_provider.get(renderer) as (ValueProvider<T, *>)
 
 /**
- * Retrieves the cell for given [property]; it matches [Grid.Column.getKey] to [KProperty1.name].
- * @return the corresponding cell
- * @throws IllegalArgumentException if no such column exists.
- */
-public fun HeaderRow.getCell(property: KProperty1<*, *>): HeaderRow.HeaderCell =
-        getCell(property.name)
-
-/**
- * Retrieves the cell for given [Grid.Column.getKey].
- * @return the corresponding cell
- * @throws IllegalArgumentException if no such column exists.
- */
-public fun HeaderRow.getCell(key: String): HeaderRow.HeaderCell {
-    val cell: HeaderRow.HeaderCell? = cells.firstOrNull { (it.column as Grid.Column<*>).key == key }
-    require(cell != null) { "This grid has no property named ${key}: $cells" }
-    return cell
-}
-
-private val _AbstractColumn_getBottomLevelColumn: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
-    val method: Method = abstractColumnClass.getDeclaredMethod("getBottomLevelColumn")
-    method.isAccessible = true
-    method
-}
-
-/**
- * Retrieves column key from the `AbstractColumn` receiver. The problem here is that receiver can be `ColumnGroup` which doesn't have
- * a key.
- */
-private val Any.columnKey: String?
-    get() {
-        abstractColumnClass.cast(this)
-        val gridColumn: Grid.Column<*> = _AbstractColumn_getBottomLevelColumn.invoke(this) as Grid.Column<*>
-        return gridColumn.key
-    }
-
-/**
- * Retrieves the cell for given [property]; it matches [Grid.Column.getKey] to [KProperty1.name].
- * @return the corresponding cell
- * @throws IllegalArgumentException if no such column exists.
- */
-public fun FooterRow.getCell(property: KProperty1<*, *>): FooterRow.FooterCell =
-        getCell(property.name)
-
-/**
- * Retrieves the cell for given [Grid.Column.getKey].
- * @return the corresponding cell
- * @throws IllegalArgumentException if no such column exists.
- */
-public fun FooterRow.getCell(key: String): FooterRow.FooterCell {
-    val cell: FooterRow.FooterCell? = cells.firstOrNull { it.column.columnKey == key }
-    require(cell != null) { "This grid has no property named ${key}: $cells" }
-    return cell
-}
-
-/**
- * Sorts given grid. Affects [_findAll], [_get] and other data-fetching functions.
- */
-public fun <T> Grid<T>.sort(vararg sortOrder: QuerySortOrder) {
-    sort(sortOrder.map { GridSortOrder(_getColumnByKey(it.sorted), it.direction) })
-}
-
-/**
- * Fires the [ItemClickEvent] event for given [rowIndex] which invokes all item click listeners registered via
- * [Grid.addItemClickListener].
- * @param button the id of the pressed mouse button (0 is the default button, see ClickEvent.getButton)
- * @param ctrlKey `true` if the control key was down when the event was fired, `false` otherwise
- * @param shiftKey `true` if the shift key was down when the event was fired, `false` otherwise
- * @param altKey `true` if the alt key was down when the event was fired, `false` otherwise
- * @param metaKey `true` if the meta key was down when the event was fired, `false` otherwise
- */
-@JvmOverloads
-public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, button: Int = 0, ctrlKey: Boolean = false,
-                           shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    _clickItem(rowIndex, null, button, ctrlKey, shiftKey, altKey, metaKey)
-}
-
-/**
- * Fires the [ItemClickEvent] event for given [rowIndex] and a [column] which invokes all item click listeners
- * registered via [Grid.addItemClickListener].
+ * Simulates a user clicking on given row of given [grid]. Selects the item in
+ * single selection mode (or deselects it when it is already selected), then
+ * fires an [ItemClickEvent].
+ *
+ * @param rowIndex the row index, 0 or higher.
  * @param button the id of the pressed mouse button
- * @param column optional column to be clicked
- * @param ctrlKey `true` if the control key was down when the event was fired, `false` otherwise
- * @param shiftKey `true` if the shift key was down when the event was fired, `false` otherwise
- * @param altKey `true` if the alt key was down when the event was fired, `false` otherwise
- * @param metaKey `true` if the meta key was down when the event was fired, `false` otherwise
+ * @throws IllegalStateException if the grid was not editable.
  */
-@JvmOverloads
-public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, column: Grid.Column<*>?, button: Int = 1, ctrlKey: Boolean = false,
-                           shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    checkEditableByUser()
+public fun <T : Any> _clickItem(grid: Grid<T>, rowIndex: Int, button: Int, ctrlKey: Boolean,
+                                shiftKey: Boolean, altKey: Boolean, metaKey: Boolean) {
+    checkEditableByUser(grid)
     // fire SelectionEvent if need be: https://github.com/mvysny/karibu-testing/issues/96
-    val item: T = _get(rowIndex)
-    if (selectionModel is GridSingleSelectionModel) {
-        val selectedItem: T? = selectedItems.firstOrNull()
+    val item: T = _get(grid, rowIndex)
+    if (grid.selectionModel is GridSingleSelectionModel) {
+        val selectedItem: T? = grid.selectedItems.firstOrNull()
         if (selectedItem != item) {
-            select(item)
+            grid.select(item)
         } else {
             // clicking on a selected item will de-select it.
-            deselectAll()
+            grid.deselectAll()
         }
     }
-
-    // fire ItemClickEvent
-    val itemKey: String = dataCommunicator.keyMapper.key(item)
-    val internalColumnId = column?._internalId
-    val event = ItemClickEvent<T>(this, true, itemKey, internalColumnId, -1, -1, -1, -1, 1, button, ctrlKey, shiftKey, altKey, metaKey)
-    _fireEvent(event)
+    val itemKey: String = grid.dataCommunicator.keyMapper.key(item)
+    val event = ItemClickEvent<T>(grid, true, itemKey, null, -1, -1, -1, -1, 1, button, ctrlKey, shiftKey, altKey, metaKey)
+    ComponentUtil.fireEvent(grid, event)
 }
 
 /**
- * Fires the [ItemClickEvent] event for given [rowIndex] and a [columnKey] which invokes all item click listeners
- * registered via [Grid.addItemClickListener].
+ * Simulates a user double-clicking on given row of given [grid] by firing an
+ * [ItemDoubleClickEvent].
+ *
+ * @param rowIndex the row index, 0 or higher.
  * @param button the id of the pressed mouse button
- * @param columnKey the key of the column to be clicked
- * @param ctrlKey `true` if the control key was down when the event was fired, `false` otherwise
- * @param shiftKey `true` if the shift key was down when the event was fired, `false` otherwise
- * @param altKey `true` if the alt key was down when the event was fired, `false` otherwise
- * @param metaKey `true` if the meta key was down when the event was fired, `false` otherwise
+ * @throws IllegalStateException if the grid was not editable.
  */
-@JvmOverloads
-public fun <T : Any> Grid<T>._clickItem(rowIndex: Int, columnKey: String, button: Int = 1, ctrlKey: Boolean = false,
-                           shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    _clickItem(rowIndex, _getColumnByKey(columnKey), button, ctrlKey, shiftKey, altKey, metaKey)
+public fun <T : Any> _doubleClickItem(grid: Grid<T>, rowIndex: Int, button: Int, ctrlKey: Boolean,
+                                      shiftKey: Boolean, altKey: Boolean, metaKey: Boolean) {
+    checkEditableByUser(grid)
+    val itemKey: String = grid.dataCommunicator.keyMapper.key(_get(grid, rowIndex))
+    val event = ItemDoubleClickEvent<T>(grid, true, itemKey, null, -1, -1, -1, -1, 2, button, ctrlKey, shiftKey, altKey, metaKey)
+    ComponentUtil.fireEvent(grid, event)
 }
 
 /**
- * Fires the [ItemDoubleClickEvent] event for given [rowIndex] which invokes all item click listeners registered via
- * [Grid.addItemDoubleClickListener].
- * @param button the id of the pressed mouse button
- * @param ctrlKey `true` if the control key was down when the event was fired, `false` otherwise
- * @param shiftKey `true` if the shift key was down when the event was fired, `false` otherwise
- * @param altKey `true` if the alt key was down when the event was fired, `false` otherwise
- * @param metaKey `true` if the meta key was down when the event was fired, `false` otherwise
+ * Returns a sequence which walks over all displayed rows of given [treeGrid]:
+ * the children of collapsed nodes are skipped.
  */
-@JvmOverloads
-public fun <T : Any> Grid<T>._doubleClickItem(rowIndex: Int, button: Int = 1, ctrlKey: Boolean = false,
-                                        shiftKey: Boolean = false, altKey: Boolean = false, metaKey: Boolean = false) {
-    checkEditableByUser()
-    val itemKey: String = dataCommunicator.keyMapper.key(_get(rowIndex))
-    val event = ItemDoubleClickEvent<T>(this, true, itemKey, null, -1, -1, -1, -1, 2, button, ctrlKey, shiftKey, altKey, metaKey)
-    _fireEvent(event)
-}
+private fun <T> rowSequence(treeGrid: TreeGrid<T>): Sequence<T> =
+    rowSequence(treeGrid.dataProvider) { item: T -> treeGrid.isExpanded(item) }
 
-/**
- * Returns a sequence which walks over all rows the [TreeGrid] is actually showing.
- * The sequence will *skip* children of collapsed nodes.
- *
- * Iterating the entire sequence is a very slow operation since it will repeatedly
- * poll [HierarchicalDataProvider] for list of children.
- *
- * Honors current grid ordering.
- */
-public fun <T> TreeGrid<T>._rowSequence(filter: SerializablePredicate<T>? = null): Sequence<T> {
-    val isExpanded: (T) -> Boolean = { item: T -> isExpanded(item) }
-    return dataProvider._rowSequence(null, isExpanded, filter)
-}
-
-/**
- * Returns a sequence which walks over all rows the [TreeGrid] is actually showing.
- * The sequence will *skip* children of collapsed nodes.
- *
- * Iterating the entire sequence is a very slow operation since it will repeatedly
- * poll [HierarchicalDataProvider] for list of children.
- *
- * Honors current grid ordering.
- * @param root start with this item; defaults to null to iterate all items
- * @param isExpanded if returns null for an item, children of that item are skipped
- * @param filter filter to pass to [HierarchicalQuery]
- */
-@JvmOverloads
-public fun <T, F> HierarchicalDataProvider<T, F>._rowSequence(root: T? = null,
-                                                       isExpanded: (T)->Boolean = { true },
-                                                       filter: F? = null): Sequence<T> {
-
+private fun <T, F> rowSequence(dataProvider: HierarchicalDataProvider<T, F>, isExpanded: (T) -> Boolean): Sequence<T> {
     fun getChildrenOf(item: T?): List<T> = if (item == null || isExpanded(item)) {
-        checkedFetch(HierarchicalQuery<T, F>(filter, item))
+        checkedFetch(dataProvider, HierarchicalQuery<T, F>(null, item))
     } else {
         listOf<T>()
     }
@@ -689,39 +262,32 @@ public fun <T, F> HierarchicalDataProvider<T, F>._rowSequence(root: T? = null,
     fun itemSubtreeSequence(item: T): Sequence<T> =
             DepthFirstTreeIterator(item) { getChildrenOf(it) } .asSequence()
 
-    val roots: List<T> = getChildrenOf(root)
+    val roots: List<T> = getChildrenOf(null)
     return roots.map { itemSubtreeSequence(it) } .asSequence().flatten()
 }
 
-/**
- * Returns the number of items the [TreeGrid] is actually showing. For example
- * it doesn't count in children of collapsed nodes.
- *
- * A very slow operation since it walks through all items returned by [_rowSequence].
- */
-public fun TreeGrid<*>._size(): Int = _rowSequence().count()
-
-private fun <T, F> HierarchicalDataProvider<T, F>.checkedSize(query: HierarchicalQuery<T, F>): Int {
-    if (query.parent != null && !hasChildren(query.parent)) return 0
-    val result: Int = size(query)
+private fun <T, F> checkedSize(dataProvider: HierarchicalDataProvider<T, F>, query: HierarchicalQuery<T, F>): Int {
+    if (query.parent != null && !dataProvider.hasChildren(query.parent)) return 0
+    val result: Int = dataProvider.size(query)
     check(result >= 0) { "size($query) returned negative count: $result" }
     return result
 }
-private fun <T, F> HierarchicalDataProvider<T, F>.checkedFetch(query: HierarchicalQuery<T, F>): List<T> = when {
-    checkedSize(query) == 0 -> listOf()
-    else -> fetchChildren(query).toList()
+
+private fun <T, F> checkedFetch(dataProvider: HierarchicalDataProvider<T, F>, query: HierarchicalQuery<T, F>): List<T> = when {
+    checkedSize(dataProvider, query) == 0 -> listOf()
+    else -> dataProvider.fetchChildren(query).toList()
 }
 
-public fun <T : Any> TreeGrid<T>._dataSourceToPrettyTree(): PrettyPrintTree {
+private fun <T : Any> dataSourceToPrettyTree(treeGrid: TreeGrid<T>): PrettyPrintTree {
     fun getChildrenOf(item: T?): List<T> =
-            if (item == null || isExpanded(item)) {
-                dataProvider.checkedFetch(HierarchicalQuery<T, SerializablePredicate<T>?>(null, item))
+            if (item == null || treeGrid.isExpanded(item)) {
+                checkedFetch(treeGrid.dataProvider, HierarchicalQuery<T, SerializablePredicate<T>?>(null, item))
             } else {
                 listOf<T>()
             }
 
     fun toPrettyTree(item: T): PrettyPrintTree {
-        val self: String = _getFormattedRow(item).joinToString(postfix = "\n")
+        val self: String = getFormattedRow(treeGrid, item).joinToString(postfix = "\n")
         val children: List<T> = getChildrenOf(item)
         return PrettyPrintTree(self, children.map { toPrettyTree(it) } .toMutableList())
     }
@@ -730,156 +296,107 @@ public fun <T : Any> TreeGrid<T>._dataSourceToPrettyTree(): PrettyPrintTree {
     return PrettyPrintTree("TreeGrid", roots.map { toPrettyTree(it) } .toMutableList())
 }
 
-@Suppress("UNCHECKED_CAST")
-public fun <T> TreeGrid<T>._getRootItems(): List<T> =
-        dataProvider.fetch(HierarchicalQuery(null, null)).toList()
-
 /**
- * Expands all nodes. May invoke massive data loading.
+ * Returns the data provider currently set to given [component], or null if
+ * the component has no data provider.
  */
-@JvmOverloads
-public fun <T> TreeGrid<T>._expandAll(depth: Int = 100) {
-    expandRecursively(_getRootItems(), depth)
-}
-
-/**
- * Returns the data provider currently set to this [HasItems].
- */
-//public val <T> HasItems<T>.dataProvider: DataProvider<T, *>? get() = when (this) {
-//    // until https://github.com/vaadin/flow/issues/6296 is resolved
-//    is Grid<T> -> this.dataProvider
-//    is IronList<T> -> this.dataProvider
-//    is Select<T> -> this.dataProvider
-//    is ListBoxBase<*, T, *> -> this.getDataProvider()
-//    is RadioButtonGroup<T> -> this.dataProvider
-//    is CheckboxGroup<T> -> this.dataProvider
-//    is ComboBox<T> -> this.dataProvider
-//    else -> null
-//}
-
-/**
- * Returns the data provider currently set to this Component.
- *
- * Works both with Vaadin 16 and Vaadin 17: Vaadin 17 components no longer implement HasItems.
- */
-public val Component.dataProvider: DataProvider<*, *>? get() = when (this) {
+public fun getDataProvider(component: Component): DataProvider<*, *>? = when (component) {
     // until https://github.com/vaadin/flow/issues/6296 is resolved
-    is Grid<*> -> this.dataProvider
-    is Select<*> -> this.dataProvider
-    is ListBoxBase<*, *, *> -> this.dataProvider
-    is RadioButtonGroup<*> -> this.dataProvider
-    is CheckboxGroup<*> -> this.dataProvider
-    is ComboBox<*> -> this.dataProvider
+    is Grid<*> -> component.dataProvider
+    is Select<*> -> component.dataProvider
+    is ListBoxBase<*, *, *> -> component.dataProvider
+    is RadioButtonGroup<*> -> component.dataProvider
+    is CheckboxGroup<*> -> component.dataProvider
+    is ComboBox<*> -> component.dataProvider
     else -> null
 }
 
-/**
- * Call this instead of [Editor.editItem] - this function makes sure that the editor opening is
- * mocked properly, calls the editor bindings, and fires the editor-open-event.
- */
-public fun <T> Editor<T>._editItem(item: T) {
-//    expect(true, "${grid.toPrettyString()} is not attached, editItem() would do nothing. Make sure the Grid is attached to an UI") {
-//        grid.isAttached()
-//    }
-    if(!grid.isAttached()) throw java.lang.IllegalStateException("Grid is not attached so can not edit")
-    editItem(item)
-    MockVaadin.clientRoundtrip()
-}
-
-//////////////
 private val _Column_getInternalId: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val m = Grid.Column::class.java.getDeclaredMethod("getInternalId")
     m.isAccessible = true
     m
 }
+
 private val _AbstractGridMultiSelectionModel_clientSelectAll: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val m = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientSelectAll")
     m.isAccessible = true
     m
 }
+
 private val _AbstractGridMultiSelectionModel_clientDeselectAll: Method by lazy(LazyThreadSafetyMode.PUBLICATION) {
     val m = AbstractGridMultiSelectionModel::class.java.getDeclaredMethod("clientDeselectAll")
     m.isAccessible = true
     m
 }
 
-/**
- * The multi-select model of this Grid, ready for the "select all" checkbox code to be run on it.
- * Fails if the grid is not multi-select or if the checkbox isn't shown, since then the user has
- * no way to trigger it: both `clientSelectAll()` and `clientDeselectAll()` quietly return in
- * that case.
- */
-private fun <T> Grid<T>._selectAllCheckboxModel(action: String): GridMultiSelectionModel<T> {
-    val model = selectionModel
-    if(model !is GridMultiSelectionModel) {
+private fun <T> getSelectAllCheckboxModel(grid: Grid<T>, action: String): GridMultiSelectionModel<T> {
+    val model = grid.selectionModel
+    if (model !is GridMultiSelectionModel) {
         throw IllegalStateException("$action requires multi selection mode")
     }
-    if(!model.isSelectAllCheckboxVisible) {
+    if (!model.isSelectAllCheckboxVisible) {
         throw IllegalStateException("$action requires the select all checkbox to be visible")
     }
     return model
 }
 
 /**
- * In single select clears the selection and select only given [item], for multiselect add to selection.
+ * Simulates a user selecting given [item] in given [grid]. In single selection
+ * mode the previously selected item is deselected first.
+ *
+ * @throws IllegalStateException if the grid was not editable.
  */
-public fun <T: Any> Grid<T>._select(item: T) {
-    checkEditableByUser()
-    if(selectionModel is GridSingleSelectionModel) {
-        deselectAll()
+public fun <T : Any> _select(grid: Grid<T>, item: T) {
+    checkEditableByUser(grid)
+    if (grid.selectionModel is GridSingleSelectionModel) {
+        grid.deselectAll()
     }
     // fails properly if the Grid doesn't support selection.
-    selectionModel.selectFromClient(item)
+    grid.selectionModel.selectFromClient(item)
 }
 
 /**
- * Selects all items in the Grid; runs the same code as when the "select all" checkbox is checked.
- * Fails if the grid is not multi-select or the "select all" checkbox is hidden.
+ * Simulates a user clicking the select all checkbox of given [grid].
+ *
+ * @throws IllegalStateException if the grid was not editable, is not in multi
+ * selection mode or the select all checkbox is not visible.
  */
-public fun <T> Grid<T>._selectAll() {
-    checkEditableByUser()
-    val model = _selectAllCheckboxModel("Select all")
+public fun <T> _selectAll(grid: Grid<T>) {
+    checkEditableByUser(grid)
+    val model = getSelectAllCheckboxModel(grid, "Select all")
     _AbstractGridMultiSelectionModel_clientSelectAll.invoke(model)
 }
 
 /**
- * Deselects given [item]: the same code that runs when the user ctrl-clicks a selected row or
- * unchecks the row's selection checkbox in multi-select, or clicks the selected row in single select.
+ * Simulates a user deselecting given [item] in given [grid].
  *
- * The [item] must be selected; deselecting a row that isn't selected is not a gesture the user
- * has, so it fails instead of doing nothing.
- *
- * The call is ignored - just like the user's click would be - if the item is not selectable
- * ([Grid.setItemSelectableProvider]), or if the grid is single-select with
- * [GridSingleSelectionModel.isDeselectAllowed] set to false.
+ * @throws IllegalStateException if the grid was not editable or the item is
+ * not selected.
  */
-public fun <T: Any> Grid<T>._deselect(item: T) {
-    checkEditableByUser()
-    if(selectionModel !is GridNoneSelectionModel && !selectionModel.isSelected(item)) {
+public fun <T : Any> _deselect(grid: Grid<T>, item: T) {
+    checkEditableByUser(grid)
+    if (grid.selectionModel !is GridNoneSelectionModel && !grid.selectionModel.isSelected(item)) {
         throw IllegalStateException("Can not deselect ${item}: the row is not selected")
     }
     // fails properly if the Grid doesn't support selection.
-    selectionModel.deselectFromClient(item)
+    grid.selectionModel.deselectFromClient(item)
 }
 
 /**
- * Deselects all items in the Grid; runs the same code as when the "select all" checkbox is unchecked.
- * Fails if the grid is not multi-select or the "select all" checkbox is hidden.
+ * Simulates a user unchecking the select all checkbox of given [grid].
  *
- * This is the counterpart of [_selectAll] and behaves like the checkbox does: the whole selection
- * is dropped in one selection event, without the per-row `ClientItemToggleEvent`s the user would
- * cause by unchecking rows one by one. Call [_deselect] per row to model that instead.
+ * @throws IllegalStateException if the grid was not editable, is not in multi
+ * selection mode or the select all checkbox is not visible.
  */
-public fun <T> Grid<T>._deselectAll() {
-    checkEditableByUser()
-    val model = _selectAllCheckboxModel("Deselect all")
+public fun <T> _deselectAll(grid: Grid<T>) {
+    checkEditableByUser(grid)
+    val model = getSelectAllCheckboxModel(grid, "Deselect all")
     _AbstractGridMultiSelectionModel_clientDeselectAll.invoke(model)
 }
 
 /**
- * Returns the column's Internal ID. Not related to [Grid.Column.getKey] in any way.
- * Auto-generated by the Grid. Not really useful; mostly used internally by Vaadin.
+ * Returns the internal id of given [column], which the client uses to refer to
+ * the column.
  */
-public val Grid.Column<*>._internalId: String
-    get() = _Column_getInternalId.invoke(this) as String
-
+public fun getInternalId(column: Grid.Column<*>): String =
+    _Column_getInternalId.invoke(column) as String

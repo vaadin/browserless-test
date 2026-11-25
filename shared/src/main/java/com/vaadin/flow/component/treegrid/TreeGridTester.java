@@ -15,22 +15,27 @@
  */
 package com.vaadin.flow.component.treegrid;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridTester;
+import com.vaadin.flow.data.renderer.CompiledLitTemplate;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
+import com.vaadin.flow.js.JsCall;
+import com.vaadin.flow.js.JsDefinitionProxy;
 
 /**
  * Tester for TreeGrid components.
- * <p/>
+ * <p>
  * Adds the hierarchy interactions a user can perform on top of everything
- * {@link GridTester} offers. Row indexes address the rows the user actually
- * sees, so children of collapsed nodes are not counted.
- * <p/>
+ * {@link com.vaadin.flow.component.grid.GridTester GridTester} offers. Row
+ * indexes address the rows the user actually sees, so children of collapsed
+ * nodes are not counted.
+ * <p>
  * The expand toggle lives in the hierarchy column, and a {@code TreeGrid} can
  * be configured with none, one, or several of them. {@link #expand(int)} and
  * {@link #collapse(int)} require at least one visible hierarchy column, since
@@ -47,8 +52,12 @@ import com.vaadin.flow.data.renderer.Renderer;
 @Tests(fqn = { "com.vaadin.flow.component.treegrid.TreeGrid" })
 public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
 
-    /** Element the hierarchy column renders as the clickable expand toggle. */
-    private static final String TREE_TOGGLE_ELEMENT = "vaadin-grid-tree-toggle";
+    /**
+     * Method of {@link TreeGridTemplates} that declares the template of a
+     * hierarchy column added through a value provider, which renders the
+     * clickable expand toggle.
+     */
+    private static final String HIERARCHY_COLUMN_TEMPLATE = "hierarchyColumnRenderer";
 
     /** LitRenderer property the tree toggle renders as its label. */
     private static final String HIERARCHY_NAME_PROPERTY = "name";
@@ -66,10 +75,10 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Expands the node on the given row, as if the user clicked its expand
      * toggle in the browser.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
-     * <p/>
+     * <p>
      * The resulting {@link ExpandEvent} reports
      * {@link ExpandEvent#isFromClient()} as {@literal true}.
      *
@@ -96,10 +105,10 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Collapses the node on the given row, as if the user clicked its collapse
      * toggle in the browser.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
-     * <p/>
+     * <p>
      * The resulting {@link CollapseEvent} reports
      * {@link CollapseEvent#isFromClient()} as {@literal true}.
      *
@@ -125,7 +134,7 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
 
     /**
      * Checks whether the node on the given row is expanded.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
      *
@@ -144,7 +153,7 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Checks whether the node on the given row has children, meaning the user
      * is shown an expand toggle for it.
-     * <p/>
+     * <p>
      * The index is 0 based and counts only rows that are currently displayed,
      * so children of collapsed nodes are skipped.
      *
@@ -163,12 +172,13 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
     /**
      * Get the text that is shown on the client for the cell in the given
      * position.
-     * <p/>
+     * <p>
      * A hierarchy column added with
      * {@link TreeGrid#addHierarchyColumn(com.vaadin.flow.function.ValueProvider)}
      * renders the item through a {@code vaadin-grid-tree-toggle}, so its text
      * is read from the toggle's own value provider rather than from a column
-     * path. Every other column is read exactly as {@link GridTester} does.
+     * path. Every other column is read exactly as
+     * {@link com.vaadin.flow.component.grid.GridTester GridTester} does.
      *
      * @param row
      *            row of cell
@@ -220,7 +230,8 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
      * provider, or {@literal null} when the column is not one. Such a column
      * renders a {@code vaadin-grid-tree-toggle} straight from a
      * {@link LitRenderer}; the component variant is a {@link ComponentRenderer}
-     * instead and is handled by {@link GridTester}.
+     * instead and is handled by
+     * {@link com.vaadin.flow.component.grid.GridTester GridTester}.
      */
     private LitRenderer<Y> getTreeToggleRenderer(Grid.Column<Y> column) {
         final Renderer<Y> renderer = column.getRenderer();
@@ -228,14 +239,32 @@ public class TreeGridTester<T extends TreeGrid<Y>, Y> extends GridTester<T, Y> {
                 || !(renderer instanceof LitRenderer<Y> litRenderer)) {
             return null;
         }
+        if (!litRenderer.getValueProviders()
+                .containsKey(HIERARCHY_NAME_PROPERTY)) {
+            return null;
+        }
+        final JsCall templateCall = getDeclaredTemplateCall(litRenderer);
+        return templateCall != null
+                && templateCall.definitionType() == TreeGridTemplates.class
+                && HIERARCHY_COLUMN_TEMPLATE.equals(templateCall.methodName())
+                        ? litRenderer
+                        : null;
+    }
+
+    /**
+     * Returns the call of the {@code @JsDefinition} method that declares the
+     * template the renderer renders with, or {@literal null} when the renderer
+     * renders with a template string instead.
+     */
+    private JsCall getDeclaredTemplateCall(LitRenderer<Y> litRenderer) {
+        // LitRenderer has no public accessor for the template it renders
+        // with; one belongs in LitRenderer itself (vaadin/flow-components)
         try {
-            final String template = (String) getField(LitRenderer.class,
-                    "templateExpression").get(litRenderer);
-            return template != null && template.contains(TREE_TOGGLE_ELEMENT)
-                    && litRenderer.getValueProviders()
-                            .containsKey(HIERARCHY_NAME_PROPERTY) ? litRenderer
-                                    : null;
-        } catch (IllegalAccessException e) {
+            final CompiledLitTemplate template = (CompiledLitTemplate) getMethod(
+                    LitRenderer.class, "getTemplate").invoke(litRenderer);
+            return template == null ? null
+                    : JsDefinitionProxy.findDeclaredCall(template);
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(
                     "Unable to read the template of the column renderer", e);
         }

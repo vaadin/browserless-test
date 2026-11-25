@@ -76,6 +76,9 @@ public class BrowserlessUIContext
 
         BrowserlessUIContext previous = activeContext.get();
 
+        releaseLockOfOtherContext(previous);
+        user.getApp().holdSessionLock(user);
+
         // Save outgoing user's security context on user switch — symmetric
         // with activate().
         if (previous != null && previous.user != this.user) {
@@ -100,9 +103,10 @@ public class BrowserlessUIContext
             // Roll back thread-local state: do not leak this half-built
             // context as the active context.
             if (previous != null && !previous.closed) {
-                reactivateSurviving(previous);
+                reactivateSurviving(previous, user.getApp());
             } else {
                 user.clearThreadLocals();
+                user.getApp().holdSessionLock(null);
             }
             throw ex;
         }
@@ -125,9 +129,18 @@ public class BrowserlessUIContext
      * between windows of the same user does not save or restore security state,
      * so mutations made by one window are observed by sibling windows.
      * <p>
+     * Activating a window of another user, also one in another application
+     * context, releases the outgoing user's session lock, which runs the
+     * commands still queued for that session with
+     * {@link UI#access(com.vaadin.flow.server.Command) UI.access()}, and then
+     * takes this user's session lock. If one of those commands throws, the
+     * exception is rethrown, the outgoing window stays active and its user
+     * keeps the lock.
+     * <p>
      * This method is called automatically by all DSL methods. You only need to
      * call it explicitly if you are accessing Vaadin APIs directly (e.g.
-     * {@code UI.getCurrent()}).
+     * {@code UI.getCurrent()}), or to change a component of this window
+     * directly while another user's window was active.
      */
     public void activate() {
         if (closed) {
@@ -135,6 +148,12 @@ public class BrowserlessUIContext
                     "BrowserlessUIContext is already closed");
         }
         BrowserlessUIContext previous = activeContext.get();
+
+        // Release the outgoing user's session lock, running the commands
+        // queued for it, while the thread still carries that user's state,
+        // as at the end of that user's request.
+        releaseLockOfOtherContext(previous);
+        user.getApp().holdSessionLock(user);
 
         // Save outgoing user's security context on user switch
         if (previous != null && previous != this
@@ -244,8 +263,8 @@ public class BrowserlessUIContext
      * {@link BrowserlessApplicationContext#forComponent(java.util.function.Supplier)},
      * opens one user and one window, and attaches the given component to that
      * window's UI. The returned window owns its bundled
-     * {@link BrowserlessApplicationContext}, which is torn down when the
-     * window's UI detaches, so a single try-with-resources is enough:
+     * {@link BrowserlessApplicationContext}, which is torn down when the window
+     * is closed, so a single try-with-resources is enough:
      *
      * <pre>
      * try (var window = BrowserlessUIContext.forComponent(new MyForm())) {
@@ -319,8 +338,8 @@ public class BrowserlessUIContext
      * whose constructor reads {@code UI.getCurrent()} observes the live
      * environment — unlike {@link #forComponent(Component)}, which receives an
      * already-constructed instance. The returned window owns its bundled
-     * {@link BrowserlessApplicationContext}, which is torn down when the
-     * window's UI detaches.
+     * {@link BrowserlessApplicationContext}, which is torn down when the window
+     * is closed.
      *
      * @param componentFactory
      *            supplies the component to attach; must not be {@code null}
@@ -463,6 +482,24 @@ public class BrowserlessUIContext
     }
 
     /**
+     * Gets the JavaScript sent to the browser of this window since the UI was
+     * created, including what the first view sent while it was navigated to.
+     * Each UI has its own capture: after {@link #reload()}, or in a new window,
+     * this returns the capture of the new UI, which starts empty. Like any
+     * {@link ExecutedJavaScript}, querying it sends whatever is still pending
+     * first. To look at the JavaScript of a single step, start a separate
+     * capture with {@link ExecutedJavaScript#capture(UI)} before it. This
+     * capture runs for as long as the UI lives and is read-only: it cannot be
+     * stopped.
+     *
+     * @return the JavaScript sent to the browser of the UI, not null
+     */
+    public ExecutedJavaScript getExecutedJavaScript() {
+        activate();
+        return BrowserlessDSL.getExecutedJavaScript(getUI());
+    }
+
+    /**
      * Gets the current view displayed in this window.
      *
      * @return the current view
@@ -506,7 +543,16 @@ public class BrowserlessUIContext
     }
 
     /**
-     * Simulates a server round-trip, flushing pending component changes.
+     * Simulates a server round-trip: runs the tasks queued with
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
+     * pending component changes, as a real client response would. Dialogs that
+     * are no longer opened are removed from the UI, as after a lookup.
+     * <p>
+     * Only tasks that are already queued are run, so a test of a background
+     * thread must first wait for that thread to call {@code access()}. If a
+     * queued task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}.
      */
     public void roundTrip() {
         activate();
@@ -645,6 +691,11 @@ public class BrowserlessUIContext
         activate();
     }
 
+    @Override
+    public void activateTesterContext() {
+        activate();
+    }
+
     /**
      * Returns the UI managed by this context.
      *
@@ -671,10 +722,16 @@ public class BrowserlessUIContext
      */
     @Override
     public void close() {
+        user.getApp().runClose(this::closeNow);
+    }
+
+    private void closeNow() {
         if (closed) {
             return;
         }
+        user.getApp().checkNotRunningQueuedCommand();
         closed = true;
+        user.getApp().holdSessionLock(user);
         BrowserlessUIContext stillActive = activeContext.get();
         boolean wasActive = stillActive == this;
         if (wasActive) {
@@ -693,10 +750,9 @@ public class BrowserlessUIContext
             // (service/session/UI/request/response/security), not whatever
             // the thread happens to carry from another user's window.
             user.applyUIThreadLocals(ui);
-            // Detaching the UI fires its detach listeners. For an ad-hoc
-            // context (see BrowserlessApplicationContext.forComponent) this
-            // cascades back into app.close() -> user.close() -> this.close();
-            // re-entry is safe because the closed flag was already set above.
+            // Closing the UI runs its session's queued commands; run them
+            // first so that a failing one fails the close.
+            user.getApp().runQueuedCommands(user.getSession());
             MockVaadin.closeCurrentUI(true);
             // closeCurrentUI() records the closing UI's active view location
             // into MockVaadin's lastNavigation ThreadLocal so the single-user
@@ -714,9 +770,18 @@ public class BrowserlessUIContext
         // next activate() does not observe stale state from the closed
         // window.
         if (!wasActive && stillActive != null && !stillActive.closed) {
-            reactivateSurviving(stillActive);
+            reactivateSurviving(stillActive, user.getApp());
         } else {
             user.clearThreadLocals();
+            user.getApp().holdSessionLock(null);
+        }
+        // An ad-hoc context (see BrowserlessApplicationContext.forComponent)
+        // goes away with its window. Closed only now, after the UI has left
+        // its session: closing the app destroys that session, which must not
+        // happen while the UI is still being removed from it. Re-entry is
+        // safe because the closed flag was already set above.
+        if (user.getApp().closesWithWindow()) {
+            user.getApp().close();
         }
     }
 
@@ -734,11 +799,26 @@ public class BrowserlessUIContext
      * Clears the active-context ThreadLocal without otherwise touching the
      * thread-local Vaadin state. Reserved for defensive test cleanup; lifecycle
      * code paths should prefer
-     * {@link #reactivateSurviving(BrowserlessUIContext)} which both clears and
-     * re-installs the surviving window's state.
+     * {@link #reactivateSurviving(BrowserlessUIContext, BrowserlessApplicationContext)}
+     * which both clears and re-installs the surviving window's state.
      */
     static void clearActiveContext() {
         activeContext.remove();
+    }
+
+    /**
+     * Releases the session lock that the application context of the given
+     * outgoing window holds, if that is not this window's context. Each context
+     * hands over its own lock only, so without this a window of another context
+     * would keep its user's session locked while this one is active.
+     *
+     * @param previous
+     *            the window active until now, or {@code null}
+     */
+    private void releaseLockOfOtherContext(BrowserlessUIContext previous) {
+        if (previous != null && previous.user.getApp() != user.getApp()) {
+            previous.user.getApp().holdSessionLock(null);
+        }
     }
 
     /**
@@ -749,8 +829,23 @@ public class BrowserlessUIContext
      * snapshot. Used by lifecycle paths (constructor rollback, non-active
      * window close, cross-user session destroy) that temporarily displaced the
      * active window's thread-local state.
+     * <p>
+     * Re-activating the window hands the session lock over only in its own
+     * application context. If the displacing path ran in another one, that
+     * context's lock is released first, so it does not keep the displacing
+     * user's session locked.
+     *
+     * @param stillActive
+     *            the surviving window to re-activate
+     * @param displacedBy
+     *            the application context of the window or user whose lifecycle
+     *            step displaced the active window's state
      */
-    static void reactivateSurviving(BrowserlessUIContext stillActive) {
+    static void reactivateSurviving(BrowserlessUIContext stillActive,
+            BrowserlessApplicationContext displacedBy) {
+        if (stillActive.user.getApp() != displacedBy) {
+            displacedBy.holdSessionLock(null);
+        }
         activeContext.remove();
         stillActive.activate();
     }

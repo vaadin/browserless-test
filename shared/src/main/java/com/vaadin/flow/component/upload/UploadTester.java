@@ -74,9 +74,10 @@ import com.vaadin.flow.server.streams.UploadHandler;
  * <p>
  * Accepted files are uploaded right away unless
  * {@link Upload#setAutoUpload(boolean) auto upload} is turned off, in which
- * case they wait in the file list, {@link UploadStatus#PENDING}, until the test
- * starts them with {@link #startUpload(String)}, as the user would with the
- * start button of the entry.
+ * case they wait in the file list,
+ * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#PENDING},
+ * until the test starts them with {@link #startUpload(String)}, as the user
+ * would with the start button of the entry.
  * <p>
  * As in the browser, the same file, or another file with the same name, can be
  * uploaded more than once: every upload adds an entry of its own to the file
@@ -101,11 +102,11 @@ import com.vaadin.flow.server.streams.UploadHandler;
 public class UploadTester<T extends Upload> extends ComponentTester<T> {
 
     /**
-     * Expression executed by {@link Upload#clearFileList()}. Clearing the file
-     * list has no server side state, so the emulated file list is synchronized
-     * by observing the pending JavaScript invocations.
+     * Method of {@link UploadJs} that {@link Upload#clearFileList()} calls.
+     * Clearing the file list has no server side state, so the emulated file
+     * list is synchronized by observing the pending JavaScript invocations.
      */
-    private static final String CLEAR_FILE_LIST_EXPRESSION = "this.files = [];";
+    private static final String CLEAR_FILE_LIST_METHOD = "clearFileList";
 
     private static final String STATE_KEY = UploadTester.class.getName()
             + ".state";
@@ -142,7 +143,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            content type of the file to upload
      * @param contents
      *            file contents as an array of bytes
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -169,7 +170,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            content type of the file to upload
      * @param contents
      *            file contents as an array of bytes
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -193,7 +194,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param file
      *            the file to upload
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload component fails to handle file contents
      * @throws IllegalStateException
      *             if the component is not usable
@@ -403,7 +404,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param fileName
      *            name of the file to start, as given when it was added
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no such file waits in the file list
@@ -432,7 +433,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *
      * @param file
      *            the file to start
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if no such file waits in the file list
@@ -453,7 +454,7 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      *            the position of the file in the list, in the order
      *            {@link #getFiles()} returns them: the most recently added file
      *            first
-     * @throws UncheckedIOException
+     * @throws java.io.UncheckedIOException
      *             if the upload handler fails to handle the file contents
      * @throws IllegalArgumentException
      *             if there is no file at the position, or it does not wait to
@@ -475,12 +476,16 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * Gets the files the upload file list shows, in the order the browser shows
      * them: the most recently added file first.
      * <p>
-     * A file is {@link UploadStatus#UPLOADED} once the upload handler or
-     * receiver has consumed it, {@link UploadStatus#FAILED} or
-     * {@link UploadStatus#REJECTED} when its transfer failed or the server
-     * refused it, and {@link UploadStatus#PENDING} while it waits to be started
-     * because auto upload is turned off. Files the client-side constraints
-     * refused never enter the list.
+     * A file is
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#UPLOADED}
+     * once the upload handler or receiver has consumed it,
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#FAILED}
+     * or
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#REJECTED}
+     * when its transfer failed or the server refused it, and
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#PENDING}
+     * while it waits to be started because auto upload is turned off. Files the
+     * client-side constraints refused never enter the list.
      *
      * @return the files in the upload file list
      */
@@ -497,13 +502,16 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
      * the outcome the same way a user reads the upload file list in the
      * browser.
      * <p>
-     * Files are reported as {@link UploadStatus#UPLOADED} once the upload
-     * handler or receiver has consumed them, and as
-     * {@link UploadStatus#REJECTED} both when the client-side gate refused them
-     * and when Flow's server-side accepted type validation did, in which case
-     * neither shows up as a thrown exception. A file waiting for
-     * {@link #startUpload(String)} because auto upload is turned off is
-     * {@link UploadStatus#PENDING}; once started, the last upload is that file.
+     * Files are reported as
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#UPLOADED}
+     * once the upload handler or receiver has consumed them, and as
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#REJECTED}
+     * both when the client-side gate refused them and when Flow's server-side
+     * accepted type validation did, in which case neither shows up as a thrown
+     * exception. A file waiting for {@link #startUpload(String)} because auto
+     * upload is turned off is
+     * {@link com.vaadin.flow.component.upload.UploadTester.UploadStatus#PENDING};
+     * once started, the last upload is that file.
      *
      * @return the outcome of the last simulated upload, one entry per file, or
      *         an empty list if no upload has been simulated yet
@@ -830,8 +838,8 @@ public class UploadTester<T extends Upload> extends ComponentTester<T> {
     private UploadState syncedState() {
         UploadState state = state();
         if (state.clearFileListCalls.hasNewInvocations(getComponent(),
-                invocation -> invocation.getExpression()
-                        .contains(CLEAR_FILE_LIST_EXPRESSION))) {
+                call -> call.definitionType() == UploadJs.class
+                        && CLEAR_FILE_LIST_METHOD.equals(call.methodName()))) {
             state.files.clear();
         }
         return state;

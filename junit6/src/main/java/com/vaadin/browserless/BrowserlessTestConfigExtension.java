@@ -41,6 +41,12 @@ import org.junit.platform.commons.support.HierarchyTraversalMode;
 public class BrowserlessTestConfigExtension
         implements BeforeEachCallback, AfterEachCallback {
 
+    /**
+     * Creates a new extension. Instantiated by JUnit.
+     */
+    public BrowserlessTestConfigExtension() {
+    }
+
     @Override
     public void beforeEach(ExtensionContext context) {
         browserlessTest(context).ifPresent(test -> test

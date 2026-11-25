@@ -8,7 +8,7 @@ several of these rules lives in `guidelines/` — see
 ## Vaadin Version Coupling
 
 One Browserless Test version targets exactly one Vaadin version — the branch's
-`flow.version` / `vaadin.version` in the root `pom.xml`, mapped per branch in
+`flow.version` / `flow-components.version` in the root `pom.xml`, mapped per branch in
 [`guidelines/flow-version.md`](guidelines/flow-version.md). Do not write code
 that keeps working against an older release. No reflective fallbacks, no
 `Class.forName` probes, no "if this method exists" branches, no deprecation
@@ -65,6 +65,48 @@ the parent chain — a component inside a hidden parent is not usable.
 
 See [`guidelines/testers.md`](guidelines/testers.md).
 
+## Naming
+
+Every method name contains a verb that says what the method does. A name that
+is only a noun or a category — `header(…)`, `names(…)`, `report(…)` — leaves
+the reader to open the method; `writeHeader(…)`, `collectNames(…)`,
+`warnAboutMissingFiles(…)` say what happens. This holds for the mocks, the
+internal helpers and the Kotlin layer as much as for tester API.
+
+Three families take their names from elsewhere and keep them:
+
+- a tester's read-only accessor uses the component's own vocabulary
+  (`getText()`, `size()`);
+- a fluent chain reads as one sentence — query and locator filters and
+  terminals (`withText(…)`, `withoutTheme(…)`, `all()`, `first()`,
+  `single()`, `component()`), builder and extension options
+  (`withFeatureFlags(…)`, `withApplicationProperty(…)`) and modifier toggles
+  (`MetaKeys.ctrl()`);
+- a static factory follows the Java naming for factories: `new…` for a new
+  instance (`newUser()`, `newWindow()`), `of(…)`, `from(…)`, `for…(…)`,
+  `builder()`, `empty()`.
+
+New methods in these families follow the existing ones rather than adding a
+verb. Existing names outside them are not renamed just for this rule; a
+rename of published API follows the Public API section.
+
+Name a type after what it is, not after what the code around it does with it.
+
+Name a boolean property after its positive state — `isEnabled()`, not
+`isDisabled()` — so that a negated check never reads as a double negative.
+This wins over the component's vocabulary: a field tester exposes `isValid()`
+even though the component's own accessor is `isInvalid()`.
+
+Do not expose two names for the same value — a record component and a `get…`
+method beside it returning the same thing is one accessor too many.
+
+A second way to do what an existing method already does is an overload of that
+method, not a new name. An overload is found by everyone who already calls the
+method, while a separate name has to be discovered on its own. Spell out the
+difference between the overloads in the Javadoc of both.
+
+See [`guidelines/design.md`](guidelines/design.md).
+
 ## Tester API
 
 One tester per component, named `<Component>Tester`, in the same package as the
@@ -76,7 +118,7 @@ one entry.
 Name a tester method after the user action, not after the component's setter:
 `click()`, `selectItem(...)`, `clickClearButton()`, `expand(...)`. A method
 that only reads state keeps the component's own name (`getText()`,
-`isValid()`).
+`isOpened()`).
 
 Keep helper methods for tester authors `protected`, not `public`. Every public
 method of a tester is delegated onto the generated locator, so a public helper
@@ -113,7 +155,7 @@ and session lifecycle events through the `VaadinService` event bus, and forward
 `Instantiator` calls to the real instantiator instead of reimplementing them.
 
 New code in `shared` is written in Java. The Kotlin sources under
-`shared/src/main/kotlin` are the older mock and internal layer and are being
+`shared/src/main/kotlin` are the older mock layer and Grid helpers and are being
 ported to Java; do not add new Kotlin files there.
 
 See [`guidelines/architecture.md`](guidelines/architecture.md).
@@ -123,6 +165,12 @@ See [`guidelines/architecture.md`](guidelines/architecture.md).
 `shared`, `junit6`, `spring` and `quarkus` are published artifacts, so their
 public and protected members are API that applications compile against. The
 `locator-processor` options are an internal contract and can be broken freely.
+
+The framework tests Flow and the components; it does not extend their API. Do
+not declare Kotlin extension functions or properties on Flow or component
+types, and do not add a helper that duplicates what Flow or the component
+already offers — call the Flow method instead. A helper the framework does
+need takes the component as a parameter.
 
 Prefer an existing precedent over a new shape. There is already a pattern for
 value testers, for selection testers, for the context hierarchy
@@ -187,7 +235,7 @@ See [`guidelines/testing.md`](guidelines/testing.md).
 ## Code Style
 
 Run `mvn spotless:apply` before every commit. The `Format Check` CI job fails
-on unformatted code; commenting `/format` on a pull request applies it for you.
+on unformatted code and the changes it needs are suggested on the pull request.
 
 No wildcard imports — Spotless rejects them.
 
