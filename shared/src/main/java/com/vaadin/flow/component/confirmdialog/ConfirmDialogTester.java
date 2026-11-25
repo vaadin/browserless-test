@@ -15,8 +15,6 @@
  */
 package com.vaadin.flow.component.confirmdialog;
 
-import java.util.NoSuchElementException;
-
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.ComponentUtil;
@@ -39,6 +37,9 @@ public class ConfirmDialogTester extends ComponentTester<ConfirmDialog> {
         super(component);
     }
 
+    /**
+     * Opens the dialog, as clicking the component that owns it would.
+     */
     public void open() {
         getComponent().open();
         roundTrip();
@@ -111,7 +112,7 @@ public class ConfirmDialogTester extends ComponentTester<ConfirmDialog> {
      * Get the header element set to the confirm dialog.
      *
      * @return header element
-     * @throws NoSuchElementException
+     * @throws java.util.NoSuchElementException
      *             if no header element found
      */
     public Element getHeaderElement() {

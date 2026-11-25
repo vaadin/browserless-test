@@ -28,11 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import kotlin.ranges.IntRange;
-
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.internal.ReflectTools;
 import com.vaadin.flow.router.HasErrorParameter;
@@ -112,17 +111,6 @@ public final class Utils {
      */
     public static <T extends Serializable> T serializeDeserialize(T obj) {
         return deserialize(serializeToBytes(obj));
-    }
-
-    /**
-     * Returns the number of items in given range, or 0 if the range is empty.
-     *
-     * @param range
-     *            the range, not null.
-     * @return the size of the range.
-     */
-    public static int getSize(IntRange range) {
-        return Math.max(range.getEndInclusive() + 1 - range.getStart(), 0);
     }
 
     /**
@@ -430,6 +418,15 @@ public final class Utils {
             throw new ClassNotFoundException(className);
         }
         return clazz;
+    }
+
+    /**
+     * Checks whether given component is a {@code PolymerTemplate}.
+     */
+    static boolean isPolymerTemplate(Component component) {
+        Class<?> polymerTemplateClass = getPolymerTemplateClass();
+        return polymerTemplateClass != null
+                && polymerTemplateClass.isAssignableFrom(component.getClass());
     }
 
     /**

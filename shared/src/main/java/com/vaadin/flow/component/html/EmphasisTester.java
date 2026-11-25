@@ -18,6 +18,8 @@ package com.vaadin.flow.component.html;
 import com.vaadin.browserless.Tests;
 
 /**
+ * Tester for Emphasis components.
+ *
  * @since 1.0
  */
 @Tests(Emphasis.class)

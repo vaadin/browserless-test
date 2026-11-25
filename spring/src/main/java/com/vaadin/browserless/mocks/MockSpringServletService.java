@@ -15,12 +15,10 @@
  */
 package com.vaadin.browserless.mocks;
 
-import kotlin.jvm.functions.Function0;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationContext;
 
 import com.vaadin.browserless.internal.UIFactory;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinSession;
@@ -45,29 +43,7 @@ public class MockSpringServletService extends SpringVaadinServletService {
     /**
      * Creates the UI for every new session.
      */
-    @NotNull
-    private final UIFactory uiFactory;
-
-    /**
-     * Creates a new mocked Spring servlet service.
-     *
-     * @param servlet
-     *            the mocked servlet the service belongs to
-     * @param deploymentConfiguration
-     *            the deployment configuration of the servlet
-     * @param ctx
-     *            the Spring application context
-     * @param uiFactory
-     *            creates the UI for every new session
-     * @deprecated use the constructor taking a {@link UIFactory} instead
-     */
-    @Deprecated(forRemoval = true)
-    public MockSpringServletService(@NotNull MockSpringServlet servlet,
-            @NotNull DeploymentConfiguration deploymentConfiguration,
-            @NotNull ApplicationContext ctx, @NotNull Function0<UI> uiFactory) {
-        super(servlet, deploymentConfiguration, ctx);
-        this.uiFactory = uiFactory::invoke;
-    }
+    private final @NonNull UIFactory uiFactory;
 
     /**
      * Creates a new mocked Spring servlet service.
@@ -81,9 +57,9 @@ public class MockSpringServletService extends SpringVaadinServletService {
      * @param uiFactory
      *            creates the UI for every new session
      */
-    public MockSpringServletService(@NotNull MockSpringServlet servlet,
-            @NotNull DeploymentConfiguration deploymentConfiguration,
-            @NotNull ApplicationContext ctx, @NotNull UIFactory uiFactory) {
+    public MockSpringServletService(@NonNull MockSpringServlet servlet,
+            @NonNull DeploymentConfiguration deploymentConfiguration,
+            @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
         super(servlet, deploymentConfiguration, ctx);
         this.uiFactory = uiFactory;
     }

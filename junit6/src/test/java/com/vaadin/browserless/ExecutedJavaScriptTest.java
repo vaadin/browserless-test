@@ -15,14 +15,16 @@
  */
 package com.vaadin.browserless;
 
-import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Focusable;
@@ -32,17 +34,30 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.internal.UIInternals;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.dom.DisabledUpdateMode;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.function.SerializableConsumer;
+import com.vaadin.flow.internal.JacksonUtils;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelMap;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinition;
 import com.vaadin.flow.js.JsExpression;
+import com.vaadin.flow.js.JsInvokers;
+import com.vaadin.flow.js.JsSnippets;
 
 class ExecutedJavaScriptTest extends BrowserlessTest {
 
     @JsDefinition
-    public interface OtherFocusJs extends Serializable {
+    public interface OtherFocusJs extends JsInvokers {
         @JsExpression("this.focus()")
         void focus();
+
+        @JsExpression("this.focus({preventScroll: $0})")
+        void focus(boolean preventScroll);
+
+        @JsExpression("this.scrollIntoView()")
+        void scrollIntoView();
     }
 
     private Div calendar;
@@ -300,31 +315,230 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void expressionAndParameters_ofElementAndPageJavaScript() {
+    void clear_forgetsWhatWasCaptured_andKeepsCapturingWhatIsAnsweredAfterwards() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("return this.view").then(String.class,
+                view -> calendar.getElement().callJsFunction("render", view));
+        calendar.getElement().callJsFunction("refresh");
+
+        ExecutedJavaScript.Execution viewRequest = executed.getAll().get(0);
+        calendar.getElement().callJsFunction("highlight");
+        executed.clear();
+        viewRequest.resolve("week");
+
+        Assertions.assertEquals(List.of("highlight", "render"),
+                functionNames(executed));
+        Assertions.assertEquals(List.of(List.of("week")),
+                executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
+    void getAllForElement_keepsOnlyItsJavaScript_withExpressionAndParameters() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.render($0)", 5);
+        field.getElement().executeJs("this.select()");
         UI.getCurrent().getPage().executeJs("window.render($0)", "week");
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
 
-        ExecutedJavaScript.Execution onElement = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(calendar.getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onCalendar = executed
+                .getAll(calendar);
+        Assertions.assertEquals(2, onCalendar.size(), onCalendar.toString());
+        Assertions.assertEquals(OtherFocusJs.class,
+                onCalendar.get(1).getJsCall().orElseThrow().definitionType());
+        Assertions.assertEquals(onCalendar,
+                executed.getAll(calendar.getElement()));
+
+        ExecutedJavaScript.Execution onElement = onCalendar.get(0);
         Assertions.assertTrue(
                 onElement.getExpression().contains("this.render($0)"),
                 onElement.getExpression());
         Assertions.assertEquals(List.of(5, calendar.getElement()),
                 onElement.getParameters());
 
-        ExecutedJavaScript.Execution onPage = executed.getAll().stream()
-                .filter(execution -> execution.getElement()
-                        .equals(UI.getCurrent().getElement()))
-                .findFirst().orElseThrow();
+        List<ExecutedJavaScript.Execution> onUI = executed
+                .getAll(UI.getCurrent());
+        Assertions.assertEquals(1, onUI.size(), onUI.toString());
+        ExecutedJavaScript.Execution onPage = onUI.get(0);
         Assertions.assertEquals("window.render($0)", onPage.getExpression());
         Assertions.assertEquals(List.of("week"), onPage.getParameters());
+    }
+
+    @Test
+    void invokeReturnChannel_runsTheChannelHandler_andSendsWhatItSchedules() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration channel = registerChannel(calendar,
+                arguments -> {
+                    received.add(arguments.toString());
+                    calendar.getElement().callJsFunction("render");
+                });
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("this.listen($0, $1)", "change",
+                channel);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        // Records what the client gets without sending anything itself, as
+        // querying the capture would
+        List<List<Object>> sent = new ArrayList<>();
+        JavaScriptDispatcher.forUI(UI.getCurrent())
+                .addHandler(invocation -> sent
+                        .add(invocation.getInvocation().getParameters()));
+
+        execution.invokeReturnChannel("week", 7);
+        Assertions.assertEquals(1, sent.size(),
+                "JavaScript the handler schedules should be sent right away");
+        Assertions.assertTrue(sent.get(0).contains("render"), sent.toString());
+        execution.invokeReturnChannel(
+                JacksonUtils.createObjectNode().put("a", 1));
+        execution.invokeReturnChannel((Object) null);
+        execution.invokeReturnChannel((Object[]) null);
+
+        Assertions.assertEquals(
+                List.of("[\"week\",7]", "[{\"a\":1}]", "[null]", "[null]"),
+                received);
+        Assertions.assertEquals(
+                List.of(List.of(), List.of(), List.of(), List.of()),
+                executed.getFunctionCalls(calendar, "render"));
+    }
+
+    @Test
+    void invokeReturnChannel_withSeveralChannels_picksOneByParameterIndex() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration first = registerChannel(calendar,
+                arguments -> received.add("first"));
+        ReturnChannelRegistration second = registerChannel(calendar,
+                arguments -> received.add("second"));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs("this.listen($0, $1)", first, second);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> execution.invokeReturnChannel("x"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(2, "x"),
+                "Parameter 2 is the element, not a channel");
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(3, "x"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> execution.invokeReturnChannelAt(-1, "x"));
+        calendar.getElement().executeJs("this.listen($0)", "change");
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> executed.getAll().get(1).invokeReturnChannel("x"),
+                "Nothing to invoke without a channel");
+        execution.invokeReturnChannelAt(1);
+
+        Assertions.assertEquals(List.of("second"), received);
+    }
+
+    @Test
+    void invokeReturnChannel_whenFlowWouldIgnoreTheMessage_throws() {
+        List<String> received = new ArrayList<>();
+        ReturnChannelRegistration channel = registerChannel(button,
+                arguments -> received.add(arguments.toString()));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        button.getElement().executeJs("this.listen($0)", channel);
+        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+
+        // As in Flow, a registered channel reaches an element behind a modal
+        Div dialog = new Div();
+        UI.getCurrent().add(dialog);
+        test(dialog).setModal(true);
+        Assertions.assertTrue(button.getElement().getNode().isInert());
+        execution.invokeReturnChannel("inert");
+        UI.getCurrent().remove(dialog);
+
+        button.setEnabled(false);
+        assertRefused("is disabled",
+                () -> execution.invokeReturnChannel("disabled"));
+        channel.setDisabledUpdateMode(DisabledUpdateMode.ALWAYS);
+        execution.invokeReturnChannel("always");
+
+        button.setVisible(false);
+        assertRefused("is not visible",
+                () -> execution.invokeReturnChannel("hidden"));
+        button.setVisible(true);
+
+        channel.remove();
+        assertRefused("has been removed",
+                () -> execution.invokeReturnChannel("removed"));
+
+        button.setEnabled(true);
+        ReturnChannelRegistration other = registerChannel(button,
+                arguments -> received.add(arguments.toString()));
+        button.getElement().executeJs("this.listen($0)", other);
+        ExecutedJavaScript.Execution later = executed.getAll().get(1);
+        button.getElement().removeFromParent();
+        assertRefused("is not attached",
+                () -> later.invokeReturnChannel("detached"));
+
+        Assertions.assertEquals(List.of("[\"inert\"]", "[\"always\"]"),
+                received);
+    }
+
+    private static void assertRefused(String reason, Executable invocation) {
+        String message = Assertions
+                .assertThrows(IllegalStateException.class, invocation)
+                .getMessage();
+        Assertions.assertTrue(message.endsWith(reason), message);
+    }
+
+    private static ReturnChannelRegistration registerChannel(
+            Component component, SerializableConsumer<ArrayNode> handler) {
+        return component.getElement().getNode()
+                .getFeature(ReturnChannelMap.class).registerChannel(handler);
     }
 
     private static List<Object> functionNames(ExecutedJavaScript executed) {
         return executed.getAll().stream().map(execution -> execution.getJsCall()
                 .orElseThrow().arguments().get(0)).toList();
+    }
+
+    @Test
+    void getCallsByMethod_matchesTheCalledMethodByName_ignoringArguments() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus();
+        calendar.getElement().executeJs(OtherFocusJs.class).scrollIntoView();
+        calendar.getElement().executeJs(OtherFocusJs.class).focus(true);
+
+        List<JsCall> focusCalls = List.of(
+                new JsCall(OtherFocusJs.class, "focus", List.of()),
+                new JsCall(OtherFocusJs.class, "focus", List.of(true)));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, OtherFocusJs::focus));
+        Assertions.assertEquals(focusCalls,
+                executed.getCalls(OtherFocusJs.class, js -> js.focus(false)));
+        Assertions.assertEquals(
+                List.of(new JsCall(OtherFocusJs.class, "scrollIntoView",
+                        List.of())),
+                executed.getCalls(OtherFocusJs.class,
+                        OtherFocusJs::scrollIntoView));
+    }
+
+    @Test
+    void getCallsByMethod_refusesAnythingButOneCallOfADefinition() {
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+
+        IllegalArgumentException none = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                }));
+        Assertions.assertTrue(none.getMessage().contains("exactly one method")
+                && none.getMessage().endsWith("[]"), none.getMessage());
+        IllegalArgumentException two = Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> executed.getCalls(OtherFocusJs.class, js -> {
+                    js.focus();
+                    js.scrollIntoView();
+                }));
+        Assertions.assertTrue(
+                two.getMessage().endsWith("[focus, scrollIntoView]"),
+                two.getMessage());
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> executed.getCalls(AmbiguousJs.class, AmbiguousJs::focus));
+    }
+
+    // Not a valid definition: it is both invokers and snippets
+    @JsDefinition
+    public interface AmbiguousJs extends JsInvokers, JsSnippets {
+        @JsExpression("this.focus()")
+        void focus();
     }
 }

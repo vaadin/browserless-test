@@ -17,7 +17,6 @@ package com.vaadin.browserless.internal;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,9 +24,6 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.contextmenu.MenuItemBase;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.menubar.MenuBar;
 
 /**
  * If you need to hook into the testing lifecycle (e.g. you need to wait for any
@@ -55,9 +51,10 @@ import com.vaadin.flow.component.menubar.MenuBar;
 public interface TestingLifecycleHook {
 
     /**
-     * Provides the default lifecycle hook.
+     * A hook that does nothing beyond the default implementations below.
      */
-    Companion Companion = new Companion();
+    TestingLifecycleHook DEFAULT = new TestingLifecycleHook() {
+    };
 
     /**
      * Invoked before every component lookup. You can e.g. wait for any async
@@ -80,15 +77,13 @@ public interface TestingLifecycleHook {
     }
 
     /**
-     * Provides all children of given component. Provides workarounds for
-     * certain components:
-     * <ul>
-     * <li>For {@link Grid} the function will also return the header and footer
-     * cell components of all of its columns, plus the column editor
-     * components.</li>
-     * <li>For {@link MenuItemBase} the function returns all items of a
-     * sub-menu.</li>
-     * </ul>
+     * Provides all children of given component. The default implementation
+     * returns the children provided by the first registered
+     * {@link ComponentSupport} that knows the component (for example the
+     * header, footer and editor components of a {@code Grid}, or the items of a
+     * sub-menu). Otherwise it returns the component's own children together
+     * with its element-tree children, including virtual ones; for templates and
+     * {@code Composite} only the component's own children are returned.
      *
      * @param component
      *            the component whose children to return.
@@ -105,39 +100,9 @@ public interface TestingLifecycleHook {
     }
 
     private static List<Component> defaultGetAllChildren(Component component) {
-        if (component instanceof Grid<?> grid) {
-            // Header/footer components live as virtual children of the Column
-            // (or ColumnGroup) they belong to, and both of those branches drop
-            // virtual children on purpose: a component in a merged cell is a
-            // virtual child of every column it spans and would otherwise show
-            // up more than once. Collect them here instead, once per Grid.
-            // see https://github.com/mvysny/karibu-testing/issues/52
-            List<Component> result = new ArrayList<>();
-            grid.getHeaderRows().stream()
-                    .flatMap(row -> row.getCells().stream()
-                            .map(cell -> cell.getComponent()))
-                    .filter(Objects::nonNull).forEach(result::add);
-            grid.getFooterRows().stream()
-                    .flatMap(row -> row.getCells().stream()
-                            .map(cell -> cell.getComponent()))
-                    .filter(Objects::nonNull).forEach(result::add);
-            grid.getColumns().stream()
-                    .map(column -> column.getEditorComponent())
-                    .filter(Objects::nonNull).forEach(result::add);
-            component.getChildren().forEach(result::add);
-            ComponentUtil.getAllChildren(component).forEach(result::add);
-            return distinct(result.stream());
-        }
-        if (component instanceof MenuItemBase<?, ?, ?> menuItem) {
-            // also include component.children:
-            // https://github.com/mvysny/karibu-testing/issues/76
-            return distinct(Stream.concat(component.getChildren(),
-                    menuItem.getSubMenu().getItems().stream()));
-        }
-        if (component instanceof MenuBar) {
-            // don't include virtual children since that would make the
-            // MenuItems appear two times.
-            return toList(component.getChildren());
+        List<Component> supported = ComponentUtils.getAllChildren(component);
+        if (supported != null) {
+            return supported;
         }
         if (TestingLifecycleHooks.isTemplate(component)) {
             // don't include virtual children since those will include nested
@@ -148,17 +113,6 @@ public interface TestingLifecycleHook {
             // properties would only be confusing. Therefore, let's leave the
             // virtual children out for now. See
             // https://github.com/mvysny/karibu-testing/tree/master/karibu-testing-v10#polymer-templates--lit-templates
-            return toList(component.getChildren());
-        }
-        if (component.getClass().getName()
-                .equals("com.vaadin.flow.component.grid.ColumnGroup")) {
-            // don't include virtual children since that would include the
-            // header/footer components, which the Grid branch already reports
-            return toList(component.getChildren());
-        }
-        if (component instanceof Grid.Column<?>) {
-            // don't include virtual children since that would include the
-            // header/footer components, which the Grid branch already reports
             return toList(component.getChildren());
         }
         if (component instanceof Composite<?>) {
@@ -190,71 +144,5 @@ public interface TestingLifecycleHook {
     private static List<Component> distinct(
             Stream<? extends Component> stream) {
         return toList(stream.distinct());
-    }
-
-    /**
-     * Provides the default lifecycle hook.
-     */
-    final class Companion {
-
-        private Companion() {
-        }
-
-        /**
-         * A default lifecycle hook that simply runs default implementations of
-         * the hook functions.
-         *
-         * @return a new default lifecycle hook.
-         */
-        public TestingLifecycleHook getDefault() {
-            return new TestingLifecycleHook() {
-            };
-        }
-    }
-
-    /**
-     * Static entry points to the default implementations, kept for binary
-     * compatibility with implementations compiled from Kotlin.
-     */
-    final class DefaultImpls {
-
-        private DefaultImpls() {
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#awaitBeforeLookup()}.
-         *
-         * @param hook
-         *            the hook.
-         */
-        public static void awaitBeforeLookup(TestingLifecycleHook hook) {
-            defaultAwaitBeforeLookup();
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#awaitAfterLookup()}.
-         *
-         * @param hook
-         *            the hook.
-         */
-        public static void awaitAfterLookup(TestingLifecycleHook hook) {
-        }
-
-        /**
-         * Runs the default implementation of
-         * {@link TestingLifecycleHook#getAllChildren(Component)}.
-         *
-         * @param hook
-         *            the hook.
-         * @param component
-         *            the component whose children to return.
-         * @return the children of the component.
-         */
-        public static List<Component> getAllChildren(TestingLifecycleHook hook,
-                Component component) {
-            return defaultGetAllChildren(component);
-        }
     }
 }

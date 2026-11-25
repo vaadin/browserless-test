@@ -751,8 +751,15 @@ test(save).click();
 
 assertEquals(List.of(List.of("week", 7)),
         executed.getFunctionCalls(calendar, "setOptions"));
-assertEquals(1, executed.getCalls(Focusable.FocusJs.class, "focus").size());
+assertEquals(1, executed.getCalls(Focusable.FocusJs.class,
+        js -> js.focus(null)).size());
 ```
+
+`getCalls` names the method of the definition by calling it, so renaming the
+method updates the test and a typo does not compile. Arguments of a method
+with parameters are ignored, so any value will do. A method without
+parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
+`getCalls(definitionType, methodName)` overload takes the name as a string.
 
 `getAll()` lists everything that was sent, in order, with the element it ran
 on and, for a call of a JavaScript definition, the call itself (`getJsCall()`),
@@ -760,13 +767,42 @@ which is what to check for such calls. The expression and parameters are in
 the form Flow sends them: a string run on an element with `executeJs` is
 wrapped so that it runs with the element as `this`, so check it with
 `contains(...)`, and the element is added as its last parameter.
+`getAll(component)` and `getAll(element)` keep only what was run on that
+element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
 
-A capture holds everything sent after it started; JavaScript still pending
-when it starts is sent first and is left out. Querying sends
-whatever is still pending first and does not consume anything, so a capture can
-be queried any number of times, and several captures of the same UI each see
+Each UI also has a capture of its own, started when the UI is created, so
+it holds everything that UI was sent, including what the first view sent
+while it was navigated to. A capture started in the test would come too late
+for that. Get it with `getExecutedJavaScript()` from the test class or from a
+window context (`BrowserlessUIContext`):
+
+```java
+navigate(ReportView.class);
+
+assertEquals(List.of(), getExecutedJavaScript().getCalls(PrintJs.class, "print"));
+```
+
+After `reload()`, or in another window, `getExecutedJavaScript()` returns the
+capture of that UI, which starts empty, as a new page in a browser does. To
+check a single step, start a capture of your own just before it.
+
+A capture holds everything sent after it started or was last cleared;
+JavaScript still pending when it starts is sent first and is left out. Querying
+sends whatever is still pending first and does not consume anything, so a
+capture can be queried any number of times, and several captures of the same UI each see
 every call sent while they are active. Use `capture(ui)` for a UI other than
 the current one.
+
+A test that plays the browser step by step can call `clear()` on a capture of
+its own after reading a step, so that the next query only sees what is sent
+afterwards. The capture from `getExecutedJavaScript()` is shared and cannot be
+cleared. JavaScript still pending is not sent by `clear()`, so nothing
+scheduled just before is lost:
+
+```java
+List<List<Object>> pages = executed.getFunctionCalls(viewer, "scrollToPage");
+executed.clear();
+```
 
 JavaScript whose result the application waits for, with `then(...)` or
 `toCompletableFuture(...)`, can be answered the way the browser would:
@@ -779,6 +815,42 @@ ExecutedJavaScript.Execution execution = executed.getAll().getLast();
 execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
+
+A return channel passed to the JavaScript, such as a
+`ReturnChannelRegistration` given to `executeJs(...)`, can be called the way
+the JavaScript would call it in the browser:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.listenToResize();                // calls executeJs("...", channel)
+
+executed.getAll().getLast().invokeReturnChannel(800, 600);
+```
+
+The call fails where Flow would ignore the message: when the channel was
+removed, or its element is detached, hidden, or disabled and the channel does
+not accept updates while disabled. `invokeReturnChannelAt(index, ...)` picks
+one channel by its parameter index when the JavaScript received several.
+
+When the browser calls the channel on its own as soon as the JavaScript runs,
+a [`JavaScriptHandler`](#answering-javascript-like-the-browser) can call it
+live, so the test does not have to:
+
+```java
+public class ClipboardAllowed implements JavaScriptHandler {
+    @Override
+    public void handle(ExecutedJavaScript.Execution execution) {
+        // executeJs("navigator.clipboard.writeText($0).then(() => $1(true))",
+        //         text, channel)
+        if (execution.getExpression().contains("navigator.clipboard.writeText")) {
+            execution.invokeReturnChannel(true);
+        }
+    }
+}
+```
+
+JavaScript that the channel's handler schedules is then sent at the next
+client boundary.
 
 ### Answering JavaScript like the browser
 
@@ -827,7 +899,8 @@ accumulate like lookup services.
 - JavaScript scheduled for an element that is not visible is not sent, as in a
   browser, and appears once the element becomes visible.
 - A capture runs until `stop()` is called or its UI is gone, and keeps what it
-  holds until then. JavaScript sent while no capture is active is not kept.
+  holds until then, unless it is cleared. The capture of a UI keeps everything the UI was sent for
+  as long as the UI lives.
 
 ## Clipboard
 

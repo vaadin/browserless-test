@@ -19,16 +19,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
-import kotlin.ranges.IntRange;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.router.InternalServerError;
 import com.vaadin.flow.router.Location;
 
@@ -99,6 +96,8 @@ public final class Locator {
      * Finds a VISIBLE component of given {@code clazz} which matches given
      * {@code block}. This component and all of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -111,16 +110,15 @@ public final class Locator {
      *             matches.
      */
     public static <T extends Component> T _get(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
+            Class<T> clazz, Consumer<SearchSpec<T>> block) {
         List<T> result = _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(1, 1));
-            block.invoke(spec);
-            if (!spec.getCount().equals(new IntRange(1, 1))) {
+            spec.setCount(CountRange.ONE);
+            block.accept(spec);
+            if (!spec.getCount().equals(CountRange.ONE)) {
                 throw new IllegalStateException(
                         "You're calling _get which is supposed to return exactly 1 component, yet you tried to specify the count of "
                                 + spec.getCount());
             }
-            return Unit.INSTANCE;
         });
         return clazz.cast(single(result));
     }
@@ -130,6 +128,8 @@ public final class Locator {
      * matches given {@code block}. The current UI and all of its descendants
      * are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component must be of this class.
      * @param block
@@ -140,7 +140,7 @@ public final class Locator {
      *             matches.
      */
     public static <T extends Component> T _get(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Consumer<SearchSpec<T>> block) {
         return _get(Utils.getCurrentUI(), clazz, block);
     }
 
@@ -148,6 +148,8 @@ public final class Locator {
      * Finds a list of VISIBLE components of given {@code clazz} which matches
      * {@code block}. This component and all of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -160,11 +162,11 @@ public final class Locator {
      *             expected count.
      */
     public static <T extends Component> List<T> _find(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
+            Class<T> clazz, Consumer<SearchSpec<T>> block) {
         SearchSpec<T> spec = new SearchSpec<>(clazz);
-        block.invoke(spec);
+        block.accept(spec);
         List<Component> result = find(receiver, spec.toPredicate());
-        IntRange count = spec.getCount();
+        CountRange count = spec.getCount();
         if (!count.contains(result.size())) {
             String path = getCurrentPath();
             String loc = path != null ? path : "?";
@@ -172,7 +174,7 @@ public final class Locator {
             String message;
             if (result.isEmpty()) {
                 message = "/" + loc + ": No visible " + clazz.getSimpleName();
-            } else if (result.size() < count.getFirst()) {
+            } else if (result.size() < count.getStart()) {
                 message = "/" + loc + ": Too few (" + result.size()
                         + ") visible " + clazz.getSimpleName() + "s";
             } else {
@@ -194,7 +196,7 @@ public final class Locator {
             boolean hasPolymerTemplates = false;
             if (Utils.hasPolymerTemplates()) {
                 for (Component c : _walkAll(receiver)) {
-                    if (ComponentUtils.isPolymerTemplate(c)) {
+                    if (Utils.isPolymerTemplate(c)) {
                         hasPolymerTemplates = true;
                         break;
                     }
@@ -225,6 +227,8 @@ public final class Locator {
      * {@code block}. The {@link UI#getCurrent()} and all of its descendants are
      * searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component must be of this class.
      * @param block
@@ -232,12 +236,12 @@ public final class Locator {
      * @return the list of matching components, may be empty.
      */
     public static <T extends Component> List<T> _find(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Consumer<SearchSpec<T>> block) {
         return _find(Utils.getCurrentUI(), clazz, block);
     }
 
     private static List<Component> find(Component receiver,
-            Function1<Component, Boolean> predicate) {
+            Predicate<Component> predicate) {
         TestingLifecycleHooks.getTestingLifecycleHook().awaitBeforeLookup();
         List<Component> descendants = new ArrayList<>();
         _walkAll(receiver).forEach(descendants::add);
@@ -252,7 +256,7 @@ public final class Locator {
         }
         List<Component> result = new ArrayList<>();
         for (Component c : descendants) {
-            if (BasicUtils.isEffectivelyVisible(c) && predicate.invoke(c)) {
+            if (BasicUtils.isEffectivelyVisible(c) && predicate.test(c)) {
                 result.add(c);
             }
         }
@@ -299,6 +303,8 @@ public final class Locator {
      * matches {@code block}. This component and all of its descendants are
      * searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -309,16 +315,15 @@ public final class Locator {
      *             if one or more components matched.
      */
     public static <T extends Component> void _expectNone(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
+            Class<T> clazz, Consumer<SearchSpec<T>> block) {
         List<T> result = _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(0, 0));
-            block.invoke(spec);
-            if (!spec.getCount().equals(new IntRange(0, 0))) {
+            spec.setCount(CountRange.exactly(0));
+            block.accept(spec);
+            if (!spec.getCount().equals(CountRange.exactly(0))) {
                 throw new IllegalStateException(
                         "You're calling _expectNone which expects 0 component, yet you tried to specify the count of "
                                 + spec.getCount());
             }
-            return Unit.INSTANCE;
         });
         // safety check that _find works as expected
         if (!result.isEmpty()) {
@@ -327,10 +332,26 @@ public final class Locator {
     }
 
     /**
-     * Expects that there are no dialogs shown.
+     * Expects that there are no dialogs shown. The dialog types come from the
+     * registered {@link ComponentSupport} implementations.
+     *
+     * @throws AssertionError
+     *             if a dialog is shown.
+     * @throws IllegalStateException
+     *             if no {@link ComponentSupport} reports any dialog type.
      */
     public static void _expectNoDialogs() {
-        _expectNone(Dialog.class, spec -> Unit.INSTANCE);
+        List<Class<? extends Component>> dialogTypes = ComponentUtils
+                .getDialogTypes();
+        if (dialogTypes.isEmpty()) {
+            throw new IllegalStateException(
+                    "No ComponentSupport reports any dialog types, so there "
+                            + "is nothing to check");
+        }
+        for (Class<? extends Component> dialogType : dialogTypes) {
+            _expectNone(dialogType, spec -> {
+            });
+        }
     }
 
     /**
@@ -338,6 +359,8 @@ public final class Locator {
      * {@code clazz} which matches {@code block}. The current UI and all of its
      * descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param block
@@ -346,7 +369,7 @@ public final class Locator {
      *             if one or more components matched.
      */
     public static <T extends Component> void _expectNone(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Consumer<SearchSpec<T>> block) {
         _expectNone(Utils.getCurrentUI(), clazz, block);
     }
 
@@ -355,6 +378,8 @@ public final class Locator {
      * {@code clazz} which matches {@code block}. This component and all of its
      * descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -365,7 +390,7 @@ public final class Locator {
      *             if none, or more than one components matched.
      */
     public static <T extends Component> void _expectOne(Component receiver,
-            Class<T> clazz, Function1<? super SearchSpec<T>, Unit> block) {
+            Class<T> clazz, Consumer<SearchSpec<T>> block) {
         // technically _expectOne is the same as _get, but the semantics differ
         // - with _get() we're "just" doing a lookup (and asserting on the
         // component later). _expectOne() explicitly declares in the test
@@ -379,6 +404,8 @@ public final class Locator {
      * given {@code clazz} which matches {@code block}. The current UI and all
      * of its descendants are searched.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param block
@@ -387,7 +414,7 @@ public final class Locator {
      *             if none, or more than one components matched.
      */
     public static <T extends Component> void _expectOne(Class<T> clazz,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Consumer<SearchSpec<T>> block) {
         _expectOne(Utils.getCurrentUI(), clazz, block);
     }
 
@@ -399,6 +426,8 @@ public final class Locator {
      * Special cases: for asserting one component use {@code _expectOne}. For
      * asserting no components use {@code _expectNone}.
      *
+     * @param <T>
+     *            the component type
      * @param receiver
      *            the component to search in.
      * @param clazz
@@ -411,17 +440,15 @@ public final class Locator {
      *             if incorrect count of component matched.
      */
     public static <T extends Component> void _expect(Component receiver,
-            Class<T> clazz, int count,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Class<T> clazz, int count, Consumer<SearchSpec<T>> block) {
         // technically _expect is the same as _find, but the semantics differ -
         // with _find() we're "just" doing a lookup (and asserting on the
         // components later). _expect() explicitly declares in the test sources
         // that we want to check that there are exactly x components that match
         // given spec.
         _find(receiver, clazz, spec -> {
-            spec.setCount(new IntRange(count, count));
-            block.invoke(spec);
-            return Unit.INSTANCE;
+            spec.setCount(CountRange.exactly(count));
+            block.accept(spec);
         });
     }
 
@@ -435,6 +462,8 @@ public final class Locator {
      * error message in case of a failure, and also communicate your intent as a
      * test writer better in the test code.
      *
+     * @param <T>
+     *            the component type
      * @param clazz
      *            the component class.
      * @param count
@@ -445,7 +474,7 @@ public final class Locator {
      *             if incorrect count of component matched.
      */
     public static <T extends Component> void _expect(Class<T> clazz, int count,
-            Function1<? super SearchSpec<T>, Unit> block) {
+            Consumer<SearchSpec<T>> block) {
         _expect(Utils.getCurrentUI(), clazz, count, block);
     }
 

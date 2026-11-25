@@ -23,20 +23,14 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
-import kotlin.Unit;
-import kotlin.jvm.functions.Function2;
-
-import com.vaadin.browserless.component.GridKt;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.Html;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.data.provider.DataProvider;
 
 /**
@@ -46,16 +40,11 @@ import com.vaadin.flow.data.provider.DataProvider;
  * {@link #getChildren() children}.
  * <p>
  * To create a pretty tree dump of a Vaadin component, just use
- * {@link Companion#ofVaadin(Component)}.
+ * {@link #ofVaadin(Component)}.
  * <p>
  * For internal use only. May be renamed or removed in a future release.
  */
 public final class PrettyPrintTree {
-
-    /**
-     * Provides {@link Companion#ofVaadin(Component)}.
-     */
-    public static final Companion Companion = new Companion();
 
     private final String name;
     private final List<PrettyPrintTree> children;
@@ -122,31 +111,22 @@ public final class PrettyPrintTree {
     }
 
     /**
-     * Factory methods for {@link PrettyPrintTree}.
+     * Creates a tree out of the given Vaadin component and all of its
+     * descendants, as provided by
+     * {@link TestingLifecycleHook#getAllChildren(Component)}.
+     *
+     * @param root
+     *            the root component.
+     * @return the tree.
      */
-    public static final class Companion {
-
-        private Companion() {
+    public static PrettyPrintTree ofVaadin(Component root) {
+        PrettyPrintTree result = new PrettyPrintTree(
+                PrettyPrintTree.toPrettyString(root), new ArrayList<>());
+        for (Component child : TestingLifecycleHooks.getTestingLifecycleHook()
+                .getAllChildren(root)) {
+            result.children.add(ofVaadin(child));
         }
-
-        /**
-         * Creates a tree out of the given Vaadin component and all of its
-         * descendants, as provided by
-         * {@link TestingLifecycleHook#getAllChildren(Component)}.
-         *
-         * @param root
-         *            the root component.
-         * @return the tree.
-         */
-        public PrettyPrintTree ofVaadin(Component root) {
-            PrettyPrintTree result = new PrettyPrintTree(
-                    PrettyPrintTree.toPrettyString(root), new ArrayList<>());
-            for (Component child : TestingLifecycleHooks
-                    .getTestingLifecycleHook().getAllChildren(root)) {
-                result.children.add(ofVaadin(child));
-            }
-            return result;
-        }
+        return result;
     }
 
     /**
@@ -162,8 +142,9 @@ public final class PrettyPrintTree {
      * <p>
      * By default does nothing.
      */
-    private static Function2<? super Component, ? super LinkedList<String>, Unit> prettyStringHook = (
-            component, list) -> Unit.INSTANCE;
+    private static BiConsumer<Component, LinkedList<String>> prettyStringHook = (
+            component, list) -> {
+    };
 
     /**
      * Never dump these attributes in {@link #toPrettyString(Component)}. By
@@ -206,7 +187,7 @@ public final class PrettyPrintTree {
      * @return the pretty-printed tree.
      */
     public static String toPrettyTree(Component component) {
-        return PrettyPrintTree.Companion.ofVaadin(component).print();
+        return PrettyPrintTree.ofVaadin(component).print();
     }
 
     /**
@@ -284,19 +265,14 @@ public final class PrettyPrintTree {
         if (href != null) {
             list.add("href='" + href + "'");
         }
-        if (component instanceof Button button
-                && button.getIcon() instanceof Icon icon) {
-            list.add("icon='" + icon.getElement().getAttribute("icon") + "'");
-        }
+        ComponentUtils.describe(component, list);
         if (component instanceof Html) {
             String outerHtml = Utils.trim(component.getElement().getOuterHTML())
                     .replaceAll("\\s+", " ");
             list.add(Utils.ellipsize(outerHtml, 100, "..."));
         }
-        if (component instanceof Grid<?> grid && grid.getBeanType() != null) {
-            list.add("<" + grid.getBeanType().getSimpleName() + ">");
-        }
-        DataProvider<?, ?> dataProvider = GridKt.getDataProvider(component);
+        DataProvider<?, ?> dataProvider = ComponentUtils
+                .getDataProvider(component);
         if (dataProvider != null) {
             list.add("dataprovider='" + dataProvider + "'");
         }
@@ -326,7 +302,7 @@ public final class PrettyPrintTree {
             // then use it - it could provide valuable information.
             list.add(component.toString());
         }
-        prettyStringHook.invoke(component, list);
+        prettyStringHook.accept(component, list);
         String name = component.getClass().getSimpleName();
         if (name.isEmpty()) {
             // anonymous classes
@@ -432,9 +408,8 @@ public final class PrettyPrintTree {
      *
      * @return the hook.
      */
-    @SuppressWarnings("unchecked")
-    public static Function2<Component, LinkedList<String>, Unit> getPrettyStringHook() {
-        return (Function2<Component, LinkedList<String>, Unit>) prettyStringHook;
+    public static BiConsumer<Component, LinkedList<String>> getPrettyStringHook() {
+        return prettyStringHook;
     }
 
     /**
@@ -445,7 +420,7 @@ public final class PrettyPrintTree {
      *            the hook, not null.
      */
     public static void setPrettyStringHook(
-            Function2<? super Component, ? super LinkedList<String>, Unit> prettyStringHook) {
+            BiConsumer<Component, LinkedList<String>> prettyStringHook) {
         PrettyPrintTree.prettyStringHook = prettyStringHook;
     }
 

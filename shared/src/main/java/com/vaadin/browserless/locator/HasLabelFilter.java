@@ -41,6 +41,10 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
      * The label is resolved as described in
      * {@link com.vaadin.browserless.ElementConditions#hasLabel(String)}, which
      * also covers {@code <label for>} elements and form item labels.
+     *
+     * @param label
+     *            the expected label
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withLabel(String label) {
@@ -50,6 +54,10 @@ public interface HasLabelFilter<C extends Component & HasLabel, SELF extends Loc
     /**
      * Requires the matched component's label to contain the given text. The
      * label is resolved in the same way as in {@link #withLabel(String)}.
+     *
+     * @param text
+     *            the expected text
+     * @return this locator, for chaining
      */
     @SuppressWarnings("unchecked")
     default SELF withLabelContaining(String text) {

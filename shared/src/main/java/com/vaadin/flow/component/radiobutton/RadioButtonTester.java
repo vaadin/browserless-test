@@ -75,6 +75,12 @@ public class RadioButtonTester<T extends RadioButton<V>, V>
         settlePromises.run();
     }
 
+    /**
+     * Equivalent to
+     * {@code getComponent().getElement().getProperty("disabled", false)}.
+     *
+     * @return whether the radio button is disabled
+     */
     protected boolean isDisabled() {
         return getComponent().getElement().getProperty("disabled", false);
     }

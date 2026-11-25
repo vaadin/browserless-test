@@ -125,6 +125,7 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      *
      * @param label
      *            the tab label
+     * @return the visible tab with the given label
      * @throws IllegalStateException
      *             if tab is not visible
      */
@@ -151,6 +152,7 @@ public class TabsTester<T extends Tabs> extends ComponentTester<T> {
      * @param index
      *            the zero-based index of the selected tab, negative value to
      *            unselect
+     * @return the visible tab at given index
      * @throws IllegalStateException
      *             if tab at given index is not visible in the browser
      * @throws IllegalArgumentException

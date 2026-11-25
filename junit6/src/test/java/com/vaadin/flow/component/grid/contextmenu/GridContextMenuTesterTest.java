@@ -22,6 +22,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.SimulatedClipboard;
@@ -30,6 +32,7 @@ import com.vaadin.browserless.internal.GridContextMenuSupport;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.clipboard.Clipboard;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -276,15 +279,22 @@ class GridContextMenuTesterTest extends BrowserlessTest {
                 exception.getMessage().contains("does not target a row"));
     }
 
-    @Test
-    void openOnRow_dynamicContentHandlerRefuses_throws() {
-        view.menu.setDynamicContentHandler(
-                item -> GridContextMenuView.BOB.equals(item));
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void openOnRow_dynamicContentHandlerOrProviderRefuses_throws(
+            boolean provider) {
+        if (provider) {
+            view.menu.setDynamicContentProvider(
+                    context -> GridContextMenuView.BOB.equals(context.item()));
+        } else {
+            view.menu.setDynamicContentHandler(
+                    item -> GridContextMenuView.BOB.equals(item));
+        }
 
         IllegalStateException exception = Assertions.assertThrows(
                 IllegalStateException.class, () -> test(view.menu).open(0));
-        Assertions.assertTrue(
-                exception.getMessage().contains("dynamic content handler"));
+        Assertions.assertTrue(exception.getMessage()
+                .contains(provider ? "provider" : "dynamic content handler"));
         Assertions.assertFalse(view.menu.isAttached(),
                 "menu should stay closed when its dynamic content handler refuses");
 
@@ -292,6 +302,32 @@ class GridContextMenuTesterTest extends BrowserlessTest {
 
         Assertions.assertTrue(view.menu.isAttached(),
                 "menu should open on a row its dynamic content handler accepts");
+    }
+
+    @Test
+    void openOnRow_dynamicContentProvider_receivesRowAndColumn() {
+        List<String> items = new ArrayList<>();
+        List<Grid.Column<String>> columns = new ArrayList<>();
+        view.menu.setDynamicContentProvider(context -> {
+            items.add(context.item());
+            columns.add(context.column());
+            return true;
+        });
+        GridContextMenuTester<GridContextMenu<String>, String> menu_ = test(
+                view.menu);
+
+        menu_.open(1, GridContextMenuView.LENGTH_COLUMN);
+        menu_.close();
+        menu_.open(0);
+
+        Assertions.assertIterableEquals(
+                List.of(GridContextMenuView.BOB, GridContextMenuView.ALICE),
+                items);
+        Assertions.assertSame(
+                view.grid.getColumnByKey(GridContextMenuView.LENGTH_COLUMN),
+                columns.get(0));
+        Assertions.assertNull(columns.get(1),
+                "no column should be reported when none was named");
     }
 
     @Test
