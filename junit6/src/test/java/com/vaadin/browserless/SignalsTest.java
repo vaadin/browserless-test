@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
@@ -71,6 +72,29 @@ public class SignalsTest extends BrowserlessTest {
         });
         runPendingSignalsTasks();
         Assertions.assertEquals("Counter: 10", counterTester.getText());
+    }
+
+    @Test
+    void roundTrip_runsEffectOfFinishedBackgroundSignalChange() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        roundTrip();
+
+        Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
+    void lookup_runsEffectOfFinishedBackgroundSignalChange() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        Assertions.assertSame(view.asyncCounter,
+                find(Span.class).withText("Counter: 10").single());
     }
 
     @Test

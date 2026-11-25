@@ -88,8 +88,10 @@ implement only `ClearButtonContract`.
 ## Signals in tests
 
 Signal effects and shared-signal confirmations run on the test thread when the
-queue is drained, not on a pool. A test that triggers one calls
-`runPendingSignalsTasks()` before asserting. Blocking on a `SignalOperation`
+queue is drained, not on a pool. Every round trip, such as a component lookup
+or `roundTrip()`, drains the tasks already queued; a test that waits for
+background work that may still be running calls `runPendingSignalsTasks()`
+before asserting. Blocking on a `SignalOperation`
 without draining first always times out — if a test hangs on
 `operation.result().get(…)`, the queue has not been drained, the write was not
 lost.

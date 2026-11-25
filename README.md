@@ -616,12 +616,25 @@ override.
 
 Signal effects and shared-signal confirmations are not executed on a background
 thread pool in a browserless test. They are queued, so that a test can decide
-when they run, and are executed on the test thread by
-`runPendingSignalsTasks()` (also available as
+when they run, and are executed on the test thread by every round trip — a
+component lookup, `roundTrip()`, or a tester action that ends with a round
+trip — the same way as tasks queued with `UI.access()`. To wait for tasks that
+have not been queued yet, call `runPendingSignalsTasks()` (also available as
 `window.runPendingSignalsTasks()` in the multi-window API and on the JUnit
 extension).
 
 ### Effects triggered outside the UI thread
+
+When the background work has already finished, the next round trip runs its
+effects:
+
+```java
+CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0)).join();
+roundTrip();
+assertEquals("Counter: 10", view.counter.getText());
+```
+
+When it may still be running, wait for it:
 
 ```java
 CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0));
@@ -636,7 +649,8 @@ A write to a `SharedValueSignal`, `SharedListSignal`,
 is visible through `peek()` straight away. The `SignalOperation`
 returned by the write is completed only when the underlying signal tree
 confirms the command, and that confirmation is dispatched through the same
-queue — so it completes on the next `runPendingSignalsTasks()`:
+queue — so it completes on the next round trip or
+`runPendingSignalsTasks()`:
 
 ```java
 var operation = tickets.insertLast("a ticket");
