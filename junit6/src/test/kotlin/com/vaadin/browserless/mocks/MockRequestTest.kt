@@ -53,6 +53,11 @@ class MockRequestTest : DynaTest({
         expectList("bar", "baz") { request.getParameterValues("foo")!!.toList() }
     }
 
+    test("parameter names keep insertion order") {
+        listOf("zeta", "beta", "alpha").forEach { request.setParameter(it, "x") }
+        expectList("zeta", "beta", "alpha") { request.parameterNames.toList() }
+    }
+
     test("getSession(false) returns null once the session is invalidated") {
         // Mirrors the servlet container contract: after invalidation there is
         // no current session, so getSession(false) must return null rather than
