@@ -679,6 +679,15 @@ one after another on the test thread, so a task must not block waiting for
 another one — an effect that calls `signal.update(...).result().join()` hangs
 teardown, outside the reach of `@Timeout`.
 
+### Parallel test execution
+
+Flow registers signal environments for the whole JVM, and signal tasks go to
+the test environment registered last. Tests that use signals therefore share
+one queue when they run in parallel in the same JVM: a round trip or
+`runPendingSignalsTasks()` in one test can run the effects of another test, and
+miss its own. Run such tests sequentially, for example with
+`@Execution(ExecutionMode.SAME_THREAD)` or in a separate fork.
+
 ## Focus and blur
 
 Focus is tracked per UI while a test runs, so focus and blur listeners fire
