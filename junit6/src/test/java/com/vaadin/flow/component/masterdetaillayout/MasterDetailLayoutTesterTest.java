@@ -217,17 +217,25 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
     }
 
     @Test
-    void clickBackdrop_fieldInDetailFocused_blursField() {
+    void dismissDetail_fieldInDetailFocused_onlyBackdropClickBlurs() {
         TextField name = new TextField();
         List<String> events = new ArrayList<>();
         name.addBlurListener(e -> events.add("blur"));
+        view.layout.addDetailEscapePressListener(e -> events.add("escape"));
         view.layout.addBackdropClickListener(e -> events.add("backdrop-click"));
         view.layout.setDetail(name);
         test(name).focus();
 
+        test(view.layout).pressEscapeOnDetail();
+
+        assertEquals(List.of("escape"), events,
+                "Pressing Escape should not blur the focused detail field");
+        assertTrue(test(name).isFocused(),
+                "The detail field should keep focus after pressing Escape");
+
         test(view.layout).clickBackdrop();
 
-        assertEquals(List.of("blur", "backdrop-click"), events,
+        assertEquals(List.of("escape", "blur", "backdrop-click"), events,
                 "The click should blur the detail field before it is handled");
         assertFalse(test(name).isFocused(),
                 "Nothing should be focused after clicking the backdrop");
