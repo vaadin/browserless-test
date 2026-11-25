@@ -56,7 +56,8 @@ public class MockVaadinServlet extends VaadinServlet {
     private final Routes routes;
 
     /**
-     * Produces the UI instances the sessions of this servlet hand out.
+     * Creates the UI of the session that replaces a closed session of this
+     * servlet.
      */
     private final UIFactory uiFactory;
 
@@ -85,7 +86,8 @@ public class MockVaadinServlet extends VaadinServlet {
      * @param routes
      *            the routes to register
      * @param uiFactory
-     *            produces a fresh UI per session
+     *            creates the UI of the session that replaces a closed session;
+     *            it must return a fresh instance every time
      */
     public MockVaadinServlet(Routes routes, UIFactory uiFactory) {
         this.routes = routes;
@@ -102,8 +104,8 @@ public class MockVaadinServlet extends VaadinServlet {
     }
 
     /**
-     * Returns the factory producing the {@link com.vaadin.flow.component.UI} of
-     * every session this servlet's service creates.
+     * Returns the factory creating the {@link com.vaadin.flow.component.UI} of
+     * the session that replaces a closed session of this servlet.
      *
      * @return the UI factory
      */

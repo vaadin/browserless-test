@@ -52,13 +52,14 @@ import com.vaadin.flow.server.VaadinSession;
 public class MockService extends VaadinServletService {
 
     /**
-     * Produces the UI instances the sessions of this service hand out.
+     * Creates the UI of the session that replaces a closed session of this
+     * service.
      */
     private final UIFactory uiFactory;
 
     /**
-     * Returns the factory producing the {@link com.vaadin.flow.component.UI} of
-     * every session this service creates.
+     * Returns the factory creating the {@link com.vaadin.flow.component.UI} of
+     * the session that replaces a closed session of this service.
      *
      * @return the UI factory
      */
@@ -87,8 +88,9 @@ public class MockService extends VaadinServletService {
      * @param deploymentConfiguration
      *            the configuration to run with
      * @param uiFactory
-     *            produces a fresh UI per session; it must return a new instance
-     *            every time, or a test inherits the previous test's state
+     *            creates the UI of the session that replaces a closed session;
+     *            it must return a new instance every time, or a test inherits
+     *            the previous test's state
      */
     public MockService(VaadinServlet servlet,
             DeploymentConfiguration deploymentConfiguration,

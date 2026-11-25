@@ -68,6 +68,13 @@ class MockContextTest {
     }
 
     @Test
+    void getInitParameterNames_severalParameters_keepsInsertionOrder() {
+        List.of("zeta", "beta", "alpha")
+                .forEach(name -> ctx.setInitParameter(name, "x"));
+        assertEquals(List.of("zeta", "beta", "alpha"), initParameterNames());
+    }
+
+    @Test
     void getRealPath_pathOutsideTheRoots_returnsNull() {
         ctx.setRealPathRoots(List.of("src/main/webapp/frontend",
                 "src/main/webapp", "src/test/webapp"));

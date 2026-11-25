@@ -35,10 +35,12 @@ import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -229,10 +231,7 @@ public class MockContext implements ServletContext, Serializable {
 
     @Override
     public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
-        Set<SessionTrackingMode> set = new HashSet<>();
-        set.add(SessionTrackingMode.COOKIE);
-        set.add(SessionTrackingMode.URL);
-        return set;
+        return EnumSet.of(SessionTrackingMode.COOKIE, SessionTrackingMode.URL);
     }
 
     @Override
@@ -303,7 +302,7 @@ public class MockContext implements ServletContext, Serializable {
     /**
      * The context init parameters.
      */
-    private final Map<String, String> initParameters = new HashMap<>();
+    private final Map<String, String> initParameters = new LinkedHashMap<>();
 
     /**
      * Returns the context init parameters, live and directly modifiable.
@@ -510,10 +509,7 @@ public class MockContext implements ServletContext, Serializable {
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
-        Set<SessionTrackingMode> set = new HashSet<>();
-        set.add(SessionTrackingMode.COOKIE);
-        set.add(SessionTrackingMode.URL);
-        return set;
+        return EnumSet.of(SessionTrackingMode.COOKIE, SessionTrackingMode.URL);
     }
 
     private static File moduleDir() {

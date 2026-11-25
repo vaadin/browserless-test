@@ -20,7 +20,7 @@ import jakarta.servlet.ServletContext;
 
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -61,7 +61,7 @@ public class MockServletConfig implements ServletConfig {
         return context;
     }
 
-    private Map<String, String> servletInitParams = new HashMap<>();
+    private Map<String, String> servletInitParams = new LinkedHashMap<>();
 
     /**
      * Returns the per-servlet init parameters, live and directly modifiable.
