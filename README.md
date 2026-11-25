@@ -683,10 +683,11 @@ teardown, outside the reach of `@Timeout`.
 
 Flow registers signal environments for the whole JVM, and signal tasks go to
 the test environment registered last. Tests that use signals therefore share
-one queue when they run in parallel in the same JVM: a round trip or
-`runPendingSignalsTasks()` in one test can run the effects of another test, and
-miss its own. Run such tests sequentially, for example with
-`@Execution(ExecutionMode.SAME_THREAD)` or in a separate fork.
+one queue when they run in parallel in the same JVM: a round trip in one test
+can run the effects of another test, and `runPendingSignalsTasks()` can miss the
+test's own effects. Keep such tests from overlapping, for example with JUnit's
+`@Isolated` or the same `@ResourceLock` on every test class that uses signals,
+or run them in a separate fork.
 
 ## Focus and blur
 
