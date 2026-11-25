@@ -39,6 +39,7 @@ import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -303,7 +304,7 @@ public class MockContext implements ServletContext, Serializable {
     /**
      * The context init parameters.
      */
-    private final Map<String, String> initParameters = new HashMap<>();
+    private final Map<String, String> initParameters = new LinkedHashMap<>();
 
     /**
      * Returns the context init parameters, live and directly modifiable.
