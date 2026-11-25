@@ -142,10 +142,12 @@ public class ComboBoxTester<T extends ComboBox<Y>, Y>
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured.
      * Exactly one item has to match; when several do, the one whose label
-     * equals the text (ignoring case) is picked, as the browser commits an
-     * exact label match on Enter. The filter is cleared afterwards, as the
-     * browser does once a value is committed. If matching fails, the selection
-     * is left unchanged and the filter set before the call is restored.
+     * equals the text (ignoring case) is picked, so a test fails rather than
+     * picking an item it did not name. This rule does not depend on the
+     * component's {@code PartialMatchMode}. The filter is cleared afterwards,
+     * as the browser does once a value is committed. If matching fails, the
+     * selection is left unchanged and the filter set before the call is
+     * restored.
      *
      * <pre>
      * // items "Berlin", "Bern", "Bernau", "Helsinki"

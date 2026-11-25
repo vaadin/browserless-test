@@ -225,6 +225,28 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
     }
 
     @Test
+    void selectContaining_keepFilter_filterStaysAtLastText() {
+        MultiSelectComboBox<String> cities = new MultiSelectComboBox<>();
+        cities.setItems("Berlin", "Bern", "Helsinki", "Oslo");
+        cities.setKeepFilter(true);
+        view.add(cities);
+
+        test(cities).selectItemContaining("hel");
+
+        Assertions.assertEquals(List.of("Helsinki"),
+                test(cities).getSuggestions());
+        Assertions.assertEquals("hel", cities.getFilter());
+
+        test(cities).selectItemsContaining("osl", "ber");
+
+        Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki", "Oslo"),
+                test(cities).getSelected());
+        Assertions.assertEquals(List.of("Berlin", "Bern"),
+                test(cities).getSuggestions());
+        Assertions.assertEquals("ber", cities.getFilter());
+    }
+
+    @Test
     void selectItemsContaining_anyTextWithoutMatch_throws() {
         view.combo.setValue(Set.of(view.items.get(1)));
         test(view.combo).setFilter("fo");

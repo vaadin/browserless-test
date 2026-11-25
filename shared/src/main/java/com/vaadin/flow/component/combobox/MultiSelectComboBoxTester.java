@@ -120,15 +120,18 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * filtering: by default a case-insensitive "label contains" match, or the
      * {@code ItemFilter} / data provider filter the application configured.
      * Exactly one item has to match; when several do, the one whose label
-     * equals the text (ignoring case) is picked, as the browser commits an
-     * exact label match on Enter. Use {@link #selectItemsContaining(String...)}
-     * to pick every item a text matches.
+     * equals the text (ignoring case) is picked, so a test fails rather than
+     * picking an item it did not name. This rule does not depend on the
+     * component's {@code PartialMatchMode}. Use
+     * {@link #selectItemsContaining(String...)} to pick every item a text
+     * matches.
      * <p>
      * As in the browser, the item is added to the current selection. Unlike the
      * browser, where picking an already selected item deselects it, an already
-     * selected item stays selected. The filter is cleared afterwards, as the
-     * browser does once a value is committed. If matching fails, the selection
-     * is left unchanged and the filter set before the call is restored.
+     * selected item stays selected. Afterwards the filter is cleared, or kept
+     * at the text when {@code keepFilter} is enabled, as in the browser. If
+     * matching fails, the selection is left unchanged and the filter set before
+     * the call is restored.
      *
      * <pre>
      * // items "Berlin", "Bern", "Bernau", "Helsinki"
@@ -159,7 +162,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
             setFilter(previousFilter);
             throw e;
         }
-        setFilter("");
+        if (!getComponent().isKeepFilter()) {
+            setFilter("");
+        }
         final Set<Y> selection = new LinkedHashSet<>(getComponent().getValue());
         selection.add(item);
         setValueAsUser(selection);
@@ -178,9 +183,10 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
      * As in the browser, the matched items are added to the current selection.
      * Unlike the browser, where picking an already selected item deselects it,
      * already selected matches stay selected, so an item matched by more than
-     * one text is selected once. The filter is cleared afterwards, as the
-     * browser does once a value is committed. If matching fails, the selection
-     * is left unchanged and the filter set before the call is restored.
+     * one text is selected once. Afterwards the filter is cleared, or kept at
+     * the last text when {@code keepFilter} is enabled, as in the browser. If
+     * matching fails, the selection is left unchanged and the filter set before
+     * the call is restored.
      *
      * <pre>
      * // items "Berlin", "Bern", "Helsinki"
@@ -224,7 +230,9 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
             setFilter(previousFilter);
             throw e;
         }
-        setFilter("");
+        if (!getComponent().isKeepFilter()) {
+            setFilter("");
+        }
         setValueAsUser(selection);
     }
 
