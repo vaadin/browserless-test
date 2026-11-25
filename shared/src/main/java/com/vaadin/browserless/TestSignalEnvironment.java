@@ -79,8 +79,9 @@ import com.vaadin.flow.signals.SignalEnvironment;
 public class TestSignalEnvironment extends SignalEnvironment {
 
     /**
-     * The maximum number of pending tasks that {@link #unregister()} runs, so
-     * that a task that keeps submitting new ones cannot hang teardown.
+     * The maximum number of pending tasks that {@link #unregister()} and each
+     * {@link #runQueuedTasks()} run, so that a task that keeps submitting new
+     * ones cannot hang teardown or a round trip.
      */
     static final int MAX_TEARDOWN_TASKS = 10_000;
 

@@ -27,7 +27,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedNumberSignal;
@@ -94,14 +93,17 @@ class SignalsContextTest {
     }
 
     @Test
-    void lookup_runsEffectOfSignalChangedFromAnotherWindow() {
+    void roundTrip_runsEffectOfOtherUsersComponentUnderItsSessionLock() {
         var otherWindow = app.newUser().newWindow();
         var view = otherWindow.navigate(SignalsView.class);
         window.activate();
         view.numberSignal.incrementBy(1.0);
 
-        Assertions.assertSame(view.counter,
-                otherWindow.find(Span.class).withText("Counter: 1").single());
+        // Updating a component without its session lock would throw, so the
+        // effect has to be handed over to the other user's UI
+        window.roundTrip();
+
+        Assertions.assertEquals("Counter: 1", view.counter.getText());
     }
 
     @Test
