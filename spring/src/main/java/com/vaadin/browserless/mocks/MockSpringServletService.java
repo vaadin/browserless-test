@@ -44,7 +44,8 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  */
 public class MockSpringServletService extends SpringVaadinServletService {
     /**
-     * Produces the UI instances the sessions of this service hand out.
+     * Creates the UI of the session that replaces a closed session of this
+     * service.
      */
     private final @NonNull UIFactory uiFactory;
 
@@ -58,7 +59,7 @@ public class MockSpringServletService extends SpringVaadinServletService {
      * @param ctx
      *            the Spring context the views are instantiated from
      * @param uiFactory
-     *            produces the UI instances the sessions hand out
+     *            creates the UI of the session that replaces a closed session
      */
     public MockSpringServletService(@NonNull MockSpringServlet servlet,
             @NonNull DeploymentConfiguration deploymentConfiguration,
