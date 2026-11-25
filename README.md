@@ -816,6 +816,42 @@ execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
 
+A return channel passed to the JavaScript, such as a
+`ReturnChannelRegistration` given to `executeJs(...)`, can be called the way
+the JavaScript would call it in the browser:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.listenToResize();                // calls executeJs("...", channel)
+
+executed.getAll().getLast().invokeReturnChannel(800, 600);
+```
+
+The call fails where Flow would ignore the message: when the channel was
+removed, or its element is detached, hidden, or disabled and the channel does
+not accept updates while disabled. `invokeReturnChannelAt(index, ...)` picks
+one channel by its parameter index when the JavaScript received several.
+
+When the browser calls the channel on its own as soon as the JavaScript runs,
+a [`JavaScriptHandler`](#answering-javascript-like-the-browser) can call it
+live, so the test does not have to:
+
+```java
+public class ClipboardAllowed implements JavaScriptHandler {
+    @Override
+    public void handle(ExecutedJavaScript.Execution execution) {
+        // executeJs("navigator.clipboard.writeText($0).then(() => $1(true))",
+        //         text, channel)
+        if (execution.getExpression().contains("navigator.clipboard.writeText")) {
+            execution.invokeReturnChannel(true);
+        }
+    }
+}
+```
+
+JavaScript that the channel's handler schedules is then sent at the next
+client boundary.
+
 ### Answering JavaScript like the browser
 
 JavaScript that reads something only the browser knows, such as the user's

@@ -24,13 +24,18 @@ import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 import com.vaadin.flow.component.page.PendingJavaScriptResult;
+import com.vaadin.flow.dom.DisabledUpdateMode;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.internal.JacksonUtils;
+import com.vaadin.flow.internal.StateNode;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelMap;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 import com.vaadin.flow.js.JsCall;
 import com.vaadin.flow.js.JsDefinitionProxy;
 import com.vaadin.flow.js.JsInvokers;
@@ -89,7 +94,9 @@ import com.vaadin.flow.shared.Registration;
  * A call whose result the application waits for, with {@code then(...)} or
  * {@code toCompletableFuture(...)}, can be answered with
  * {@link Execution#resolve(Object)} or {@link Execution#reject(String)}, as the
- * browser would.
+ * browser would. A {@link ReturnChannelRegistration} passed to the JavaScript
+ * can be called with {@link Execution#invokeReturnChannel(Object...)}, as the
+ * JavaScript would call it in the browser.
  * <p>
  * JavaScript scheduled for an element that is not visible is not sent, as in a
  * browser, and is captured only once the element becomes visible.
@@ -506,8 +513,7 @@ public final class ExecutedJavaScript implements Serializable {
          */
         public void resolve(@Nullable Object value) {
             ensureCanAnswer();
-            invocation.complete(value instanceof JsonNode node ? node
-                    : JacksonUtils.getMapper().valueToTree(value));
+            invocation.complete(toJson(value));
         }
 
         /**
@@ -526,6 +532,153 @@ public final class ExecutedJavaScript implements Serializable {
             ensureCanAnswer();
             invocation.completeExceptionally(
                     JacksonUtils.getMapper().valueToTree(message));
+        }
+
+        /**
+         * Calls the return channel passed to this JavaScript with the given
+         * arguments, as the JavaScript would call it in the browser. A round
+         * trip runs before the call, as the browser acts on the latest
+         * response, and after it, so that JavaScript the channel's handler
+         * schedules is sent.
+         * <p>
+         * A {@link JavaScriptHandler} can call this method too, for a channel
+         * the browser calls as soon as the JavaScript runs. JavaScript the
+         * channel's handler schedules is then sent at the next client boundary.
+         * <p>
+         * The UI the JavaScript was sent to must be the current UI, as the
+         * channel's handler runs in it: with several windows, activate its
+         * window first.
+         * <p>
+         * The JavaScript must have received exactly one
+         * {@link ReturnChannelRegistration} among its
+         * {@linkplain #getParameters() parameters}; use
+         * {@link #invokeReturnChannelAt(int, Object...)} to pick one of
+         * several.
+         * <p>
+         * The same checks apply as when Flow receives a return channel message
+         * from the browser, but where Flow ignores the message, this method
+         * throws: the channel must still be registered, and its element must be
+         * attached and visible, and enabled unless the channel's
+         * {@link DisabledUpdateMode} is {@link DisabledUpdateMode#ALWAYS
+         * ALWAYS}.
+         *
+         * @param arguments
+         *            the arguments the JavaScript passes to the channel, each
+         *            converted to JSON the way Flow converts a value; a
+         *            {@link JsonNode} is used as is
+         * @throws IllegalStateException
+         *             if the JavaScript received no return channel or more than
+         *             one, if the UI the JavaScript was sent to is not the
+         *             current UI, or if Flow would ignore the message
+         * @see #invokeReturnChannelAt(int, Object...)
+         */
+        public void invokeReturnChannel(@Nullable Object... arguments) {
+            List<ReturnChannelRegistration> channels = getParameters().stream()
+                    .filter(ReturnChannelRegistration.class::isInstance)
+                    .map(ReturnChannelRegistration.class::cast).toList();
+            if (channels.size() != 1) {
+                throw new IllegalStateException("Expected exactly one return "
+                        + "channel among the parameters of " + this + ", but "
+                        + "found " + channels.size()
+                        + ". Use invokeReturnChannelAt(int, Object...) to pick "
+                        + "one by its parameter index.");
+            }
+            invoke(channels.get(0), arguments);
+        }
+
+        /**
+         * Calls the return channel passed to this JavaScript as the parameter
+         * with the given index, as the JavaScript would call it in the browser,
+         * with a round trip before and after the call like
+         * {@link #invokeReturnChannel(Object...)}.
+         * <p>
+         * Unlike {@link #invokeReturnChannel(Object...)}, this method works
+         * when the JavaScript received several return channels. The same checks
+         * apply as when Flow receives a return channel message from the
+         * browser, but where Flow ignores the message, this method throws.
+         *
+         * @param parameterIndex
+         *            the index of the channel in {@link #getParameters()}
+         * @param arguments
+         *            the arguments the JavaScript passes to the channel, each
+         *            converted to JSON the way Flow converts a value; a
+         *            {@link JsonNode} is used as is
+         * @throws IllegalArgumentException
+         *             if there is no parameter with the given index, or it is
+         *             not a {@link ReturnChannelRegistration}
+         * @throws IllegalStateException
+         *             if the UI the JavaScript was sent to is not the current
+         *             UI, or if Flow would ignore the message
+         * @see #invokeReturnChannel(Object...)
+         */
+        public void invokeReturnChannelAt(int parameterIndex,
+                @Nullable Object... arguments) {
+            List<Object> parameters = getParameters();
+            if (parameterIndex < 0 || parameterIndex >= parameters.size()
+                    || !(parameters.get(
+                            parameterIndex) instanceof ReturnChannelRegistration channel)) {
+                throw new IllegalArgumentException("Parameter " + parameterIndex
+                        + " of " + this + " is not a return channel");
+            }
+            invoke(channel, arguments);
+        }
+
+        private void invoke(ReturnChannelRegistration channel,
+                @Nullable Object[] arguments) {
+            // The round trips and the channel's handler work on the Vaadin
+            // thread-locals, so another window's would take this one's place
+            if (getUI() != UI.getCurrent()) {
+                throw new IllegalStateException("The UI that " + this
+                        + " was sent to is not the current UI. Activate its "
+                        + "window first, for example with "
+                        + "BrowserlessUIContext.activate().");
+            }
+            // The browser sends the message in reply to the latest response,
+            // and Flow updates whether an element is visible only when it
+            // sends a response
+            BrowserlessDSL.roundTrip(getUI());
+            ensureCanReceive(channel);
+            ArrayNode json = JacksonUtils.createArrayNode();
+            for (Object argument : arguments == null ? new Object[] { null }
+                    : arguments) {
+                json.add(toJson(argument));
+            }
+            channel.invoke(json);
+            BrowserlessDSL.roundTrip(getUI());
+        }
+
+        // The checks of Flow's AbstractRpcInvocationHandler and
+        // ReturnChannelHandler, which ignore the message where this throws.
+        // A registered channel lets the message through to an inert element.
+        private void ensureCanReceive(ReturnChannelRegistration channel) {
+            StateNode node = getUI().getInternals().getStateTree()
+                    .getNodeById(channel.getStateNodeId());
+            if (node == null || !node.isAttached()) {
+                throw new IllegalStateException("The element of the return "
+                        + "channel passed to " + this + " is not attached");
+            }
+            if (node.isInactive()) {
+                throw new IllegalStateException("The element of the return "
+                        + "channel passed to " + this + " is not visible");
+            }
+            ReturnChannelMap channels = node
+                    .getFeatureIfInitialized(ReturnChannelMap.class)
+                    .orElse(null);
+            if (channels == null
+                    || channels.get(channel.getChannelId()) != channel) {
+                throw new IllegalStateException("The return channel passed "
+                        + "to " + this + " has been removed");
+            }
+            if (!node.isEnabled() && channel
+                    .getDisabledUpdateMode() != DisabledUpdateMode.ALWAYS) {
+                throw new IllegalStateException("The element of the return "
+                        + "channel passed to " + this + " is disabled");
+            }
+        }
+
+        private static JsonNode toJson(@Nullable Object value) {
+            return value instanceof JsonNode node ? node
+                    : JacksonUtils.getMapper().valueToTree(value);
         }
 
         private void ensureCanAnswer() {
