@@ -267,6 +267,25 @@ public class SignalsTest extends BrowserlessTest {
     }
 
     @Test
+    void roundTrip_throwsFailureOfSignalsTaskAndKeepsLaterTasksQueued() {
+        navigate(SignalsView.class);
+        var laterTaskRan = new AtomicReference<Boolean>(false);
+        SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
+            throw new IllegalStateException("failing task");
+        });
+        SignalEnvironment.getDefaultEffectDispatcher()
+                .execute(() -> laterTaskRan.set(true));
+
+        var failure = Assertions.assertThrows(IllegalStateException.class,
+                BrowserlessTest::roundTrip);
+        Assertions.assertEquals("failing task", failure.getMessage());
+        Assertions.assertFalse(laterTaskRan.get());
+
+        roundTrip();
+        Assertions.assertTrue(laterTaskRan.get());
+    }
+
+    @Test
     void roundTrip_rethrowsFailureOfAccessQueuedBySignalsTask() {
         navigate(SignalsView.class);
         var ui = UI.getCurrent();

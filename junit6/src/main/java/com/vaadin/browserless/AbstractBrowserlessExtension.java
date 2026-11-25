@@ -518,9 +518,11 @@ abstract class AbstractBrowserlessExtension
      * Only tasks that are already queued are run, so a test of a background
      * thread must first wait for that thread to call {@code access()} or to
      * change the signal; {@code runPendingSignalsTasks(long, TimeUnit)} waits
-     * for Signals tasks that have not arrived yet. If a queued task fails, its
-     * exception is rethrown wrapped in an
-     * {@link java.util.concurrent.ExecutionException}.
+     * for Signals tasks that have not arrived yet. If a queued
+     * {@code UI.access()} task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}. If a Signals task fails,
+     * its exception is thrown as is and the round trip stops there, leaving the
+     * remaining tasks queued, as with {@code runPendingSignalsTasks()}.
      */
     public void roundTrip() {
         BrowserlessDSL.roundTrip(getUI());

@@ -221,7 +221,9 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * session exactly once. Tasks queued by the tasks that run, such as the
      * effects of a confirmed shared signal write, are run too, up to a limit of
      * {@value #MAX_TEARDOWN_TASKS} tasks; the rest stay queued, so that a task
-     * that keeps queuing new ones cannot hang the test.
+     * that keeps queuing new ones cannot hang the test. A task that fails
+     * throws its exception to the caller as is, and the tasks after it stay
+     * queued.
      * <p>
      * For internal use only. May be renamed or removed in a future release.
      */
