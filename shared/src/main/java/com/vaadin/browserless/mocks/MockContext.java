@@ -35,6 +35,7 @@ import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.HashMap;
@@ -230,10 +231,7 @@ public class MockContext implements ServletContext, Serializable {
 
     @Override
     public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
-        Set<SessionTrackingMode> set = new HashSet<>();
-        set.add(SessionTrackingMode.COOKIE);
-        set.add(SessionTrackingMode.URL);
-        return set;
+        return EnumSet.of(SessionTrackingMode.COOKIE, SessionTrackingMode.URL);
     }
 
     @Override
@@ -511,10 +509,7 @@ public class MockContext implements ServletContext, Serializable {
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
-        Set<SessionTrackingMode> set = new HashSet<>();
-        set.add(SessionTrackingMode.COOKIE);
-        set.add(SessionTrackingMode.URL);
-        return set;
+        return EnumSet.of(SessionTrackingMode.COOKIE, SessionTrackingMode.URL);
     }
 
     private static File moduleDir() {

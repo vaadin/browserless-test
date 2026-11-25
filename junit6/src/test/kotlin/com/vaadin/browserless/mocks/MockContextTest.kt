@@ -52,6 +52,11 @@ class MockContextTest : DynaTest({
         expectList("foo") { ctx.initParameterNames.toList() }
     }
 
+    test("init parameter names keep insertion order") {
+        listOf("zeta", "beta", "alpha").forEach { ctx.setInitParameter(it, "x") }
+        expectList("zeta", "beta", "alpha") { ctx.initParameterNames.toList() }
+    }
+
     test("realPath") {
         ctx.realPathRoots = listOf("src/main/webapp/frontend", "src/main/webapp", "src/test/webapp")
         expect(null) { ctx.getRealPath("/index.html") }
