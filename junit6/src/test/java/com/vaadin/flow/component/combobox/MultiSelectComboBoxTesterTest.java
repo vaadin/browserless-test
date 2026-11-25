@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,8 @@ import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ClearButtonContract;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.HasValue;
+import com.vaadin.flow.component.combobox.MultiSelectComboBoxView.Name;
+import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.router.RouteConfiguration;
 
 @ViewPackages
@@ -277,6 +280,32 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 view.combo.getSelectedItems());
         Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
         Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
+    }
+
+    @Test
+    void selectItems_alreadySelectedItemFetchedAgain_notDuplicated() {
+        // Each fetch returns new instances and Name has no equals, so only the
+        // data provider id tells that an item is already selected
+        view.combo.setItems(new CallbackDataProvider<Name, String>(
+                query -> Stream.of("foo", "bar").map(Name::new)
+                        .skip(query.getOffset()).limit(query.getLimit()),
+                query -> 2, Name::getName));
+        test(view.combo).selectItems("test-foo");
+        AtomicInteger valueChanges = new AtomicInteger();
+        view.combo.addValueChangeListener(e -> valueChanges.incrementAndGet());
+
+        test(view.combo).selectItems("test-foo", "test-bar");
+
+        Assertions.assertEquals(List.of("foo", "bar"),
+                view.combo.getValue().stream().map(Name::getName).toList());
+        Assertions.assertEquals(view.combo.getSelectedItems(),
+                view.combo.getValue());
+
+        test(view.combo).selectItems("test-foo");
+
+        Assertions.assertEquals(2, view.combo.getValue().size());
+        Assertions.assertEquals(1, valueChanges.get(),
+                "Selecting already selected items should not change the value");
     }
 
     @Override
