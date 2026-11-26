@@ -290,6 +290,18 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
                 query -> Stream.of("foo", "bar").map(Name::new)
                         .skip(query.getOffset()).limit(query.getLimit()),
                 query -> 2, Name::getName));
+        assertReselectingKeepsValue();
+    }
+
+    @Test
+    void selectItems_alreadySelectedItemFetchedAgain_identifiedByDataView() {
+        view.combo.setItems(query -> Stream.of("foo", "bar").map(Name::new)
+                .skip(query.getOffset()).limit(query.getLimit()));
+        view.combo.getLazyDataView().setIdentifierProvider(Name::getName);
+        assertReselectingKeepsValue();
+    }
+
+    private void assertReselectingKeepsValue() {
         test(view.combo).selectItems("test-foo");
         AtomicInteger valueChanges = new AtomicInteger();
         view.combo.addValueChangeListener(e -> valueChanges.incrementAndGet());
@@ -301,9 +313,14 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(view.combo.getSelectedItems(),
                 view.combo.getValue());
 
-        test(view.combo).selectItems("test-foo");
+        // Repeated, so that the second call writes the same item keys again
+        test(view.combo).selectItems("test-foo", "test-bar");
+        test(view.combo).selectItems("test-foo", "test-bar");
 
-        Assertions.assertEquals(2, view.combo.getValue().size());
+        Assertions.assertEquals(List.of("foo", "bar"),
+                view.combo.getValue().stream().map(Name::getName).toList());
+        Assertions.assertEquals(view.combo.getSelectedItems(),
+                view.combo.getValue());
         Assertions.assertEquals(1, valueChanges.get(),
                 "Selecting already selected items should not change the value");
     }
