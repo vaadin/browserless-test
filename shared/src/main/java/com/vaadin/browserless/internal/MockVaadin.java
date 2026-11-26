@@ -36,13 +36,13 @@ import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestSetupException;
 import com.vaadin.browserless.ExecutedJavaScript;
 import com.vaadin.browserless.JavaScriptDispatcher;
+import com.vaadin.browserless.TestSignalEnvironment;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
 import com.vaadin.browserless.mocks.MockServletConfig;
 import com.vaadin.browserless.mocks.MockVaadinHelper;
 import com.vaadin.browserless.mocks.MockVaadinServlet;
-import com.vaadin.browserless.mocks.MockVaadinServletKt;
 import com.vaadin.browserless.mocks.MockedUI;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
@@ -318,7 +318,7 @@ public final class MockVaadin {
             Set<Class<?>> allLookupServices = new LinkedHashSet<>(
                     lookupServices);
             allLookupServices.addAll(configuration.getLookupServices());
-            ServletContext ctx = MockVaadinHelper.INSTANCE
+            ServletContext ctx = MockVaadinHelper
                     .createMockContext(allLookupServices);
             // Context init parameters are read by ApplicationConfiguration,
             // which is created and cached on first access, so they must be
@@ -605,7 +605,7 @@ public final class MockVaadin {
      */
     public static SessionObjects createSessionObjects(
             VaadinServletService service) {
-        MockHttpSession httpSession = MockHttpSession.Companion
+        MockHttpSession httpSession = MockHttpSession
                 .create(service.getServlet().getServletContext());
 
         // init Vaadin Request
@@ -621,13 +621,13 @@ public final class MockVaadin {
                 service);
 
         // init Session.
-        VaadinSession session = MockVaadinServletKt
-                ._createVaadinSession(service, request);
+        VaadinSession session = MockVaadinServlet.createVaadinSession(service,
+                request);
         // Flow applies the lock check strategy only while handling a request,
         // which the mock bypasses, so apply it here: a development-mode session
         // then throws on access without its lock, also when assertions are
         // disabled.
-        MockVaadinServletKt._applySessionLockCheckStrategy(service, session);
+        MockVaadinServlet.applySessionLockCheckStrategy(service, session);
         ReentrantLock lock = new ReentrantLock();
         lock.lock();
         httpSession.setAttribute(service.getServiceName() + ".lock", lock);
@@ -644,7 +644,7 @@ public final class MockVaadin {
                     + ": lock must be locked!");
         }
 
-        session.setBrowser(MockVaadinServletKt.WebBrowser(request));
+        session.setBrowser(MockVaadinServlet.createWebBrowser(request));
         if (session.getBrowser().getBrowserApplication() == null) {
             throw new IllegalStateException(
                     "The WebBrowser has not been mocked properly");
@@ -777,6 +777,8 @@ public final class MockVaadin {
      * Calls the following:
      * <ul>
      * <li>{@link #runUIQueue()}</li>
+     * <li>{@link TestSignalEnvironment#runQueuedTasks()}, which runs the queued
+     * Signals effects, for example of a signal changed on another thread</li>
      * <li>{@link JavaScriptDispatcher#dispatch(UI)} which runs all blocks
      * scheduled via {@link UI#beforeClientResponse} and sends the pending
      * JavaScript to the simulated client, see {@link ExecutedJavaScript}</li>
@@ -793,6 +795,7 @@ public final class MockVaadin {
             throw new IllegalStateException("No VaadinSession");
         }
         runUIQueue();
+        TestSignalEnvironment.runQueuedTasks();
         JavaScriptDispatcher.dispatch(UI.getCurrent());
         TestingLifecycleHooks.cleanupDialogs();
     }

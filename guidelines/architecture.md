@@ -146,7 +146,12 @@ Signal effects and shared-signal confirmations are not dispatched to a
 background pool in a browserless test. `TestSignalEnvironment` replaces the
 `SignalEnvironment` effect dispatcher with one that queues tasks, and
 `runPendingSignalsTasks()` drains the queue on the test thread — releasing the
-`VaadinSession` lock while it does, so a background thread can take it.
+`VaadinSession` lock while it does, so a background thread can take it. Every
+round trip (`MockVaadin.clientRoundtrip()`) also runs the tasks that are
+already queued, each in its own hold of the session lock: while the lock is
+held, signal reads go through a snapshot that is only refreshed when the lock
+is released, so an effect run inside the test's own hold would see stale
+values.
 
 The consequence worth knowing when writing or reviewing signal code: a write to
 a shared signal is applied optimistically and visible through `peek()` at once,

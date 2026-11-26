@@ -5,16 +5,13 @@
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
 - **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
   fixed version per branch — see [Flow Version](flow-version.md).
-- **Kotlin** for the older mocks and the Grid helpers in `shared/src/main/kotlin`.
-  New code is Java; the Kotlin is being ported over time.
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
-  own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
+  own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
-- **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
-  elsewhere. Both fail the build on any warning they report: a link that does
-  not resolve, for example, or a missing comment in the pure-Java modules.
-  Dokka does not report missing comments.
+- **maven-javadoc-plugin** for Javadoc in every module. It fails the build on
+  any warning it reports: a link that does not resolve or a missing comment,
+  for example.
 
 ## Module structure
 
@@ -46,7 +43,7 @@ modules that declare testers.
   `Locator`, `Locators`, `CommercialLocators` and the `Has*Filter` mixins. The
   `*Locator` classes themselves are generated into
   `target/generated-sources/annotations`.
-- **The mocks** live in `com.vaadin.browserless.mocks` (Kotlin):
+- **The mocks** live in `com.vaadin.browserless.mocks` (Java):
   `MockService`, `MockVaadinServlet`, `MockRequest`, `MockResponse`,
   `MockHttpSession`, `MockedUI`.
 - **Internal helpers** live in `com.vaadin.browserless.internal` (Java):
@@ -66,7 +63,7 @@ which `mvn install` at the root handles. When you build `shared` alone, include
 CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
 changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
 `mvn test`, and publishes the surefire reports. When the build fails on Javadoc,
-`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc or Dokka problem
+`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc problem
 into an annotation on the PR diff and a failed test in the published results.
 `formatter-suggestions.yml` posts the formatting changes as review suggestions
 on the pull request, also for forks.
@@ -86,7 +83,7 @@ Formatting is applied by `mvn spotless:apply` and validated by
 `eclipse/VaadinJavaConventions.xml`, the import order in
 `eclipse/flow.importorder`, the Apache 2 license header in
 `eclipse/apache2-license-header.txt`, no wildcard imports, and a trailing
-newline. Kotlin files get the license header check only.
+newline.
 
 ## Blast radius
 

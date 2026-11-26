@@ -19,8 +19,6 @@ Layout inside `junit6/src/test`:
   `LocatorApiTest`, `SignalsTest`) and the shared test contracts.
 - `java/com/example/…` — views and fixtures that tests navigate to, kept out of
   the framework packages so route scanning stays predictable.
-- `kotlin/` — the remaining DynaTest/Karibu-style tests of the internals.
-  Do not add new ones; write new tests as JUnit 6 in Java.
 
 The Spring, Quarkus and CDI integrations have their own test sources, because
 each needs a different container on the classpath. `junit6-cdi-tests` exists
@@ -88,8 +86,10 @@ unconditional emptying as `selectItem(null)` / `deselectAll()` rather than
 ## Signals in tests
 
 Signal effects and shared-signal confirmations run on the test thread when the
-queue is drained, not on a pool. A test that triggers one calls
-`runPendingSignalsTasks()` before asserting. Blocking on a `SignalOperation`
+queue is drained, not on a pool. Every round trip, such as a component lookup
+or `roundTrip()`, drains the tasks already queued; a test that waits for
+background work that may still be running calls `runPendingSignalsTasks()`
+before asserting. Blocking on a `SignalOperation`
 without draining first always times out — if a test hangs on
 `operation.result().get(…)`, the queue has not been drained, the write was not
 lost.

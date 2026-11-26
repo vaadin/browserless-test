@@ -97,7 +97,7 @@ class JavaScriptHandlerTest extends BrowserlessTest {
         roundTrip();
 
         Assertions.assertEquals(List.of("[true]"), received);
-        List<ExecutedJavaScript.Execution> sent = executed.getAll();
+        List<ExecutedJavaScript.Execution> sent = executed.getExecutions();
         Assertions.assertEquals(2, sent.size(), sent.toString());
         Assertions.assertTrue(sent.get(0).getExpression().contains("clipboard"),
                 sent.toString());

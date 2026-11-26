@@ -37,6 +37,8 @@ import com.vaadin.flow.data.binder.HasItemComponents;
  *
  * @param <T>
  *            component type
+ * @param <V>
+ *            the item type
  * @since 1.0
  */
 @Tests(fqn = "com.vaadin.flow.component.checkbox.CheckboxGroup")
