@@ -13,15 +13,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.internal
+package com.vaadin.browserless.internal;
 
-import com.vaadin.flow.component.textfield.TextField
+import com.vaadin.flow.component.textfield.TextField;
 
 /**
- * TextField for testing which returns that it is attached.
+ * A {@link TextField} that reports itself as attached, so a test can exercise
+ * the usability checks without building a whole UI around the field.
  */
-class AttachedTextField : TextField() {
-    override fun isAttached(): Boolean {
-        return true
+class AttachedTextField extends TextField {
+
+    @Override
+    public boolean isAttached() {
+        return true;
     }
 }

@@ -6,7 +6,7 @@
 - **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
   fixed version per branch — see [Flow Version](flow-version.md).
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
-  own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
+  own tests.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
 - **maven-javadoc-plugin** for Javadoc in every module. It fails the build on
