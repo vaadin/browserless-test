@@ -168,6 +168,11 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected(),
                 "An already selected match should stay selected");
+        Assertions.assertEquals(Set.copyOf(view.items),
+                view.combo.getSelectedItems(),
+                "Selection model should follow the merged value");
+        Assertions.assertTrue(view.combo.isSelected(view.items.get(0)));
+        Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
     }
 
     @Test
@@ -219,6 +224,9 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki", "Oslo"),
                 test(cities).getSelected(),
                 "Every match should be added once, and a selected match stays selected");
+        Assertions.assertEquals(Set.of("Berlin", "Bern", "Helsinki", "Oslo"),
+                cities.getSelectedItems(),
+                "Selection model should follow the merged value");
         Assertions.assertEquals(List.of(true), fromClient);
         Assertions.assertEquals(4, test(cities).getSuggestions().size(),
                 "Filter should be cleared after selecting");
