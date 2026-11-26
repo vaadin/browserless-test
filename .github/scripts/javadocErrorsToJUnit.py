@@ -3,18 +3,10 @@
 
 Usage: javadocErrorsToJUnit.py <maven-log> <output-xml>
 
-Two tools generate the Javadoc here, and each reports a failed run
-differently:
-
-- maven-javadoc-plugin (pure-Java modules) prints every problem of a
-  failed run as a block of header + source line + caret. Each line is
-  prefixed by Maven's [ERROR] marker, or by [WARNING] when the run had only
-  warnings. The header says "error:" or "warning:"; with failOnWarnings
-  both fail the build.
-- Dokka (mixed Java/Kotlin modules) logs each problem as a single
-  [WARNING] or [ERROR] line while it runs and only fails at the end, with
-  "Failed with warningCount=... and errorCount=...". Its messages name the
-  source file but not the line.
+maven-javadoc-plugin prints every problem of a failed run as a block of
+header + source line + caret. Each line is prefixed by Maven's [ERROR]
+marker, or by [WARNING] when the run had only warnings. The header says
+"error:" or "warning:"; with failOnWarnings both fail the build.
 
 The JUnit XML file has one testcase per problem, so the
 publish-unit-test-result-action in the test-results job surfaces them in
@@ -39,14 +31,6 @@ JAVADOC_PATTERN = re.compile(
 JAVADOC_START = re.compile(
     r'^\[INFO\] --- javadoc:\S+:jar .*@ (\S+) ---$', re.M)
 JAVADOC_FAILED = 'maven-javadoc-plugin:\\S+ .*on project {}: '
-
-DOKKA_START = re.compile(
-    r'^\[INFO\] --- dokka:\S+:javadocJar .*@ (\S+) ---$', re.M)
-DOKKA_FAILED = 'on project {}: .*Failed with warningCount='
-DOKKA_PROBLEM = re.compile(r'^\[(?:WARNING|ERROR)\] (.*)$')
-# The end of the Dokka run: the next plugin execution or the build result.
-DOKKA_END = re.compile(r'^\[INFO\] (?:--- |-{20,}$|BUILD )')
-DOKKA_SOURCE = re.compile(r'\bin ([\w$-]+\.(?:kt|java))/')
 
 
 def relativize(path, workspace):
@@ -91,51 +75,12 @@ def javadoc_problems(log, workspace):
                    f'{file_rel}:{line_no}: {msg}\n{src}\n{caret}')
 
 
-def find_source(name, root):
-    """Return the only file called name under root, or None."""
-    matches = []
-    for directory, subdirs, files in os.walk(root):
-        subdirs[:] = [d for d in subdirs
-                      if d not in ('target', 'node_modules')
-                      and not d.startswith('.')]
-        if name in files:
-            matches.append(os.path.join(directory, name))
-    return matches[0] if len(matches) == 1 else None
-
-
-def dokka_problems(log, workspace):
-    lines = log.splitlines()
-    for start in DOKKA_START.finditer(log):
-        # Maven reports the failed goal after the Dokka run has finished,
-        # so look for this project's failure in the rest of the log.
-        failed = DOKKA_FAILED.format(re.escape(start.group(1)))
-        if not re.search(failed, log[start.end():]):
-            continue
-        index = log.count('\n', 0, start.start()) + 1
-        messages = []
-        for line in lines[index:]:
-            if DOKKA_END.match(line):
-                break
-            problem = DOKKA_PROBLEM.match(line)
-            if problem:
-                messages.append(problem.group(1))
-        for msg in messages:
-            source = DOKKA_SOURCE.search(msg)
-            path = find_source(source.group(1), workspace or '.') \
-                if source else None
-            file_rel = relativize(os.path.abspath(path), workspace) \
-                if path else None
-            name = f'{file_rel}: {msg}' if file_rel else msg
-            yield (name, file_rel, None, msg, msg)
-
-
 def main(log_path, out_path):
     with open(log_path, encoding='utf-8', errors='replace') as f:
         log = f.read()
     workspace = os.environ.get('GITHUB_WORKSPACE', '')
 
     problems = list(javadoc_problems(log, workspace))
-    problems += dokka_problems(log, workspace)
     # javadoc can print the same problem more than once.
     problems = list(dict.fromkeys(problems))
     if not problems:
