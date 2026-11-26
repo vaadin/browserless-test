@@ -52,6 +52,6 @@ class ComponentDataProviderTest {
     @MethodSource("components")
     void getDataProvider_returnsTheComponentsDataProvider(Component component,
             DataProvider<?, ?> expected) {
-        assertSame(expected, GridKt.getDataProvider(component));
+        assertSame(expected, GridUtils.getDataProvider(component));
     }
 }
