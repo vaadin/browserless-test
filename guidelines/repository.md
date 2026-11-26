@@ -63,7 +63,7 @@ which `mvn install` at the root handles. When you build `shared` alone, include
 CI (`.github/workflows/validation.yml`) runs `spotless:apply` and fails if it
 changes anything, then `mvn clean install -DskipTests -Djavadocs`, then
 `mvn test`, and publishes the surefire reports. When the build fails on Javadoc,
-`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc or Dokka problem
+`.github/scripts/javadocErrorsToJUnit.py` turns each Javadoc problem
 into an annotation on the PR diff and a failed test in the published results.
 `formatter-suggestions.yml` posts the formatting changes as review suggestions
 on the pull request, also for forks.
@@ -83,7 +83,7 @@ Formatting is applied by `mvn spotless:apply` and validated by
 `eclipse/VaadinJavaConventions.xml`, the import order in
 `eclipse/flow.importorder`, the Apache 2 license header in
 `eclipse/apache2-license-header.txt`, no wildcard imports, and a trailing
-newline. Kotlin files get the license header check only.
+newline.
 
 ## Blast radius
 
