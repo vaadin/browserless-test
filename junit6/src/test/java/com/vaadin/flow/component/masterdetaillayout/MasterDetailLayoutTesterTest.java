@@ -242,6 +242,22 @@ class MasterDetailLayoutTesterTest extends BrowserlessTest {
     }
 
     @Test
+    void clickBackdrop_focusedFieldDisabled_firesClientEvent() {
+        TextField name = new TextField();
+        List<String> events = new ArrayList<>();
+        name.addBlurListener(e -> events.add("blur"));
+        view.layout.addBackdropClickListener(e -> events.add("backdrop-click"));
+        view.layout.setDetail(name);
+        test(name).focus();
+        name.setEnabled(false);
+
+        test(view.layout).clickBackdrop();
+
+        assertEquals(List.of("backdrop-click"), events,
+                "A disabled field gets no blur, but the click is still handled");
+    }
+
+    @Test
     void dismissDetail_noDetailSet_throws() {
         List<ComponentEvent<?>> events = new ArrayList<>();
         view.layout.addDetailEscapePressListener(events::add);

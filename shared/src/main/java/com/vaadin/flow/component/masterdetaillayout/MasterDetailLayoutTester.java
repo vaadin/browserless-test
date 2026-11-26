@@ -159,7 +159,11 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
                 ComponentTester<Component> tester = new ComponentTester<>(
                         component);
                 if (tester.isFocused()) {
-                    tester.blur();
+                    // A component disabled or hidden after it got focus does
+                    // not receive the blur event in a browser either
+                    if (tester.isUsable()) {
+                        tester.blur();
+                    }
                     return;
                 }
             }
