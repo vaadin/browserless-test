@@ -15,34 +15,38 @@
  */
 package com.vaadin.browserless;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import com.example.failedinit.FailedInitComponent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.Level;
 
-import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponent;
-import com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester;
+import com.vaadin.browserless.logging.LogCapture;
+import com.vaadin.browserless.logging.LogCapture.CapturedEvent;
 
 // Ensure that scanning testers does not fail when a tester references
-// a component class that is not present on the classpath.
+// a component class that is not present on the classpath. Skipping such a
+// tester is expected, e.g. for the Pro component testers when only
+// vaadin-core is on the classpath, so it is logged below the default level.
 public class TesterScanTest {
 
-    @Test
-    public void scanForTesters_testerForClassNotInClasspath_skipsClassWithoutWarning() {
-        // Loads a dummy tester annotated with @Tests for an existing component
-        // and, using an FQN, for a non-existing one. Skipping the missing one
-        // is expected, e.g. for the Pro component testers when only
-        // vaadin-core is on the classpath, so it is not a warning.
-        String log = captureStandardError(() -> Assertions
-                .assertDoesNotThrow(() -> TesterRegistry.registerPackages(
-                        "com.vaadin.browserless.dontscan.classnotfound")));
+    private static final String SKIPPED = "Skipping tester '%s' because a class it needs is not available: %s";
 
-        Assertions.assertEquals("", log);
-        Assertions.assertEquals(ClassNotFoundComponentTester.class,
-                TesterRegistry.resolve(ClassNotFoundComponent.class));
+    @Test
+    public void scanForTesters_testerForClassNotInClasspath_doNotThrowOnClassNotFoundException() {
+        // Loads a dummy tester annotated with @Tests for an existing component
+        // and, using an FQN, for a non-existing one.
+        CapturedEvent event = scanSingleEvent(
+                "com.vaadin.browserless.dontscan.classnotfound", Level.TRACE);
+
+        Assertions.assertEquals(Level.TRACE, event.level());
+        Assertions.assertEquals(SKIPPED.formatted(
+                "com.vaadin.browserless.dontscan.classnotfound.ClassNotFoundComponentTester",
+                "com.vaadin.browserless.dontscan.classnotfound.MissingComponent"),
+                event.message());
+        Assertions.assertInstanceOf(ClassNotFoundException.class,
+                event.throwable());
     }
 
     @Test
@@ -54,17 +58,18 @@ public class TesterScanTest {
         Assertions.assertThrows(LinkageError.class,
                 () -> Class.forName("com.example.failedinit.BrokenInit"));
 
-        String log = captureStandardError(
-                () -> Assertions.assertDoesNotThrow(() -> TesterRegistry
-                        .registerPackages("com.example.failedinit")));
+        CapturedEvent event = scanSingleEvent("com.example.failedinit",
+                Level.TRACE);
 
-        Assertions.assertTrue(log
-                .contains("WARN com.vaadin.browserless.TesterRegistry - Tester "
-                        + "'com.example.failedinit.FailedInitComponentTester'"
-                        + " cannot be loaded" + System.lineSeparator()
-                        + "java.lang.NoClassDefFoundError: Could not initialize class "
-                        + "com.example.failedinit.BrokenInit"),
-                log);
+        Assertions.assertEquals(Level.WARN, event.level());
+        Assertions.assertEquals(
+                "Tester 'com.example.failedinit.FailedInitComponentTester' cannot be loaded",
+                event.message());
+        Assertions.assertInstanceOf(NoClassDefFoundError.class,
+                event.throwable());
+        Assertions.assertEquals(
+                "Could not initialize class com.example.failedinit.BrokenInit",
+                event.throwable().getMessage());
         Assertions.assertEquals(ComponentTester.class,
                 TesterRegistry.resolve(FailedInitComponent.class));
     }
@@ -87,15 +92,17 @@ public class TesterScanTest {
                 "com.vaadin.browserless.dontscan.typenotpresent"));
     }
 
-    private static String captureStandardError(Runnable action) {
-        PrintStream originalErr = System.err;
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
-        try {
-            action.run();
-        } finally {
-            System.setErr(originalErr);
+    // Scans the package, expecting it to log exactly one event at the given
+    // level or above. A single event below INFO also shows that nothing is
+    // logged at the default level.
+    private static CapturedEvent scanSingleEvent(String pkg, Level level) {
+        try (LogCapture capture = LogCapture.start(TesterRegistry.class,
+                level)) {
+            Assertions.assertDoesNotThrow(
+                    () -> TesterRegistry.registerPackages(pkg));
+            List<CapturedEvent> events = capture.events();
+            Assertions.assertEquals(1, events.size(), events::toString);
+            return events.get(0);
         }
-        return err.toString(StandardCharsets.UTF_8);
     }
 }
