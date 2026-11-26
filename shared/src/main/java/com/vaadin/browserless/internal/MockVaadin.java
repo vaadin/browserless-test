@@ -36,6 +36,7 @@ import com.vaadin.browserless.BrowserlessConfiguration;
 import com.vaadin.browserless.BrowserlessTestSetupException;
 import com.vaadin.browserless.ExecutedJavaScript;
 import com.vaadin.browserless.JavaScriptDispatcher;
+import com.vaadin.browserless.TestSignalEnvironment;
 import com.vaadin.browserless.mocks.MockHttpSession;
 import com.vaadin.browserless.mocks.MockRequest;
 import com.vaadin.browserless.mocks.MockResponse;
@@ -777,6 +778,8 @@ public final class MockVaadin {
      * Calls the following:
      * <ul>
      * <li>{@link #runUIQueue()}</li>
+     * <li>{@link TestSignalEnvironment#runQueuedTasks()}, which runs the queued
+     * Signals effects, for example of a signal changed on another thread</li>
      * <li>{@link JavaScriptDispatcher#dispatch(UI)} which runs all blocks
      * scheduled via {@link UI#beforeClientResponse} and sends the pending
      * JavaScript to the simulated client, see {@link ExecutedJavaScript}</li>
@@ -793,6 +796,7 @@ public final class MockVaadin {
             throw new IllegalStateException("No VaadinSession");
         }
         runUIQueue();
+        TestSignalEnvironment.runQueuedTasks();
         JavaScriptDispatcher.dispatch(UI.getCurrent());
         TestingLifecycleHooks.cleanupDialogs();
     }
