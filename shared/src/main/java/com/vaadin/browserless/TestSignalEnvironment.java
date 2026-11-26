@@ -15,6 +15,8 @@
  */
 package com.vaadin.browserless;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +40,8 @@ import com.vaadin.flow.signals.SignalEnvironment;
  * that result notifications fall through to the next environment or run
  * immediately.</li>
  * <li>Tests call {@link #runPendingTasks(long, TimeUnit)} to dequeue and run
- * all pending tasks on the calling thread.</li>
+ * all pending tasks on the calling thread. Every simulated round trip also runs
+ * the tasks that are already queued, see {@link #runQueuedTasks()}.</li>
  * <li>If the current thread holds a {@link VaadinSession} lock, the lock is
  * temporarily released so that background threads have a chance of locking the
  * session.</li>
@@ -51,7 +54,8 @@ import com.vaadin.flow.signals.SignalEnvironment;
  * which confirms submitted commands through the effect dispatcher. Their writes
  * are therefore visible immediately, while the {@code SignalOperation} returned
  * by the write is only completed once the queued confirmation task is executed
- * by {@link #runPendingTasks(long, TimeUnit)}.
+ * by {@link #runPendingTasks(long, TimeUnit)} or by the next round trip, see
+ * {@link #runQueuedTasks()}.
  *
  * <p>
  * Usage:
@@ -76,10 +80,13 @@ import com.vaadin.flow.signals.SignalEnvironment;
 public class TestSignalEnvironment extends SignalEnvironment {
 
     /**
-     * The maximum number of pending tasks that {@link #unregister()} runs, so
-     * that a task that keeps submitting new ones cannot hang teardown.
+     * The maximum number of pending tasks that {@link #unregister()} and each
+     * {@link #runQueuedTasks()} run, so that a task that keeps submitting new
+     * ones cannot hang teardown or a round trip.
      */
     static final int MAX_TEARDOWN_TASKS = 10_000;
+
+    private static final List<TestSignalEnvironment> registered = new CopyOnWriteArrayList<>();
 
     private final LinkedBlockingQueue<Runnable> tasks = new LinkedBlockingQueue<>();
     private Runnable cleanup;
@@ -103,6 +110,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
     public static TestSignalEnvironment register() {
         TestSignalEnvironment environment = new TestSignalEnvironment();
         environment.cleanup = SignalEnvironment.registerFirst(environment);
+        registered.add(environment);
         return environment;
     }
 
@@ -145,6 +153,7 @@ public class TestSignalEnvironment extends SignalEnvironment {
             } finally {
                 cleanup.run();
                 cleanup = null;
+                registered.remove(this);
             }
         }
     }
@@ -192,6 +201,47 @@ public class TestSignalEnvironment extends SignalEnvironment {
                     MockVaadin.unlockRunningUIQueue(session);
                     session.lock();
                 }
+            }
+        }
+    }
+
+    /**
+     * Runs, on the calling thread, the tasks that are queued in every
+     * registered test environment, without waiting for more to arrive, as part
+     * of a simulated round trip.
+     * <p>
+     * This lets a signal changed on another thread or from another window
+     * update the components bound to it when the test next looks at the UI, as
+     * {@code UI.access()} does in a running application. Each task runs in its
+     * own hold of the current session lock, followed by
+     * {@link MockVaadin#runUIQueue()}, so that the task reads up-to-date signal
+     * values instead of the snapshot of the current lock hold, and so that a
+     * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
+     * UI.access()} command it queues runs right away and has its failure
+     * rethrown. The calling thread must therefore hold the lock of the current
+     * session exactly once. Tasks queued by the tasks that run, such as the
+     * effects of a confirmed shared signal write, are run too, up to a limit of
+     * {@value #MAX_TEARDOWN_TASKS} tasks; the rest stay queued and a warning is
+     * logged, so that a task that keeps queuing new ones cannot hang the test
+     * and is still noticed. A task that fails throws its exception to the
+     * caller as is, and the tasks after it stay queued.
+     * <p>
+     * For internal use only. May be renamed or removed in a future release.
+     */
+    public static void runQueuedTasks() {
+        for (TestSignalEnvironment environment : registered) {
+            int run = 0;
+            Runnable task;
+            while (run < MAX_TEARDOWN_TASKS
+                    && (task = environment.tasks.poll()) != null) {
+                run++;
+                task.run();
+                MockVaadin.runUIQueue();
+            }
+            if (run == MAX_TEARDOWN_TASKS && !environment.tasks.isEmpty()) {
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
+                        "Left pending Signals tasks queued after running {} of them in a round trip; a task probably keeps submitting new ones",
+                        MAX_TEARDOWN_TASKS);
             }
         }
     }
