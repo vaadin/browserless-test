@@ -389,14 +389,20 @@ public class ComponentTester<T extends Component> implements Clickable<T> {
     /**
      * Simulates a server round-trip: runs the tasks queued with
      * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
-     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
-     * pending component changes, as a real client response would. Dialogs that
-     * are no longer opened are removed from the UI, as after a lookup.
+     * UI.access()} and the queued Signals effects, such as those of a signal
+     * changed on another thread, runs the {@code beforeClientResponse}
+     * callbacks and flushes pending component changes, as a real client
+     * response would. Dialogs that are no longer opened are removed from the
+     * UI, as after a lookup.
      * <p>
      * Only tasks that are already queued are run, so a test of a background
-     * thread must first wait for that thread to call {@code access()}. If a
-     * queued task fails, its exception is rethrown wrapped in an
-     * {@link java.util.concurrent.ExecutionException}.
+     * thread must first wait for that thread to call {@code access()} or to
+     * change the signal; {@code runPendingSignalsTasks(long, TimeUnit)} waits
+     * for Signals tasks that have not arrived yet. If a queued
+     * {@code UI.access()} task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}. If a Signals task fails,
+     * its exception is thrown as is and the round trip stops there, leaving the
+     * remaining tasks queued, as with {@code runPendingSignalsTasks()}.
      */
     protected void roundTrip() {
         BaseBrowserlessTest.roundTrip();

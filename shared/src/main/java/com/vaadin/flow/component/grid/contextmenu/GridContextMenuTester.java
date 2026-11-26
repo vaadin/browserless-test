@@ -101,7 +101,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      *
      * @throws IllegalStateException
      *             if the menu does not target a row, if it is already open, or
-     *             if a dynamic content handler prevented it from opening
+     *             if a dynamic content handler or provider prevented it from
+     *             opening
      */
     public void open() {
         if (targetRow == null) {
@@ -125,7 +126,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      *            row to open the menu on
      * @throws IllegalStateException
      *             if the menu is already open, or if a dynamic content handler
-     *             prevented it from opening
+     *             or provider prevented it from opening
      * @throws IndexOutOfBoundsException
      *             if the grid has no such row
      */
@@ -138,7 +139,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * asked for it in the browser.
      * <p>
      * The column is reported by
-     * {@code GridContextMenuOpenedEvent.getColumnId()}.
+     * {@code GridContextMenuOpenedEvent.getColumnId()}, and to a dynamic
+     * content provider as {@code DynamicContentContext.column()}.
      *
      * @param row
      *            row to open the menu on, 0 based
@@ -149,7 +151,8 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      *             if the grid has no column with the given key
      * @throws IllegalStateException
      *             if the column is not visible, if the menu is already open, or
-     *             if a dynamic content handler prevented it from opening
+     *             if a dynamic content handler or provider prevented it from
+     *             opening
      * @throws IndexOutOfBoundsException
      *             if the grid has no such row
      */
@@ -163,11 +166,11 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
         String columnId = columnKey == null ? null
                 : GridContextMenuSupport.getColumnInternalId(grid, columnKey);
         GridContextMenuSupport.setTargetItem(grid, itemKey, columnId);
-        requestMenu(itemKey);
+        requestMenu(itemKey, columnId);
         roundTrip();
         if (!getComponent().isAttached()) {
             throw new IllegalStateException(
-                    "Context menu did not open. Its dynamic content handler returned false for the target row.");
+                    "Context menu did not open. Its dynamic content handler or provider returned false for the target row.");
         }
         ensureComponentIsUsableOrDetach();
         // opened is a synchronized property, so pushing it through the
@@ -380,7 +383,7 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
      * <p>
      * The menu has to be open, since its items are not part of the UI before
      * that. The items are the ones the menu offers for the row it was opened
-     * on, so a dynamic content handler has run by then.
+     * on, so a dynamic content handler or provider has run by then.
      *
      * <pre>
      * {@code
@@ -497,12 +500,18 @@ public class GridContextMenuTester<T extends GridContextMenu<Y>, Y>
 
     /**
      * Fires the DOM event the grid sends when the user asks for the context
-     * menu. It attaches the menu to the UI, unless a dynamic content handler
-     * decides that the menu should not open for the target row.
+     * menu. It attaches the menu to the UI, unless a dynamic content handler or
+     * provider decides that the menu should not open for the target row.
+     * <p/>
+     * Like the browser, it always reports the column, with an empty id when
+     * there is none: a dynamic content provider reads the column without a
+     * check.
      */
-    private void requestMenu(String itemKey) {
+    private void requestMenu(String itemKey, String columnInternalId) {
         ObjectNode detail = JacksonUtils.createObjectNode();
         detail.put("key", itemKey);
+        detail.put("internalColumnId",
+                columnInternalId == null ? "" : columnInternalId);
         ObjectNode eventData = JacksonUtils.createObjectNode();
         eventData.set("event.detail", detail);
         fireDomEvent(new DomEvent(getGrid().getElement(),
