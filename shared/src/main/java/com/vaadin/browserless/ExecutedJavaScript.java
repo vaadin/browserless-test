@@ -234,9 +234,8 @@ public final class ExecutedJavaScript implements Serializable {
      * cleared, and until it was stopped, in the order the browser received it,
      * whichever element it was run on; {@link #getExecutions(Component)} and
      * {@link #getExecutions(Element)} keep only what was run on one element,
-     * and {@link #getExecutions(Class, Consumer)} and
-     * {@link #getExecutions(Class, String)} only the calls of one method of a
-     * JavaScript definition.
+     * and {@link #getExecutions(Class, Consumer)} only the calls of one method
+     * of a JavaScript definition.
      *
      * @return the sent JavaScript, not null
      */
@@ -284,29 +283,7 @@ public final class ExecutedJavaScript implements Serializable {
                 .toList();
     }
 
-    /**
-     * Gets what was sent to the browser for the calls of one method of a
-     * JavaScript definition, the interface that
-     * {@code Element.executeJs(Class)} is called with, in the order the browser
-     * received it. Each execution has the call itself
-     * ({@link Execution#getJsCall()}) and can be answered the way the browser
-     * would, with {@link Execution#resolve(Object)} or
-     * {@link Execution#reject(String)}, for a call whose result the application
-     * waits for. Unlike {@link #getExecutions()}, everything else is left out.
-     * <p>
-     * The method is named as a string, so a misspelled or renamed name matches
-     * nothing rather than failing; {@link #getExecutions(Class, Consumer)}
-     * names it by calling it, which the compiler checks.
-     *
-     * @param definitionType
-     *            the JavaScript definition, not null
-     * @param methodName
-     *            the name of the called method, not null
-     * @return the executions of the calls, not null
-     * @see #getExecutions(Class, Consumer)
-     * @see #getCalls(Class, String)
-     */
-    public List<Execution> getExecutions(Class<?> definitionType,
+    private List<Execution> getExecutionsOfMethod(Class<?> definitionType,
             String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(methodName, "methodName");
@@ -351,12 +328,11 @@ public final class ExecutedJavaScript implements Serializable {
      * @throws IllegalArgumentException
      *             if the type is not a JavaScript definition, or if
      *             {@code method} does not call exactly one method of it
-     * @see #getExecutions(Class, String)
      * @see #getCalls(Class, Consumer)
      */
     public <T extends JsInvokers> List<Execution> getExecutions(
             Class<T> definitionType, Consumer<T> method) {
-        return getExecutions(definitionType,
+        return getExecutionsOfMethod(definitionType,
                 getCalledMethodName(definitionType, method));
     }
 
@@ -364,7 +340,7 @@ public final class ExecutedJavaScript implements Serializable {
      * Gets the calls of one method of a JavaScript definition, the interface
      * that {@code Element.executeJs(Class)} is called with, that were sent to
      * the browser, in the order the browser received them. To answer a call,
-     * use {@link #getExecutions(Class, String)} instead.
+     * use {@link #getExecutions(Class, Consumer)} instead.
      * <p>
      * The method is named as a string, so a misspelled or renamed name matches
      * nothing rather than failing; {@link #getCalls(Class, Consumer)} names it
@@ -378,7 +354,7 @@ public final class ExecutedJavaScript implements Serializable {
      * @see #getCalls(Class, Consumer)
      */
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
-        return getExecutions(definitionType, methodName).stream()
+        return getExecutionsOfMethod(definitionType, methodName).stream()
                 .map(execution -> execution.getJsCall().orElseThrow()).toList();
     }
 
