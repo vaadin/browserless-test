@@ -616,12 +616,25 @@ override.
 
 Signal effects and shared-signal confirmations are not executed on a background
 thread pool in a browserless test. They are queued, so that a test can decide
-when they run, and are executed on the test thread by
-`runPendingSignalsTasks()` (also available as
+when they run, and are executed on the test thread by every round trip — a
+component lookup, `roundTrip()`, or a tester action that ends with a round
+trip — the same way as tasks queued with `UI.access()`. To wait for tasks that
+have not been queued yet, call `runPendingSignalsTasks()` (also available as
 `window.runPendingSignalsTasks()` in the multi-window API and on the JUnit
 extension).
 
 ### Effects triggered outside the UI thread
+
+When the background work has already finished, the next round trip runs its
+effects:
+
+```java
+CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0)).join();
+roundTrip();
+assertEquals("Counter: 10", view.counter.getText());
+```
+
+When it may still be running, wait for it:
 
 ```java
 CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0));
@@ -636,7 +649,8 @@ A write to a `SharedValueSignal`, `SharedListSignal`,
 is visible through `peek()` straight away. The `SignalOperation`
 returned by the write is completed only when the underlying signal tree
 confirms the command, and that confirmation is dispatched through the same
-queue — so it completes on the next `runPendingSignalsTasks()`:
+queue — so it completes on the next round trip or
+`runPendingSignalsTasks()`:
 
 ```java
 var operation = tickets.insertLast("a ticket");
@@ -664,6 +678,16 @@ too. A task that fails is logged and skipped. The tasks run
 one after another on the test thread, so a task must not block waiting for
 another one — an effect that calls `signal.update(...).result().join()` hangs
 teardown, outside the reach of `@Timeout`.
+
+### Parallel test execution
+
+Flow registers signal environments for the whole JVM, and signal tasks go to
+the test environment registered last. Tests that use signals therefore share
+one queue when they run in parallel in the same JVM: a round trip in one test
+can run the effects of another test, and `runPendingSignalsTasks()` can miss the
+test's own effects. Keep such tests from overlapping, for example with JUnit's
+`@Isolated` or the same `@ResourceLock` on every test class that uses signals,
+or run them in a separate fork.
 
 ## Focus and blur
 
