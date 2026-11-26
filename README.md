@@ -616,12 +616,25 @@ override.
 
 Signal effects and shared-signal confirmations are not executed on a background
 thread pool in a browserless test. They are queued, so that a test can decide
-when they run, and are executed on the test thread by
-`runPendingSignalsTasks()` (also available as
+when they run, and are executed on the test thread by every round trip — a
+component lookup, `roundTrip()`, or a tester action that ends with a round
+trip — the same way as tasks queued with `UI.access()`. To wait for tasks that
+have not been queued yet, call `runPendingSignalsTasks()` (also available as
 `window.runPendingSignalsTasks()` in the multi-window API and on the JUnit
 extension).
 
 ### Effects triggered outside the UI thread
+
+When the background work has already finished, the next round trip runs its
+effects:
+
+```java
+CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0)).join();
+roundTrip();
+assertEquals("Counter: 10", view.counter.getText());
+```
+
+When it may still be running, wait for it:
 
 ```java
 CompletableFuture.runAsync(() -> counterSignal.incrementBy(10.0));
@@ -636,7 +649,8 @@ A write to a `SharedValueSignal`, `SharedListSignal`,
 is visible through `peek()` straight away. The `SignalOperation`
 returned by the write is completed only when the underlying signal tree
 confirms the command, and that confirmation is dispatched through the same
-queue — so it completes on the next `runPendingSignalsTasks()`:
+queue — so it completes on the next round trip or
+`runPendingSignalsTasks()`:
 
 ```java
 var operation = tickets.insertLast("a ticket");
@@ -664,6 +678,16 @@ too. A task that fails is logged and skipped. The tasks run
 one after another on the test thread, so a task must not block waiting for
 another one — an effect that calls `signal.update(...).result().join()` hangs
 teardown, outside the reach of `@Timeout`.
+
+### Parallel test execution
+
+Flow registers signal environments for the whole JVM, and signal tasks go to
+the test environment registered last. Tests that use signals therefore share
+one queue when they run in parallel in the same JVM: a round trip in one test
+can run the effects of another test, and `runPendingSignalsTasks()` can miss the
+test's own effects. Keep such tests from overlapping, for example with JUnit's
+`@Isolated` or the same `@ResourceLock` on every test class that uses signals,
+or run them in a separate fork.
 
 ## Focus and blur
 
@@ -761,14 +785,15 @@ with parameters are ignored, so any value will do. A method without
 parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
 `getCalls(definitionType, methodName)` overload takes the name as a string.
 
-`getAll()` lists everything that was sent, in order, with the element it ran
-on and, for a call of a JavaScript definition, the call itself (`getJsCall()`),
-which is what to check for such calls. The expression and parameters are in
-the form Flow sends them: a string run on an element with `executeJs` is
-wrapped so that it runs with the element as `this`, so check it with
-`contains(...)`, and the element is added as its last parameter.
-`getAll(component)` and `getAll(element)` keep only what was run on that
-element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
+`getExecutions()` lists everything that was sent, in order, with the element
+it ran on and, for a call of a JavaScript definition, the call itself
+(`getJsCall()`), which is what to check for such calls. The expression and
+parameters are in the form Flow sends them: a string run on an element with
+`executeJs` is wrapped so that it runs with the element as `this`, so check it
+with `contains(...)`, and the element is added as its last parameter.
+`getExecutions(component)` and `getExecutions(element)` keep only what was run
+on that element; JavaScript run on the page belongs to the UI, so
+`getExecutions(ui)` gets it.
 
 Each UI also has a capture of its own, started when the UI is created, so
 it holds everything that UI was sent, including what the first view sent
@@ -811,10 +836,46 @@ JavaScript whose result the application waits for, with `then(...)` or
 ExecutedJavaScript executed = ExecutedJavaScript.capture();
 view.showTimeZone();                  // calls executeJs(...).then(...)
 
-ExecutedJavaScript.Execution execution = executed.getAll().getLast();
+ExecutedJavaScript.Execution execution = executed.getExecutions().getLast();
 execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
+
+A return channel passed to the JavaScript, such as a
+`ReturnChannelRegistration` given to `executeJs(...)`, can be called the way
+the JavaScript would call it in the browser:
+
+```java
+ExecutedJavaScript executed = ExecutedJavaScript.capture();
+view.listenToResize();                // calls executeJs("...", channel)
+
+executed.getExecutions().getLast().invokeReturnChannel(800, 600);
+```
+
+The call fails where Flow would ignore the message: when the channel was
+removed, or its element is detached, hidden, or disabled and the channel does
+not accept updates while disabled. `invokeReturnChannelAt(index, ...)` picks
+one channel by its parameter index when the JavaScript received several.
+
+When the browser calls the channel on its own as soon as the JavaScript runs,
+a [`JavaScriptHandler`](#answering-javascript-like-the-browser) can call it
+live, so the test does not have to:
+
+```java
+public class ClipboardAllowed implements JavaScriptHandler {
+    @Override
+    public void handle(ExecutedJavaScript.Execution execution) {
+        // executeJs("navigator.clipboard.writeText($0).then(() => $1(true))",
+        //         text, channel)
+        if (execution.getExpression().contains("navigator.clipboard.writeText")) {
+            execution.invokeReturnChannel(true);
+        }
+    }
+}
+```
+
+JavaScript that the channel's handler schedules is then sent at the next
+client boundary.
 
 ### Answering JavaScript like the browser
 

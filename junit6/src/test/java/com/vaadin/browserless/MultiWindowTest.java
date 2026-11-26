@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +31,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelMap;
+import com.vaadin.flow.internal.nodefeature.ReturnChannelRegistration;
 
 /**
  * Tests multi-window scenarios: one user with multiple windows sharing a
@@ -93,7 +96,7 @@ class MultiWindowTest {
         UI ui = window.getUI();
         ExecutedJavaScript executed = ExecutedJavaScript.capture(ui);
         ui.getElement().callJsFunction("render");
-        Assertions.assertEquals(1, executed.getAll().size());
+        Assertions.assertEquals(1, executed.getExecutions().size());
         ui.getElement().callJsFunction("late");
 
         // Closing the window removes its UI from the session
@@ -101,12 +104,40 @@ class MultiWindowTest {
         Assertions.assertNull(ui.getSession());
 
         Assertions.assertEquals(List.of("render"),
-                executed.getAll().stream()
-                        .map(execution -> execution.getJsCall().orElseThrow()
-                                .arguments().get(0))
-                        .toList(),
+                executed.getExecutions().stream().map(execution -> execution
+                        .getJsCall().orElseThrow().arguments().get(0)).toList(),
                 "A closed UI's capture should keep what was sent, and nothing more should be sent");
         Assertions.assertDoesNotThrow(executed::stop);
+    }
+
+    @Test
+    void invokeReturnChannel_requiresTheWindowOfItsUIToBeActive() {
+        var user = app.newUser();
+        var windowA = user.newWindow();
+        var windowB = user.newWindow();
+        windowA.activate();
+        UI uiA = windowA.getUI();
+        List<UI> handledIn = new ArrayList<>();
+        ReturnChannelRegistration channel = uiA.getElement().getNode()
+                .getFeature(ReturnChannelMap.class)
+                .registerChannel(arguments -> handledIn.add(UI.getCurrent()));
+        ExecutedJavaScript executed = ExecutedJavaScript.capture(uiA);
+        uiA.getElement().executeJs("this.listen($0)", channel);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
+
+        windowB.activate();
+        IllegalStateException refused = Assertions.assertThrows(
+                IllegalStateException.class, execution::invokeReturnChannel);
+        Assertions.assertTrue(
+                refused.getMessage().contains("is not the current UI"),
+                refused.getMessage());
+        Assertions.assertEquals(List.of(), handledIn,
+                "The channel should not run in another window");
+
+        windowA.activate();
+        execution.invokeReturnChannel();
+        Assertions.assertEquals(List.of(uiA), handledIn);
     }
 
     @Test
