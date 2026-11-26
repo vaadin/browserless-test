@@ -671,14 +671,20 @@ public abstract class BaseBrowserlessTest {
     /**
      * Simulates a server round-trip: runs the tasks queued with
      * {@link com.vaadin.flow.component.UI#access(com.vaadin.flow.server.Command)
-     * UI.access()}, runs the {@code beforeClientResponse} callbacks and flushes
-     * pending component changes, as a real client response would. Dialogs that
-     * are no longer opened are removed from the UI, as after a lookup.
+     * UI.access()} and the queued Signals effects, such as those of a signal
+     * changed on another thread, runs the {@code beforeClientResponse}
+     * callbacks and flushes pending component changes, as a real client
+     * response would. Dialogs that are no longer opened are removed from the
+     * UI, as after a lookup.
      * <p>
      * Only tasks that are already queued are run, so a test of a background
-     * thread must first wait for that thread to call {@code access()}. If a
-     * queued task fails, its exception is rethrown wrapped in an
-     * {@link java.util.concurrent.ExecutionException}.
+     * thread must first wait for that thread to call {@code access()} or to
+     * change the signal; {@code runPendingSignalsTasks(long, TimeUnit)} waits
+     * for Signals tasks that have not arrived yet. If a queued
+     * {@code UI.access()} task fails, its exception is rethrown wrapped in an
+     * {@link java.util.concurrent.ExecutionException}. If a Signals task fails,
+     * its exception is thrown as is and the round trip stops there, leaving the
+     * remaining tasks queued, as with {@code runPendingSignalsTasks()}.
      */
     protected static void roundTrip() {
         BrowserlessDSL.roundTrip(UI.getCurrent());
@@ -693,7 +699,11 @@ public abstract class BaseBrowserlessTest {
      * When Signals are triggered from background threads or non-UI contexts,
      * their effects are enqueued to simulate asynchronous processing. This
      * method allows tests to flush and execute all such pending tasks
-     * synchronously, ensuring deterministic behavior in unit tests.
+     * synchronously, ensuring deterministic behavior in unit tests. Tasks that
+     * are already queued are also run by every round trip, such as
+     * {@link #roundTrip()} or a component lookup; this method is needed to wait
+     * for tasks of background work that has not finished yet, or to run the
+     * queue without a round trip.
      *
      * <p>
      * If any {@link VaadinSession} lock is held by the current thread, it is
@@ -705,10 +715,11 @@ public abstract class BaseBrowserlessTest {
      * {@code SharedValueSignal} or {@code SharedListSignal}) is dispatched
      * through the same queue. The new value is visible immediately through
      * {@code peek()}, but the {@code SignalOperation} returned by the write
-     * only completes once the queued confirmation task has been run by this
-     * method. Blocking on {@code operation.result().get()} without draining the
-     * queue first never completes, because the confirmation task can only run
-     * on the thread that calls this method:
+     * only completes once the queued confirmation task has been run, by this
+     * method or by the next round trip. Blocking on
+     * {@code operation.result().get()} without draining the queue first never
+     * completes, because the confirmation task can only run on the test thread
+     * that drains the queue:
      *
      * <pre>{@code
      * var operation = tickets.insertLast("a ticket");
