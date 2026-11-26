@@ -53,6 +53,11 @@ class MockRequestTest : DynaTest({
         expectList("bar", "baz") { request.getParameterValues("foo")!!.toList() }
     }
 
+    test("parameter names keep insertion order") {
+        listOf("zeta", "beta", "alpha").forEach { request.setParameter(it, "x") }
+        expectList("zeta", "beta", "alpha") { request.parameterNames.toList() }
+    }
+
     test("getSession(false) returns null once the session is invalidated") {
         // Mirrors the servlet container contract: after invalidation there is
         // no current session, so getSession(false) must return null rather than
@@ -126,13 +131,28 @@ class MockRequestTest : DynaTest({
         expect(MockPrincipal("foo")) { request.userPrincipal }
     }
 
+    test("principal provider takes precedence, falls back when it returns null") {
+        request.userPrincipalInt = MockPrincipal("foo")
+        request.principalProvider { MockPrincipal("bar", listOf("admin")) }
+        expect(MockPrincipal("bar", listOf("admin"))) { request.userPrincipal }
+        request.setUserInRole { p, r -> (p as MockPrincipal).isUserInRole(r) }
+        expect(true) { request.isUserInRole("admin") }
+        request.principalProvider { null }
+        expect(MockPrincipal("foo")) { request.userPrincipal }
+        expect(false) { request.isUserInRole("admin") }
+    }
+
     test("isUserInRole") {
         expect(false) { request.isUserInRole("foo") }
         request.userPrincipalInt = MockPrincipal("foo")
         expect(false) { request.isUserInRole("foo") }
         request.userPrincipalInt = MockPrincipal("foo", listOf("foo"))
         expect(false) { request.isUserInRole("foo") }
-        request.isUserInRole = { p, r -> (p as MockPrincipal).isUserInRole(r) }
+        request.isUserInRole = java.util.function.BiPredicate { p, r -> (p as MockPrincipal).isUserInRole(r) }
         expect(true) { request.isUserInRole("foo") }
+        @Suppress("DEPRECATION")
+        request.roleChecker { _, r -> r == "bar" }
+        expect(true) { request.isUserInRole("bar") }
+        expect(false) { request.isUserInRole("foo") }
     }
 })

@@ -80,7 +80,11 @@ private class OtherFakeServiceImpl : FakeService
 private interface NoDefaultService
 
 private class TestInitializer(
-        override val additionalServices: Map<KClass<*>, KClass<*>>
+        services: Map<KClass<*>, KClass<*>>
 ) : MockVaadinHelper.BrowserlessLookupInitializer() {
+    init {
+        additionalServices = services.entries.associate { it.key.java to it.value.java }
+    }
+
     public override fun getServiceTypes(): Collection<Class<*>?> = super.getServiceTypes()
 }
