@@ -144,7 +144,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertEquals(
                 List.of("focus " + field.getElement(),
                         "blur " + button.getElement()),
-                executed.getAll().stream().filter(execution -> execution
+                executed.getExecutions().stream().filter(execution -> execution
                         .getJsCall()
                         .filter(call -> call
                                 .definitionType() == Focusable.FocusJs.class)
@@ -241,7 +241,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         calendar.getElement().executeJs("return this.childElementCount")
                 .then(Integer.class, result::set);
 
-        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
         Assertions.assertTrue(execution.isWaitingForResult());
         execution.resolve(3);
 
@@ -260,7 +261,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 value -> Assertions.fail("Should not succeed"), error::set);
         calendar.getElement().executeJs("this.render()");
 
-        List<ExecutedJavaScript.Execution> executions = executed.getAll();
+        List<ExecutedJavaScript.Execution> executions = executed
+                .getExecutions();
         executions.get(0).reject("missing is not a function");
 
         Assertions.assertEquals("missing is not a function", error.get());
@@ -321,7 +323,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 view -> calendar.getElement().callJsFunction("render", view));
         calendar.getElement().callJsFunction("refresh");
 
-        ExecutedJavaScript.Execution viewRequest = executed.getAll().get(0);
+        ExecutedJavaScript.Execution viewRequest = executed.getExecutions()
+                .get(0);
         calendar.getElement().callJsFunction("highlight");
         executed.clear();
         viewRequest.resolve("week");
@@ -333,7 +336,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     @Test
-    void getAllForElement_keepsOnlyItsJavaScript_withExpressionAndParameters() {
+    void getExecutionsForElement_keepsOnlyItsJavaScript_withExpressionAndParameters() {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.render($0)", 5);
         field.getElement().executeJs("this.select()");
@@ -341,12 +344,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         calendar.getElement().executeJs(OtherFocusJs.class).focus();
 
         List<ExecutedJavaScript.Execution> onCalendar = executed
-                .getAll(calendar);
+                .getExecutions(calendar);
         Assertions.assertEquals(2, onCalendar.size(), onCalendar.toString());
         Assertions.assertEquals(OtherFocusJs.class,
                 onCalendar.get(1).getJsCall().orElseThrow().definitionType());
         Assertions.assertEquals(onCalendar,
-                executed.getAll(calendar.getElement()));
+                executed.getExecutions(calendar.getElement()));
 
         ExecutedJavaScript.Execution onElement = onCalendar.get(0);
         Assertions.assertTrue(
@@ -356,7 +359,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 onElement.getParameters());
 
         List<ExecutedJavaScript.Execution> onUI = executed
-                .getAll(UI.getCurrent());
+                .getExecutions(UI.getCurrent());
         Assertions.assertEquals(1, onUI.size(), onUI.toString());
         ExecutedJavaScript.Execution onPage = onUI.get(0);
         Assertions.assertEquals("window.render($0)", onPage.getExpression());
@@ -374,7 +377,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.listen($0, $1)", "change",
                 channel);
-        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
         // Records what the client gets without sending anything itself, as
         // querying the capture would
         List<List<Object>> sent = new ArrayList<>();
@@ -408,7 +412,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 arguments -> received.add("second"));
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         calendar.getElement().executeJs("this.listen($0, $1)", first, second);
-        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
 
         Assertions.assertThrows(IllegalStateException.class,
                 () -> execution.invokeReturnChannel("x"));
@@ -421,7 +426,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 () -> execution.invokeReturnChannelAt(-1, "x"));
         calendar.getElement().executeJs("this.listen($0)", "change");
         Assertions.assertThrows(IllegalStateException.class,
-                () -> executed.getAll().get(1).invokeReturnChannel("x"),
+                () -> executed.getExecutions().get(1).invokeReturnChannel("x"),
                 "Nothing to invoke without a channel");
         execution.invokeReturnChannelAt(1);
 
@@ -435,7 +440,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                 arguments -> received.add(arguments.toString()));
         ExecutedJavaScript executed = ExecutedJavaScript.capture();
         button.getElement().executeJs("this.listen($0)", channel);
-        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
 
         // As in Flow, a registered channel reaches an element behind a modal
         Div dialog = new Div();
@@ -464,7 +470,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         ReturnChannelRegistration other = registerChannel(button,
                 arguments -> received.add(arguments.toString()));
         button.getElement().executeJs("this.listen($0)", other);
-        ExecutedJavaScript.Execution later = executed.getAll().get(1);
+        ExecutedJavaScript.Execution later = executed.getExecutions().get(1);
         button.getElement().removeFromParent();
         assertRefused("is not attached",
                 () -> later.invokeReturnChannel("detached"));
@@ -487,8 +493,8 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
     }
 
     private static List<Object> functionNames(ExecutedJavaScript executed) {
-        return executed.getAll().stream().map(execution -> execution.getJsCall()
-                .orElseThrow().arguments().get(0)).toList();
+        return executed.getExecutions().stream().map(execution -> execution
+                .getJsCall().orElseThrow().arguments().get(0)).toList();
     }
 
     @Test

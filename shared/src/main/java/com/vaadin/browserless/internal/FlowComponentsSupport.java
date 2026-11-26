@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.vaadin.browserless.component.GridKt;
+import com.vaadin.browserless.component.GridUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.button.Button;
@@ -50,6 +50,12 @@ import com.vaadin.flow.dom.Element;
  * This is internal API and may change without notice.
  */
 public class FlowComponentsSupport implements ComponentSupport {
+
+    /**
+     * Creates the support; looked up through the service loader.
+     */
+    public FlowComponentsSupport() {
+    }
 
     @Override
     public List<Component> getAllChildren(Component component) {
@@ -136,7 +142,7 @@ public class FlowComponentsSupport implements ComponentSupport {
 
     @Override
     public DataProvider<?, ?> getDataProvider(Component component) {
-        return GridKt.getDataProvider(component);
+        return GridUtils.getDataProvider(component);
     }
 
     @Override
