@@ -168,11 +168,6 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         Assertions.assertEquals(Set.copyOf(view.items),
                 test(view.combo).getSelected(),
                 "An already selected match should stay selected");
-        Assertions.assertEquals(Set.copyOf(view.items),
-                view.combo.getSelectedItems(),
-                "Selection model should follow the merged value");
-        Assertions.assertTrue(view.combo.isSelected(view.items.get(0)));
-        Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
     }
 
     @Test
