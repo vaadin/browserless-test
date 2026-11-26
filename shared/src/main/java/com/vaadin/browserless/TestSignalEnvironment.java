@@ -54,7 +54,8 @@ import com.vaadin.flow.signals.SignalEnvironment;
  * which confirms submitted commands through the effect dispatcher. Their writes
  * are therefore visible immediately, while the {@code SignalOperation} returned
  * by the write is only completed once the queued confirmation task is executed
- * by {@link #runPendingTasks(long, TimeUnit)}.
+ * by {@link #runPendingTasks(long, TimeUnit)} or by the next round trip, see
+ * {@link #runQueuedTasks()}.
  *
  * <p>
  * Usage:
@@ -220,10 +221,10 @@ public class TestSignalEnvironment extends SignalEnvironment {
      * rethrown. The calling thread must therefore hold the lock of the current
      * session exactly once. Tasks queued by the tasks that run, such as the
      * effects of a confirmed shared signal write, are run too, up to a limit of
-     * {@value #MAX_TEARDOWN_TASKS} tasks; the rest stay queued, so that a task
-     * that keeps queuing new ones cannot hang the test. A task that fails
-     * throws its exception to the caller as is, and the tasks after it stay
-     * queued.
+     * {@value #MAX_TEARDOWN_TASKS} tasks; the rest stay queued and a warning is
+     * logged, so that a task that keeps queuing new ones cannot hang the test
+     * and is still noticed. A task that fails throws its exception to the
+     * caller as is, and the tasks after it stay queued.
      * <p>
      * For internal use only. May be renamed or removed in a future release.
      */
@@ -234,6 +235,11 @@ public class TestSignalEnvironment extends SignalEnvironment {
                     && (task = environment.tasks.poll()) != null; run++) {
                 task.run();
                 MockVaadin.runUIQueue();
+            }
+            if (!environment.tasks.isEmpty()) {
+                LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
+                        "Left pending Signals tasks queued after running {} of them in a round trip; a task probably keeps submitting new ones",
+                        MAX_TEARDOWN_TASKS);
             }
         }
     }
