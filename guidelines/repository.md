@@ -5,7 +5,7 @@
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
 - **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
   fixed version per branch — see [Flow Version](flow-version.md).
-- **Kotlin** for the older mocks and the Grid helpers in `shared/src/main/kotlin`.
+- **Kotlin** for the Grid helpers in `shared/src/main/kotlin`.
   New code is Java; the Kotlin is being ported over time.
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
   own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
@@ -46,7 +46,7 @@ modules that declare testers.
   `Locator`, `Locators`, `CommercialLocators` and the `Has*Filter` mixins. The
   `*Locator` classes themselves are generated into
   `target/generated-sources/annotations`.
-- **The mocks** live in `com.vaadin.browserless.mocks` (Kotlin):
+- **The mocks** live in `com.vaadin.browserless.mocks` (Java):
   `MockService`, `MockVaadinServlet`, `MockRequest`, `MockResponse`,
   `MockHttpSession`, `MockedUI`.
 - **Internal helpers** live in `com.vaadin.browserless.internal` (Java):

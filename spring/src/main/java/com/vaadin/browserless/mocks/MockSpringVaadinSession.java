@@ -33,24 +33,26 @@ import com.vaadin.flow.server.VaadinSession;
  * {@link MockVaadin#afterSessionClose}.</li>
  * </ul>
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringVaadinSession extends VaadinSession {
     /**
-     * Creates the UI for the new session that replaces this one when it is
-     * closed.
+     * Creates the UI of the session that replaces this one once it is closed.
      */
     private final @NonNull UIFactory uiFactory;
 
     /**
-     * Creates a new mocked Spring Vaadin session.
+     * Creates the session.
      *
      * @param service
-     *            the Vaadin service the session belongs to
+     *            the service the session belongs to
      * @param uiFactory
-     *            creates the UI for the new session that replaces this one when
-     *            it is closed
+     *            creates the UI of the session that replaces this one once it
+     *            is closed
      */
     public MockSpringVaadinSession(@NonNull VaadinService service,
             @NonNull UIFactory uiFactory) {
