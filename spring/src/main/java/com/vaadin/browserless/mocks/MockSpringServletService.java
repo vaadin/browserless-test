@@ -36,26 +36,30 @@ import com.vaadin.flow.spring.SpringVaadinServletService;
  * </ul>
  * The class is intentionally opened, to be extensible in user's library.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringServletService extends SpringVaadinServletService {
     /**
-     * Creates the UI for every new session.
+     * Creates the UI of the session that replaces a closed session of this
+     * service.
      */
     private final @NonNull UIFactory uiFactory;
 
     /**
-     * Creates a new mocked Spring servlet service.
+     * Creates the service.
      *
      * @param servlet
-     *            the mocked servlet the service belongs to
+     *            the servlet the service belongs to
      * @param deploymentConfiguration
-     *            the deployment configuration of the servlet
+     *            the deployment configuration to use
      * @param ctx
-     *            the Spring application context
+     *            the Spring context the views are instantiated from
      * @param uiFactory
-     *            creates the UI for every new session
+     *            creates the UI of the session that replaces a closed session
      */
     public MockSpringServletService(@NonNull MockSpringServlet servlet,
             @NonNull DeploymentConfiguration deploymentConfiguration,

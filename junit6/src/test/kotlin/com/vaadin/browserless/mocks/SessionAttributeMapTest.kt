@@ -26,7 +26,7 @@ class SessionAttributeMapTest : DynaTest({
     lateinit var attrs: MutableMap<String, Any>
     beforeEach {
         session = MockHttpSession.create(MockContext())
-        attrs = session.attributes
+        attrs = SessionAttributeMap(session)
     }
 
     group("size") {
