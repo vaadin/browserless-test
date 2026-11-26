@@ -25,8 +25,7 @@ import org.slf4j.helpers.MessageFormatter;
 /**
  * Records the events of one logger while open, so that tests can assert what is
  * logged. The logger is enabled for the given level and above while the capture
- * is open, independent of the level configured for slf4j-simple, which is fixed
- * once per JVM.
+ * is open, on top of the default INFO level.
  * <p>
  * Requires {@link CapturingServiceProvider} to be the SLF4J provider.
  */
@@ -64,7 +63,7 @@ public final class LogCapture implements AutoCloseable {
                 .getILoggerFactory() instanceof CapturingServiceProvider.CapturingLoggerFactory)) {
             throw new IllegalStateException("Log capture needs "
                     + CapturingServiceProvider.class.getName()
-                    + " as the SLF4J provider, set the slf4j.provider system property to it");
+                    + " as the SLF4J provider, but another provider is on the test classpath");
         }
         LogCapture capture = new LogCapture(loggerClass.getName(), level);
         ACTIVE.add(capture);

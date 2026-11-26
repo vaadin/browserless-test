@@ -15,6 +15,7 @@
  */
 package com.vaadin.browserless.logging;
 
+import java.io.PrintStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,25 +24,28 @@ import org.slf4j.IMarkerFactory;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
+import org.slf4j.helpers.BasicMDCAdapter;
+import org.slf4j.helpers.BasicMarkerFactory;
 import org.slf4j.helpers.LegacyAbstractLogger;
-import org.slf4j.simple.SimpleServiceProvider;
-import org.slf4j.spi.LoggingEventBuilder;
+import org.slf4j.helpers.MessageFormatter;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
 /**
- * SLF4J provider for the tests that writes through slf4j-simple as usual and
- * also hands every event to the open {@link LogCapture}s.
+ * SLF4J provider for the tests, registered through {@code META-INF/services} so
+ * that it is used whatever runs the tests. It writes events at INFO level and
+ * above to the standard error stream, and also hands every event to the open
+ * {@link LogCapture}s.
  */
 public final class CapturingServiceProvider implements SLF4JServiceProvider {
 
-    private final SimpleServiceProvider delegate = new SimpleServiceProvider();
-    private CapturingLoggerFactory loggerFactory;
+    private final IMarkerFactory markerFactory = new BasicMarkerFactory();
+    private final MDCAdapter mdcAdapter = new BasicMDCAdapter();
+    private final CapturingLoggerFactory loggerFactory = new CapturingLoggerFactory();
 
     @Override
     public void initialize() {
-        delegate.initialize();
-        loggerFactory = new CapturingLoggerFactory(delegate.getLoggerFactory());
+        // Nothing to set up
     }
 
     @Override
@@ -51,47 +55,43 @@ public final class CapturingServiceProvider implements SLF4JServiceProvider {
 
     @Override
     public IMarkerFactory getMarkerFactory() {
-        return delegate.getMarkerFactory();
+        return markerFactory;
     }
 
     @Override
     public MDCAdapter getMDCAdapter() {
-        return delegate.getMDCAdapter();
+        return mdcAdapter;
     }
 
     @Override
     public String getRequestedApiVersion() {
-        return delegate.getRequestedApiVersion();
+        return "2.0.99";
     }
 
     static final class CapturingLoggerFactory implements ILoggerFactory {
 
-        private final ILoggerFactory delegate;
         private final Map<String, Logger> loggers = new ConcurrentHashMap<>();
 
-        private CapturingLoggerFactory(ILoggerFactory delegate) {
-            this.delegate = delegate;
+        private CapturingLoggerFactory() {
         }
 
         @Override
         public Logger getLogger(String name) {
-            return loggers.computeIfAbsent(name,
-                    key -> new CapturingLogger(key, delegate.getLogger(key)));
+            return loggers.computeIfAbsent(name, CapturingLogger::new);
         }
     }
 
     private static final class CapturingLogger extends LegacyAbstractLogger {
 
-        private final transient Logger delegate;
+        private static final Level DEFAULT_LEVEL = Level.INFO;
 
-        private CapturingLogger(String name, Logger delegate) {
+        private CapturingLogger(String name) {
             this.name = name;
-            this.delegate = delegate;
         }
 
         private boolean isEnabled(Level level) {
-            return LogCapture.isCapturing(name, level)
-                    || delegate.isEnabledForLevel(level);
+            return level.toInt() >= DEFAULT_LEVEL.toInt()
+                    || LogCapture.isCapturing(name, level);
         }
 
         @Override
@@ -128,18 +128,15 @@ public final class CapturingServiceProvider implements SLF4JServiceProvider {
         protected void handleNormalizedLoggingCall(Level level, Marker marker,
                 String pattern, Object[] arguments, Throwable throwable) {
             LogCapture.record(name, level, pattern, arguments, throwable);
-            if (delegate.isEnabledForLevel(level)) {
-                LoggingEventBuilder event = delegate.atLevel(level)
-                        .setMessage(pattern).setCause(throwable);
-                if (marker != null) {
-                    event.addMarker(marker);
+            if (level.toInt() >= DEFAULT_LEVEL.toInt()) {
+                PrintStream err = System.err;
+                err.println("[" + Thread.currentThread().getName() + "] "
+                        + level + " " + name + " - " + MessageFormatter
+                                .basicArrayFormat(pattern, arguments));
+                if (throwable != null) {
+                    throwable.printStackTrace(err);
                 }
-                if (arguments != null) {
-                    for (Object argument : arguments) {
-                        event.addArgument(argument);
-                    }
-                }
-                event.log();
+                err.flush();
             }
         }
     }
