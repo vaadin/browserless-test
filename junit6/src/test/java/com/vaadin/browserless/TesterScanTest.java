@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.vaadin.flow.component.Component;
+
 // Ensure that scanning testers does not fail when a tester references
 // a component class that is not present on the classpath.
 public class TesterScanTest {
@@ -52,7 +54,7 @@ public class TesterScanTest {
 
     @Test
     public void scanForTesters_testerForClassNotInClasspath_doNotThrowOrLogOnNoClassDefFoundError()
-            throws IOException {
+            throws Exception {
         // Like GridProTester, the tester's type parameter is bound to the
         // component class, so loading the tester needs the missing class.
         // The tester claims Span, so if it were loaded, replacing the Span
@@ -67,14 +69,18 @@ public class TesterScanTest {
                             }
                         }
                         """);
-        String log = captureStdErr(() -> registerPackageWith(fixture,
-                "com.vaadin.browserless.dontscan.noclassdeffound"));
-        Assertions.assertEquals("", log);
+        try (fixture) {
+            String log = captureStdErr(() -> registerPackageWith(fixture,
+                    "com.vaadin.browserless.dontscan.noclassdeffound"));
+            Assertions.assertEquals("", log);
+            assertPresentComponentTesterRegistered(fixture,
+                    "com.vaadin.browserless.dontscan.noclassdeffound");
+        }
     }
 
     @Test
     public void scanForTesters_testerForClassNotInClasspath_doNotThrowOrLogOnTypeNotPresentException()
-            throws IOException {
+            throws Exception {
         URLClassLoader fixture = compileWithMissingComponent("typenotpresent",
                 """
                         @Tests(MissingComponent.class)
@@ -85,29 +91,33 @@ public class TesterScanTest {
                             }
                         }
                         """);
-        String log = captureStdErr(() -> registerPackageWith(fixture,
-                "com.vaadin.browserless.dontscan.typenotpresent"));
-        Assertions.assertEquals("", log);
+        try (fixture) {
+            String log = captureStdErr(() -> registerPackageWith(fixture,
+                    "com.vaadin.browserless.dontscan.typenotpresent"));
+            Assertions.assertEquals("", log);
+            assertPresentComponentTesterRegistered(fixture,
+                    "com.vaadin.browserless.dontscan.typenotpresent");
+        }
     }
 
     @Test
     public void scanForTesters_testerFailsToInitialize_logWarningWithCause() {
         // InitFailureSubclassTester extends InitFailureTester, so whichever
         // is loaded second finds a class whose initialization already failed
-        String log = captureStdErr(() -> TesterRegistry.registerPackages(
-                "com.vaadin.browserless.dontscan.initfailure"));
+        String log = captureStdErr(() -> TesterRegistry
+                .registerPackages("com.example.initfailure"));
         Assertions.assertTrue(log.contains("WARN"), log);
         Assertions.assertTrue(log.contains(
-                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureTester' cannot be loaded because it or a class it references failed to initialize"),
+                "Tester 'com.example.initfailure.InitFailureTester' cannot be loaded because it or a class it references failed to initialize"),
                 log);
         Assertions.assertTrue(log.contains(
-                "Tester 'com.vaadin.browserless.dontscan.initfailure.InitFailureSubclassTester' cannot be loaded because it or a class it references failed to initialize"),
+                "Tester 'com.example.initfailure.InitFailureSubclassTester' cannot be loaded because it or a class it references failed to initialize"),
                 log);
         Assertions.assertTrue(log.contains("Tester initialization failed"),
                 log);
-        // Each warning carries the initialization failure. A class whose
-        // initialization already failed in an earlier scan does not repeat
-        // the original message, so only the error type is checked.
+        // Each warning carries the initialization failure. Loading a class
+        // whose initialization already failed does not always repeat the
+        // original message, so only the error type is checked per warning.
         String[] warnings = log.split("cannot be loaded because", -1);
         Assertions.assertEquals(3, warnings.length, log);
         Assertions.assertTrue(
@@ -130,11 +140,25 @@ public class TesterScanTest {
         return captured.toString(StandardCharsets.UTF_8);
     }
 
+    // The scan of the fixture package registers the loadable tester next to
+    // the skipped one, which shows that the scan reached the fixture
+    @SuppressWarnings("unchecked")
+    private static void assertPresentComponentTesterRegistered(
+            URLClassLoader fixture, String pkg) throws ClassNotFoundException {
+        Class<?> component = fixture.loadClass(pkg + ".PresentComponent");
+        Assertions.assertEquals(pkg + ".PresentComponentTester", TesterRegistry
+                .resolve((Class<? extends Component>) component).getName());
+    }
+
     /**
      * Compiles the given tester together with a {@code MissingComponent} into
      * the package {@code com.vaadin.browserless.dontscan.<subPackage>}, then
      * deletes the component class. This is the situation of a tester whose
      * component comes from a dependency the application does not have.
+     * <p>
+     * A {@code PresentComponent} with its {@code PresentComponentTester} is
+     * compiled into the same package and kept, so a test can check that the
+     * scan reached the fixture.
      *
      * @return a class loader that sees the compiled tester
      */
@@ -158,10 +182,32 @@ public class TesterScanTest {
                 import com.vaadin.browserless.Tests;
                 import com.vaadin.flow.component.Component;
                 %s""".formatted(pkg, tester));
+        Path present = sources.resolve("PresentComponentTester.java");
+        Files.writeString(present, """
+                package %s;
+                import com.vaadin.browserless.ComponentTester;
+                import com.vaadin.browserless.Tests;
+                @Tests(PresentComponent.class)
+                public class PresentComponentTester
+                        extends ComponentTester<PresentComponent> {
+                    public PresentComponentTester(PresentComponent component) {
+                        super(component);
+                    }
+                }
+                """.formatted(pkg));
+        Path presentComponent = sources.resolve("PresentComponent.java");
+        Files.writeString(presentComponent, """
+                package %s;
+                @com.vaadin.flow.component.Tag("span")
+                public class PresentComponent
+                        extends com.vaadin.flow.component.Component {
+                }
+                """.formatted(pkg));
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         int result = compiler.run(null, null, null, "-d", out.toString(), "-cp",
                 System.getProperty("java.class.path"), component.toString(),
-                testerSource.toString());
+                testerSource.toString(), present.toString(),
+                presentComponent.toString());
         Assertions.assertEquals(0, result, "Compiling the fixture failed");
         Files.delete(out.resolve(pkg.replace('.', '/'))
                 .resolve("MissingComponent.class"));
@@ -172,12 +218,11 @@ public class TesterScanTest {
 
     // The scan finds the fixture through the context class loader, like a
     // tester that only an application class loader can see
-    private static void registerPackageWith(URLClassLoader loader, String pkg)
-            throws IOException {
+    private static void registerPackageWith(URLClassLoader loader, String pkg) {
         Thread thread = Thread.currentThread();
         ClassLoader original = thread.getContextClassLoader();
         thread.setContextClassLoader(loader);
-        try (loader) {
+        try {
             TesterRegistry.registerPackages(pkg);
         } finally {
             thread.setContextClassLoader(original);

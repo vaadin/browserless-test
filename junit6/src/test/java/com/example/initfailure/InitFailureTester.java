@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.initfailure;
+package com.example.initfailure;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
@@ -21,7 +21,7 @@ import com.vaadin.flow.component.Component;
 
 // A component name that does not resolve keeps the locator processor from
 // generating a locator that would run the failing initializer
-@Tests(fqn = "com.vaadin.browserless.dontscan.initfailure.MissingComponent")
+@Tests(fqn = "com.example.initfailure.MissingComponent")
 public class InitFailureTester extends ComponentTester<Component> {
 
     static {

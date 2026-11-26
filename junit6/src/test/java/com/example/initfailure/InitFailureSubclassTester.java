@@ -13,12 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.initfailure;
+package com.example.initfailure;
 
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
 
-@Tests(fqn = "com.vaadin.browserless.dontscan.initfailure.MissingComponent")
+@Tests(fqn = "com.example.initfailure.MissingComponent")
 public class InitFailureSubclassTester extends InitFailureTester {
 
     public InitFailureSubclassTester(Component component) {
