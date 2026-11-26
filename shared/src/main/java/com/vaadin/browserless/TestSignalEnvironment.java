@@ -230,13 +230,15 @@ public class TestSignalEnvironment extends SignalEnvironment {
      */
     public static void runQueuedTasks() {
         for (TestSignalEnvironment environment : registered) {
+            int run = 0;
             Runnable task;
-            for (int run = 0; run < MAX_TEARDOWN_TASKS
-                    && (task = environment.tasks.poll()) != null; run++) {
+            while (run < MAX_TEARDOWN_TASKS
+                    && (task = environment.tasks.poll()) != null) {
+                run++;
                 task.run();
                 MockVaadin.runUIQueue();
             }
-            if (!environment.tasks.isEmpty()) {
+            if (run == MAX_TEARDOWN_TASKS && !environment.tasks.isEmpty()) {
                 LoggerFactory.getLogger(TestSignalEnvironment.class).warn(
                         "Left pending Signals tasks queued after running {} of them in a round trip; a task probably keeps submitting new ones",
                         MAX_TEARDOWN_TASKS);
