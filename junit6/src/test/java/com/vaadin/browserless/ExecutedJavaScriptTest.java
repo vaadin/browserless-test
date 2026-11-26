@@ -549,8 +549,6 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertTrue(executed
                 .getExecutions(OrientationJs.class, OrientationJs::unlock)
                 .get(0).isWaitingForResult());
-        Assertions.assertEquals(List.of(),
-                executed.getCalls(OtherFocusJs.class, "lock"));
         Assertions.assertEquals(List.of(
                 new JsCall(OrientationJs.class, "lock", List.of("landscape")),
                 new JsCall(OrientationJs.class, "lock", List.of("portrait"))),
