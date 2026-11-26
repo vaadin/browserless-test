@@ -761,17 +761,19 @@ with parameters are ignored, so any value will do. A method without
 parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
 `getCalls(definitionType, methodName)` overload takes the name as a string.
 
-`getAll()` lists everything that was sent, in order, with the element it ran
-on and, for a call of a JavaScript definition, the call itself (`getJsCall()`),
-which is what to check for such calls. The expression and parameters are in
-the form Flow sends them: a string run on an element with `executeJs` is
-wrapped so that it runs with the element as `this`, so check it with
-`contains(...)`, and the element is added as its last parameter.
-`getAll(component)` and `getAll(element)` keep only what was run on that
-element; JavaScript run on the page belongs to the UI, so `getAll(ui)` gets it.
-`getExecutions` keeps only the calls of one method of a definition, named the
-same way as for `getCalls`. A test can check a call's arguments and, for a call
-whose result the application waits for, answer it as the browser would:
+`getExecutions()` lists everything that was sent, in order, with the element
+it ran on and, for a call of a JavaScript definition, the call itself
+(`getJsCall()`), which is what to check for such calls. The expression and
+parameters are in the form Flow sends them: a string run on an element with
+`executeJs` is wrapped so that it runs with the element as `this`, so check it
+with `contains(...)`, and the element is added as its last parameter.
+`getExecutions(component)` and `getExecutions(element)` keep only what was run
+on that element; JavaScript run on the page belongs to the UI, so
+`getExecutions(ui)` gets it.
+`getExecutions(definitionType, method)` keeps only the calls of one method of
+a definition, named the same way as for `getCalls`. A test can check a call's
+arguments and, for a call whose result the application waits for, answer it as
+the browser would:
 
 ```java
 executed.getExecutions(WakeLockJs.class, WakeLockJs::request)
@@ -819,7 +821,7 @@ JavaScript whose result the application waits for, with `then(...)` or
 ExecutedJavaScript executed = ExecutedJavaScript.capture();
 view.showTimeZone();                  // calls executeJs(...).then(...)
 
-ExecutedJavaScript.Execution execution = executed.getAll().getLast();
+ExecutedJavaScript.Execution execution = executed.getExecutions().getLast();
 execution.resolve(3);                 // runs the success handler
 // or execution.reject("Not allowed"); runs the error handler
 ```
@@ -832,7 +834,7 @@ the JavaScript would call it in the browser:
 ExecutedJavaScript executed = ExecutedJavaScript.capture();
 view.listenToResize();                // calls executeJs("...", channel)
 
-executed.getAll().getLast().invokeReturnChannel(800, 600);
+executed.getExecutions().getLast().invokeReturnChannel(800, 600);
 ```
 
 The call fails where Flow would ignore the message: when the channel was
