@@ -16,6 +16,7 @@
 package com.vaadin.browserless.logging;
 
 import java.io.PrintStream;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,7 +35,9 @@ import org.slf4j.spi.SLF4JServiceProvider;
 /**
  * SLF4J provider for the tests, registered through {@code META-INF/services} so
  * that it is used whatever runs the tests. It writes events at INFO level and
- * above to the standard error stream, and also hands every event to the open
+ * above, or at the level set with the slf4j-simple
+ * {@code org.slf4j.simpleLogger.defaultLogLevel} system property, to the
+ * standard error stream, and also hands every event to the open
  * {@link LogCapture}s.
  */
 public final class CapturingServiceProvider implements SLF4JServiceProvider {
@@ -83,7 +86,10 @@ public final class CapturingServiceProvider implements SLF4JServiceProvider {
 
     private static final class CapturingLogger extends LegacyAbstractLogger {
 
-        private static final Level DEFAULT_LEVEL = Level.INFO;
+        // Same property as slf4j-simple, to get more output when debugging
+        private static final Level DEFAULT_LEVEL = Level.valueOf(System
+                .getProperty("org.slf4j.simpleLogger.defaultLogLevel", "info")
+                .toUpperCase(Locale.ROOT));
 
         private CapturingLogger(String name) {
             this.name = name;
