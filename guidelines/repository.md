@@ -5,16 +5,13 @@
 - **Java 21+**, **Maven** (multi-module, parent `com.vaadin:vaadin-parent`).
 - **Flow and Flow Components** (Vaadin 25) as `provided` dependencies, one
   fixed version per branch — see [Flow Version](flow-version.md).
-- **Kotlin** for the Grid helpers in `shared/src/main/kotlin`.
-  New code is Java; the Kotlin is being ported over time.
 - **JUnit 6 (Jupiter)** for the published test API and for this repository's
   own tests. A few legacy Kotlin tests still use DynaTest and Karibu DSL.
 - **ClassGraph** for classpath scanning (routes, testers).
 - **Spotless** with the Eclipse formatter for style; no checkstyle.
-- **Dokka** for Javadoc in the mixed Java/Kotlin modules, `maven-javadoc-plugin`
-  elsewhere. Both fail the build on any warning they report: a link that does
-  not resolve, for example, or a missing comment in the pure-Java modules.
-  Dokka does not report missing comments.
+- **maven-javadoc-plugin** for Javadoc in every module. It fails the build on
+  any warning it reports: a link that does not resolve or a missing comment,
+  for example.
 
 ## Module structure
 

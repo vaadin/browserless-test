@@ -98,6 +98,11 @@ public final class JavaScriptDispatcher implements Serializable {
      */
     private boolean simulatedClientSetUp;
 
+    /**
+     * The read-only capture started with the simulated client, which holds
+     * everything sent to the browser since the UI was created; null until the
+     * simulated client is set up.
+     */
     private @Nullable ExecutedJavaScript uiCapture;
 
     /**
