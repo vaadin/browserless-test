@@ -154,12 +154,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                                 .methodName() + " " + execution.getElement())
                         .toList());
         Assertions.assertEquals(List.of("setOptions", "setOptions", "render"),
-                executed.getCalls(Element.CallFunctionJs.class, "callFunction")
-                        .stream().map(call -> call.arguments().get(0))
-                        .toList());
+                executed.getCalls(Element.CallFunctionJs.class,
+                        js -> js.callFunction(null)).stream()
+                        .map(call -> call.arguments().get(0)).toList());
         Assertions.assertEquals(List.of(Focusable.FocusJs.class),
-                executed.getCalls(Focusable.FocusJs.class, "focus").stream()
-                        .map(JsCall::definitionType).toList(),
+                executed.getCalls(Focusable.FocusJs.class, js -> js.focus(null))
+                        .stream().map(JsCall::definitionType).toList(),
                 "A focus method of another definition should not match");
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
@@ -552,7 +552,7 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
         Assertions.assertEquals(List.of(
                 new JsCall(OrientationJs.class, "lock", List.of("landscape")),
                 new JsCall(OrientationJs.class, "lock", List.of("portrait"))),
-                executed.getCalls(OrientationJs.class, "lock"));
+                executed.getCalls(OrientationJs.class, js -> js.lock(null)));
     }
 
     @JsDefinition

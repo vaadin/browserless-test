@@ -283,18 +283,6 @@ public final class ExecutedJavaScript implements Serializable {
                 .toList();
     }
 
-    private List<Execution> getExecutionsOfMethod(Class<?> definitionType,
-            String methodName) {
-        Objects.requireNonNull(definitionType, "definitionType");
-        Objects.requireNonNull(methodName, "methodName");
-        return getExecutions().stream()
-                .filter(execution -> execution.getJsCall()
-                        .filter(call -> call.definitionType() == definitionType
-                                && call.methodName().equals(methodName))
-                        .isPresent())
-                .toList();
-    }
-
     /**
      * Gets what was sent to the browser for the calls of one method of a
      * JavaScript definition, the interface that
@@ -332,36 +320,20 @@ public final class ExecutedJavaScript implements Serializable {
      */
     public <T extends JsInvokers> List<Execution> getExecutions(
             Class<T> definitionType, Consumer<T> method) {
-        return getExecutionsOfMethod(definitionType,
-                getCalledMethodName(definitionType, method));
+        String methodName = getCalledMethodName(definitionType, method);
+        return getExecutions().stream()
+                .filter(execution -> execution.getJsCall()
+                        .filter(call -> call.definitionType() == definitionType
+                                && call.methodName().equals(methodName))
+                        .isPresent())
+                .toList();
     }
 
     /**
      * Gets the calls of one method of a JavaScript definition, the interface
      * that {@code Element.executeJs(Class)} is called with, that were sent to
      * the browser, in the order the browser received them. To answer a call,
-     * use {@link #getExecutions(Class, Consumer)} instead.
-     * <p>
-     * The method is named as a string, so a misspelled or renamed name matches
-     * nothing rather than failing; {@link #getCalls(Class, Consumer)} names it
-     * by calling it, which the compiler checks.
-     *
-     * @param definitionType
-     *            the JavaScript definition, not null
-     * @param methodName
-     *            the name of the called method, not null
-     * @return the calls, not null
-     * @see #getCalls(Class, Consumer)
-     */
-    public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
-        return getExecutionsOfMethod(definitionType, methodName).stream()
-                .map(execution -> execution.getJsCall().orElseThrow()).toList();
-    }
-
-    /**
-     * Gets the calls of one method of a JavaScript definition, the interface
-     * that {@code Element.executeJs(Class)} is called with, that were sent to
-     * the browser, in the order the browser received them. The method is named
+     * use {@link #getExecutions(Class, Consumer)} instead. The method is named
      * by calling it, the way the application calls it, so that renaming it
      * updates the test and a method that the definition does not have fails to
      * compile:
@@ -386,13 +358,12 @@ public final class ExecutedJavaScript implements Serializable {
      * @throws IllegalArgumentException
      *             if the type is not a JavaScript definition, or if
      *             {@code method} does not call exactly one method of it
-     * @see #getCalls(Class, String)
      * @see #getExecutions(Class, Consumer)
      */
     public <T extends JsInvokers> List<JsCall> getCalls(Class<T> definitionType,
             Consumer<T> method) {
-        return getCalls(definitionType,
-                getCalledMethodName(definitionType, method));
+        return getExecutions(definitionType, method).stream()
+                .map(execution -> execution.getJsCall().orElseThrow()).toList();
     }
 
     private static <T extends JsInvokers> String getCalledMethodName(
