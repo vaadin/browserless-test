@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.browserless.internal.Locator;
 import com.vaadin.flow.component.Component;
 
 /**
@@ -147,9 +148,22 @@ public class MasterDetailLayoutTester<T extends MasterDetailLayout>
         ensureDetailShown("click the backdrop");
         // The backdrop cannot take focus, so the click blurs whatever was
         // focused, typically a field in the detail
-        moveFocusAsUser();
+        blurFocusedComponent();
         fireDomEvent("backdrop-click");
         roundTrip();
+    }
+
+    private void blurFocusedComponent() {
+        getComponent().getUI().ifPresent(ui -> {
+            for (Component component : Locator._walkAll(ui)) {
+                ComponentTester<Component> tester = new ComponentTester<>(
+                        component);
+                if (tester.isFocused()) {
+                    tester.blur();
+                    return;
+                }
+            }
+        });
     }
 
     private void ensureDetailShown(String action) {
