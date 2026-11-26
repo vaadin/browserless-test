@@ -96,7 +96,7 @@ class MultiWindowTest {
         UI ui = window.getUI();
         ExecutedJavaScript executed = ExecutedJavaScript.capture(ui);
         ui.getElement().callJsFunction("render");
-        Assertions.assertEquals(1, executed.getAll().size());
+        Assertions.assertEquals(1, executed.getExecutions().size());
         ui.getElement().callJsFunction("late");
 
         // Closing the window removes its UI from the session
@@ -104,10 +104,8 @@ class MultiWindowTest {
         Assertions.assertNull(ui.getSession());
 
         Assertions.assertEquals(List.of("render"),
-                executed.getAll().stream()
-                        .map(execution -> execution.getJsCall().orElseThrow()
-                                .arguments().get(0))
-                        .toList(),
+                executed.getExecutions().stream().map(execution -> execution
+                        .getJsCall().orElseThrow().arguments().get(0)).toList(),
                 "A closed UI's capture should keep what was sent, and nothing more should be sent");
         Assertions.assertDoesNotThrow(executed::stop);
     }
@@ -125,7 +123,8 @@ class MultiWindowTest {
                 .registerChannel(arguments -> handledIn.add(UI.getCurrent()));
         ExecutedJavaScript executed = ExecutedJavaScript.capture(uiA);
         uiA.getElement().executeJs("this.listen($0)", channel);
-        ExecutedJavaScript.Execution execution = executed.getAll().get(0);
+        ExecutedJavaScript.Execution execution = executed.getExecutions()
+                .get(0);
 
         windowB.activate();
         IllegalStateException refused = Assertions.assertThrows(

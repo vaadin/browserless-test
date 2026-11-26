@@ -232,12 +232,12 @@ public final class ExecutedJavaScript implements Serializable {
     /**
      * Gets everything sent to the browser since the capture started or was last
      * cleared, and until it was stopped, in the order the browser received it,
-     * whichever element it was run on; {@link #getAll(Component)} and
-     * {@link #getAll(Element)} keep only what was run on one element.
+     * whichever element it was run on; {@link #getExecutions(Component)} and
+     * {@link #getExecutions(Element)} keep only what was run on one element.
      *
      * @return the sent JavaScript, not null
      */
-    public List<Execution> getAll() {
+    public List<Execution> getExecutions() {
         if (registration != null) {
             JavaScriptDispatcher.dispatch(ui);
         }
@@ -247,9 +247,9 @@ public final class ExecutedJavaScript implements Serializable {
     /**
      * Gets what was sent to the browser for the given component's element since
      * the capture started or was last cleared, and until it was stopped, in the
-     * order the browser received it. Unlike {@link #getAll()}, JavaScript run
-     * on other elements is left out. JavaScript run on the page belongs to the
-     * UI, so passing the UI gets it.
+     * order the browser received it. Unlike {@link #getExecutions()},
+     * JavaScript run on other elements is left out. JavaScript run on the page
+     * belongs to the UI, so passing the UI gets it.
      *
      * @param component
      *            the component whose element the JavaScript was run on, not
@@ -257,26 +257,26 @@ public final class ExecutedJavaScript implements Serializable {
      * @return the JavaScript sent for the component, not null
      * @see Execution#getElement()
      */
-    public List<Execution> getAll(Component component) {
+    public List<Execution> getExecutions(Component component) {
         Objects.requireNonNull(component, "component");
-        return getAll(component.getElement());
+        return getExecutions(component.getElement());
     }
 
     /**
      * Gets what was sent to the browser for the given element since the capture
      * started or was last cleared, and until it was stopped, in the order the
-     * browser received it. Unlike {@link #getAll()}, JavaScript run on other
-     * elements is left out. JavaScript run on the page belongs to the element
-     * of the UI.
+     * browser received it. Unlike {@link #getExecutions()}, JavaScript run on
+     * other elements is left out. JavaScript run on the page belongs to the
+     * element of the UI.
      *
      * @param element
      *            the element the JavaScript was run on, not null
      * @return the JavaScript sent for the element, not null
      * @see Execution#getElement()
      */
-    public List<Execution> getAll(Element element) {
+    public List<Execution> getExecutions(Element element) {
         Objects.requireNonNull(element, "element");
-        return getAll().stream()
+        return getExecutions().stream()
                 .filter(execution -> element.equals(execution.getElement()))
                 .toList();
     }
@@ -300,7 +300,7 @@ public final class ExecutedJavaScript implements Serializable {
     public List<JsCall> getCalls(Class<?> definitionType, String methodName) {
         Objects.requireNonNull(definitionType, "definitionType");
         Objects.requireNonNull(methodName, "methodName");
-        return getAll().stream()
+        return getExecutions().stream()
                 .flatMap(execution -> execution.getJsCall()
                         .filter(call -> call.definitionType() == definitionType
                                 && call.methodName().equals(methodName))
@@ -374,7 +374,7 @@ public final class ExecutedJavaScript implements Serializable {
             String functionName) {
         Objects.requireNonNull(component, "component");
         Objects.requireNonNull(functionName, "functionName");
-        return getAll(component).stream()
+        return getExecutions(component).stream()
                 .flatMap(execution -> execution.getJsCall().stream())
                 .filter(call -> call
                         .definitionType() == Element.CallFunctionJs.class

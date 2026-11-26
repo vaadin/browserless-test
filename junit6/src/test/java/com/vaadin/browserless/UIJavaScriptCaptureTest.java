@@ -63,8 +63,8 @@ class UIJavaScriptCaptureTest {
 
             Assertions.assertEquals(List.of(view.getElement()),
                     findTimeZoneRequests(executed));
-            Assertions.assertTrue(executed.getAll().getLast().getExpression()
-                    .contains("this.print()"));
+            Assertions.assertTrue(executed.getExecutions().getLast()
+                    .getExpression().contains("this.print()"));
         }
     }
 
@@ -113,7 +113,7 @@ class UIJavaScriptCaptureTest {
 
     private static List<Element> findTimeZoneRequests(
             ExecutedJavaScript executed) {
-        return executed.getAll().stream()
+        return executed.getExecutions().stream()
                 .filter(execution -> execution.getExpression()
                         .contains(ScheduleView.TIME_ZONE_EXPRESSION))
                 .map(ExecutedJavaScript.Execution::getElement).toList();
