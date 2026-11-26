@@ -22,7 +22,7 @@ jobs:
   check:
     # Eligibility is a cheap `if` pre-filter plus an authoritative repository
     # permission check in the job, the same admin/maintain/write rule that
-    # check-permissions.yml applies.
+    # check-permissions.yml applies, except for the totally-not-ai app.
     # Requested reviews (comment, review request) only check who asked. Auto
     # triggers (opened, ready for review) additionally skip drafts, chore PRs,
     # and known bots. Pull request events from forks are skipped, since they
@@ -32,9 +32,9 @@ jobs:
     # author_association of a private org member is reported as CONTRIBUTOR;
     # the permission API call in the job is what actually
     # confirms access. The totally-not-ai app (agent-created PRs) is allowed
-    # explicitly: an app is not a repository collaborator, so the permission
-    # API call reports no access for it and its review requests would be
-    # skipped. The opened trigger is also skipped when vaadin-review-bot
+    # explicitly on every trigger: an app is not a repository collaborator, so
+    # the permission API call reports no access for it and, for example, its
+    # review requests for vaadin-review-bot would be skipped. The opened trigger is also skipped when vaadin-review-bot
     # is already a requested reviewer: a PR opened with the bot preselected
     # fires review_requested as well, and that run already reviews it.
     if: |
