@@ -192,7 +192,12 @@ jobs:
       # show up under that run instead of this one. This job is itself named
       # "Test Results", so the run and the PR check list both stay correct, and
       # the tables are written to this job's summary.
+      # Skipped when no job produced a report, e.g. when Maven could not
+      # resolve the test dependencies. Publishing would replace the PR comment
+      # with "0 tests", and as comment_mode is failures, a later passing run
+      # would never update that comment again.
       - name: Publish test results
+        if: hashFiles('**/TEST-*.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: '**/TEST-*.xml'
