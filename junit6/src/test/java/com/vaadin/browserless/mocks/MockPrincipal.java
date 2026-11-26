@@ -13,12 +13,28 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.mocks
+package com.vaadin.browserless.mocks;
 
-import java.security.Principal
+import java.security.Principal;
+import java.util.List;
 
-data class MockPrincipal(private val name: String, val allowedRoles: List<String> = listOf()) : Principal {
-    override fun getName(): String = name
+/**
+ * A {@link Principal} with a fixed name and a fixed set of roles, for the
+ * request mocks to report.
+ */
+record MockPrincipal(String name,
+        List<String> allowedRoles) implements Principal {
 
-    fun isUserInRole(role: String): Boolean = allowedRoles.contains(role)
+    MockPrincipal(String name) {
+        this(name, List.of());
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    boolean isUserInRole(String role) {
+        return allowedRoles.contains(role);
+    }
 }
