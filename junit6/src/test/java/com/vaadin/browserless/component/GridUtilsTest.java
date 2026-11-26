@@ -20,6 +20,8 @@ import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.treegrid.TreeGrid;
@@ -136,6 +138,29 @@ class GridUtilsTest {
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> GridUtils._get(grid, 0));
         assertSame(failure, error);
+    }
+
+    @Test
+    void selectAll_selectionListenerThrows_propagatesItsException() {
+        Grid<String> grid = new Grid<>();
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+        grid.setItems("a", "b");
+        IllegalStateException failure = new IllegalStateException("boom");
+        grid.addSelectionListener(event -> {
+            throw failure;
+        });
+
+        MockVaadin.setup();
+        try {
+            UI.getCurrent().add(grid);
+
+            IllegalStateException error = assertThrows(
+                    IllegalStateException.class,
+                    () -> GridUtils._selectAll(grid));
+            assertSame(failure, error);
+        } finally {
+            MockVaadin.tearDown();
+        }
     }
 
     @Test
