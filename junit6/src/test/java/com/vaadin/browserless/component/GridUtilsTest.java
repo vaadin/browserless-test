@@ -20,6 +20,8 @@ import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.browserless.internal.MockVaadin;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.treegrid.TreeGrid;
@@ -27,6 +29,7 @@ import com.vaadin.flow.data.provider.hierarchy.TreeData;
 import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GridUtilsTest {
@@ -122,6 +125,42 @@ class GridUtilsTest {
                 9: item9
                 --and possibly more
                 """, error.getMessage());
+    }
+
+    @Test
+    void get_dataProviderThrows_propagatesItsException() {
+        Grid<String> grid = new Grid<>();
+        IllegalStateException failure = new IllegalStateException("boom");
+        grid.setItems(query -> {
+            throw failure;
+        });
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> GridUtils._get(grid, 0));
+        assertSame(failure, error);
+    }
+
+    @Test
+    void selectAll_selectionListenerThrows_propagatesItsException() {
+        Grid<String> grid = new Grid<>();
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+        grid.setItems("a", "b");
+        IllegalStateException failure = new IllegalStateException("boom");
+        grid.addSelectionListener(event -> {
+            throw failure;
+        });
+
+        MockVaadin.setup();
+        try {
+            UI.getCurrent().add(grid);
+
+            IllegalStateException error = assertThrows(
+                    IllegalStateException.class,
+                    () -> GridUtils._selectAll(grid));
+            assertSame(failure, error);
+        } finally {
+            MockVaadin.tearDown();
+        }
     }
 
     @Test

@@ -16,6 +16,7 @@
 package com.vaadin.browserless.component;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import com.vaadin.browserless.internal.DepthFirstTreeIterator;
 import com.vaadin.browserless.internal.Locator;
 import com.vaadin.browserless.internal.PrettyPrintTree;
 import com.vaadin.browserless.internal.Renderers;
+import com.vaadin.browserless.internal.Utils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
@@ -192,6 +194,11 @@ public final class GridUtils {
             Stream<T> fetched = (Stream<T>) _DataCommunicator_fetchFromProvider
                     .invoke(dataCommunicator, offset, limit);
             return fetched.collect(Collectors.toList());
+        } catch (InvocationTargetException e) {
+            // Report what the data provider or Flow's query contract check
+            // threw, not an InvocationTargetException whose own message says
+            // nothing.
+            throw Utils.sneakyThrow(e.getTargetException());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -598,6 +605,8 @@ public final class GridUtils {
     private static Object invoke(Method method, Object target) {
         try {
             return method.invoke(target);
+        } catch (InvocationTargetException e) {
+            throw Utils.sneakyThrow(e.getTargetException());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }

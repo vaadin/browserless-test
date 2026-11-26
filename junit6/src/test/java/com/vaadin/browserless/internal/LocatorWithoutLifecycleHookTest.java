@@ -54,9 +54,12 @@ class LocatorWithoutLifecycleHookTest {
         dialog.open();
         AssertionError exception = assertThrows(AssertionError.class,
                 Locator::_expectNoDialogs);
-        String expected = ".*Too many visible Dialogs \\(1\\) in MockedUI\\[] "
-                + "matching Dialog and count=0\\.\\.0: \\[Dialog\\[.*]]\\. Component tree:\n"
-                + "└── MockedUI\\[]\n" + "\\s+└── Dialog\\[.*].*\n";
+        String expected = """
+                .*Too many visible Dialogs \\(1\\) in MockedUI\\[] \
+                matching Dialog and count=0\\.\\.0: \\[Dialog\\[.*]]\\. Component tree:
+                └── MockedUI\\[]
+                \\s+└── Dialog\\[.*].*
+                """;
         assertTrue(
                 Pattern.compile(expected, Pattern.MULTILINE)
                         .matcher(exception.getMessage()).matches(),
@@ -84,9 +87,11 @@ class LocatorWithoutLifecycleHookTest {
 
         @Test
         void expectInternalServerError_noErrorHappened_fails() {
-            expectThrows(AssertionError.class, Pattern.quote(
-                    "Expected an internal server error but none happened. Component tree:\n"
-                            + "└── MockedUI[]"),
+            expectThrows(AssertionError.class,
+                    Pattern.quote(
+                            """
+                                    Expected an internal server error but none happened. Component tree:
+                                    └── MockedUI[]"""),
                     () -> Locator._expectInternalServerError(""));
         }
 

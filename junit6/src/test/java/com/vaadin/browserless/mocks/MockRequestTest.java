@@ -73,6 +73,13 @@ class MockRequestTest {
     }
 
     @Test
+    void getParameterNames_severalParameters_keepsInsertionOrder() {
+        List.of("zeta", "beta", "alpha")
+                .forEach(name -> request.setParameter(name, "x"));
+        assertEquals(List.of("zeta", "beta", "alpha"), parameterNames());
+    }
+
+    @Test
     void getSession_invalidatedSessionAndNoCreate_returnsNull() {
         // Mirrors the servlet container contract: after invalidation there is
         // no current session, so getSession(false) must return null rather than

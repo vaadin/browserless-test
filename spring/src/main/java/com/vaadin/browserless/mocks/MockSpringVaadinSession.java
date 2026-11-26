@@ -41,7 +41,7 @@ import com.vaadin.flow.server.VaadinSession;
  */
 public class MockSpringVaadinSession extends VaadinSession {
     /**
-     * Produces the UI instances this session hands out.
+     * Creates the UI of the session that replaces this one once it is closed.
      */
     private final @NonNull UIFactory uiFactory;
 
@@ -51,7 +51,8 @@ public class MockSpringVaadinSession extends VaadinSession {
      * @param service
      *            the service the session belongs to
      * @param uiFactory
-     *            produces the UI instances this session hands out
+     *            creates the UI of the session that replaces this one once it
+     *            is closed
      */
     public MockSpringVaadinSession(@NonNull VaadinService service,
             @NonNull UIFactory uiFactory) {

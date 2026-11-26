@@ -17,6 +17,7 @@ package com.vaadin.browserless;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +26,11 @@ import com.example.base.signals.SignalsView;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.signals.Signal;
 import com.vaadin.flow.signals.SignalEnvironment;
 import com.vaadin.flow.signals.shared.SharedListSignal;
@@ -71,6 +76,29 @@ public class SignalsTest extends BrowserlessTest {
         });
         runPendingSignalsTasks();
         Assertions.assertEquals("Counter: 10", counterTester.getText());
+    }
+
+    @Test
+    void roundTrip_runsEffectOfFinishedBackgroundSignalChange() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        roundTrip();
+
+        Assertions.assertEquals("Counter: 10", view.asyncCounter.getText());
+    }
+
+    @Test
+    void lookup_runsEffectOfFinishedBackgroundSignalChange() {
+        var view = navigate(SignalsView.class);
+        CompletableFuture
+                .runAsync(() -> view.asyncNumberSignal.incrementBy(10.0))
+                .join();
+
+        Assertions.assertSame(view.asyncCounter,
+                find(Span.class).withText("Counter: 10").single());
     }
 
     @Test
@@ -207,8 +235,13 @@ public class SignalsTest extends BrowserlessTest {
                 "A write made while the UI closes must be confirmed");
     }
 
-    @Test
-    void cleanVaadinEnvironment_selfResubmittingTask_stopsAtLimit() {
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void selfResubmittingTask_stopsAtLimit(boolean byRoundTrip) {
+        if (byRoundTrip) {
+            navigate(SignalsView.class);
+            runPendingSignalsTasks(0, TimeUnit.MILLISECONDS);
+        }
         var runs = new AtomicInteger();
         SignalEnvironment.getDefaultEffectDispatcher().execute(new Runnable() {
             @Override
@@ -222,11 +255,49 @@ public class SignalsTest extends BrowserlessTest {
             }
         });
 
-        cleanVaadinEnvironment();
-        initVaadinEnvironment();
+        if (byRoundTrip) {
+            roundTrip();
+        } else {
+            cleanVaadinEnvironment();
+            initVaadinEnvironment();
+        }
 
         Assertions.assertEquals(TestSignalEnvironment.MAX_TEARDOWN_TASKS,
                 runs.get());
+    }
+
+    @Test
+    void roundTrip_throwsFailureOfSignalsTaskAndKeepsLaterTasksQueued() {
+        navigate(SignalsView.class);
+        var laterTaskRan = new AtomicReference<Boolean>(false);
+        SignalEnvironment.getDefaultEffectDispatcher().execute(() -> {
+            throw new IllegalStateException("failing task");
+        });
+        SignalEnvironment.getDefaultEffectDispatcher()
+                .execute(() -> laterTaskRan.set(true));
+
+        var failure = Assertions.assertThrows(IllegalStateException.class,
+                BrowserlessTest::roundTrip);
+        Assertions.assertEquals("failing task", failure.getMessage());
+        Assertions.assertFalse(laterTaskRan.get());
+
+        roundTrip();
+        Assertions.assertTrue(laterTaskRan.get());
+    }
+
+    @Test
+    void roundTrip_rethrowsFailureOfAccessQueuedBySignalsTask() {
+        navigate(SignalsView.class);
+        var ui = UI.getCurrent();
+        SignalEnvironment.getDefaultEffectDispatcher()
+                .execute(() -> ui.access(() -> {
+                    throw new IllegalStateException("failing access");
+                }));
+
+        var failure = Assertions.assertThrows(ExecutionException.class,
+                BrowserlessTest::roundTrip);
+        Assertions.assertEquals("failing access",
+                failure.getCause().getMessage());
     }
 
 }

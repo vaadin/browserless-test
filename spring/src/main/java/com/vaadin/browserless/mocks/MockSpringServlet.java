@@ -64,7 +64,8 @@ public class MockSpringServlet extends SpringServlet {
     public final @NonNull ApplicationContext ctx;
 
     /**
-     * Produces the UI instances the sessions of this servlet hand out.
+     * Creates the UI of the session that replaces a closed session of this
+     * servlet.
      */
     public final @NonNull UIFactory uiFactory;
 
@@ -76,7 +77,7 @@ public class MockSpringServlet extends SpringServlet {
      * @param ctx
      *            the Spring context the views are instantiated from
      * @param uiFactory
-     *            produces the UI instances the sessions hand out
+     *            creates the UI of the session that replaces a closed session
      */
     public MockSpringServlet(@NonNull Routes routes,
             @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {

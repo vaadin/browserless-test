@@ -93,6 +93,20 @@ class SignalsContextTest {
     }
 
     @Test
+    void roundTrip_runsEffectOfOtherUsersComponentUnderItsSessionLock() {
+        var otherWindow = app.newUser().newWindow();
+        var view = otherWindow.navigate(SignalsView.class);
+        window.activate();
+        view.numberSignal.incrementBy(1.0);
+
+        // Updating a component without its session lock would throw, so the
+        // effect has to be handed over to the other user's UI
+        window.roundTrip();
+
+        Assertions.assertEquals("Counter: 1", view.counter.getText());
+    }
+
+    @Test
     void attachedComponent_triggerSignalFromNonUIThreadThroughComponentEffect_effectEvaluatedAsynchronously() {
         var view = window.navigate(SignalsView.class);
         var counterTester = window.test(view.asyncCounter);

@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -142,7 +142,7 @@ public class MockRequest implements HttpServletRequest {
         characterEncodingInt = env;
     }
 
-    private final Map<String, String[]> parameters = new HashMap<>();
+    private final Map<String, String[]> parameters = new LinkedHashMap<>();
 
     /**
      * Returns the request parameters, live and directly modifiable. Prefer
