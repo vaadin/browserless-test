@@ -50,6 +50,22 @@ public class TesterScanTest {
     }
 
     @Test
+    public void scanForTesters_testerForClassNotInClasspath_logsOnlyDebugLineWithoutTrace() {
+        // Same as above with trace off, which is what users get unless they
+        // turn on trace logging: one DEBUG line without the stack trace.
+        CapturedEvent event = scanSingleEvent(
+                "com.vaadin.browserless.dontscan.classnotfounddebug",
+                Level.DEBUG);
+
+        Assertions.assertEquals(Level.DEBUG, event.level());
+        Assertions.assertEquals(SKIPPED.formatted(
+                "com.vaadin.browserless.dontscan.classnotfounddebug.ClassNotFoundDebugComponentTester",
+                "com.vaadin.browserless.dontscan.classnotfounddebug.MissingComponent"),
+                event.message());
+        Assertions.assertNull(event.throwable());
+    }
+
+    @Test
     public void scanForTesters_testerNeedsClassWithFailedInitialization_warns() {
         // A class whose static initializer has already failed is on the
         // classpath but broken, so a tester that needs it is a real problem.
@@ -93,8 +109,8 @@ public class TesterScanTest {
     }
 
     // Scans the package, expecting it to log exactly one event at the given
-    // level or above. A single event below INFO also shows that nothing is
-    // logged at the default level.
+    // level or above. A single DEBUG or TRACE event also shows that nothing
+    // is logged at the default level.
     private static CapturedEvent scanSingleEvent(String pkg, Level level) {
         try (LogCapture capture = LogCapture.start(TesterRegistry.class,
                 level)) {
