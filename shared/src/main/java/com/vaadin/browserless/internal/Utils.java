@@ -478,10 +478,19 @@ public final class Utils {
     /**
      * Rethrows given checked exception without declaring it, the same way
      * Kotlin code propagates checked exceptions.
+     *
+     * @param e
+     *            the exception to rethrow
+     * @param <E>
+     *            the type the compiler is told is thrown
+     * @return never returns; declared so callers can write
+     *         {@code throw sneakyThrow(e)}
+     * @throws E
+     *             always, as {@code e}
      */
     @SuppressWarnings("unchecked")
-    static <E extends Throwable> RuntimeException sneakyThrow(Throwable e)
-            throws E {
+    public static <E extends Throwable> RuntimeException sneakyThrow(
+            Throwable e) throws E {
         throw (E) e;
     }
 }

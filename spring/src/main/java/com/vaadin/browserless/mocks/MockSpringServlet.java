@@ -45,33 +45,39 @@ import com.vaadin.flow.spring.SpringServlet;
  * {@link MockSpringServletService} is used instead of vanilla
  * {@link com.vaadin.flow.spring.SpringVaadinServletService}.
  *
+ * <p>
+ * For internal use only. May be renamed or removed in a future release.
+ * 
  * @author mavi
  * @since 1.0
  */
 public class MockSpringServlet extends SpringServlet {
 
     /**
-     * The routes registered when the servlet is initialized.
+     * The routes registered when the service is created.
      */
     public final @NonNull Routes routes;
+
     /**
-     * The Spring application context the servlet runs in.
+     * The Spring context the views are instantiated from.
      */
     public final @NonNull ApplicationContext ctx;
+
     /**
-     * Creates the UI for every new session.
+     * Creates the UI of the session that replaces a closed session of this
+     * servlet.
      */
     public final @NonNull UIFactory uiFactory;
 
     /**
-     * Creates a new mocked Spring servlet.
+     * Creates the servlet.
      *
      * @param routes
      *            the routes to register
      * @param ctx
-     *            the Spring application context
+     *            the Spring context the views are instantiated from
      * @param uiFactory
-     *            creates the UI for every new session
+     *            creates the UI of the session that replaces a closed session
      */
     public MockSpringServlet(@NonNull Routes routes,
             @NonNull ApplicationContext ctx, @NonNull UIFactory uiFactory) {
