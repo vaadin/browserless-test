@@ -265,11 +265,23 @@ public class MultiSelectComboBoxTesterTest extends BrowserlessTest
         test(view.combo).selectItems("test-bar");
         test(view.combo).deselectItems("test-foo");
         test(view.combo).deselectAll();
+        test(view.combo).selectItem("test-foo");
+        test(view.combo).selectItem(null);
 
-        Assertions.assertEquals(4, fromClient.size(),
+        Assertions.assertEquals(6, fromClient.size(),
                 "Every interaction should fire a value change event");
         Assertions.assertFalse(fromClient.contains(false),
                 "Tester driven value changes should report isFromClient() == true");
+    }
+
+    @Test
+    void selectItem_selectionModelStaysInSyncWithValue() {
+        test(view.combo).selectItem("test-bar");
+
+        Assertions.assertEquals(Set.of(view.items.get(1)),
+                view.combo.getSelectedItems());
+        Assertions.assertTrue(view.combo.isSelected(view.items.get(1)));
+        Assertions.assertFalse(view.combo.isSelected(view.items.get(0)));
     }
 
     @Test

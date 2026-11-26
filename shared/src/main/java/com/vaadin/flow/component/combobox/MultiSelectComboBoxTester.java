@@ -30,10 +30,8 @@ import java.util.stream.Stream;
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
 import com.vaadin.browserless.internal.BasicUtils;
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.ItemLabelGenerator;
 import com.vaadin.flow.data.provider.DataCommunicator;
-import com.vaadin.flow.data.provider.IdentifierProvider;
 import com.vaadin.flow.function.SerializableConsumer;
 
 /**
@@ -175,26 +173,12 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
         // Suggestions are fetched anew, so an already selected item can come
         // back as a different instance; the component identifies items by
         // their id, not by equals.
-        Set<Object> selectedIds = value.stream().map(this::getItemId)
-                .collect(Collectors.toSet());
         for (Y item : getItemsForLabels(getSuggestionItems(), selection)) {
-            if (selectedIds.add(getItemId(item))) {
+            if (!getComponent().isSelected(item)) {
                 value.add(item);
             }
         }
         setValueAsUser(value);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Object getItemId(Y item) {
-        // An identifier provider set through a data view takes precedence
-        // over the data provider, as in the component's selection model
-        IdentifierProvider<Y> identifierProvider = ComponentUtil
-                .getData(getComponent(), IdentifierProvider.class);
-        if (identifierProvider != null) {
-            return identifierProvider.apply(item);
-        }
-        return getComponent().getDataProvider().getId(item);
     }
 
     /**
