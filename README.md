@@ -782,8 +782,7 @@ assertEquals(1, executed.getCalls(Focusable.FocusJs.class,
 `getCalls` names the method of the definition by calling it, so renaming the
 method updates the test and a typo does not compile. Arguments of a method
 with parameters are ignored, so any value will do. A method without
-parameters can be a method reference, such as `Focusable.FocusJs::blur`. A
-`getCalls(definitionType, methodName)` overload takes the name as a string.
+parameters can be a method reference, such as `Focusable.FocusJs::blur`.
 
 `getExecutions()` lists everything that was sent, in order, with the element
 it ran on and, for a call of a JavaScript definition, the call itself
@@ -794,6 +793,15 @@ with `contains(...)`, and the element is added as its last parameter.
 `getExecutions(component)` and `getExecutions(element)` keep only what was run
 on that element; JavaScript run on the page belongs to the UI, so
 `getExecutions(ui)` gets it.
+`getExecutions(definitionType, method)` keeps only the calls of one method of
+a definition, named the same way as for `getCalls`. A test can check a call's
+arguments and, for a call whose result the application waits for, answer it as
+the browser would:
+
+```java
+executed.getExecutions(WakeLockJs.class, WakeLockJs::request)
+        .getFirst().resolve(null);
+```
 
 Each UI also has a capture of its own, started when the UI is created, so
 it holds everything that UI was sent, including what the first view sent
@@ -804,7 +812,7 @@ window context (`BrowserlessUIContext`):
 ```java
 navigate(ReportView.class);
 
-assertEquals(List.of(), getExecutedJavaScript().getCalls(PrintJs.class, "print"));
+assertEquals(List.of(), getExecutedJavaScript().getCalls(PrintJs.class, PrintJs::print));
 ```
 
 After `reload()`, or in another window, `getExecutedJavaScript()` returns the
