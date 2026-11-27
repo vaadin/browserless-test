@@ -33,6 +33,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.internal.UIInternals;
+import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.dom.DisabledUpdateMode;
 import com.vaadin.flow.dom.Element;
@@ -153,12 +154,12 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                                 .methodName() + " " + execution.getElement())
                         .toList());
         Assertions.assertEquals(List.of("setOptions", "setOptions", "render"),
-                executed.getCalls(Element.CallFunctionJs.class, "callFunction")
-                        .stream().map(call -> call.arguments().get(0))
-                        .toList());
+                executed.getCalls(Element.CallFunctionJs.class,
+                        js -> js.callFunction(null)).stream()
+                        .map(call -> call.arguments().get(0)).toList());
         Assertions.assertEquals(List.of(Focusable.FocusJs.class),
-                executed.getCalls(Focusable.FocusJs.class, "focus").stream()
-                        .map(JsCall::definitionType).toList(),
+                executed.getCalls(Focusable.FocusJs.class, js -> js.focus(null))
+                        .stream().map(JsCall::definitionType).toList(),
                 "A focus method of another definition should not match");
         Assertions.assertTrue(test(field).isFocused(),
                 "The focus call should still be simulated");
@@ -516,6 +517,51 @@ class ExecutedJavaScriptTest extends BrowserlessTest {
                         List.of())),
                 executed.getCalls(OtherFocusJs.class,
                         OtherFocusJs::scrollIntoView));
+    }
+
+    @Test
+    void getExecutions_answersTheCallsOfOneMethod_leavingOthersWaiting() {
+        AtomicReference<String> locked = new AtomicReference<>();
+        AtomicReference<String> error = new AtomicReference<>();
+        ExecutedJavaScript executed = ExecutedJavaScript.capture();
+        calendar.getElement().executeJs(OrientationJs.class).lock("landscape")
+                .then(String.class, locked::set);
+        calendar.getElement().executeJs(OrientationJs.class).unlock()
+                .then(String.class, value -> Assertions.fail("Not answered"));
+        calendar.getElement().executeJs("return screen.orientation.lock($0)",
+                "portrait");
+        calendar.getElement().executeJs(OrientationJs.class).lock("portrait")
+                .then(value -> Assertions.fail("Should not succeed"),
+                        error::set);
+
+        List<ExecutedJavaScript.Execution> locks = executed
+                .getExecutions(OrientationJs.class, js -> js.lock(null));
+        List<List<Object>> arguments = locks.stream().map(
+                execution -> execution.getJsCall().orElseThrow().arguments())
+                .toList();
+        Assertions.assertEquals(
+                List.of(List.of("landscape"), List.of("portrait")), arguments);
+        locks.get(0).resolve("landscape-primary");
+        locks.get(1).reject("lock is not supported");
+
+        Assertions.assertEquals("landscape-primary", locked.get());
+        Assertions.assertEquals("lock is not supported", error.get());
+        Assertions.assertTrue(executed
+                .getExecutions(OrientationJs.class, OrientationJs::unlock)
+                .get(0).isWaitingForResult());
+        Assertions.assertEquals(List.of(
+                new JsCall(OrientationJs.class, "lock", List.of("landscape")),
+                new JsCall(OrientationJs.class, "lock", List.of("portrait"))),
+                executed.getCalls(OrientationJs.class, js -> js.lock(null)));
+    }
+
+    @JsDefinition
+    public interface OrientationJs extends JsInvokers {
+        @JsExpression("return screen.orientation.lock($0)")
+        PendingJavaScriptResult lock(String orientation);
+
+        @JsExpression("return screen.orientation.unlock()")
+        PendingJavaScriptResult unlock();
     }
 
     @Test
