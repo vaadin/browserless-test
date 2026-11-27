@@ -86,17 +86,31 @@ public final class CapturingServiceProvider implements SLF4JServiceProvider {
 
     private static final class CapturingLogger extends LegacyAbstractLogger {
 
-        // Same property as slf4j-simple, to get more output when debugging
-        private static final Level DEFAULT_LEVEL = Level.valueOf(System
-                .getProperty("org.slf4j.simpleLogger.defaultLogLevel", "info")
-                .toUpperCase(Locale.ROOT));
+        // Same property and values as slf4j-simple, to get more output when
+        // debugging: "off" logs nothing and an unknown value means INFO
+        private static final int DEFAULT_LEVEL = parseLevel(
+                System.getProperty("org.slf4j.simpleLogger.defaultLogLevel"));
 
         private CapturingLogger(String name) {
             this.name = name;
         }
 
+        private static int parseLevel(String value) {
+            if (value == null) {
+                return Level.INFO.toInt();
+            }
+            return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "trace" -> Level.TRACE.toInt();
+            case "debug" -> Level.DEBUG.toInt();
+            case "warn" -> Level.WARN.toInt();
+            case "error" -> Level.ERROR.toInt();
+            case "off" -> Integer.MAX_VALUE;
+            default -> Level.INFO.toInt();
+            };
+        }
+
         private boolean isEnabled(Level level) {
-            return level.toInt() >= DEFAULT_LEVEL.toInt()
+            return level.toInt() >= DEFAULT_LEVEL
                     || LogCapture.isCapturing(name, level);
         }
 
@@ -134,7 +148,7 @@ public final class CapturingServiceProvider implements SLF4JServiceProvider {
         protected void handleNormalizedLoggingCall(Level level, Marker marker,
                 String pattern, Object[] arguments, Throwable throwable) {
             LogCapture.record(name, level, pattern, arguments, throwable);
-            if (level.toInt() >= DEFAULT_LEVEL.toInt()) {
+            if (level.toInt() >= DEFAULT_LEVEL) {
                 PrintStream err = System.err;
                 err.println("[" + Thread.currentThread().getName() + "] "
                         + level + " " + name + " - " + MessageFormatter
