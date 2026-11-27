@@ -133,48 +133,57 @@ final class TesterRegistry {
                                 try {
                                     return Utils.findClassOrThrow(clazz);
                                 } catch (ClassNotFoundException e) {
-                                    logSkippedTester(e, classInfo.getName(),
-                                            clazz);
+                                    logTypeLoadingIssue(e,
+                                            "Tester '{}' cannot be loaded because of missing component class '{}' on classpath",
+                                            classInfo.getName(), clazz);
                                     return null;
                                 }
                             }).filter(Objects::nonNull)
                                     .forEach(clazz -> testerMap.put(clazz,
                                             (Class<? extends ComponentTester>) tester));
                         } catch (TypeNotPresentException e) {
-                            logSkippedTester(e, classInfo.getName(),
-                                    e.typeName());
-                        } catch (ClassNotFoundException e) {
-                            logSkippedTester(e, classInfo.getName(),
-                                    e.getMessage());
+                            logTypeLoadingIssue(e,
+                                    "Tester '{}' cannot be loaded because of missing class '{}' on classpath",
+                                    classInfo.getName(), e.typeName());
+                        } catch (ExceptionInInitializerError e) {
+                            logInitializationFailure(classInfo.getName(), e);
                         } catch (NoClassDefFoundError e) {
-                            // A class whose static initializer already failed
-                            // is on the classpath but broken, which is a real
-                            // problem rather than a missing optional component.
+                            // A class whose initialization already failed
+                            // once, e.g. the superclass of this tester, is
+                            // reported with the original failure as the cause
                             if (e.getCause() instanceof ExceptionInInitializerError) {
-                                LOGGER.warn("Tester '{}' cannot be loaded",
-                                        classInfo.getName(), e);
+                                logInitializationFailure(classInfo.getName(),
+                                        e);
                             } else {
-                                logSkippedTester(e, classInfo.getName(),
-                                        e.getMessage());
+                                logTypeLoadingIssue(e,
+                                        "Tester '{}' cannot be loaded because of missing class on classpath: {}",
+                                        classInfo.getName(), e.getMessage());
                             }
+                        } catch (ClassNotFoundException e) {
+                            logTypeLoadingIssue(e,
+                                    "Tester '{}' cannot be loaded because of missing class on classpath: {}",
+                                    classInfo.getName(), e.getMessage());
                         }
                     });
             return Collections.unmodifiableMap(testerMap);
         }
     }
 
-    // A tester whose component is not on the classpath is expected, e.g. the
-    // Pro component testers in an application that only uses vaadin-core, so
-    // it is skipped quietly instead of reported as a problem. The cause is
-    // kept at trace level for when a tester that should load goes missing.
-    private static void logSkippedTester(Throwable cause, String testerName,
-            String missingClass) {
-        String message = "Skipping tester '{}' because a class it needs is not available: {}";
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace(message, testerName, missingClass, cause);
-        } else {
-            LOGGER.debug(message, testerName, missingClass);
-        }
+    // Unlike a missing class, a class that exists but fails to initialize is
+    // a bug, so it is reported with its stack trace.
+    private static void logInitializationFailure(String tester, Throwable ex) {
+        LOGGER.warn("Tester '{}' cannot be loaded because it or a class it "
+                + "references failed to initialize", tester, ex);
+    }
+
+    // A tester that references a class missing from the classpath is expected,
+    // e.g. the commercial component testers in an application that only
+    // depends on vaadin-core, so skipping it must not produce warnings or
+    // stack traces.
+    private static void logTypeLoadingIssue(Throwable ex, String message,
+            Object... args) {
+        LOGGER.debug(message, args);
+        LOGGER.trace("Cause of the skipped tester", ex);
     }
 
     /**

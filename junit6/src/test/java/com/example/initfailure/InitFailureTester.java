@@ -13,18 +13,24 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.example.failedinit;
+package com.example.initfailure;
 
 import com.vaadin.browserless.ComponentTester;
 import com.vaadin.browserless.Tests;
+import com.vaadin.flow.component.Component;
 
-@Tests(FailedInitComponent.class)
-public class FailedInitComponentTester<T extends FailedInitComponent>
-        extends ComponentTester<T> {
+// A component name that does not resolve keeps the locator processor from
+// generating a locator that would run the failing initializer
+@Tests(fqn = "com.example.initfailure.MissingComponent")
+public class InitFailureTester extends ComponentTester<Component> {
 
-    static final Object BROKEN = BrokenInit.VALUE;
+    static {
+        if (Boolean.TRUE) {
+            throw new IllegalStateException("Tester initialization failed");
+        }
+    }
 
-    public FailedInitComponentTester(T component) {
+    public InitFailureTester(Component component) {
         super(component);
     }
 }
