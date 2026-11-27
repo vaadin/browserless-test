@@ -20,7 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.router.RouterLink;
@@ -164,6 +166,17 @@ class RouterLinkTesterTest extends BrowserlessTest {
         assertNavigationSucceeded($routeParameterRouterLink,
                 RouterLinkRouteParameterTargetView.class,
                 "Route Parameter Target View: { segment2 = segment2-value; segment3 = segment3-value1/segment3-value2 }");
+    }
+
+    @Test
+    void click_runsCopyTriggerAndNavigates() {
+        Clipboard.onClick(routerLinkView.staticRouterLink).writeText("Hello");
+
+        test(routerLinkView.staticRouterLink).click();
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertInstanceOf(RouterLinkStaticTargetView.class,
+                getCurrentView());
     }
 
     private void assertNavigationSucceeded(RouterLinkTester<RouterLink> tester,

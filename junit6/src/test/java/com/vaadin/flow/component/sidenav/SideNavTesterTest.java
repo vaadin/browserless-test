@@ -26,10 +26,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.MockPage;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.dom.DomListenerRegistration;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -107,6 +109,17 @@ class SideNavTesterTest extends BrowserlessTest {
     void toggle_notCollapsible_throws() {
         view.sideNav.setCollapsible(false);
         Assertions.assertThrows(IllegalStateException.class, sideNav_::toggle);
+    }
+
+    @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.adminSection).writeText("Hello");
+
+        sideNav_.clickItem("Admin");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertTrue(view.adminSection.isExpanded(),
+                "the click should still expand the item");
     }
 
     @Test

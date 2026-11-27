@@ -22,7 +22,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -330,5 +332,15 @@ class MenuBarTesterTest extends BrowserlessTest {
                         "Checkables", "Disabled", "Hierarchical"),
                 menu_.getItemTexts(),
                 "a user can read the items of a disabled menu bar");
+    }
+
+    @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.menu.getItems().get(0)).writeText("Hello");
+
+        menu_.clickItem("Foo");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertIterableEquals(List.of("Foo"), view.clickedItems);
     }
 }

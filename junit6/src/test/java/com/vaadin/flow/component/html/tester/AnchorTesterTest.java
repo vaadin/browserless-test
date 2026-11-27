@@ -24,8 +24,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.StreamResource;
@@ -49,6 +51,18 @@ class AnchorTesterTest extends BrowserlessTest {
         Assertions.assertEquals("anchor", test(anchor).getHref());
         Assertions.assertInstanceOf(AnchorView.class, test(anchor).navigate(),
                 "Click anchor did not navigate to AnchorView");
+    }
+
+    @Test
+    void anchorClick_runsCopyTriggerAndNavigates() {
+        Anchor anchor = new Anchor("anchor", "Home");
+        UI.getCurrent().add(anchor);
+        Clipboard.onClick(anchor).writeText("Hello");
+
+        test(anchor).click();
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertInstanceOf(AnchorView.class, getCurrentView());
     }
 
     @Test

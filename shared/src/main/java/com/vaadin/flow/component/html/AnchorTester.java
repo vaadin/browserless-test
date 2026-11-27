@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
 
+import com.vaadin.browserless.ClientInitializers;
 import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
@@ -118,7 +119,9 @@ public class AnchorTester extends HtmlContainerTester<Anchor> {
 
     /**
      * Click the anchor for navigation if target is a registered route in the
-     * application. This is equivalent to calling {@link #navigate()}.
+     * application. Navigates like {@link #navigate()}, but first runs the
+     * client-side click listeners of the anchor, such as a copy to the
+     * clipboard, as the browser does.
      *
      * For cases where you need to access the navigated view, use
      * {@link #navigate()} instead as it returns the target view.
@@ -128,6 +131,11 @@ public class AnchorTester extends HtmlContainerTester<Anchor> {
      */
     @Override
     public void click() {
+        ensureComponentIsUsable();
+        // Client-side click listeners, such as a copy to the clipboard, run
+        // before the browser follows the link
+        ClientInitializers.fireDomEvent(getComponent().getUI().orElseThrow(),
+                getComponent(), "click").run();
         navigate();
     }
 

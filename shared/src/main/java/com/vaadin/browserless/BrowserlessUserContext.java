@@ -74,6 +74,7 @@ public class BrowserlessUserContext implements AutoCloseable {
     private final VaadinSession session;
     private final VaadinRequest request;
     private final VaadinResponse response;
+    private final SimulatedClipboard clipboard;
     private final List<BrowserlessUIContext> windows = new ArrayList<>();
     private Object securitySnapshot;
     private boolean closed;
@@ -116,6 +117,9 @@ public class BrowserlessUserContext implements AutoCloseable {
             this.session = objs.getSession();
             this.request = objs.getRequest();
             this.response = objs.getResponse();
+            // Taken while the session is still locked by this thread, so that
+            // the clipboard can be read later from another user's window.
+            this.clipboard = SimulatedClipboard.of(session);
             if (app.isSessionLockIsolation()) {
                 // The session is created locked by this thread. Release it and
                 // take it back through the application so that this user's
@@ -288,6 +292,16 @@ public class BrowserlessUserContext implements AutoCloseable {
      */
     public VaadinSession getSession() {
         return session;
+    }
+
+    /**
+     * Returns the clipboard of this user's browser, shared by all of the user's
+     * windows.
+     *
+     * @return the clipboard, not {@code null}
+     */
+    public SimulatedClipboard getClipboard() {
+        return clipboard;
     }
 
     BrowserlessApplicationContext getApp() {

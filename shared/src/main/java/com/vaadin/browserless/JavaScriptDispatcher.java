@@ -123,8 +123,9 @@ public final class JavaScriptDispatcher implements Serializable {
      * created, before the UI is initialized: installs the handlers that
      * simulate what a browser does with the JavaScript Browserless Test knows
      * how to simulate, such as server-side {@code Focusable.focus()} and
-     * {@code blur()} calls, followed by a new instance of each
-     * {@link JavaScriptHandler} configured for the environment with
+     * {@code blur()} calls and the element initializers of triggers, followed
+     * by a new instance of each {@link JavaScriptHandler} configured for the
+     * environment with
      * {@link #setJavaScriptHandlers(VaadinService, Collection)}. Installing
      * them up front means a call sent before any tester interaction, while the
      * initial view is built or by a lookup, is handled too. Also starts the
@@ -145,6 +146,7 @@ public final class JavaScriptDispatcher implements Serializable {
         dispatcher.uiCapture = ExecutedJavaScript.startCapture(dispatcher,
                 true);
         dispatcher.addHandler(FocusTracker.HANDLER);
+        dispatcher.addHandler(ClientInitializers.HANDLER);
         VaadinSession session = ui.getSession();
         ConfiguredHandlers configured = session == null ? null
                 : session.getService().getContext()

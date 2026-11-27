@@ -23,7 +23,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vaadin.browserless.BrowserlessTest;
+import com.vaadin.browserless.SimulatedClipboard;
 import com.vaadin.browserless.ViewPackages;
+import com.vaadin.flow.component.clipboard.Clipboard;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.router.RouteConfiguration;
 
@@ -567,5 +569,17 @@ class ContextMenuTesterTest extends BrowserlessTest {
                 menu_::getItemTexts);
         Assertions.assertThrows(IllegalStateException.class,
                 () -> menu_.getItemTexts("Hierarchical"));
+    }
+
+    @Test
+    void clickItem_runsCopyTrigger() {
+        Clipboard.onClick(view.menu.getItems().get(0)).writeText("Hello");
+        ContextMenuTester<ContextMenu> menu_ = test(view.menu);
+        menu_.open();
+
+        menu_.clickItem("Foo");
+
+        Assertions.assertEquals("Hello", SimulatedClipboard.get().getText());
+        Assertions.assertIterableEquals(List.of("Foo"), view.clickedItems);
     }
 }
