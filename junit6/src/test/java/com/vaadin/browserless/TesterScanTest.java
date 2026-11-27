@@ -18,20 +18,25 @@ package com.vaadin.browserless;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.event.Level;
 
+import com.vaadin.browserless.logging.LogCapture;
+import com.vaadin.browserless.logging.LogCapture.CapturedEvent;
 import com.vaadin.flow.component.Component;
 
 // Ensure that scanning testers does not fail when a tester references
@@ -47,9 +52,11 @@ public class TesterScanTest {
         // non-existing component class, as the commercial component testers
         // do in an application without those components. Skipping it is
         // expected, so nothing is logged at the default level.
-        String log = captureStdErr(() -> TesterRegistry.registerPackages(
-                "com.vaadin.browserless.dontscan.classnotfound"));
-        Assertions.assertEquals("", log);
+        assertSkipLoggedBelowDefaultLevel(
+                () -> TesterRegistry.registerPackages(
+                        "com.vaadin.browserless.dontscan.classnotfound"),
+                "Tester 'com.vaadin.browserless.dontscan.classnotfound.MissingComponentTester' cannot be loaded because of missing component class 'com.vaadin.browserless.dontscan.classnotfound.MissingComponent' on classpath",
+                ClassNotFoundException.class);
     }
 
     @Test
@@ -70,9 +77,11 @@ public class TesterScanTest {
                         }
                         """);
         try (fixture) {
-            String log = captureStdErr(() -> registerPackageWith(fixture,
-                    "com.vaadin.browserless.dontscan.noclassdeffound"));
-            Assertions.assertEquals("", log);
+            assertSkipLoggedBelowDefaultLevel(
+                    () -> registerPackageWith(fixture,
+                            "com.vaadin.browserless.dontscan.noclassdeffound"),
+                    "Tester 'com.vaadin.browserless.dontscan.noclassdeffound.MissingComponentTester' cannot be loaded because of missing class on classpath: com/vaadin/browserless/dontscan/noclassdeffound/MissingComponent",
+                    NoClassDefFoundError.class);
             assertPresentComponentTesterRegistered(fixture,
                     "com.vaadin.browserless.dontscan.noclassdeffound");
         }
@@ -92,9 +101,11 @@ public class TesterScanTest {
                         }
                         """);
         try (fixture) {
-            String log = captureStdErr(() -> registerPackageWith(fixture,
-                    "com.vaadin.browserless.dontscan.typenotpresent"));
-            Assertions.assertEquals("", log);
+            assertSkipLoggedBelowDefaultLevel(
+                    () -> registerPackageWith(fixture,
+                            "com.vaadin.browserless.dontscan.typenotpresent"),
+                    "Tester 'com.vaadin.browserless.dontscan.typenotpresent.MissingComponentTester' cannot be loaded because of missing class 'com.vaadin.browserless.dontscan.typenotpresent.MissingComponent' on classpath",
+                    TypeNotPresentException.class);
             assertPresentComponentTesterRegistered(fixture,
                     "com.vaadin.browserless.dontscan.typenotpresent");
         }
@@ -104,40 +115,64 @@ public class TesterScanTest {
     public void scanForTesters_testerFailsToInitialize_logWarningWithCause() {
         // InitFailureSubclassTester extends InitFailureTester, so whichever
         // is loaded second finds a class whose initialization already failed
-        String log = captureStdErr(() -> TesterRegistry
-                .registerPackages("com.example.initfailure"));
-        Assertions.assertTrue(log.contains("WARN"), log);
-        Assertions.assertTrue(log.contains(
-                "Tester 'com.example.initfailure.InitFailureTester' cannot be loaded because it or a class it references failed to initialize"),
-                log);
-        Assertions.assertTrue(log.contains(
+        List<CapturedEvent> warnings = scanCapturing(
+                () -> TesterRegistry
+                        .registerPackages("com.example.initfailure"),
+                Level.WARN);
+        Assertions.assertEquals(2, warnings.size(), warnings::toString);
+        Assertions.assertEquals(Set.of(
+                "Tester 'com.example.initfailure.InitFailureTester' cannot be loaded because it or a class it references failed to initialize",
                 "Tester 'com.example.initfailure.InitFailureSubclassTester' cannot be loaded because it or a class it references failed to initialize"),
-                log);
-        Assertions.assertTrue(log.contains("Tester initialization failed"),
-                log);
+                warnings.stream().map(CapturedEvent::message)
+                        .collect(Collectors.toSet()));
         // Each warning carries the initialization failure. Loading a class
         // whose initialization already failed does not always repeat the
-        // original message, so only the error type is checked per warning.
-        String[] warnings = log.split("cannot be loaded because", -1);
-        Assertions.assertEquals(3, warnings.length, log);
+        // original message, so it is only required once.
+        for (CapturedEvent warning : warnings) {
+            Assertions.assertEquals(Level.WARN, warning.level());
+            Assertions.assertTrue(
+                    causes(warning.throwable()).anyMatch(
+                            ExceptionInInitializerError.class::isInstance),
+                    warning::toString);
+        }
         Assertions.assertTrue(
-                warnings[1].contains("ExceptionInInitializerError"), log);
-        Assertions.assertTrue(
-                warnings[2].contains("ExceptionInInitializerError"), log);
+                warnings.stream()
+                        .flatMap(warning -> causes(warning.throwable()))
+                        .map(Throwable::getMessage).filter(Objects::nonNull)
+                        .anyMatch(message -> message
+                                .contains("Tester initialization failed")),
+                warnings::toString);
     }
 
-    private String captureStdErr(Executable scan) {
+    // A skipped tester is logged as one DEBUG line naming the tester and the
+    // missing class, with the cause at TRACE, so nothing is logged at the
+    // default level
+    private static void assertSkipLoggedBelowDefaultLevel(Executable scan,
+            String debugMessage, Class<? extends Throwable> cause) {
+        List<CapturedEvent> events = scanCapturing(scan, Level.TRACE);
+        Assertions.assertEquals(2, events.size(), events::toString);
+        Assertions.assertEquals(Level.DEBUG, events.get(0).level());
+        Assertions.assertEquals(debugMessage, events.get(0).message());
+        Assertions.assertNull(events.get(0).throwable());
+        Assertions.assertEquals(Level.TRACE, events.get(1).level());
+        Assertions.assertInstanceOf(cause, events.get(1).throwable());
+    }
+
+    // Captures the registry's events at the given level and above, which
+    // does not depend on the level configured for the test output
+    private static List<CapturedEvent> scanCapturing(Executable scan,
+            Level level) {
         // Load the registry first so that only the given scan is captured
         TesterRegistry.registerPackages();
-        ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        PrintStream originalErr = System.err;
-        System.setErr(new PrintStream(captured, true, StandardCharsets.UTF_8));
-        try {
+        try (LogCapture capture = LogCapture.start(TesterRegistry.class,
+                level)) {
             Assertions.assertDoesNotThrow(scan);
-        } finally {
-            System.setErr(originalErr);
+            return capture.events();
         }
-        return captured.toString(StandardCharsets.UTF_8);
+    }
+
+    private static Stream<Throwable> causes(Throwable throwable) {
+        return Stream.iterate(throwable, Objects::nonNull, Throwable::getCause);
     }
 
     // The scan of the fixture package registers the loadable tester next to
