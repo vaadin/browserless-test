@@ -29,7 +29,9 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.browserless.locator.Locator;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.card.Card;
+import com.vaadin.flow.component.combobox.MultiSelectComboBoxLocator;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridLocator;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 
@@ -800,5 +802,24 @@ class LocatorApiTest {
                     .withPlaceholderContaining("people").component();
             Assertions.assertEquals("search", search.getId().orElseThrow());
         }
+    }
+
+    @Test
+    void deprecatedTesterMethod_isDeprecatedOnGeneratedLocator()
+            throws NoSuchMethodException {
+        Deprecated deprecated = MultiSelectComboBoxLocator.class
+                .getMethod("selectItem", String[].class)
+                .getAnnotation(Deprecated.class);
+        Assertions.assertNotNull(deprecated);
+        Assertions.assertFalse(deprecated.forRemoval());
+        Assertions.assertFalse(MultiSelectComboBoxLocator.class
+                .getMethod("selectItems", String[].class)
+                .isAnnotationPresent(Deprecated.class));
+
+        Deprecated forRemoval = GridLocator.class
+                .getMethod("getFooterCell", int.class)
+                .getAnnotation(Deprecated.class);
+        Assertions.assertNotNull(forRemoval);
+        Assertions.assertTrue(forRemoval.forRemoval());
     }
 }

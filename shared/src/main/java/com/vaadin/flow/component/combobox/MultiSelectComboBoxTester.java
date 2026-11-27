@@ -19,8 +19,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -83,12 +85,25 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
 
     /**
      * Select items by client string representation.
+     * <p>
+     * Replaces the whole selection with the items whose labels match, and
+     * empties it when {@code selection} is {@code null}. Labels that match no
+     * item are ignored as long as at least one label matches.
      *
      * @param selection
      *            item representations as strings
      * @throws IllegalStateException
      *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if none of the labels matches an item; the selection is then
+     *             left unchanged
+     * @deprecated use {@link #selectItems(String...)}, which adds the items to
+     *             the current selection as ticking them in the overlay does. To
+     *             replace the selection, call {@link #deselectAll()} first; to
+     *             empty it, call {@link #deselectAll()} instead of passing
+     *             {@code null}.
      */
+    @Deprecated
     public void selectItem(String... selection) {
         ensureComponentIsUsable();
         if (selection == null) {
@@ -110,11 +125,153 @@ public class MultiSelectComboBoxTester<T extends MultiSelectComboBox<Y>, Y>
     }
 
     /**
+     * Selects items by client string representation, as ticking them in the
+     * overlay does.
+     * <p>
+     * The items are added to the current selection; items that are already
+     * selected stay selected. Labels are matched against the current
+     * suggestions, so a filter set with {@link #setFilter(String)} is taken
+     * into account.
+     *
+     * <p>
+     * Passing no labels leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no item
+     */
+    public void selectItems(String... selection) {
+        selectItems(selection == null ? null : Arrays.asList(selection));
+    }
+
+    /**
+     * Selects items by client string representation, as ticking them in the
+     * overlay does.
+     * <p>
+     * The items are added to the current selection; items that are already
+     * selected stay selected. Labels are matched against the current
+     * suggestions, so a filter set with {@link #setFilter(String)} is taken
+     * into account.
+     * <p>
+     * Passing an empty collection leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no item
+     */
+    public void selectItems(Collection<String> selection) {
+        ensureComponentIsUsable();
+        Set<Y> value = new LinkedHashSet<>(getSelected());
+        // Suggestions are fetched anew, so an already selected item can come
+        // back as a different instance; the component identifies items by
+        // their id, not by equals.
+        for (Y item : getItemsForLabels(getSuggestionItems(), selection)) {
+            if (!getComponent().isSelected(item)) {
+                value.add(item);
+            }
+        }
+        setValueAsUser(value);
+    }
+
+    /**
+     * Deselects items by client string representation, as unticking them in the
+     * overlay does.
+     * <p>
+     * Other selected items stay selected. Labels are matched against the
+     * current selection, so an item hidden by the filter can still be
+     * deselected, as removing its chip does.
+     *
+     * <p>
+     * Passing no labels leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no selected item
+     */
+    public void deselectItems(String... selection) {
+        deselectItems(selection == null ? null : Arrays.asList(selection));
+    }
+
+    /**
+     * Deselects items by client string representation, as unticking them in the
+     * overlay does.
+     * <p>
+     * Other selected items stay selected. Labels are matched against the
+     * current selection, so an item hidden by the filter can still be
+     * deselected, as removing its chip does.
+     * <p>
+     * Passing an empty collection leaves the selection unchanged.
+     *
+     * @param selection
+     *            item representations as strings, not {@code null}
+     * @throws IllegalStateException
+     *             if the component is not usable
+     * @throws IllegalArgumentException
+     *             if {@code selection} is {@code null} or contains a label that
+     *             matches no selected item
+     */
+    public void deselectItems(Collection<String> selection) {
+        ensureComponentIsUsable();
+        Set<Y> value = new LinkedHashSet<>(getSelected());
+        value.removeAll(getItemsForLabels(value, selection));
+        setValueAsUser(value);
+    }
+
+    /**
+     * Deselects all items, as unticking every selected item in the overlay
+     * does.
+     * <p>
+     * Unlike {@link #clickClearButton()}, this does not require the clear
+     * button to be visible.
+     *
+     * @throws IllegalStateException
+     *             if the component is not usable
+     */
+    public void deselectAll() {
+        ensureComponentIsUsable();
+        setValueAsUser(getComponent().getEmptyValue());
+    }
+
+    private Set<Y> getItemsForLabels(Collection<Y> candidates,
+            Collection<String> labels) {
+        if (labels == null) {
+            throw new IllegalArgumentException("Selection must not be null");
+        }
+        final ItemLabelGenerator<Y> itemLabelGenerator = getComponent()
+                .getItemLabelGenerator();
+        Set<Y> items = new LinkedHashSet<>();
+        for (String label : labels) {
+            List<Y> matches = candidates.stream()
+                    .filter(item -> Objects
+                            .equals(itemLabelGenerator.apply(item), label))
+                    .toList();
+            if (matches.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "No item found for '" + label + "'");
+            }
+            items.addAll(matches);
+        }
+        return items;
+    }
+
+    /**
      * Clears the selection by clicking the clear button, as the user would.
      * <p>
      * Requires the clear button to be visible — a hidden clear button is not
-     * something the user can click. {@link #selectItem(String...)} with
-     * {@code null} clears the selection without that requirement.
+     * something the user can click. {@link #deselectAll()} clears the selection
+     * without that requirement.
      *
      * @throws IllegalStateException
      *             if the component is not usable, or its clear button is not
