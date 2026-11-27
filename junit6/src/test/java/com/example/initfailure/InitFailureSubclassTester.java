@@ -13,11 +13,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.vaadin.browserless.dontscan.typenotpresent;
+package com.example.initfailure;
 
+import com.vaadin.browserless.Tests;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Tag;
 
-@Tag("span")
-public class TypeNotPresentComponent extends Component {
+@Tests(fqn = "com.example.initfailure.MissingComponent")
+public class InitFailureSubclassTester extends InitFailureTester {
+
+    public InitFailureSubclassTester(Component component) {
+        super(component);
+    }
 }
