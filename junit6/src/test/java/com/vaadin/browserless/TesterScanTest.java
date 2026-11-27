@@ -51,29 +51,11 @@ public class TesterScanTest {
         // non-existing component class, as the commercial component testers
         // do in an application without those components. Skipping it is
         // expected, so nothing is logged at the default level.
-        String log = captureStdErr(() -> TesterRegistry.registerPackages(
-                "com.vaadin.browserless.dontscan.classnotfound"));
-        Assertions.assertEquals("", log);
-    }
-
-    @Test
-    public void scanForTesters_testerForClassNotInClasspath_logsTesterAndMissingClassAtDebugWithCauseAtTrace() {
-        List<CapturedEvent> events;
-        try (LogCapture capture = LogCapture.start(TesterRegistry.class,
-                Level.TRACE)) {
-            Assertions.assertDoesNotThrow(() -> TesterRegistry.registerPackages(
-                    "com.vaadin.browserless.dontscan.classnotfound"));
-            events = capture.events();
-        }
-        Assertions.assertEquals(2, events.size(), events::toString);
-        Assertions.assertEquals(Level.DEBUG, events.get(0).level());
-        Assertions.assertEquals(
+        assertSkipLoggedBelowDefaultLevel(
+                () -> TesterRegistry.registerPackages(
+                        "com.vaadin.browserless.dontscan.classnotfound"),
                 "Tester 'com.vaadin.browserless.dontscan.classnotfound.MissingComponentTester' cannot be loaded because of missing component class 'com.vaadin.browserless.dontscan.classnotfound.MissingComponent' on classpath",
-                events.get(0).message());
-        Assertions.assertNull(events.get(0).throwable());
-        Assertions.assertEquals(Level.TRACE, events.get(1).level());
-        Assertions.assertInstanceOf(ClassNotFoundException.class,
-                events.get(1).throwable());
+                ClassNotFoundException.class);
     }
 
     @Test
@@ -94,9 +76,11 @@ public class TesterScanTest {
                         }
                         """);
         try (fixture) {
-            String log = captureStdErr(() -> registerPackageWith(fixture,
-                    "com.vaadin.browserless.dontscan.noclassdeffound"));
-            Assertions.assertEquals("", log);
+            assertSkipLoggedBelowDefaultLevel(
+                    () -> registerPackageWith(fixture,
+                            "com.vaadin.browserless.dontscan.noclassdeffound"),
+                    "Tester 'com.vaadin.browserless.dontscan.noclassdeffound.MissingComponentTester' cannot be loaded because of missing class on classpath: com/vaadin/browserless/dontscan/noclassdeffound/MissingComponent",
+                    NoClassDefFoundError.class);
             assertPresentComponentTesterRegistered(fixture,
                     "com.vaadin.browserless.dontscan.noclassdeffound");
         }
@@ -116,9 +100,11 @@ public class TesterScanTest {
                         }
                         """);
         try (fixture) {
-            String log = captureStdErr(() -> registerPackageWith(fixture,
-                    "com.vaadin.browserless.dontscan.typenotpresent"));
-            Assertions.assertEquals("", log);
+            assertSkipLoggedBelowDefaultLevel(
+                    () -> registerPackageWith(fixture,
+                            "com.vaadin.browserless.dontscan.typenotpresent"),
+                    "Tester 'com.vaadin.browserless.dontscan.typenotpresent.MissingComponentTester' cannot be loaded because of missing class 'com.vaadin.browserless.dontscan.typenotpresent.MissingComponent' on classpath",
+                    TypeNotPresentException.class);
             assertPresentComponentTesterRegistered(fixture,
                     "com.vaadin.browserless.dontscan.typenotpresent");
         }
@@ -148,6 +134,29 @@ public class TesterScanTest {
                 warnings[1].contains("ExceptionInInitializerError"), log);
         Assertions.assertTrue(
                 warnings[2].contains("ExceptionInInitializerError"), log);
+    }
+
+    // A skipped tester is logged as one DEBUG line naming the tester and the
+    // missing class, with the cause at TRACE, so nothing reaches the output
+    // at the default level
+    private void assertSkipLoggedBelowDefaultLevel(Executable scan,
+            String debugMessage, Class<? extends Throwable> cause) {
+        // Load the registry first so that only the given scan is captured
+        TesterRegistry.registerPackages();
+        List<CapturedEvent> events;
+        String log;
+        try (LogCapture capture = LogCapture.start(TesterRegistry.class,
+                Level.TRACE)) {
+            log = captureStdErr(scan);
+            events = capture.events();
+        }
+        Assertions.assertEquals("", log);
+        Assertions.assertEquals(2, events.size(), events::toString);
+        Assertions.assertEquals(Level.DEBUG, events.get(0).level());
+        Assertions.assertEquals(debugMessage, events.get(0).message());
+        Assertions.assertNull(events.get(0).throwable());
+        Assertions.assertEquals(Level.TRACE, events.get(1).level());
+        Assertions.assertInstanceOf(cause, events.get(1).throwable());
     }
 
     private String captureStdErr(Executable scan) {
